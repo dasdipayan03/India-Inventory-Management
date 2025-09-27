@@ -90,7 +90,8 @@ router.post("/forgot-password", async (req, res) => {
             [reset_token, expires, email]
         );
 
-        const resetLink = `http://localhost:4000/reset.html?token=${reset_token}&email=${encodeURIComponent(email)}`;
+        const baseUrl = process.env.BASE_URL || `https://${req.get("host")}`;
+        const resetLink = `${baseUrl}/reset.html?token=${reset_token}&email=${encodeURIComponent(email)}`;
 
         return res.json({
             message: "Password reset link generated (demo mode).",
