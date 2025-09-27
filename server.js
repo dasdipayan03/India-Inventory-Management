@@ -1,8 +1,11 @@
-require("dotenv").config();
+// Load dotenv only in development
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config();
+}
+
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-dotenv.config();
 
 // Load DB connection
 const pool = require("./db");
@@ -47,13 +50,6 @@ app.use(express.static(path.join(__dirname, "public")));
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
-
-// Routes
-app.use("/api/auth", require("./routes/auth"));
-app.use("/api/inventory", require("./routes/inventory"));
-
-// Serve frontend (for login.html, index.html)
-app.use(express.static(path.join(__dirname, "public")));
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
