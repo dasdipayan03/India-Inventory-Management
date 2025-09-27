@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Reset Password | Inventory App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background: white;
+      padding: 28px;
+      border-radius: 12px;
+      width: 350px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      text-align: center;
+      color: #333;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 12px;
+      border: none;
+      border-radius: 6px;
+      background: #2563eb;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1e4fc1;
+    }
+
+    .msg {
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .msg.error {
+      background: #fde8e8;
+      color: #b91c1c;
+    }
+
+    .msg.success {
+      background: #ecfdf5;
+      color: #065f46;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h2>Reset Password</h2>
+    <div id="msg"></div>
+
+    <input id="email" type="email" placeholder="Email">
+    <input id="token" type="text" placeholder="Reset Token">
+    <input id="newPassword" type="password" placeholder="New Password">
+    <button onclick="resetPassword()">Reset Password</button>
+  </div>
+
+  <script>
+    const apiBase = "http://localhost:4000/api/auth";
+    const msgEl = document.getElementById("msg");
+
+    // Pre-fill email + token from URL
+    const params = new URLSearchParams(window.location.search);
+    const tokenParam = params.get("token");
+    const emailParam = params.get("email");
+    if (tokenParam) document.getElementById("token").value = tokenParam;
+    if (emailParam) document.getElementById("email").value = decodeURIComponent(emailParam);
+
+    function showMsg(type, text) {
+      msgEl.innerHTML = `<div class="msg ${type}">${text}</div>`;
+    }
+
+    async function resetPassword() {
+      const email = document.getElementById("email").value.trim();
+      const token = document.getElementById("token").value.trim();
+      const newPassword = document.getElementById("newPassword").value;
+      if (!email || !token || !newPassword) return showMsg("error", "All fields required");
+
+      try {
+        const res = await fetch(apiBase + "/reset-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, token, newPassword })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Reset failed");
+
+        showMsg("success", data.message);
+        setTimeout(() => window.location.href = "login.html", 1500);
+      } catch (err) {
+        showMsg("error", err.message);
+      }
+    }
+  </script>
+</body>
+
+</html>

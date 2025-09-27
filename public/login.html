@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Login Inventory Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #949494ac, #0ea5e9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: white;
+            padding: 28px;
+            border-radius: 14px;
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        h2 {
+            margin: 0 0 20px;
+            text-align: center;
+            color: #111827;
+            font-weight: bold;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 18px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #ddd;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            cursor: pointer;
+            background: #f3f4f6;
+            transition: 0.2s;
+        }
+
+        .tab.active {
+            background: #2563eb;
+            color: white;
+            font-weight: bold;
+        }
+
+        .form {
+            display: none;
+        }
+
+        .form.active {
+            display: block;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin: 10px 0;
+            padding: 8px 10px;
+            background: #fafafa;
+        }
+
+        .input-group i {
+            margin-right: 8px;
+            color: #6b7280;
+        }
+
+        .input-group input {
+            border: none;
+            outline: none;
+            flex: 1;
+            background: transparent;
+            font-size: 14px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 12px;
+            border: none;
+            border-radius: 6px;
+            background: #2563eb;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #1e4fc175;
+        }
+
+        #msg {
+            margin-bottom: 10px;
+        }
+
+        .msg {
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .msg.error {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .msg.success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+</head>
+
+<body>
+    <div class="container">
+        <h2>India Inventory Management</h2>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="login">Login</div>
+            <div class="tab" data-tab="register">Register</div>
+            <div class="tab" data-tab="forgot">Forgot</div>
+        </div>
+
+        <div id="msg"></div>
+
+        <!-- Login Form -->
+        <div class="form active" id="login">
+            <div class="input-group"><i class="fa-solid fa-envelope"></i><input id="loginEmail" type="email"
+                    placeholder="Email"></div>
+            <div class="input-group"><i class="fa-solid fa-lock"></i><input id="loginPassword" type="password"
+                    placeholder="Password"></div>
+            <button onclick="login()"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
+        </div>
+
+        <!-- Register Form -->
+        <div class="form" id="register">
+            <div class="input-group"><i class="fa-solid fa-shop"></i><input id="regName" type="text"
+                    placeholder="Shop Name"></div>
+            <div class="input-group"><i class="fa-solid fa-envelope"></i><input id="regEmail" type="email"
+                    placeholder="Email"></div>
+            <div class="input-group"><i class="fa-solid fa-lock"></i><input id="regPassword" type="password"
+                    placeholder="Password"></div>
+            <button onclick="register()"><i class="fa-solid fa-user-plus"></i> Register</button>
+        </div>
+
+        <!-- Forgot Password Form -->
+        <div class="form" id="forgot">
+            <div class="input-group"><i class="fa-solid fa-envelope"></i><input id="forgotEmail" type="email"
+                    placeholder="Enter your email"></div>
+            <button onclick="forgotPassword()"><i class="fa-solid fa-paper-plane"></i> Send Reset Link</button>
+        </div>
+    </div>
+
+    <script>
+        const apiBase = "http://localhost:4000/api/auth";
+        const msgEl = document.getElementById("msg");
+
+        // Tab switching
+        document.querySelectorAll(".tab").forEach(tab => {
+            tab.addEventListener("click", () => {
+                document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+                document.querySelectorAll(".form").forEach(f => f.classList.remove("active"));
+                tab.classList.add("active");
+                document.getElementById(tab.dataset.tab).classList.add("active");
+                msgEl.innerHTML = "";
+            });
+        });
+
+        function showMsg(type, text) {
+            msgEl.innerHTML = `<div class="msg ${type}">${text}</div>`;
+        }
+
+        async function register() {
+            const name = document.getElementById("regName").value.trim();
+            const email = document.getElementById("regEmail").value.trim();
+            const password = document.getElementById("regPassword").value;
+            if (!name || !email || !password) return showMsg("error", "All fields required");
+
+            try {
+                const res = await fetch(apiBase + "/register", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, email, password })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Register failed");
+                showMsg("success", data.message);
+                setTimeout(() => window.clearLoginForm(), 150);
+            } catch (err) {
+                showMsg("error", err.message);
+            }
+        }
+
+
+        async function login() {
+            const email = document.getElementById("loginEmail").value.trim();
+            const password = document.getElementById("loginPassword").value;
+            if (!email || !password) return showMsg("error", "All fields required");
+
+            try {
+                const res = await fetch(apiBase + "/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Login failed");
+
+                // ✅ Save JWT token and user profile separately
+                localStorage.setItem("token", data.token);   // token comes from backend
+                localStorage.setItem("user", JSON.stringify(data.user));
+
+                showMsg("success", "Login successful! Redirecting...");
+                setTimeout(() => window.location.href = "index.html", 1200);
+            } catch (err) {
+                showMsg("error", err.message);
+            }
+        }
+
+
+        async function forgotPassword() {
+            const email = document.getElementById("forgotEmail").value.trim();
+            if (!email) return showMsg("error", "Enter email");
+
+            try {
+                const res = await fetch(apiBase + "/forgot-password", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Error");
+
+                if (data.resetLink) {
+                    showMsg("success", `Demo Reset Link: <a href="${data.resetLink}">${data.resetLink}</a>`);
+                } else {
+                    showMsg("success", data.message);
+                }
+                setTimeout(() => window.clearLoginForm(), 150);
+            } catch (err) {
+                showMsg("error", err.message);
+            }
+        }
+
+        // make login clear function global
+        window.clearLoginForm = function () {
+            const ids = ['loginEmail', 'loginPassword', 'regName', 'regEmail', 'regPassword', 'forgotEmail'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            console.log('clearLoginForm executed');
+        };
+
+    </script>
+</body>
+
+</html>
