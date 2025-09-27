@@ -51,14 +51,26 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// 👉 Debug route: check environment variables
+// Debug: Show environment variables (safe subset)
 app.get("/debug-env", (req, res) => {
   res.json({
-    PORT: process.env.PORT,
-    DATABASE_URL: process.env.DATABASE_URL ? "✅ Exists (hidden)" : "❌ Missing",
-    JWT_SECRET: process.env.JWT_SECRET ? "✅ Exists" : "❌ Missing"
+    NODE_ENV: process.env.NODE_ENV || "not set",
+    PORT: process.env.PORT || "not set",
+    DATABASE_URL: process.env.DATABASE_URL ? "✅ exists" : "❌ missing",
+    JWT_SECRET: process.env.JWT_SECRET ? "✅ exists" : "❌ missing"
   });
 });
+
+// Debug: Test DB connection
+app.get("/debug-db", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT NOW()");
+    res.json({ status: "✅ DB Connected", time: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ status: "❌ DB Error", message: err.message });
+  }
+});
+
 
 
 const PORT = process.env.PORT || 4000;
