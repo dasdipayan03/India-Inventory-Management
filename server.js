@@ -51,6 +51,16 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+// 👉 Debug route: check environment variables
+app.get("/debug-env", (req, res) => {
+  res.json({
+    PORT: process.env.PORT,
+    DATABASE_URL: process.env.DATABASE_URL ? "✅ Exists (hidden)" : "❌ Missing",
+    JWT_SECRET: process.env.JWT_SECRET ? "✅ Exists" : "❌ Missing"
+  });
+});
+
+
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 
