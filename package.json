@@ -1,13 +1,10 @@
 {
   "name": "inventory-app",
   "version": "1.0.0",
-  "description": "Inventory Management App",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js",
-    "stop": "kill-port 4000",
-    "test:load": "k6 run ./test.js"
+    "dev": "nodemon server.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
@@ -18,12 +15,5 @@
     "jsonwebtoken": "^9.0.2",
     "pdfkit": "^0.17.2",
     "pg": "^8.16.3"
-  },
-  "devDependencies": {
-    "kill-port": "^2.0.1",
-    "nodemon": "^3.1.10"
-  },
-  "engines": {
-    "node": "20.x"
   }
 }
