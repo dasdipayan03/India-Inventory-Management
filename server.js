@@ -1,12 +1,7 @@
-// Only load .env locally (not on Render)
-if (process.env.NODE_ENV !== "production") {
-  require("dotenv").config();
-}
-
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const pool = require("./db");
+const pool = require("./db"); // <-- your db.js
 
 const app = express();
 
@@ -19,21 +14,17 @@ app.use("/api/auth", require("./routes/auth"));
 app.use("/api", require("./routes/inventory"));
 
 // -------------------- DEBUG ROUTES --------------------
-// ✅ Debug environment variables
+// Check environment variables
 app.get("/debug-env", (req, res) => {
   res.json({
     NODE_ENV: process.env.NODE_ENV || "not set",
     PORT: process.env.PORT || "not set",
-    DATABASE_URL: process.env.DATABASE_URL
-      ? "✅ exists"
-      : "❌ missing",
-    JWT_SECRET: process.env.JWT_SECRET
-      ? "✅ exists"
-      : "❌ missing",
+    DATABASE_URL: process.env.DATABASE_URL ? "✅ exists" : "❌ missing",
+    JWT_SECRET: process.env.JWT_SECRET ? "✅ exists" : "❌ missing",
   });
 });
 
-// ✅ Debug database connection
+// Test DB connection
 app.get("/debug-db", async (req, res) => {
   try {
     const result = await pool.query("SELECT NOW()");
@@ -44,7 +35,7 @@ app.get("/debug-db", async (req, res) => {
   }
 });
 
-// ✅ Health check
+// Health check
 app.get("/health", (req, res) => {
   res.json({ status: "Server running 🚀", time: new Date() });
 });
@@ -60,9 +51,9 @@ app.get("*", (req, res) => {
 
 // -------------------- START SERVER --------------------
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () =>
-  console.log(`🚀 Server running on port ${PORT}`)
-);
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
 
 // Safety: Handle unhandled promise rejections
 process.on("unhandledRejection", (err) => {
