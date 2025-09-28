@@ -1,15 +1,14 @@
 const { Pool } = require("pg");
 
-// Debug log: check which DB URL is being used
-console.log("DATABASE_URL from env:", process.env.DATABASE_URL);
+console.log(">>> From db.js, DATABASE_URL =", process.env.DATABASE_URL);
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }, // Render requires SSL
+  ssl: { rejectUnauthorized: false },
 });
 
 pool.connect()
-  .then(() => console.log("✅ Connected to PostgreSQL"))
-  .catch(err => console.error("❌ DB Connection Error:", err.message));
+  .then(() => console.log("✅ Connected to PostgreSQL from db.js"))
+  .catch(err => console.error("❌ DB Error in db.js:", err.message));
 
 module.exports = pool;
