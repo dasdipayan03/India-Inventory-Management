@@ -1,5 +1,8 @@
-// server.js
-require("dotenv").config();
+// Only load .env locally (not on Render)
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config();
+}
+
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -7,7 +10,7 @@ const pool = require("./db");
 
 const app = express();
 
-// Middleware
+// -------------------- MIDDLEWARE --------------------
 app.use(cors());
 app.use(express.json());
 
@@ -21,8 +24,12 @@ app.get("/debug-env", (req, res) => {
   res.json({
     NODE_ENV: process.env.NODE_ENV || "not set",
     PORT: process.env.PORT || "not set",
-    DATABASE_URL: process.env.DATABASE_URL ? "✅ exists" : "❌ missing",
-    JWT_SECRET: process.env.JWT_SECRET ? "✅ exists" : "❌ missing",
+    DATABASE_URL: process.env.DATABASE_URL
+      ? "✅ exists"
+      : "❌ missing",
+    JWT_SECRET: process.env.JWT_SECRET
+      ? "✅ exists"
+      : "❌ missing",
   });
 });
 
@@ -43,7 +50,7 @@ app.get("/health", (req, res) => {
 });
 
 // -------------------- FRONTEND --------------------
-// Serve static frontend files
+// Serve static frontend files (from "public" folder)
 app.use(express.static(path.join(__dirname, "public")));
 
 // Catch-all for frontend (must be LAST)
@@ -53,7 +60,9 @@ app.get("*", (req, res) => {
 
 // -------------------- START SERVER --------------------
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () =>
+  console.log(`🚀 Server running on port ${PORT}`)
+);
 
 // Safety: Handle unhandled promise rejections
 process.on("unhandledRejection", (err) => {
