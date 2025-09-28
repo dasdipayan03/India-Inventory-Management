@@ -1,9 +1,9 @@
 const { Pool } = require("pg");
 
-console.log(">>> From db.js, DATABASE_URL =", process.env.DATABASE_URL);
+console.log(">>> From db.js, DB_URL =", process.env.DB_URL);
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DB_URL,
   ssl: { rejectUnauthorized: false },
 });
 
