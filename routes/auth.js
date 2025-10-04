@@ -1,4 +1,5 @@
 // routes/auth.js
+console.log("🔍 DB import check:", typeof pool, typeof pool.query);
 const express = require("express");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
