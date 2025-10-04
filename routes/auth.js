@@ -1,11 +1,9 @@
-// routes/auth.js
+// india_inventory_management_app/routes/auth.js
 const express = require("express");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const pool = require("../db");
-
-// console.log("🔍 DB import check:", typeof pool, typeof pool.query);
 
 const router = express.Router();
 
