@@ -181,101 +181,114 @@
   </div>
 
   <script>
-    const apiBase = "https://india-inventory-management-production.up.railway.app/api/auth";
-    const msgEl = document.getElementById("msg");
+document.addEventListener("DOMContentLoaded", () => {
+  const apiBase = "https://india-inventory-management-production.up.railway.app/api/auth";
+  const msgEl = document.getElementById("msg");
 
-    // Tab switching
-    document.querySelectorAll(".tab").forEach(tab => {
-      tab.addEventListener("click", () => {
-        document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-        document.querySelectorAll(".form").forEach(f => f.classList.remove("active"));
-        tab.classList.add("active");
-        document.getElementById(tab.dataset.tab).classList.add("active");
-        msgEl.innerHTML = "";
-      });
+  // ✅ TAB SWITCHING (fix for inactive Register/Forgot)
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".form").forEach(f => f.classList.remove("active"));
+      tab.classList.add("active");
+      document.getElementById(tab.dataset.tab).classList.add("active");
+      msgEl.innerHTML = "";
     });
+  });
 
-    function showMsg(type, text) {
-      msgEl.innerHTML = `<div class="msg ${type}">${text}</div>`;
+  // ✅ Helper for showing messages
+  function showMsg(type, text) {
+    msgEl.innerHTML = `<div class="msg ${type}">${text}</div>`;
+  }
+
+  // ✅ Clear all form inputs
+  function clearLoginForm() {
+    ['loginEmail', 'loginPassword', 'regName', 'regEmail', 'regPassword', 'forgotEmail']
+      .forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+  }
+
+  // ✅ Register
+  async function register() {
+    const name = document.getElementById("regName").value.trim();
+    const email = document.getElementById("regEmail").value.trim();
+    const password = document.getElementById("regPassword").value;
+    if (!name || !email || !password) return showMsg("error", "All fields required");
+
+    try {
+      const res = await fetch(apiBase + "/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Register failed");
+      showMsg("success", data.message);
+      clearLoginForm();
+    } catch (err) {
+      showMsg("error", err.message || "Server not reachable. Try again later.");
     }
+  }
 
-    async function register() {
-      const name = document.getElementById("regName").value.trim();
-      const email = document.getElementById("regEmail").value.trim();
-      const password = document.getElementById("regPassword").value;
-      if (!name || !email || !password) return showMsg("error", "All fields required");
+  // ✅ Login
+  async function login() {
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+    if (!email || !password) return showMsg("error", "All fields required");
 
-      try {
-        const res = await fetch(apiBase + "/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email, password })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Register failed");
+    try {
+      const res = await fetch(apiBase + "/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Login failed");
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      showMsg("success", "Login successful! Redirecting...");
+      setTimeout(() => window.location.href = "index.html", 1000);
+    } catch (err) {
+      showMsg("error", err.message || "Server not reachable. Try again later.");
+    }
+  }
+
+  // ✅ Forgot Password
+  async function forgotPassword() {
+    const email = document.getElementById("forgotEmail").value.trim();
+    if (!email) return showMsg("error", "Enter your email");
+
+    try {
+      const res = await fetch(apiBase + "/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error");
+
+      if (data.resetLink) {
+        showMsg("success", `Demo Reset Link: <a href="${data.resetLink}">${data.resetLink}</a>`);
+      } else {
         showMsg("success", data.message);
-        clearLoginForm();
-      } catch (err) {
-        showMsg("error", err.message || "Server not reachable. Try again later.");
       }
+      clearLoginForm();
+    } catch (err) {
+      showMsg("error", err.message || "Server not reachable. Try again later.");
     }
+  }
 
-    async function login() {
-      const email = document.getElementById("loginEmail").value.trim();
-      const password = document.getElementById("loginPassword").value;
-      if (!email || !password) return showMsg("error", "All fields required");
+  // ✅ Attach button functions globally
+  window.register = register;
+  window.login = login;
+  window.forgotPassword = forgotPassword;
+});
+</script>
 
-      try {
-        const res = await fetch(apiBase + "/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Login failed");
-
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-
-        showMsg("success", "Login successful! Redirecting...");
-        setTimeout(() => window.location.href = "index.html", 1000);
-      } catch (err) {
-        showMsg("error", err.message || "Server not reachable. Try again later.");
-      }
-    }
-
-    async function forgotPassword() {
-      const email = document.getElementById("forgotEmail").value.trim();
-      if (!email) return showMsg("error", "Enter your email");
-
-      try {
-        const res = await fetch(apiBase + "/forgot-password", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Error");
-
-        if (data.resetLink) {
-          showMsg("success", `Demo Reset Link: <a href="${data.resetLink}">${data.resetLink}</a>`);
-        } else {
-          showMsg("success", data.message);
-        }
-        clearLoginForm();
-      } catch (err) {
-        showMsg("error", err.message || "Server not reachable. Try again later.");
-      }
-    }
-
-    function clearLoginForm() {
-      ['loginEmail', 'loginPassword', 'regName', 'regEmail', 'regPassword', 'forgotEmail']
-        .forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.value = '';
-        });
-    }
-  </script>
 </body>
 
 </html>
