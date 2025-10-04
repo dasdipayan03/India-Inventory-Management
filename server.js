@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const pool = require("./db"); // <-- your db.js
+const pool = require("./db"); // Database connection
 
 const app = express();
 
@@ -30,7 +30,7 @@ app.get("/debug-db", async (req, res) => {
     const result = await pool.query("SELECT NOW()");
     res.json({ status: "✅ DB Connected", time: result.rows[0] });
   } catch (err) {
-    console.error("❌ DB Error:", err.message);
+    console.error("❌ DB Error:", err);
     res.status(500).json({ status: "❌ DB Error", message: err.message });
   }
 });
@@ -50,9 +50,13 @@ app.get("*", (req, res) => {
 });
 
 // -------------------- START SERVER --------------------
-const PORT = process.env.PORT || 4000;  // ✅ Render provides PORT automatically
+const PORT = process.env.PORT || 4000;
+
+// 👇 Force listening on all network interfaces (required by Render)
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  console.log("🌐 Listening on all interfaces (0.0.0.0)");
+  console.log("🔧 NODE_ENV:", process.env.NODE_ENV);
 });
 
 // Safety: Handle unhandled promise rejections
