@@ -3,6 +3,8 @@ const cors = require("cors");
 const path = require("path");
 const pool = require("./db"); // Database connection
 
+console.log("Render provided PORT:", process.env.PORT);
+
 const app = express();
 
 // -------------------- MIDDLEWARE --------------------
