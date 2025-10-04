@@ -1,4 +1,4 @@
-// india_inventory_management_app/routes/auth.js
+//routes/auth.js
 const express = require("express");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
