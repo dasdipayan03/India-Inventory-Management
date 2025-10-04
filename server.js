@@ -3,6 +3,8 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const pool = require("./db"); // Database connection
+const compression = require("compression");
+const helmet = require("helmet");
 
 // console.log("Render provided PORT:", process.env.PORT);
 
@@ -11,6 +13,8 @@ const app = express();
 // -------------------- MIDDLEWARE --------------------
 app.use(cors());
 app.use(express.json());
+app.use(compression());
+app.use(helmet());      
 
 // -------------------- API ROUTES --------------------
 app.use("/api/auth", require("./routes/auth"));
@@ -53,7 +57,7 @@ app.get("*", (req, res) => {
 });
 
 // -------------------- START SERVER --------------------
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 3000;
 
 // 👇 Force listening on all network interfaces (required by Render)
 app.listen(PORT, "0.0.0.0", () => {
