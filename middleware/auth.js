@@ -1,4 +1,4 @@
-// india_inventory_management_app/middleware/auth.js
+//middleware/auth.js
 const jwt = require("jsonwebtoken");
 
 function authMiddleware(req, res, next) {
