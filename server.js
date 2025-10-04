@@ -50,8 +50,8 @@ app.get("*", (req, res) => {
 });
 
 // -------------------- START SERVER --------------------
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
+const PORT = process.env.PORT || 4000;  // ✅ Render provides PORT automatically
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
 
