@@ -38,10 +38,20 @@ app.get("/debug-db", async (req, res) => {
 });
 
 // -------------------- FRONTEND --------------------
+
+// ✅ Serve static frontend files (all .html, .css, .js)
 app.use(express.static(path.join(__dirname, "public")));
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+
+// ✅ Default route goes to login.html
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "login.html"));
 });
+
+// ✅ Optional fallback for unknown files (optional)
+app.use((req, res) => {
+  res.status(404).sendFile(path.join(__dirname, "public", "login.html"));
+});
+
 
 // -------------------- START SERVER --------------------
 const PORT = process.env.PORT || 4000;
