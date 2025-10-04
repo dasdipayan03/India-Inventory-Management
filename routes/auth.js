@@ -5,7 +5,7 @@ const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const pool = require("../db");
 
-// console.log("🔍 DB import check:", typeof pool, typeof pool.query);
+console.log("🔍 DB import check:", typeof pool, typeof pool.query);
 
 const router = express.Router();
 
