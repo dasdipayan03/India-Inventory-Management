@@ -1,4 +1,4 @@
-// routes/inventory.js
+//routes/inventory.js
 const express = require("express");
 const pool = require("../db");
 const PDFDocument = require("pdfkit");
