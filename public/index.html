@@ -303,6 +303,10 @@
       : "/api";
     let itemNames = [];
 
+    const apiBase = "https://india-inventory-management-production.up.railway.app/api";
+    const msgEl = document.getElementById("msg");
+
+
     // ---------------- AUTH ----------------
     function checkAuth() {
       const token = localStorage.getItem("token");
