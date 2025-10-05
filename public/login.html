@@ -141,6 +141,17 @@
 </head>
 
 <body>
+
+<script>
+  // --- Auto redirect if already logged in ---
+  const token = localStorage.getItem("token");
+  if (token) {
+    // Already logged in? Go straight to dashboard
+    window.location.href = "index.html";
+  }
+</script>
+
+    
     <div class="container">
         <h2>India Inventory Management</h2>
 
