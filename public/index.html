@@ -105,7 +105,9 @@
       <div class="card shadow-sm p-3 mb-4">
         <h4 class="text-center mb-3"><i class="fas fa-user-clock text-danger"></i> Add Customer's Due</h4>
         <input id="cdName" type="text" class="form-control mb-2" placeholder="Customer Name" />
-        <input id="cdNumber" type="tel" maxlength="10" class="form-control mb-2" placeholder="10-digit Number" />
+        <input id="cdNumber" type="tel" maxlength="10" class="form-control mb-2" 
+         placeholder="10-digit Number" 
+         oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" />
         <input id="cdTotal" type="number" class="form-control mb-2" placeholder="Total Amount" />
         <input id="cdCredit" type="number" class="form-control mb-2" placeholder="Credit Amount" />
         <button class="btn btn-danger w-100" id="submitDebtBtn"><i class="fas fa-check-circle"></i> Submit</button>
