@@ -267,92 +267,56 @@ async function downloadSalesExcel() {
 }
 
 /* ---------------------- Debts --------------------- */
-async function submitDebt() {
-  const entry = {
-    customer_name: document.getElementById("cdName").value.trim(),
-    customer_number: document.getElementById("cdNumber").value.trim(),
-    total: parseFloat(document.getElementById("cdTotal").value) || 0,
-    credit: parseFloat(document.getElementById("cdCredit").value) || 0,
-  };
-  if (!entry.customer_name || !/^\d{10}$/.test(entry.customer_number))
-    return alert("Invalid number");
-  try {
-    const res = await fetch(`${apiBase}/debts`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify(entry),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Debt save failed");
-    alert(data.message || "Debt entry added");
-    ["cdName", "cdNumber", "cdTotal", "cdCredit"].forEach(
-      (id) => (document.getElementById(id).value = "")
-    );
-  } catch (err) {
-    console.error("Submit debt error:", err);
-    alert(err.message || "Server error");
-  }
-}
-
-async function searchLedger() {
-  const number = document.getElementById("cdSearchInput").value.trim();
-  if (!/^\d{10}$/.test(number)) return alert("Invalid number");
-  try {
-    const res = await fetch(`${apiBase}/debts/${number}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    });
-    const data = await res.json();
-    renderLedgerTable(data, "ledger");
-  } catch (err) {
-    console.error("Search ledger error:", err);
-  }
-}
-
-async function showAllDues() {
-  try {
-    const res = await fetch(`${apiBase}/debts`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    });
-    const data = await res.json();
-    renderLedgerTable(data, "summary");
-  } catch (err) {
-    console.error("Show dues error:", err);
-  }
-}
-
 function renderLedgerTable(rows, mode = "summary") {
-  if (!rows || !rows.length)
-    return (document.getElementById("ledgerTable").innerHTML =
-      "<p>No records.</p>");
+  const ledgerEl = document.getElementById("ledgerTable");
+  if (!rows || !rows.length) {
+    ledgerEl.innerHTML = "<p>No records.</p>";
+    return;
+  }
+
   let html = "<table>";
+  let totalBalance = 0;
+
   if (mode === "summary") {
     html +=
       "<tr><th>Name</th><th>Number</th><th>Total</th><th>Credit</th><th>Balance</th></tr>";
-    rows.forEach(
-      (r) =>
-        (html += `<tr><td>${escapeHtml(
-          r.customer_name
-        )}</td><td>${r.customer_number}</td><td>${r.total}</td><td>${
-          r.credit
-        }</td><td>${r.balance}</td></tr>`)
-    );
+    rows.forEach((r) => {
+      const balance = parseFloat(r.balance) || 0;
+      totalBalance += balance;
+      html += `<tr>
+        <td>${escapeHtml(r.customer_name)}</td>
+        <td>${r.customer_number}</td>
+        <td>${r.total}</td>
+        <td>${r.credit}</td>
+        <td>${balance.toFixed(2)}</td>
+      </tr>`;
+    });
+    html += `</table>
+      <div class="text-end mt-2 fw-bold text-primary">
+        Grand Total Outstanding Balance: ₹${totalBalance.toFixed(2)}
+      </div>`;
   } else {
     html +=
       "<tr><th>Date</th><th>Total</th><th>Credit</th><th>Balance</th></tr>";
     let balance = 0;
     rows.forEach((r) => {
       balance += r.total - r.credit;
-      html += `<tr><td>${new Date(
-        r.created_at
-      ).toLocaleDateString()}</td><td>${r.total}</td><td>${r.credit}</td><td>${balance}</td></tr>`;
+      html += `<tr>
+        <td>${new Date(r.created_at).toLocaleDateString()}</td>
+        <td>${r.total}</td>
+        <td>${r.credit}</td>
+        <td>${balance.toFixed(2)}</td>
+      </tr>`;
     });
+    html += `</table>
+      <div class="text-end mt-2 fw-bold text-primary">
+        Total Outstanding Balance: ₹${balance.toFixed(2)}
+      </div>`;
   }
-  html += "</table>";
-  document.getElementById("ledgerTable").innerHTML = html;
+
+  ledgerEl.innerHTML = html;
 }
+
 
 /* ---------------------- Init --------------------- */
 window.addEventListener("DOMContentLoaded", async () => {
