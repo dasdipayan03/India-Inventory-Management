@@ -13,9 +13,11 @@
       font-family: 'Segoe UI', sans-serif;
       background: white;
       display: flex;
-      height: 100vh;
-      overflow: hidden;
-      visibility: hidden;
+      flex-direction: column;
+      min-height: 100vh;
+      overflow-x: hidden; /* Only hide sideways scroll */
+      overflow-y: auto;   /* Allow full vertical scroll */
+      visibility: hidden; /* Ensure content appears */
     }
 
     .sidebar {
@@ -92,10 +94,10 @@
     .main {
       flex: 1;
       background: white;
-      overflow-y: auto;
       padding: 30px;
       margin-top: 50px;
-      padding-bottom: 50px;
+      padding-bottom: 100px; /* extra space for footer */
+      box-sizing: border-box;
     }
 
     .form-section {
@@ -141,6 +143,8 @@
       bottom: 0;
       left: 0;
       width: 100%;
+      height: 50px;
+      line-height: 30px;
       z-index: 800;
       font-size: 14px;
     }
