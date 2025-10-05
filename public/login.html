@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="en">
-
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Login | India Inventory Management</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
   <style>
     body {
@@ -16,7 +16,6 @@
       height: 100vh;
       margin: 0;
     }
-
     .container {
       background: white;
       padding: 28px;
@@ -25,120 +24,23 @@
       max-width: 380px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     }
-
-    h2 {
-      margin: 0 0 20px;
-      text-align: center;
-      color: #111827;
-      font-weight: bold;
-    }
-
-    .tabs {
-      display: flex;
-      margin-bottom: 18px;
-      border-radius: 8px;
-      overflow: hidden;
-      border: 1px solid #ddd;
-    }
-
-    .tab {
-      flex: 1;
-      text-align: center;
-      padding: 10px;
-      cursor: pointer;
-      background: #f3f4f6;
-      transition: 0.2s;
-    }
-
-    .tab.active {
-      background: #2563eb;
-      color: white;
-      font-weight: bold;
-    }
-
-    .form {
-      display: none;
-    }
-
-    .form.active {
-      display: block;
-    }
-
-    .input-group {
-      display: flex;
-      align-items: center;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      margin: 10px 0;
-      padding: 8px 10px;
-      background: #fafafa;
-    }
-
-    .input-group i {
-      margin-right: 8px;
-      color: #6b7280;
-    }
-
-    .input-group input {
-      border: none;
-      outline: none;
-      flex: 1;
-      background: transparent;
-      font-size: 14px;
-    }
-
-    button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 12px;
-      border: none;
-      border-radius: 6px;
-      background: #2563eb;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-
-    button:hover {
-      background: #1d4ed8;
-    }
-
-    #msg {
-      margin-bottom: 10px;
-    }
-
-    .msg {
-      padding: 10px;
-      border-radius: 6px;
-      font-size: 14px;
-      animation: fadeIn 0.4s ease;
-    }
-
-    .msg.error {
-      background: #fee2e2;
-      color: #b91c1c;
-    }
-
-    .msg.success {
-      background: #dcfce7;
-      color: #166534;
-    }
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(-5px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
+    h2 { text-align: center; margin-bottom: 20px; color: #111827; font-weight: bold; }
+    .tabs { display: flex; margin-bottom: 18px; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; }
+    .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; background: #f3f4f6; }
+    .tab.active { background: #2563eb; color: white; font-weight: bold; }
+    .form { display: none; }
+    .form.active { display: block; }
+    .input-group { display: flex; align-items: center; border: 1px solid #ddd; border-radius: 6px; margin: 10px 0; padding: 8px 10px; background: #fafafa; }
+    .input-group i { margin-right: 8px; color: #6b7280; }
+    .input-group input { border: none; outline: none; flex: 1; background: transparent; font-size: 14px; }
+    button { width: 100%; padding: 12px; margin-top: 12px; border: none; border-radius: 6px; background: #2563eb; color: white; font-weight: bold; cursor: pointer; transition: background 0.3s; }
+    button:hover { background: #1d4ed8; }
+    #msg { margin-bottom: 10px; }
+    .msg { padding: 10px; border-radius: 6px; font-size: 14px; animation: fadeIn 0.4s ease; }
+    .msg.error { background: #fee2e2; color: #b91c1c; }
+    .msg.success { background: #dcfce7; color: #166534; }
+    @keyframes fadeIn { from {opacity:0;transform:translateY(-5px);} to {opacity:1;transform:translateY(0);} }
   </style>
-
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 </head>
 
 <body>
@@ -153,47 +55,25 @@
 
     <div id="msg"></div>
 
-    <!-- Login Form -->
     <div class="form active" id="login">
-      <div class="input-group">
-        <i class="fa-solid fa-envelope"></i>
-        <input id="loginEmail" type="email" placeholder="Email">
-      </div>
-      <div class="input-group">
-        <i class="fa-solid fa-lock"></i>
-        <input id="loginPassword" type="password" placeholder="Password">
-      </div>
+      <div class="input-group"><i class="fa-solid fa-envelope"></i><input id="loginEmail" type="email" placeholder="Email"></div>
+      <div class="input-group"><i class="fa-solid fa-lock"></i><input id="loginPassword" type="password" placeholder="Password"></div>
       <button id="loginBtn"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
     </div>
 
-    <!-- Register Form -->
     <div class="form" id="register">
-      <div class="input-group">
-        <i class="fa-solid fa-shop"></i>
-        <input id="regName" type="text" placeholder="Shop Name">
-      </div>
-      <div class="input-group">
-        <i class="fa-solid fa-envelope"></i>
-        <input id="regEmail" type="email" placeholder="Email">
-      </div>
-      <div class="input-group">
-        <i class="fa-solid fa-lock"></i>
-        <input id="regPassword" type="password" placeholder="Password">
-      </div>
+      <div class="input-group"><i class="fa-solid fa-shop"></i><input id="regName" type="text" placeholder="Shop Name"></div>
+      <div class="input-group"><i class="fa-solid fa-envelope"></i><input id="regEmail" type="email" placeholder="Email"></div>
+      <div class="input-group"><i class="fa-solid fa-lock"></i><input id="regPassword" type="password" placeholder="Password"></div>
       <button id="registerBtn"><i class="fa-solid fa-user-plus"></i> Register</button>
     </div>
 
-    <!-- Forgot Password Form -->
     <div class="form" id="forgot">
-      <div class="input-group">
-        <i class="fa-solid fa-envelope"></i>
-        <input id="forgotEmail" type="email" placeholder="Enter your email">
-      </div>
+      <div class="input-group"><i class="fa-solid fa-envelope"></i><input id="forgotEmail" type="email" placeholder="Enter your email"></div>
       <button id="forgotBtn"><i class="fa-solid fa-paper-plane"></i> Send Reset Link</button>
     </div>
   </div>
 
-  <!-- ✅ Main Script -->
   <script defer>
     document.addEventListener("DOMContentLoaded", () => {
       const apiBase = window.location.origin.includes("localhost")
@@ -201,107 +81,66 @@
         : "/api/auth";
       const msgEl = document.getElementById("msg");
 
-      // --- Tab Switching ---
-      document.querySelectorAll(".tab").forEach(tab => {
-        tab.addEventListener("click", () => {
-          document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-          document.querySelectorAll(".form").forEach(f => f.classList.remove("active"));
-          tab.classList.add("active");
-          document.getElementById(tab.dataset.tab).classList.add("active");
-          msgEl.innerHTML = "";
-        });
-      });
+      const showMsg = (type, text) => msgEl.innerHTML = `<div class="msg ${type}">${text}</div>`;
+      const clearForms = () => ['loginEmail', 'loginPassword', 'regName', 'regEmail', 'regPassword', 'forgotEmail']
+        .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 
-      // --- Utility ---
-      function showMsg(type, text) {
-        msgEl.innerHTML = `<div class="msg ${type}">${text}</div>`;
-      }
+      // Tabs
+      document.querySelectorAll(".tab").forEach(tab => tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+        document.querySelectorAll(".form").forEach(f => f.classList.remove("active"));
+        tab.classList.add("active");
+        document.getElementById(tab.dataset.tab).classList.add("active");
+        msgEl.innerHTML = "";
+      }));
 
-      function clearForms() {
-        ['loginEmail', 'loginPassword', 'regName', 'regEmail', 'regPassword', 'forgotEmail']
-          .forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.value = '';
-          });
-      }
-
-      // --- Register ---
+      // Register
       document.getElementById("registerBtn").addEventListener("click", async () => {
-        const name = document.getElementById("regName").value.trim();
-        const email = document.getElementById("regEmail").value.trim();
-        const password = document.getElementById("regPassword").value;
-        if (!name || !email || !password)
-          return showMsg("error", "All fields required");
-
+        const name = regName.value.trim(), email = regEmail.value.trim(), password = regPassword.value;
+        if (!name || !email || !password) return showMsg("error", "All fields required");
         try {
-          const res = await fetch(apiBase + "/register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, email, password })
-          });
+          const res = await fetch(apiBase + "/register", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({ name, email, password }) });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || "Register failed");
-
           showMsg("success", "🎉 Registration successful! Redirecting...");
           clearForms();
           setTimeout(() => document.querySelector('[data-tab="login"]').click(), 1500);
-        } catch (err) {
-          showMsg("error", err.message || "Server error.");
-        }
+        } catch (err) { showMsg("error", err.message); }
       });
 
-      // --- Login ---
+      // Login
       document.getElementById("loginBtn").addEventListener("click", async () => {
-        const email = document.getElementById("loginEmail").value.trim();
-        const password = document.getElementById("loginPassword").value;
+        const email = loginEmail.value.trim(), password = loginPassword.value;
         if (!email || !password) return showMsg("error", "All fields required");
-
         try {
-          const res = await fetch(apiBase + "/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password })
-          });
+          const res = await fetch(apiBase + "/login", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({ email, password }) });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || "Login failed");
-
           localStorage.setItem("token", data.token);
           localStorage.setItem("user", JSON.stringify(data.user));
           showMsg("success", "✅ Login successful! Redirecting...");
-          setTimeout(() => (window.location.href = "index.html"), 1000);
-        } catch (err) {
-          showMsg("error", err.message || "Server unreachable.");
-        }
+          setTimeout(() => window.location.href = "index.html", 1000);
+        } catch (err) { showMsg("error", err.message); }
       });
 
-      // --- Forgot Password ---
+      // Forgot Password
       document.getElementById("forgotBtn").addEventListener("click", async () => {
-        const email = document.getElementById("forgotEmail").value.trim();
+        const email = forgotEmail.value.trim();
         if (!email) return showMsg("error", "Enter your email");
-
         try {
-          const res = await fetch(apiBase + "/forgot-password", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email })
-          });
+          const res = await fetch(apiBase + "/forgot-password", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({ email }) });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || "Error");
           showMsg("success", data.message || "Reset link sent!");
           clearForms();
-        } catch (err) {
-          showMsg("error", err.message || "Server error.");
-        }
+        } catch (err) { showMsg("error", err.message); }
       });
     });
   </script>
 
-  <!-- ✅ Auto Redirect if Already Logged In -->
-<script>
-  const token = localStorage.getItem("token");
-  if (token) window.location.replace("index.html");
-</script>
-
+  <script>
+    const token = localStorage.getItem("token");
+    if (token) window.location.replace("index.html");
+  </script>
 </body>
-
 </html>
