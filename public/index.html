@@ -108,7 +108,7 @@
         
         <input id="cdNumber" type="text" maxlength="10" class="form-control mb-2"
           placeholder="10-digit Number"
-          onkeypress="return /[0-9]/.test(event.key)" 
+          onkeydown="return event.key === 'Backspace' || event.key === 'Delete' || /^[0-9]$/.test(event.key)"
           oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" />
         
         <input id="cdTotal" type="number" class="form-control mb-2" placeholder="Total Amount" />
