@@ -15,6 +15,7 @@
       display: flex;
       height: 100vh;
       overflow: hidden;
+      visibility: hidden;
     }
 
     .sidebar {
@@ -313,26 +314,31 @@
     // ---------------- AUTH ----------------
 async function checkAuth() {
   const token = localStorage.getItem("token");
-  if (!token) return window.location.href = "login.html";
+  if (!token) {
+    // Redirect before showing anything
+    window.location.replace("login.html");
+    return;
+  }
 
   try {
-    // verify token with backend
     const res = await fetch(`${apiBase}/auth/me`, {
       headers: { "Authorization": `Bearer ${token}` }
     });
 
     if (!res.ok) throw new Error("Invalid or expired token");
-    const user = await res.json();
 
-    // save user data & show name
+    const user = await res.json();
     localStorage.setItem("user", JSON.stringify(user));
     document.getElementById("welcomeUser").innerText = `Welcome, ${user.name}`;
+    // ✅ Auth passed → show page
+    document.body.style.visibility = "visible";
   } catch (err) {
-    // token invalid → logout
-    logout();
+    console.error("Auth failed:", err);
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.replace("login.html");
   }
 }
-
 
     // ---------------- SIDEBAR ----------------
     (function () {
