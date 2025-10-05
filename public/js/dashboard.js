@@ -267,6 +267,7 @@ async function downloadSalesExcel() {
 }
 
 /* ---------------------- Debts --------------------- */
+/* ---------------------- Debts --------------------- */
 async function submitDebt() {
   const entry = {
     customer_name: document.getElementById("cdName").value.trim(),
@@ -324,34 +325,50 @@ async function showAllDues() {
 }
 
 function renderLedgerTable(rows, mode = "summary") {
-  if (!rows || !rows.length)
-    return (document.getElementById("ledgerTable").innerHTML =
-      "<p>No records.</p>");
+  const ledgerDiv = document.getElementById("ledgerTable");
+  if (!rows || !rows.length) {
+    ledgerDiv.innerHTML = "<p>No records.</p>";
+    return;
+  }
+
   let html = "<table>";
+  let totalOutstanding = 0;
+
   if (mode === "summary") {
     html +=
       "<tr><th>Name</th><th>Number</th><th>Total</th><th>Credit</th><th>Balance</th></tr>";
-    rows.forEach(
-      (r) =>
-        (html += `<tr><td>${escapeHtml(
-          r.customer_name
-        )}</td><td>${r.customer_number}</td><td>${r.total}</td><td>${
-          r.credit
-        }</td><td>${r.balance}</td></tr>`)
-    );
+    rows.forEach((r) => {
+      const balance = parseFloat(r.balance) || 0;
+      totalOutstanding += balance;
+      html += `<tr>
+        <td>${escapeHtml(r.customer_name)}</td>
+        <td>${r.customer_number}</td>
+        <td>${r.total}</td>
+        <td>${r.credit}</td>
+        <td>${balance.toFixed(2)}</td>
+      </tr>`;
+    });
   } else {
-    html +=
-      "<tr><th>Date</th><th>Total</th><th>Credit</th><th>Balance</th></tr>";
+    html += "<tr><th>Date</th><th>Total</th><th>Credit</th><th>Balance</th></tr>";
     let balance = 0;
     rows.forEach((r) => {
       balance += r.total - r.credit;
-      html += `<tr><td>${new Date(
-        r.created_at
-      ).toLocaleDateString()}</td><td>${r.total}</td><td>${r.credit}</td><td>${balance}</td></tr>`;
+      html += `<tr>
+        <td>${new Date(r.created_at).toLocaleDateString()}</td>
+        <td>${r.total}</td>
+        <td>${r.credit}</td>
+        <td>${balance.toFixed(2)}</td>
+      </tr>`;
     });
+    totalOutstanding = balance;
   }
-  html += "</table>";
-  document.getElementById("ledgerTable").innerHTML = html;
+
+  html += `</table>
+    <div class="text-end mt-2 fw-bold text-primary">
+      Total Outstanding Balance: ₹${totalOutstanding.toFixed(2)}
+    </div>`;
+
+  ledgerDiv.innerHTML = html;
 }
 
 /* ---------------------- Init --------------------- */
