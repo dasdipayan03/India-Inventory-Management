@@ -376,6 +376,29 @@ window.addEventListener("DOMContentLoaded", async () => {
   await loadItemNames();
 });
 
+
+// Allow only digits in number fields
+function restrictToDigits(id) {
+  const input = document.getElementById(id);
+
+  // Prevent typing letters
+  input.addEventListener("keypress", (e) => {
+    if (!/[0-9]/.test(e.key)) e.preventDefault();
+  });
+
+  // Prevent pasting letters
+  input.addEventListener("input", () => {
+    input.value = input.value.replace(/[^0-9]/g, "").slice(0, 10);
+  });
+}
+
+// Apply to both fields
+restrictToDigits("cdNumber");
+restrictToDigits("cdSearchInput");
+
+
+
+
 setTimeout(() => {
   if (document.body.style.visibility === "hidden") {
     document.body.style.visibility = "visible";
