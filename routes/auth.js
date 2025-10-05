@@ -147,4 +147,34 @@ router.post("/reset-password", async (req, res) => {
   }
 });
 
+
+// ✅ Verify token and return user info
+router.get("/me", async (req, res) => {
+  try {
+    const auth = req.headers.authorization;
+    if (!auth || !auth.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const token = auth.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Find user in DB
+    const result = await pool.query(
+      "SELECT id, name, email FROM users WHERE id=$1",
+      [decoded.id]
+    );
+
+    if (!result || result.rowCount === 0) {
+      return res.status(401).json({ error: "Invalid or expired token" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("/me error:", err.message);
+    res.status(401).json({ error: "Unauthorized" });
+  }
+});
+
+
 module.exports = router;
