@@ -269,6 +269,7 @@ async function downloadSalesExcel() {
 /* ---------------------- Debts --------------------- */
 function renderLedgerTable(rows, mode = "summary") {
   const ledgerEl = document.getElementById("ledgerTable");
+
   if (!rows || !rows.length) {
     ledgerEl.innerHTML = "<p>No records.</p>";
     return;
@@ -278,36 +279,44 @@ function renderLedgerTable(rows, mode = "summary") {
   let totalBalance = 0;
 
   if (mode === "summary") {
-    html +=
-      "<tr><th>Name</th><th>Number</th><th>Total</th><th>Credit</th><th>Balance</th></tr>";
+    html += "<tr><th>Name</th><th>Number</th><th>Total</th><th>Credit</th><th>Balance</th></tr>";
+
     rows.forEach((r) => {
       const balance = parseFloat(r.balance) || 0;
       totalBalance += balance;
-      html += `<tr>
-        <td>${escapeHtml(r.customer_name)}</td>
-        <td>${r.customer_number}</td>
-        <td>${r.total}</td>
-        <td>${r.credit}</td>
-        <td>${balance.toFixed(2)}</td>
-      </tr>`;
+
+      html += `
+        <tr>
+          <td>${escapeHtml(r.customer_name || "")}</td>
+          <td>${r.customer_number || ""}</td>
+          <td>${r.total || 0}</td>
+          <td>${r.credit || 0}</td>
+          <td>${balance.toFixed(2)}</td>
+        </tr>
+      `;
     });
+
     html += `</table>
       <div class="text-end mt-2 fw-bold text-primary">
         Grand Total Outstanding Balance: ₹${totalBalance.toFixed(2)}
       </div>`;
   } else {
-    html +=
-      "<tr><th>Date</th><th>Total</th><th>Credit</th><th>Balance</th></tr>";
+    html += "<tr><th>Date</th><th>Total</th><th>Credit</th><th>Balance</th></tr>";
+
     let balance = 0;
     rows.forEach((r) => {
-      balance += r.total - r.credit;
-      html += `<tr>
-        <td>${new Date(r.created_at).toLocaleDateString()}</td>
-        <td>${r.total}</td>
-        <td>${r.credit}</td>
-        <td>${balance.toFixed(2)}</td>
-      </tr>`;
+      balance += (r.total || 0) - (r.credit || 0);
+
+      html += `
+        <tr>
+          <td>${new Date(r.created_at).toLocaleDateString()}</td>
+          <td>${r.total || 0}</td>
+          <td>${r.credit || 0}</td>
+          <td>${balance.toFixed(2)}</td>
+        </tr>
+      `;
     });
+
     html += `</table>
       <div class="text-end mt-2 fw-bold text-primary">
         Total Outstanding Balance: ₹${balance.toFixed(2)}
