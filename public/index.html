@@ -2,43 +2,147 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>India Inventory Management</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
   <style>
-    body{margin:0;font-family:'Segoe UI',sans-serif;background:white;display:flex;height:100vh;overflow:hidden;visibility:hidden;}
-    .sidebar{width:180px;position:fixed;top:0;bottom:0;left:0;background:#2c3e50;transform:translateX(-100%);transition:transform .3s;z-index:1000;}
-    .sidebar.sidebar--open{transform:translateX(0);}
-    .sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:900;opacity:0;visibility:hidden;transition:opacity .3s;}
-    .sidebar-overlay.visible{opacity:1;visibility:visible;}
-    #sidebarToggle{position:fixed;top:10px;left:10px;z-index:1100;background:transparent;color:#2c3e50;border:none;padding:10px 15px;font-size:24px;cursor:pointer;}
-    .sidebar h2{font-size:1.3rem;margin-bottom:30px;text-align:center;color:white;padding-top:10px;}
-    .sidebar button{background:none;border:none;color:#fff;text-align:left;padding:12px 20px;margin-bottom:10px;border-radius:8px;transition:.3s;font-size:1rem;width:100%;}
-    .sidebar button:hover,.sidebar button.active{background:#333;color:#00b336;}
-    .main{flex:1;background:white;overflow-y:auto;padding:30px;margin-top:50px;padding-bottom:50px;}
-    .form-section{display:none;background:white;padding:0;border-radius:10px;}
-    .form-section.active{display:block;}
-    .dropdown-list{position:absolute;background:#fff;border:1px solid #ddd;border-radius:8px;box-shadow:0 6px 14px rgba(0,0,0,.15);max-height:220px;overflow-y:auto;width:100%;z-index:2000;display:none;font-size:15px;}
-    .dropdown-item{padding:8px 10px;cursor:pointer;}
-    .dropdown-item:hover{background:#f1f5f9;}
-    .main-footer{background:#2c3e50;color:#fff;text-align:center;padding:10px 0;position:fixed;bottom:0;left:0;width:100%;z-index:800;font-size:14px;}
-    table{border-collapse:collapse;width:100%;}
-    th,td{border:1px solid #ccc;padding:8px;text-align:center;}
-    tr:nth-child(even){background:#f2f2f2;}
-    tr:hover{background:#d9edf7;}
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: white;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      visibility: hidden;
+    }
+    .sidebar {
+      width: 180px;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      background: #2c3e50;
+      transition: transform 0.3s ease;
+      transform: translateX(-100%);
+      z-index: 1000;
+    }
+    .sidebar.sidebar--open {
+      transform: translateX(0);
+    }
+    .sidebar-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 900;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease;
+    }
+    .sidebar-overlay.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+    #sidebarToggle {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 1100;
+      background: transparent;
+      color: #2c3e50;
+      border: none;
+      padding: 10px 15px;
+      font-size: 24px;
+      cursor: pointer;
+    }
+    .sidebar h2 {
+      font-size: 1.3rem;
+      margin-bottom: 30px;
+      text-align: center;
+      color: white;
+    }
+    .sidebar button {
+      background: none;
+      border: none;
+      color: #fff;
+      text-align: left;
+      padding: 12px 20px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      transition: 0.3s;
+      font-size: 1rem;
+      width: 100%;
+    }
+    .sidebar button:hover,
+    .sidebar button.active {
+      background: #333;
+      color: #00b336;
+    }
+    .main {
+      flex: 1;
+      background: white;
+      overflow-y: auto;
+      padding: 30px;
+      margin-top: 50px;
+      padding-bottom: 50px;
+    }
+    .form-section {
+      display: none;
+      background: white;
+      padding: 0px;
+      border-radius: 10px;
+    }
+    .form-section.active {
+      display: block;
+    }
+    .dropdown-list {
+      position: absolute;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+      max-height: 220px;
+      overflow-y: auto;
+      width: 100%;
+      z-index: 2000;
+      display: none;
+      font-size: 15px;
+      animation: fadeIn 0.15s ease-in-out;
+    }
+    .main-footer {
+      background: #2c3e50;
+      color: #fff;
+      text-align: center;
+      padding: 10px 0;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      z-index: 800;
+      font-size: 14px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    tr:nth-child(even) { background: #f2f2f2; }
+    tr:hover { background: #d9edf7; }
+    .balance-positive { color: red; font-weight: bold; }
+    .balance-zero { color: green; font-weight: bold; }
   </style>
 </head>
+
 <body>
   <button id="sidebarToggle">☰</button>
 
-  <div class="sidebar" id="sidebar">
+  <div class="sidebar">
     <h2>Inventory</h2>
-    <button data-section="addStockSection" class="active"><i class="fas fa-plus-circle"></i> Add New Stock</button>
-    <button data-section="recordSaleSection"><i class="fas fa-shopping-cart"></i> Record Sale</button>
-    <button data-section="salesReportSection"><i class="fas fa-chart-line"></i> Sales Report</button>
-    <button data-section="customerDebtSection"><i class="fas fa-user-clock"></i> Customer's Due</button>
-    <button id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    <button class="active" onclick="showSection('addStockSection')"><i class="fas fa-plus-circle"></i> Add New Stock</button>
+    <button onclick="showSection('recordSaleSection')"><i class="fas fa-shopping-cart"></i> Record Sale</button>
+    <button onclick="showSection('salesReportSection')"><i class="fas fa-chart-line"></i> Sales Report</button>
+    <button onclick="showSection('customerDebtSection')"><i class="fas fa-user-clock"></i> Customer's Due</button>
+    <button onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
   </div>
 
   <div id="sidebarOverlay" class="sidebar-overlay"></div>
@@ -47,78 +151,71 @@
     <h5><i class="fas fa-warehouse"></i> India Inventory Management</h5>
     <h2 id="welcomeUser"></h2>
 
-    <!-- ADD STOCK -->
+    <!-- Add Stock -->
     <div id="addStockSection" class="form-section active">
       <div class="card shadow-sm p-3">
         <h4 class="text-center mb-3"><i class="fas fa-plus-circle text-primary"></i> Add New Stock</h4>
         <div class="mb-3">
           <label class="form-label small">Search Item</label>
           <div class="position-relative">
-            <input type="text" id="newItemSearch" class="form-control" placeholder="Search or Select Item" autocomplete="off"/>
+            <input type="text" id="newItemSearch" class="form-control" placeholder="Search or Select Item" oninput="filterDropdown('newItemSearch','newItemDropdownList')" />
             <div id="newItemDropdownList" class="dropdown-list"></div>
           </div>
         </div>
-        <div class="mb-3">
-          <label class="form-label small">Add New Item</label>
-          <input type="text" id="manualNewItem" class="form-control" placeholder="Enter New Item Name" />
-        </div>
+        <div class="mb-3"><label class="form-label small">Add New Item</label><input type="text" id="manualNewItem" class="form-control" placeholder="Enter New Item Name" /></div>
         <div class="mb-3"><label class="form-label small">Quantity</label><input type="number" id="newQuantity" class="form-control" placeholder="Enter Quantity" /></div>
         <div class="mb-3"><label class="form-label small">Rate</label><input type="number" step="0.01" id="newRate" class="form-control" placeholder="Enter Rate" /></div>
-        <button class="btn btn-primary w-100 py-2" id="addStockBtn"><i class="fas fa-plus-circle"></i> Add Stock</button>
+        <button class="btn btn-primary w-100 py-2" onclick="addStock()"><i class="fas fa-plus-circle"></i> Add Stock</button>
       </div>
     </div>
 
-    <!-- RECORD SALE -->
+    <!-- Record Sale -->
     <div id="recordSaleSection" class="form-section">
       <div class="card shadow-sm p-3">
         <h4 class="text-center mb-3"><i class="fas fa-shopping-cart text-success"></i> Record Sale</h4>
         <div class="mb-3">
           <label class="form-label small">Item</label>
           <div class="position-relative">
-            <input type="text" id="saleItemSearch" class="form-control" placeholder="Search or Enter Item" autocomplete="off" />
+            <input type="text" id="saleItemSearch" class="form-control" placeholder="Search or Enter Item" oninput="filterDropdown('saleItemSearch','saleItemDropdownList')" />
             <div id="saleItemDropdownList" class="dropdown-list"></div>
           </div>
         </div>
-        <div class="mb-3"><label class="form-label small">Quantity</label><input type="number" id="saleQuantity" class="form-control" placeholder="Enter Quantity" /></div>
-        <div class="mb-3"><label class="form-label small">Available Stock</label><input type="text" id="availableStock" class="form-control bg-light" readonly /></div>
-        <div class="mb-3"><label class="form-label small">Calculated Price</label><input type="text" id="sellingPrice" class="form-control bg-light" readonly /></div>
+        <div class="mb-3"><label class="form-label small">Quantity</label><input type="number" id="saleQuantity" class="form-control" placeholder="Enter Quantity" oninput="updateSellingPrice()" /></div>
+        <div class="mb-3"><label class="form-label small">Available Stock</label><input type="text" id="availableStock" class="form-control bg-light" placeholder="0" readonly /></div>
+        <div class="mb-3"><label class="form-label small">Calculated Price</label><input type="text" id="sellingPrice" class="form-control bg-light" placeholder="Auto" readonly /></div>
         <div class="mb-3"><label class="form-label small">Actual Price</label><input type="number" id="actualSellingPrice" class="form-control" placeholder="Enter Actual Price" /></div>
-        <button class="btn btn-success w-100 py-2" id="recordSaleBtn"><i class="fas fa-check-circle"></i> Record Sale</button>
+        <button class="btn btn-success w-100 py-2" onclick="recordSale()"><i class="fas fa-check-circle"></i> Record Sale</button>
       </div>
     </div>
 
-    <!-- SALES REPORT -->
+    <!-- Sales Report -->
     <div id="salesReportSection" class="form-section">
       <div class="card shadow-sm p-3">
         <h4 class="text-center mb-3"><i class="fas fa-chart-line text-info"></i> Sales Report</h4>
-        <div class="row g-2 mb-3">
-          <div class="col-md-6"><input type="date" id="fromDate" class="form-control"></div>
-          <div class="col-md-6"><input type="date" id="toDate" class="form-control"></div>
-        </div>
+        <div class="row g-2 mb-3"><div class="col-md-6"><input type="date" id="fromDate" class="form-control"></div><div class="col-md-6"><input type="date" id="toDate" class="form-control"></div></div>
         <div class="d-flex flex-column flex-md-row gap-2">
-          <button class="btn btn-info flex-fill" id="pdfBtn"><i class="fas fa-file-pdf"></i> PDF</button>
-          <button class="btn btn-success flex-fill" id="excelBtn"><i class="fas fa-file-excel"></i> Excel</button>
+          <button class="btn btn-info flex-fill" onclick="downloadSalesPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+          <button class="btn btn-success flex-fill" onclick="downloadSalesExcel()"><i class="fas fa-file-excel"></i> Excel</button>
         </div>
       </div>
     </div>
 
-    <!-- CUSTOMER DUES -->
+    <!-- Customer Due -->
     <div id="customerDebtSection" class="form-section">
       <div class="card shadow-sm p-3 mb-4">
         <h4 class="text-center mb-3"><i class="fas fa-user-clock text-danger"></i> Add Customer's Due</h4>
         <input id="cdName" type="text" class="form-control mb-2" placeholder="Customer Name" />
-        <input id="cdNumber" type="tel" maxlength="10" class="form-control mb-2" placeholder="10-digit Number" />
+        <input id="cdNumber" type="tel" maxlength="10" class="form-control mb-2" placeholder="10-digit Number" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" />
         <input id="cdTotal" type="number" class="form-control mb-2" placeholder="Total Amount" />
         <input id="cdCredit" type="number" class="form-control mb-2" placeholder="Credit Amount" />
-        <button class="btn btn-danger w-100" id="submitDebtBtn"><i class="fas fa-check-circle"></i> Submit</button>
+        <button class="btn btn-danger w-100" onclick="submitDebt()"><i class="fas fa-check-circle"></i> Submit</button>
       </div>
-
       <div class="card shadow-sm p-3">
         <h4 class="text-center mb-3"><i class="fas fa-search text-success"></i> Search Customer's Due</h4>
-        <input id="cdSearchInput" type="tel" maxlength="10" class="form-control mb-3" placeholder="10-digit Number" />
+        <input id="cdSearchInput" type="tel" maxlength="10" class="form-control mb-3" placeholder="10-digit Number" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" />
         <div class="d-flex gap-2 mb-3">
-          <button class="btn btn-success flex-fill" id="searchLedgerBtn"><i class="fas fa-search"></i> Search</button>
-          <button class="btn btn-secondary flex-fill" id="showAllDuesBtn"><i class="fas fa-list"></i> All Dues</button>
+          <button class="btn btn-success flex-fill" onclick="searchLedger()"><i class="fas fa-search"></i> Search</button>
+          <button class="btn btn-secondary flex-fill" onclick="showAllDues()"><i class="fas fa-list"></i> All Dues</button>
         </div>
         <div id="ledgerTable" class="table-responsive"></div>
       </div>
@@ -127,313 +224,207 @@
 
   <footer class="main-footer">© 2025 India Inventory Management</footer>
 
-<script>
-/* ---------------------- Config --------------------- */
-const apiBase = window.location.origin.includes("localhost") ? "http://localhost:4000/api" : "/api";
-let itemNames = []; // array of strings, e.g. ["Rice","Wheat"]
+  <script>
+    const apiBase = window.location.origin.includes("localhost") ? "http://localhost:4000/api" : "/api";
+    let itemNames = [];
 
-/* ---------------------- AUTH ----------------------- */
-async function checkAuth() {
-  const token = localStorage.getItem("token");
-  if (!token) return location.href = "login.html";
-  try {
-    const res = await fetch(`${apiBase}/auth/me`, { headers: { "Authorization": `Bearer ${token}` } });
-    if (!res.ok) throw new Error("unauthorized");
-    const user = await res.json();
-    localStorage.setItem("user", JSON.stringify(user));
-    document.getElementById("welcomeUser").innerText = `Welcome, ${user.name}`;
-    document.body.style.visibility = "visible";
-  } catch (err) {
-    console.error("Auth fail:", err);
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    alert("Session expired! Please log in again.");
-    location.href = "login.html";
-  }
-}
-
-/* ---------------------- UI / Sidebar --------------------- */
-function setupSidebar() {
-  const sidebar = document.getElementById("sidebar");
-  const overlay = document.getElementById("sidebarOverlay");
-  const toggle = document.getElementById("sidebarToggle");
-
-  toggle.addEventListener("click", () => sidebar.classList.toggle("sidebar--open"));
-  overlay.addEventListener("click", () => sidebar.classList.remove("sidebar--open"));
-
-  document.querySelectorAll(".sidebar button[data-section]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".form-section").forEach(s => s.classList.remove("active"));
-      document.getElementById(btn.dataset.section).classList.add("active");
-      document.querySelectorAll(".sidebar button").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      sidebar.classList.remove("sidebar--open");
-    });
-  });
-
-  document.getElementById("logoutBtn").addEventListener("click", () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    location.href = "login.html";
-  });
-}
-
-/* ---------------------- Dropdown helpers --------------------- */
-function renderDropdown(listEl, items, onSelect) {
-  if (!items || items.length === 0) {
-    listEl.style.display = "none";
-    listEl.innerHTML = "";
-    return;
-  }
-  listEl.innerHTML = items.map(i => `<div class="dropdown-item" data-value="${escapeHtml(i)}">${escapeHtml(i)}</div>`).join("");
-  listEl.style.display = "block";
-  listEl.querySelectorAll(".dropdown-item").forEach(el => el.addEventListener("click", () => {
-    onSelect(el.dataset.value);
-    listEl.style.display = "none";
-  }));
-}
-
-function escapeHtml(s) { return (s+"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-
-function setupFilterInput(inputId, listId, onSelectCallback) {
-  const input = document.getElementById(inputId);
-  const listEl = document.getElementById(listId);
-
-  input.addEventListener("input", () => {
-    const q = input.value.trim().toLowerCase();
-    if (!q) {
-      renderDropdown(listEl, itemNames.slice(0,50), val => { input.value = val; if(onSelectCallback) onSelectCallback(val); });
-      return;
+    async function checkAuth() {
+      const token = localStorage.getItem("token");
+      if (!token) return window.location.href = "login.html";
+      try {
+        const res = await fetch(`${apiBase}/auth/me`, { headers: { "Authorization": `Bearer ${token}` } });
+        if (!res.ok) throw new Error("unauthorized");
+        const user = await res.json();
+        document.getElementById("welcomeUser").innerText = `Welcome, ${user.name}`;
+        document.body.style.visibility = "visible";
+      } catch (err) {
+        alert("Session expired! Please log in again.");
+        localStorage.clear();
+        window.location.href = "login.html";
+      }
     }
-    const filtered = itemNames.filter(i => i.toLowerCase().includes(q)).slice(0,50);
-    renderDropdown(listEl, filtered, val => { input.value = val; if(onSelectCallback) onSelectCallback(val); });
-  });
 
-  // hide when clicking outside
-  document.addEventListener("click", (e) => {
-    if (!input.contains(e.target) && !listEl.contains(e.target)) listEl.style.display = "none";
-  });
+    function logout() {
+      localStorage.clear();
+      window.location.href = "login.html";
+    }
 
-  // focus shows top items
-  input.addEventListener("focus", () => {
-    renderDropdown(listEl, itemNames.slice(0,50), val => { input.value = val; if(onSelectCallback) onSelectCallback(val); });
-  });
-}
+    // ✅ Sidebar open/close + overlay
+    (function () {
+      const toggle = document.getElementById('sidebarToggle');
+      const sidebar = document.querySelector('.sidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      toggle.addEventListener('click', () => {
+        const isOpen = sidebar.classList.toggle('sidebar--open');
+        overlay.classList.toggle('visible', isOpen);
+      });
+      overlay.addEventListener('click', () => {
+        sidebar.classList.remove('sidebar--open');
+        overlay.classList.remove('visible');
+      });
+    })();
 
-/* ---------------------- API: Load items --------------------- */
-async function loadItemNames() {
-  try {
-    const res = await fetch(`${apiBase}/items/names`, { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } });
-    if (!res.ok) throw new Error("Failed to fetch items");
-    itemNames = await res.json(); // expecting array of strings
-  } catch (err) {
-    console.error("Error loading item names:", err);
-    itemNames = [];
-  }
-}
+    function showSection(id) {
+      document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
 
-/* ---------------------- Add Stock --------------------- */
-async function addStock() {
-  const item = (document.getElementById('manualNewItem').value || document.getElementById('newItemSearch').value || "").trim();
-  const quantity = parseFloat(document.getElementById('newQuantity').value);
-  const rate = parseFloat(document.getElementById('newRate').value);
-  if (!item || isNaN(quantity) || isNaN(rate)) return alert("Fill all fields correctly");
-  try {
-    const res = await fetch(`${apiBase}/items`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem("token")}` },
-      body: JSON.stringify({ name: item, quantity, rate })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Add failed");
-    alert(data.message || "Added");
-    // refresh item names
-    await loadItemNames();
-  } catch (err) {
-    console.error("Add stock error:", err);
-    alert(err.message || "Server error");
-  }
-}
+    async function loadItemNames() {
+      try {
+        const res = await fetch(`${apiBase}/items/names`, { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } });
+        itemNames = await res.json();
+      } catch (err) { console.error(err); }
+    }
 
-/* ---------------------- Record Sale --------------------- */
-async function updateSellingPrice() {
-  const item = document.getElementById('saleItemSearch').value.trim();
-  const quantity = parseInt(document.getElementById('saleQuantity').value) || 0;
-  if (!item) return;
-  try {
-    const res = await fetch(`${apiBase}/items/info?name=${encodeURIComponent(item)}`, { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } });
-    const data = await res.json();
-    if (!res.ok) return alert(data.error || "Item info error");
-    document.getElementById('availableStock').value = data.quantity;
-    document.getElementById('sellingPrice').value = (data.rate * quantity).toFixed(2);
-  } catch (err) {
-    console.error("Update price error:", err);
-  }
-}
+    function filterDropdown(inputId, dropdownId) {
+      const input = document.getElementById(inputId);
+      const dropdown = document.getElementById(dropdownId);
+      const val = input.value.toLowerCase();
+      const matches = itemNames.filter(n => n.toLowerCase().includes(val));
+      dropdown.innerHTML = matches.map(n => `<div onclick="selectItem('${inputId}','${dropdownId}','${n}')">${n}</div>`).join('');
+      dropdown.style.display = matches.length ? "block" : "none";
+    }
+    function selectItem(inputId, dropdownId, name) {
+      document.getElementById(inputId).value = name;
+      document.getElementById(dropdownId).style.display = "none";
+    }
 
-async function recordSale() {
-  const name = document.getElementById('saleItemSearch').value.trim();
-  const quantity = parseFloat(document.getElementById('saleQuantity').value);
-  const actualPrice = parseFloat(document.getElementById('actualSellingPrice').value);
-  if (!name || isNaN(quantity) || isNaN(actualPrice)) return alert("Invalid input");
-  try {
-    const res = await fetch(`${apiBase}/sales`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem("token")}` },
-      body: JSON.stringify({ name, quantity, actualPrice })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Sale failed");
-    alert(data.message || "Sale recorded");
-    // update local UI
-    await loadItemNames();
-    document.getElementById('saleItemSearch').value = "";
-    document.getElementById('saleQuantity').value = "";
-    document.getElementById('availableStock').value = "";
-    document.getElementById('sellingPrice').value = "";
-    document.getElementById('actualSellingPrice').value = "";
-  } catch (err) {
-    console.error("Record sale error:", err);
-    alert(err.message || "Server error");
-  }
-}
+    /* ---- Add Stock ---- */
+    async function addStock() {
+      const item = (document.getElementById('manualNewItem').value || document.getElementById('newItemSearch').value || "").trim();
+      const quantity = parseFloat(document.getElementById('newQuantity').value);
+      const rate = parseFloat(document.getElementById('newRate').value);
+      if (!item || isNaN(quantity) || isNaN(rate)) return alert("Fill all fields correctly");
+      const res = await fetch(`${apiBase}/items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem("token")}` },
+        body: JSON.stringify({ name: item, quantity, rate })
+      });
+      const data = await res.json();
+      alert(data.message || "Added");
+      await loadItemNames();
+      ['manualNewItem','newItemSearch','newQuantity','newRate'].forEach(id => document.getElementById(id).value = "");
+    }
 
-/* ---------------------- Sales report download --------------------- */
-async function downloadSalesPDF() {
-  const from = document.getElementById('fromDate').value;
-  const to = document.getElementById('toDate').value;
-  if (!from || !to) return alert("Select both dates");
-  try {
-    const res = await fetch(`${apiBase}/sales/report/pdf?from=${from}&to=${to}`, { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } });
-    if (!res.ok) throw new Error("Report error");
-    const blob = await res.blob();
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "Sales_Report.pdf";
-    link.click();
-  } catch (err) {
-    console.error("PDF download error:", err);
-    alert("Could not download PDF");
-  }
-}
-async function downloadSalesExcel() {
-  const from = document.getElementById('fromDate').value;
-  const to = document.getElementById('toDate').value;
-  if (!from || !to) return alert("Select both dates");
-  try {
-    const res = await fetch(`${apiBase}/sales/report/excel?from=${from}&to=${to}`, { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } });
-    if (!res.ok) throw new Error("Report error");
-    const blob = await res.blob();
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "Sales_Report.xlsx";
-    link.click();
-  } catch (err) {
-    console.error("Excel download error:", err);
-    alert("Could not download Excel");
-  }
-}
+    /* ---- Record Sale ---- */
+    async function updateSellingPrice() {
+      const item = document.getElementById('saleItemSearch').value.trim();
+      const quantity = parseInt(document.getElementById('saleQuantity').value) || 0;
+      if (!item) return;
+      const res = await fetch(`${apiBase}/items/info?name=${encodeURIComponent(item)}`, { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } });
+      const data = await res.json();
+      if (!res.ok) return alert(data.error);
+      document.getElementById('availableStock').value = data.quantity;
+      document.getElementById('sellingPrice').value = data.rate * quantity;
+    }
+    async function recordSale() {
+      const name = document.getElementById('saleItemSearch').value.trim();
+      const quantity = parseFloat(document.getElementById('saleQuantity').value);
+      const actualPrice = parseFloat(document.getElementById('actualSellingPrice').value);
+      if (!name || isNaN(quantity) || isNaN(actualPrice)) return alert("Invalid input");
+      const res = await fetch(`${apiBase}/sales`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem("token")}` },
+        body: JSON.stringify({ name, quantity, actualPrice })
+      });
+      const data = await res.json();
+      alert(data.message || "Sale recorded");
+      ['saleItemSearch','saleQuantity','availableStock','sellingPrice','actualSellingPrice'].forEach(id => document.getElementById(id).value = "");
+    }
 
-/* ---------------------- Debts --------------------- */
-async function submitDebt() {
-  const entry = {
-    customer_name: document.getElementById('cdName').value.trim(),
-    customer_number: document.getElementById('cdNumber').value.trim(),
-    total: parseFloat(document.getElementById('cdTotal').value) || 0,
-    credit: parseFloat(document.getElementById('cdCredit').value) || 0
-  };
-  if (!entry.customer_name || !/^\d{10}$/.test(entry.customer_number)) return alert("Invalid number");
-  try {
-    const res = await fetch(`${apiBase}/debts`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem("token")}` },
-      body: JSON.stringify(entry)
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Debt save failed");
-    alert(data.message || "Debt entry added");
-  } catch (err) {
-    console.error("Submit debt error:", err);
-    alert(err.message || "Server error");
-  }
-}
+    /* ---- Reports ---- */
+    async function downloadSalesPDF() {
+      const from = document.getElementById('fromDate').value;
+      const to = document.getElementById('toDate').value;
+      if (!from || !to) return alert("Select both dates");
+      const res = await fetch(`${apiBase}/sales/report/pdf?from=${from}&to=${to}`, { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } });
+      const blob = await res.blob(); const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob); link.download = "Sales_Report.pdf"; link.click();
+    }
+    async function downloadSalesExcel() {
+      const from = document.getElementById('fromDate').value;
+      const to = document.getElementById('toDate').value;
+      if (!from || !to) return alert("Select both dates");
+      const res = await fetch(`${apiBase}/sales/report/excel?from=${from}&to=${to}`, { headers: {
+        headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } 
+      });
+      const blob = await res.blob();
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "Sales_Report.xlsx";
+      link.click();
+    }
 
-async function searchLedger() {
-  const number = document.getElementById('cdSearchInput').value.trim();
-  if (!/^\d{10}$/.test(number)) return alert("Invalid number");
-  try {
-    const res = await fetch(`${apiBase}/debts/${number}`, { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } });
-    const data = await res.json();
-    renderLedgerTable(data, "ledger");
-  } catch (err) {
-    console.error("Search ledger error:", err);
-  }
-}
+    /* ---- Customer Due ---- */
+    async function submitDebt() {
+      const entry = {
+        customer_name: document.getElementById('cdName').value.trim(),
+        customer_number: document.getElementById('cdNumber').value.trim(),
+        total: parseFloat(document.getElementById('cdTotal').value) || 0,
+        credit: parseFloat(document.getElementById('cdCredit').value) || 0
+      };
+      if (!entry.customer_name || !/^\d{10}$/.test(entry.customer_number))
+        return alert("Invalid number");
 
-async function showAllDues() {
-  try {
-    const res = await fetch(`${apiBase}/debts`, { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } });
-    const data = await res.json();
-    renderLedgerTable(data, "summary");
-  } catch (err) {
-    console.error("Show dues error:", err);
-  }
-}
+      const res = await fetch(`${apiBase}/debts`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+        body: JSON.stringify(entry)
+      });
+      const data = await res.json();
+      alert(data.message || "Debt entry added");
+      ['cdName','cdNumber','cdTotal','cdCredit'].forEach(id => document.getElementById(id).value = "");
+    }
 
-function renderLedgerTable(rows, mode = "summary") {
-  if (!rows || !rows.length) return document.getElementById("ledgerTable").innerHTML = "<p>No records.</p>";
-  let html = "<table>";
-  if (mode === "summary") {
-    html += "<tr><th>Name</th><th>Number</th><th>Total</th><th>Credit</th><th>Balance</th></tr>";
-    rows.forEach(r => html += `<tr><td>${escapeHtml(r.customer_name)}</td><td>${r.customer_number}</td><td>${r.total}</td><td>${r.credit}</td><td>${r.balance}</td></tr>`);
-  } else {
-    html += "<tr><th>Date</th><th>Total</th><th>Credit</th><th>Balance</th></tr>";
-    let balance = 0;
-    rows.forEach(r => {
-      balance += r.total - r.credit;
-      html += `<tr><td>${new Date(r.created_at).toLocaleDateString()}</td><td>${r.total}</td><td>${r.credit}</td><td>${balance}</td></tr>`;
-    });
-  }
-  html += "</table>";
-  document.getElementById("ledgerTable").innerHTML = html;
-}
+    async function searchLedger() {
+      const number = document.getElementById('cdSearchInput').value.trim();
+      if (!/^\d{10}$/.test(number)) return alert("Invalid number");
+      const res = await fetch(`${apiBase}/debts/${number}`, {
+        headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
+      });
+      const data = await res.json();
+      renderLedgerTable(data, "ledger");
+    }
 
-/* ---------------------- Init / event wiring --------------------- */
-window.addEventListener("DOMContentLoaded", async () => {
-  setupSidebar();
+    async function showAllDues() {
+      const res = await fetch(`${apiBase}/debts`, {
+        headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
+      });
+      const data = await res.json();
+      renderLedgerTable(data, "summary");
+    }
 
-  // wire form buttons
-  document.getElementById("addStockBtn").addEventListener("click", addStock);
-  document.getElementById("recordSaleBtn").addEventListener("click", recordSale);
-  document.getElementById("pdfBtn").addEventListener("click", downloadSalesPDF);
-  document.getElementById("excelBtn").addEventListener("click", downloadSalesExcel);
-  document.getElementById("submitDebtBtn").addEventListener("click", submitDebt);
-  document.getElementById("searchLedgerBtn").addEventListener("click", searchLedger);
-  document.getElementById("showAllDuesBtn").addEventListener("click", showAllDues);
+    function renderLedgerTable(rows, mode = "summary") {
+      if (!rows.length) {
+        document.getElementById("ledgerTable").innerHTML = "<p>No records.</p>";
+        return;
+      }
+      let html = "<table>";
+      if (mode === "summary") {
+        html += "<tr><th>Name</th><th>Number</th><th>Total</th><th>Credit</th><th>Balance</th></tr>";
+        rows.forEach(r => {
+          html += `<tr><td>${r.customer_name}</td><td>${r.customer_number}</td><td>${r.total}</td><td>${r.credit}</td><td>${r.balance}</td></tr>`;
+        });
+      } else {
+        html += "<tr><th>Date</th><th>Total</th><th>Credit</th><th>Balance</th></tr>";
+        let balance = 0;
+        rows.forEach(r => {
+          balance += r.total - r.credit;
+          html += `<tr><td>${new Date(r.created_at).toLocaleDateString()}</td><td>${r.total}</td><td>${r.credit}</td><td>${balance}</td></tr>`;
+        });
+      }
+      html += "</table>";
+      document.getElementById("ledgerTable").innerHTML = html;
+    }
 
-  // sale quantity change updates price
-  document.getElementById("saleQuantity").addEventListener("input", updateSellingPrice);
-  document.getElementById("saleItemSearch").addEventListener("input", () => { /* keep for typing */ });
-
-  // setup dropdown filtered inputs
-  setupFilterInput("newItemSearch", "newItemDropdownList", val => { document.getElementById("manualNewItem").value = ""; });
-  setupFilterInput("saleItemSearch", "saleItemDropdownList", val => { /* price update will run when user inputs qty */ });
-
-  // Auth & load items after auth
-  await checkAuth();
-  await loadItemNames();
-
-  // show dropdown of top items for inputs (if user focuses)
-  // (no immediate rendering here; handled by input focus)
-});
-
-/* Safety fallback: if something blocks auth, show page after 5s so UI isn't permanently hidden */
-setTimeout(() => {
-  if (document.body.style.visibility === "hidden") {
-    document.body.style.visibility = "visible";
-  }
-}, 5000);
-
-</script>
+    // ✅ Page load
+    window.onload = () => {
+      checkAuth();
+      loadItemNames();
+    };
+  </script>
 </body>
 </html>
