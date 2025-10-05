@@ -15,9 +15,9 @@
       display: flex;
       flex-direction: column;
       min-height: 100vh;
-      overflow-x: hidden; /* Only hide sideways scroll */
-      overflow-y: auto;   /* Allow full vertical scroll */
-      visibility: hidden; /* Ensure content appears */
+      overflow-x: hidden; 
+      overflow-y: auto;   
+      visibility: hidden; 
     }
 
     .sidebar {
@@ -194,7 +194,7 @@
       <div class="card shadow-sm p-3">
         <h4 class="text-center mb-3"><i class="fas fa-plus-circle text-primary"></i> Add New Stock</h4>
         <div class="mb-3">
-          <label class="form-label small">Write/Search For Add Item</label>
+          <label class="form-label small">Search Existing Item For Add</label>
           <div class="position-relative">
             <input type="text" id="newItemSearch" class="form-control" placeholder="Search or Select Item"
               autocomplete="off" />
@@ -205,7 +205,7 @@
             class="form-control" placeholder="Enter New Item Name" /></div>
         <div class="mb-3"><label class="form-label small">Quantity</label><input type="number" id="newQuantity"
             class="form-control" placeholder="Enter Quantity" /></div>
-        <div class="mb-3"><label class="form-label small">Rate</label><input type="number" step="0.01" id="newRate"
+        <div class="mb-3"><label class="form-label small">Your Buying Rate</label><input type="number" step="0.01" id="newRate"
             class="form-control" placeholder="Enter Rate" /></div>
         <button class="btn btn-primary w-100 py-2" id="addStockBtn"><i class="fas fa-plus-circle"></i> Add
           Stock</button>
@@ -228,7 +228,7 @@
             class="form-control" placeholder="Enter Quantity" /></div>
         <div class="mb-3"><label class="form-label small">Available Stock</label><input type="text" id="availableStock"
             class="form-control bg-light" readonly /></div>
-        <div class="mb-3"><label class="form-label small">Calculated Price</label><input type="text" id="sellingPrice"
+        <div class="mb-3"><label class="form-label small">Calculated Price (+50%)</label><input type="text" id="sellingPrice"
             class="form-control bg-light" readonly /></div>
         <div class="mb-3"><label class="form-label small">Actual Price</label><input type="number"
             id="actualSellingPrice" class="form-control" placeholder="Enter Actual Price" /></div>
@@ -242,12 +242,12 @@
       <div class="card shadow-sm p-3">
         <h4 class="text-center mb-3"><i class="fas fa-chart-line text-info"></i> Sales Report</h4>
         <div class="row g-2 mb-3">
-          <div class="col-md-6"><input type="date" id="fromDate" class="form-control"></div>
-          <div class="col-md-6"><input type="date" id="toDate" class="form-control"></div>
+          <div class="col-md-6"><input type="date" id="fromDate" class="form-control" placeholder="From Date"></div>
+          <div class="col-md-6"><input type="date" id="toDate" class="form-control" placeholder="To Date"></div>
         </div>
         <div class="d-flex flex-column flex-md-row gap-2">
-          <button class="btn btn-info flex-fill" id="pdfBtn"><i class="fas fa-file-pdf"></i> PDF</button>
-          <button class="btn btn-success flex-fill" id="excelBtn"><i class="fas fa-file-excel"></i> Excel</button>
+          <button class="btn btn-info flex-fill" id="pdfBtn"><i class="fas fa-file-pdf"></i>Download PDF</button>
+          <button class="btn btn-success flex-fill" id="excelBtn"><i class="fas fa-file-excel"></i>Download Excel</button>
         </div>
       </div>
     </div>
