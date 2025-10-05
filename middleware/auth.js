@@ -1,22 +1,38 @@
-// middleware/auth.js/
+// middleware/auth.js
 const jwt = require("jsonwebtoken");
 
-function verifyToken(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: "No token provided" });
+// -------------------- ENV CHECK --------------------
+if (!process.env.JWT_SECRET) {
+  console.error("❌ JWT_SECRET not found in environment variables.");
+  process.exit(1);
+}
 
-  const parts = authHeader.split(" ");
-  if (parts.length !== 2) return res.status(401).json({ error: "Token format invalid" });
+// -------------------- AUTH MIDDLEWARE --------------------
+function authMiddleware(req, res, next) {
+  const header = req.headers["authorization"];
+  if (!header || !header.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Missing or invalid Authorization header" });
+  }
 
-  const token = parts[1];
+  const token = header.split(" ")[1];
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    req.user = decoded; // attach user info to request
     next();
   } catch (err) {
-    console.error("Token verification error:", err.message);
-    return res.status(403).json({ error: "Invalid or expired token" });
+    if (process.env.NODE_ENV !== "production") {
+      console.error("JWT verification failed:", err.message);
+    }
+    return res.status(401).json({ error: "Invalid or expired token" });
   }
 }
 
-module.exports = verifyToken;
+// -------------------- USER ID HELPER --------------------
+function getUserId(req) {
+  if (!req.user || !req.user.id) {
+    throw new Error("Missing user_id in request context");
+  }
+  return req.user.id;
+}
+
+module.exports = { authMiddleware, getUserId };
