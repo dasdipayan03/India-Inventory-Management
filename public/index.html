@@ -7,6 +7,7 @@
   <title>India Inventory Management</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+
   <style>
     body {
       margin: 0;
@@ -168,8 +169,7 @@
 
   <div class="sidebar">
     <h2>Inventory</h2>
-    <button class="active" onclick="showSection('addStockSection')"><i class="fas fa-plus-circle"></i> Add New
-      Stock</button>
+    <button class="active" onclick="showSection('addStockSection')"><i class="fas fa-plus-circle"></i> Add New Stock</button>
     <button onclick="showSection('recordSaleSection')"><i class="fas fa-shopping-cart"></i> Record Sale</button>
     <button onclick="showSection('salesReportSection')"><i class="fas fa-chart-line"></i> Sales Report</button>
     <button onclick="showSection('customerDebtSection')"><i class="fas fa-user-clock"></i> Customer's Due</button>
@@ -251,8 +251,7 @@
           <input type="number" id="actualSellingPrice" class="form-control" placeholder="Enter Actual Price" />
         </div>
 
-        <button class="btn btn-success w-100 py-2" onclick="recordSale()"><i class="fas fa-check-circle"></i> Record
-          Sale</button>
+        <button class="btn btn-success w-100 py-2" onclick="recordSale()"><i class="fas fa-check-circle"></i> Record Sale</button>
       </div>
     </div>
 
@@ -265,10 +264,8 @@
           <div class="col-md-6"><input type="date" id="toDate" class="form-control"></div>
         </div>
         <div class="d-flex flex-column flex-md-row gap-2">
-          <button class="btn btn-info flex-fill" onclick="downloadSalesPDF()"><i class="fas fa-file-pdf"></i>
-            PDF</button>
-          <button class="btn btn-success flex-fill" onclick="downloadSalesExcel()"><i class="fas fa-file-excel"></i>
-            Excel</button>
+          <button class="btn btn-info flex-fill" onclick="downloadSalesPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+          <button class="btn btn-success flex-fill" onclick="downloadSalesExcel()"><i class="fas fa-file-excel"></i> Excel</button>
         </div>
       </div>
     </div>
@@ -277,7 +274,6 @@
     <div id="customerDebtSection" class="form-section">
       <div class="card shadow-sm p-3 mb-4">
         <h4 class="text-center mb-3"><i class="fas fa-user-clock text-danger"></i> Add Customer's Due</h4>
-
         <input id="cdName" type="text" class="form-control mb-2" placeholder="Customer Name" />
         <input id="cdNumber" type="tel" maxlength="10" class="form-control mb-2" placeholder="10-digit Number"
           oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" />
@@ -291,10 +287,8 @@
         <input id="cdSearchInput" type="tel" maxlength="10" class="form-control mb-3" placeholder="10-digit Number"
           oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" />
         <div class="d-flex gap-2 mb-3">
-          <button class="btn btn-success flex-fill" onclick="searchLedger()"><i class="fas fa-search"></i>
-            Search</button>
-          <button class="btn btn-secondary flex-fill" onclick="showAllDues()"><i class="fas fa-list"></i> All
-            Dues</button>
+          <button class="btn btn-success flex-fill" onclick="searchLedger()"><i class="fas fa-search"></i> Search</button>
+          <button class="btn btn-secondary flex-fill" onclick="showAllDues()"><i class="fas fa-list"></i> All Dues</button>
         </div>
         <div id="ledgerTable" class="table-responsive"></div>
       </div>
@@ -304,43 +298,45 @@
   <footer class="main-footer">© 2025 India Inventory Management</footer>
 
   <script>
-    // 🔹 Handles both local + live environments
     const apiBase = window.location.origin.includes("localhost")
       ? "http://localhost:4000/api"
       : "/api";
     let itemNames = [];
 
+    // ✅ AUTH CHECK
+    async function checkAuth() {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        window.location.href = "login.html";
+        return;
+      }
 
-    // ---------------- AUTH ----------------
-async function checkAuth() {
-  const token = localStorage.getItem("token");
-  if (!token) {
-    // Redirect before showing anything
-    window.location.replace("login.html");
-    return;
-  }
+      try {
+        const res = await fetch(`${apiBase}/auth/me`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
 
-  try {
-    const res = await fetch(`${apiBase}/auth/me`, {
-      headers: { "Authorization": `Bearer ${token}` }
-    });
+        if (!res.ok) throw new Error("Invalid or expired token");
 
-    if (!res.ok) throw new Error("Invalid or expired token");
+        const user = await res.json();
+        localStorage.setItem("user", JSON.stringify(user));
+        document.getElementById("welcomeUser").innerText = `Welcome, ${user.name}`;
+        document.body.style.visibility = "visible";
+      } catch (err) {
+        console.error("Auth failed:", err);
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        window.location.href = "login.html";
+      }
+    }
 
-    const user = await res.json();
-    localStorage.setItem("user", JSON.stringify(user));
-    document.getElementById("welcomeUser").innerText = `Welcome, ${user.name}`;
-    // ✅ Auth passed → show page
-    document.body.style.visibility = "visible";
-  } catch (err) {
-    console.error("Auth failed:", err);
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    window.location.replace("login.html");
-  }
-}
+    function logout() {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.href = "login.html";
+    }
 
-    // ---------------- SIDEBAR ----------------
+    // SIDEBAR
     (function () {
       const toggle = document.getElementById('sidebarToggle');
       const sidebar = document.querySelector('.sidebar');
@@ -354,7 +350,7 @@ async function checkAuth() {
       document.getElementById(id).classList.add('active');
     }
 
-    // ---------------- ITEM HANDLING ----------------
+    // ITEM HANDLING
     async function loadItemNames() {
       try {
         const res = await fetch(`${apiBase}/items/names`, {
@@ -383,7 +379,6 @@ async function checkAuth() {
       alert(data.message || "Added");
     }
 
-    // ---------------- SALE ----------------
     async function updateSellingPrice() {
       const item = document.getElementById('saleItemSearch').value.trim();
       const quantity = parseInt(document.getElementById('saleQuantity').value) || 0;
@@ -405,14 +400,16 @@ async function checkAuth() {
 
       const res = await fetch(`${apiBase}/sales`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem("token")}` },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
         body: JSON.stringify({ name, quantity, actualPrice })
       });
       const data = await res.json();
       alert(data.message || "Sale recorded");
     }
 
-    // ---------------- REPORTS ----------------
     async function downloadSalesPDF() {
       const from = document.getElementById('fromDate').value;
       const to = document.getElementById('toDate').value;
@@ -441,7 +438,6 @@ async function checkAuth() {
       link.click();
     }
 
-    // ---------------- DEBTS ----------------
     async function submitDebt() {
       const entry = {
         customer_name: document.getElementById('cdName').value.trim(),
@@ -495,7 +491,10 @@ async function checkAuth() {
       document.getElementById("ledgerTable").innerHTML = html;
     }
 
-    window.onload = () => { checkAuth(); loadItemNames(); };
+    window.onload = () => {
+      checkAuth();
+      loadItemNames();
+    };
   </script>
 </body>
 
