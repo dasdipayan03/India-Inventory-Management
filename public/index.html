@@ -319,6 +319,7 @@ async function checkAuth() {
 
     const verifiedUser = await res.json();
     document.getElementById("welcomeUser").innerText = `Welcome, ${verifiedUser.name}`;
+    document.body.style.visibility = "visible"; // ✅ show content after token verified
   } catch (err) {
     alert("Session expired! Please log in again.");
     localStorage.removeItem("token");
