@@ -304,37 +304,28 @@
     let itemNames = [];
 
     // ✅ AUTH CHECK
-    async function checkAuth() {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        window.location.href = "login.html";
-        return;
-      }
+async function checkAuth() {
+  const token = localStorage.getItem("token");
+  const user = JSON.parse(localStorage.getItem("user"));
+  if (!token || !user) return window.location.href = "login.html";
 
-      try {
-        const res = await fetch(`${apiBase}/auth/me`, {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
+  try {
+    // ✅ Verify token live with backend
+    const res = await fetch("/api/auth/me", {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
 
-        if (!res.ok) throw new Error("Invalid or expired token");
+    if (!res.ok) throw new Error("unauthorized");
 
-        const user = await res.json();
-        localStorage.setItem("user", JSON.stringify(user));
-        document.getElementById("welcomeUser").innerText = `Welcome, ${user.name}`;
-        document.body.style.visibility = "visible";
-      } catch (err) {
-        console.error("Auth failed:", err);
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        window.location.href = "login.html";
-      }
-    }
-
-    function logout() {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      window.location.href = "login.html";
-    }
+    const verifiedUser = await res.json();
+    document.getElementById("welcomeUser").innerText = `Welcome, ${verifiedUser.name}`;
+  } catch (err) {
+    alert("Session expired! Please log in again.");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href = "login.html";
+  }
+}
 
     // SIDEBAR
     (function () {
