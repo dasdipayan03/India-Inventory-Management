@@ -1,4 +1,3 @@
-// server.js
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -13,14 +12,26 @@ app.use(cors());
 app.use(express.json());
 app.use(compression());
 
-// ✅ Allow inline scripts for static HTML (so login/register JS runs)
+// ✅ Helmet: allow CDN + inline scripts for Bootstrap, FontAwesome
 app.use(
   helmet.contentSecurityPolicy({
     useDefaults: true,
     directives: {
-      "script-src": ["'self'", "'unsafe-inline'"], // allow inline <script>
-      "img-src": ["'self'", "data:"],
       "default-src": ["'self'"],
+      "script-src": [
+        "'self'",
+        "'unsafe-inline'",
+        "https://cdnjs.cloudflare.com",
+        "https://cdn.jsdelivr.net"
+      ],
+      "style-src": [
+        "'self'",
+        "'unsafe-inline'",
+        "https://cdnjs.cloudflare.com",
+        "https://cdn.jsdelivr.net"
+      ],
+      "img-src": ["'self'", "data:", "https://cdn.jsdelivr.net"],
+      "font-src": ["'self'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
     },
   })
 );
@@ -49,23 +60,22 @@ app.get("/debug-db", async (req, res) => {
 });
 
 // -------------------- FRONTEND --------------------
-
-// ✅ Serve static files properly
 app.use(express.static(path.join(__dirname, "public")));
 
-// ✅ Default route: open login.html
+// ✅ Default route: login page
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-// ✅ Keep this LAST — show 404 page or redirect to login
+// ✅ Fallback (non-API → login.html, API → JSON 404)
 app.use((req, res) => {
-  res.status(404).sendFile(path.join(__dirname, "public", "login.html"));
+  if (req.path.startsWith("/api"))
+    return res.status(404).json({ error: "API route not found" });
+  res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
 // -------------------- START SERVER --------------------
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 4000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log("🌐 Listening on all interfaces (0.0.0.0)");
 });
