@@ -81,8 +81,8 @@ app.listen(PORT, "0.0.0.0", () => {
 });
 
 // replace LOADER_TOKEN with your token (string)
-app.get('/loaderio-96829aec98b43bb91c1324f1e38c518f.txt', (req, res) => {
-  res.type('text/plain').send('loaderio-96829aec98b43bb91c1324f1e38c518f');
-});
+// app.get('/loaderio-96829aec98b43bb91c1324f1e38c518f.txt', (req, res) => {
+//   res.type('text/plain').send('loaderio-96829aec98b43bb91c1324f1e38c518f');
+// });
 
 
