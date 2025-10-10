@@ -499,6 +499,74 @@
         transform: translateY(0);
       }
     }
+
+    .popup-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.35);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .popup-box {
+      background: #fff;
+      padding: 32px 42px;
+      border-radius: 16px;
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      transform: scale(0.95);
+      animation: popUp 0.35s ease forwards;
+    }
+
+    .popup-box i {
+      font-size: 44px;
+      margin-bottom: 10px;
+    }
+
+    .popup-box.success i {
+      color: #22c55e;
+    }
+
+    .popup-box.error i {
+      color: #ef4444;
+    }
+
+    .popup-box h3 {
+      margin: 8px 0;
+      font-size: 20px;
+      color: #0f172a;
+    }
+
+    .popup-box p {
+      margin: 0;
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes popUp {
+      0% {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
   </style>
 </head>
 
@@ -606,25 +674,34 @@
       </div>
       <div class="copyright">© 2025 India Inventory Management</div>
     </div>
+  </div>
 
-    <!-- === POPUP OVERLAY === -->
-    <div id="footerPopupOverlay" class="footer-popup-overlay">
-      <div class="footer-popup">
-        <h3 id="popupTitle"></h3>
-        <p id="popupContent"></p>
-        <button class="close-btn" id="popupClose">Close</button>
-      </div>
+  <!-- === POPUP OVERLAY === -->
+  <div id="footerPopupOverlay" class="footer-popup-overlay">
+    <div class="footer-popup">
+      <h3 id="popupTitle"></h3>
+      <p id="popupContent"></p>
+      <button class="close-btn" id="popupClose">Close</button>
     </div>
   </div>
 
-  <!-- SUCCESS SCREEN -->
-  <div id="successScreen">
-    <div class="success-box">
+  <!-- GLOBAL POPUPS -->
+  <div id="successScreen" class="popup-overlay">
+    <div class="popup-box success">
       <i class="fa-solid fa-circle-check"></i>
       <h3>Success!</h3>
-      <p id="successText">Redirecting...</p>
+      <p id="successText">Action completed successfully!</p>
     </div>
   </div>
+
+  <div id="errorScreen" class="popup-overlay">
+    <div class="popup-box error">
+      <i class="fa-solid fa-circle-xmark"></i>
+      <h3>Error!</h3>
+      <p id="errorText">Something went wrong!</p>
+    </div>
+  </div>
+
 
   <!-- ORIGINAL JS + MODIFIED SUCCESS + FORM SWITCH -->
   <script defer>
@@ -636,37 +713,80 @@
       const successScreen = document.getElementById("successScreen");
       const successText = document.getElementById("successText");
 
-      const showMsg = (type, text) => (msgEl.innerHTML = `<div class="msg ${type}">${text}</div>`);
+      // Unified popup function — global, works for all (success + error)
+      const showPopup = (type, message, redirectUrl = null, delay = 1500) => {
+        const popup = document.getElementById(type === "success" ? "successScreen" : "errorScreen");
+        const textEl = document.getElementById(type === "success" ? "successText" : "errorText");
+        if (!popup || !textEl) return;
+        textEl.textContent = message;
+        popup.style.display = "flex";
+
+        if (type === "success") {
+          setTimeout(() => {
+            popup.style.display = "none";
+            if (redirectUrl) window.location.href = redirectUrl;
+          }, delay);
+        }
+
+        if (type === "error") {
+          const handleClickOutside = (event) => {
+            const box = popup.querySelector(".popup-box");
+            if (!box.contains(event.target)) {
+              popup.style.display = "none";
+              document.removeEventListener("click", handleClickOutside);
+            }
+          };
+          setTimeout(() => {
+            document.addEventListener("click", handleClickOutside);
+          }, 100);
+        }
+      };
+      // end popup function
+
       const clearForms = () => ["loginEmail", "loginPassword", "regName", "regEmail", "regPassword", "forgotEmail"]
         .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
 
+
       // Register
       document.getElementById("registerBtn").addEventListener("click", async () => {
-        const name = regName.value.trim(), email = regEmail.value.trim(), password = regPassword.value;
-        if (!name || !email || !password) return showMsg("error", "All fields required");
+        const name = regName.value.trim(),
+          email = regEmail.value.trim(),
+          password = regPassword.value;
+
+        if (!name || !email || !password)
+          return showPopup("error", "All fields required");
+
         try {
           const res = await fetch(apiBase + "/register", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, email, password })
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, email, password }),
           });
+
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || "Register failed");
-          showMsg("success", "🎉 Registration successful!");
+
           clearForms();
-          successText.textContent = "Registration successful! Redirecting to login...";
-          successScreen.style.display = "flex";
+
+          // ✅ unified popup
+          showPopup("success", "🎉 Registration successful! Redirecting to login...");
+
+          // after popup disappears, switch to login form
           setTimeout(() => {
-            successScreen.style.display = "none";
             document.getElementById("register").classList.remove("active");
             document.getElementById("login").classList.add("active");
           }, 1500);
-        } catch (err) { showMsg("error", err.message); }
+
+        } catch (err) {
+          showPopup("error", err.message);
+        }
       });
+
 
       // Login
       document.getElementById("loginBtn").addEventListener("click", async () => {
         const email = loginEmail.value.trim(), password = loginPassword.value;
-        if (!email || !password) return showMsg("error", "All fields required");
+        if (!email || !password) return showPopup("error", "All fields required");
         try {
           const res = await fetch(apiBase + "/login", {
             method: "POST", headers: { "Content-Type": "application/json" },
@@ -676,17 +796,17 @@
           if (!res.ok) throw new Error(data.error || "Login failed");
           localStorage.setItem("token", data.token);
           localStorage.setItem("user", JSON.stringify(data.user));
-          showMsg("success", "✅ Login successful!");
+          showPopup("success", "✅ Login successful!");
           successText.textContent = "Login successful! Redirecting...";
           successScreen.style.display = "flex";
           setTimeout(() => window.location.href = "index.html", 1200);
-        } catch (err) { showMsg("error", err.message); }
+        } catch (err) { showPopup("error", err.message); }
       });
 
       // Forgot Password
       document.getElementById("forgotBtn").addEventListener("click", async () => {
         const email = forgotEmail.value.trim();
-        if (!email) return showMsg("error", "Enter your email");
+        if (!email) return showPopup("error", "Enter your email");
         try {
           const res = await fetch(apiBase + "/forgot-password", {
             method: "POST", headers: { "Content-Type": "application/json" },
@@ -694,9 +814,9 @@
           });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || "Error");
-          showMsg("success", data.message || "Reset link sent!");
+          showPopup("success", data.message || "Reset link sent!");
           clearForms();
-        } catch (err) { showMsg("error", err.message); }
+        } catch (err) { showPopup("error", err.message); }
       });
 
       // Form switching
@@ -716,6 +836,7 @@
         e.preventDefault(); forgotForm.classList.remove("active"); loginForm.classList.add("active");
       });
     });
+
     // FOOTER SCRIPT
     const footerPopupOverlay = document.getElementById("footerPopupOverlay");
     const popupTitle = document.getElementById("popupTitle");
