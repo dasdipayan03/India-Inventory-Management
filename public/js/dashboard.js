@@ -267,7 +267,6 @@ async function downloadSalesExcel() {
 }
 
 /* ---------------------- Debts --------------------- */
-/* ---------------------- Debts --------------------- */
 async function submitDebt() {
   const entry = {
     customer_name: document.getElementById("cdName").value.trim(),
@@ -412,7 +411,6 @@ function restrictToDigits(id) {
 // Apply to both fields
 restrictToDigits("cdNumber");
 restrictToDigits("cdSearchInput");
-
 
 
 
