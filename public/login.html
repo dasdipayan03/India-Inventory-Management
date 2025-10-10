@@ -1,110 +1,602 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Login | India Inventory Management</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>India Inventory Management — Login</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
   <style>
+    * {
+      box-sizing: border-box;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    :root {
+      --accent: #0ea5e9;
+      --accent-dark: #0284c7;
+      --muted: #6b7280;
+      --bg: #f8fafc;
+      --card: #ffffff;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #94a3b8, #0ea5e9);
+      margin: 0;
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.06), rgba(2, 132, 199, 0.03));
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      /* padding: 28px; */
+    }
+
+    .site {
+      width: 100%;
+      max-width: 1150px;
+      border-radius: 16px;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: #fff;
+      box-shadow: 0 12px 40px rgba(2, 6, 23, 0.08);
+    }
+
+    /* ---------- LEFT AUTH ---------- */
+    .auth {
+      padding: 36px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: stretch;
+    }
+
+    .brand {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .logo {
+      width: 56px;
+      height: 56px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      color: #fff;
+      font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: center;
-      height: 100vh;
+      font-size: 20px;
+      box-shadow: 0 6px 18px rgba(14, 165, 233, 0.18);
+    }
+
+    .brand h1 {
       margin: 0;
+      font-size: 18px;
+      color: #0f172a;
     }
-    .container {
-      background: white;
-      padding: 28px;
-      border-radius: 14px;
+
+    .brand p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    #msg {
+      min-height: 44px;
+      margin-top: 10px;
+    }
+
+    .form {
+      display: none;
+      animation: fadeIn .3s ease;
+    }
+
+    .form.active {
+      display: block;
+    }
+
+    .input-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #fbfdff;
+      border: 1px solid #e8eef5;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+    }
+
+    .input-group i {
+      color: var(--muted);
+    }
+
+    .input-group input {
+      border: none;
+      outline: none;
+      background: transparent;
+      flex: 1;
+      font-size: 14px;
+      color: #0f172a;
+    }
+
+    .btn {
       width: 100%;
-      max-width: 380px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(14, 165, 233, 0.12);
+      transition: background .3s;
     }
-    h2 { text-align: center; margin-bottom: 20px; color: #111827; font-weight: bold; }
-    .tabs { display: flex; margin-bottom: 18px; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; }
-    .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; background: #f3f4f6; }
-    .tab.active { background: #2563eb; color: white; font-weight: bold; }
-    .form { display: none; }
-    .form.active { display: block; }
-    .input-group { display: flex; align-items: center; border: 1px solid #ddd; border-radius: 6px; margin: 10px 0; padding: 8px 10px; background: #fafafa; }
-    .input-group i { margin-right: 8px; color: #6b7280; }
-    .input-group input { border: none; outline: none; flex: 1; background: transparent; font-size: 14px; }
-    button { width: 100%; padding: 12px; margin-top: 12px; border: none; border-radius: 6px; background: #2563eb; color: white; font-weight: bold; cursor: pointer; transition: background 0.3s; }
-    button:hover { background: #1d4ed8; }
-    #msg { margin-bottom: 10px; }
-    .msg { padding: 10px; border-radius: 6px; font-size: 14px; animation: fadeIn 0.4s ease; }
-    .msg.error { background: #fee2e2; color: #b91c1c; }
-    .msg.success { background: #dcfce7; color: #166534; }
-    @keyframes fadeIn { from {opacity:0;transform:translateY(-5px);} to {opacity:1;transform:translateY(0);} }
+
+    .btn:hover {
+      background: var(--accent-dark);
+    }
+
+    .small-links {
+      text-align: center;
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .small-links a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .small-links a:hover {
+      text-decoration: underline;
+    }
+
+    /* ---------- RIGHT PROMO ---------- */
+    .promo {
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.06), rgba(2, 132, 199, 0.03));
+      /* padding: 30px 36px; */
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      justify-content: center;
+    }
+
+    .slides {
+      position: relative;
+      height: 220px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(250, 250, 250, 0.9));
+      border: 1px solid rgba(2, 6, 23, 0.04);
+      padding: 18px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 8px;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: all .6s ease;
+      text-align: left;
+    }
+
+    .slide h3 {
+      margin: 0;
+      font-size: 18px;
+      color: #0f172a;
+    }
+
+    .slide p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .slide:nth-child(1) {
+      animation: slideAnim 12s infinite 0s;
+    }
+
+    .slide:nth-child(2) {
+      animation: slideAnim 12s infinite 3s;
+    }
+
+    .slide:nth-child(3) {
+      animation: slideAnim 12s infinite 6s;
+    }
+
+    .slide:nth-child(4) {
+      animation: slideAnim 12s infinite 9s;
+    }
+
+    @keyframes slideAnim {
+      0% {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      6% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      24% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      30% {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+    }
+
+    .dots {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      align-items: center;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #e6eef6;
+    }
+
+    .dot.active {
+      background: var(--accent);
+      box-shadow: 0 6px 14px rgba(14, 165, 233, 0.16);
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .feature {
+      background: #fff;
+      border-radius: 10px;
+      padding: 12px;
+      border: 1px solid #eef6fb;
+      display: flex;
+      gap: 10px;
+    }
+
+    .feature i {
+      font-size: 18px;
+      color: var(--accent);
+      min-width: 28px;
+      text-align: center;
+    }
+
+    .feature strong {
+      display: block;
+      font-size: 14px;
+      color: #0f172a;
+    }
+
+    .feature span {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .about {
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    /* success popup */
+    #successScreen {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.35);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      animation: fadeIn .3s ease;
+    }
+
+    .success-box {
+      background: #fff;
+      padding: 30px 40px;
+      border-radius: 14px;
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    }
+
+    .success-box i {
+      font-size: 40px;
+      color: #22c55e;
+      margin-bottom: 10px;
+    }
+
+    .success-box h3 {
+      margin: 6px 0;
+      color: #0f172a;
+    }
+
+    .success-box p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    @media(max-width:980px) {
+      .site {
+        grid-template-columns: 1fr;
+        max-width: 740px;
+      }
+
+      .promo {
+        order: -1;
+        padding: 22px;
+      }
+
+      .slides {
+        height: 180px;
+      }
+
+      .features {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media(max-width:420px) {
+      body {
+        padding: 14px;
+      }
+
+      .auth {
+        padding: 18px;
+      }
+
+      .promo {
+        padding: 18px;
+      }
+
+      .slides {
+        height: 150px;
+        padding: 14px;
+      }
+
+      .brand h1 {
+        font-size: 16px;
+      }
+    }
+
+    .site-footer {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 28px;
+      border-top: 1px solid rgba(2, 6, 23, 0.04);
+      background: transparent;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .footer-links a {
+      color: var(--muted);
+      text-decoration: none;
+    }
+
+    .footer-links a:hover {
+      text-decoration: underline;
+    }
+
+    .copyright {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .site-footer {
+      background: #ffffff;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+      border-top: 1px solid #e5e7eb;
+    }
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <h2>India Inventory Management</h2>
+  <div class="site" role="main">
+    <!-- LEFT AUTH -->
+    <div class="auth">
+      <div class="brand">
+        <div class="logo">IIM</div>
+        <div>
+          <h1>India Inventory Management</h1>
+          <p>Management System</p>
+        </div>
+      </div>
 
-    <div class="tabs">
-      <div class="tab active" data-tab="login">Login</div>
-      <div class="tab" data-tab="register">Register</div>
-      <div class="tab" data-tab="forgot">Forgot</div>
+      <div class="auth-head">
+        <h2>Welcome back</h2>
+        <div class="lead">Sign in to manage your Stock, Sales, Reports & Invoices.</div>
+      </div>
+
+      <div id="msg"></div>
+
+      <!-- LOGIN -->
+      <div class="form active" id="login">
+        <div class="input-group"><i class="fa-solid fa-envelope"></i>
+          <input id="loginEmail" type="email" placeholder="Email" autocomplete="email" />
+        </div>
+        <div class="input-group"><i class="fa-solid fa-lock"></i>
+          <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" />
+        </div>
+        <button id="loginBtn" class="btn"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
+        <div class="small-links">
+          <a href="#" id="forgotLink">Forgot password?</a> |
+          <a href="#" id="createAccountLink">Create an account</a>
+        </div>
+      </div>
+
+      <!-- REGISTER -->
+      <div class="form" id="register">
+        <div class="input-group"><i class="fa-solid fa-shop"></i>
+          <input id="regName" type="text" placeholder="Shop Name" />
+        </div>
+        <div class="input-group"><i class="fa-solid fa-envelope"></i>
+          <input id="regEmail" type="email" placeholder="Email" />
+        </div>
+        <div class="input-group"><i class="fa-solid fa-lock"></i>
+          <input id="regPassword" type="password" placeholder="Password" />
+        </div>
+        <button id="registerBtn" class="btn"><i class="fa-solid fa-user-plus"></i> Register</button>
+        <div class="small-links"><a href="#" id="backToLogin1">Back to login</a></div>
+      </div>
+
+      <!-- FORGOT -->
+      <div class="form" id="forgot">
+        <div class="input-group"><i class="fa-solid fa-envelope"></i>
+          <input id="forgotEmail" type="email" placeholder="Enter your email" />
+        </div>
+        <button id="forgotBtn" class="btn"><i class="fa-solid fa-paper-plane"></i> Send Reset Link</button>
+        <div class="small-links"><a href="#" id="backToLogin2">Back to login</a></div>
+      </div>
     </div>
 
-    <div id="msg"></div>
+    <!-- RIGHT PROMO -->
+    <div class="promo">
+      <div class="slides">
+        <div class="slide">
+          <h3>Smart Stock Control</h3>
+          <p>Track inventory with precision and automation.</p>
+        </div>
+        <div class="slide">
+          <h3>Fast Invoicing</h3>
+          <p>Create invoices and manage customer debts seamlessly.</p>
+        </div>
+        <div class="slide">
+          <h3>Reports & Insights</h3>
+          <p>Generate and export performance reports instantly.</p>
+        </div>
+        <div class="slide">
+          <h3>Secure & Cloud-based</h3>
+          <p>Your data is encrypted and safely synchronized.</p>
+        </div>
+      </div>
+      <div class="dots">
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <div class="features">
+        <div class="feature"><i class="fa-solid fa-box"></i>
+          <div><strong>Item Tracking</strong><span>Handle hundreds easily.</span></div>
+        </div>
+        <div class="feature"><i class="fa-solid fa-chart-simple"></i>
+          <div><strong>Reports</strong><span>Export and analyze data.</span></div>
+        </div>
+        <div class="feature"><i class="fa-solid fa-hand-holding-dollar"></i>
+          <div>
+            <strong>Customer Debts</strong>
+            <span>Track, manage, and clear outstanding balances easily.</span>
+          </div>
+        </div>
 
-    <div class="form active" id="login">
-      <div class="input-group"><i class="fa-solid fa-envelope"></i><input id="loginEmail" type="email" placeholder="Email"></div>
-      <div class="input-group"><i class="fa-solid fa-lock"></i><input id="loginPassword" type="password" placeholder="Password"></div>
-      <button id="loginBtn"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
+      </div>
+      <!-- <div class="about"><strong>About</strong>
+        <p>India Inventory Management helps businesses handle stock, sales, and invoices effortlessly.</p>
+      </div> -->
     </div>
-
-    <div class="form" id="register">
-      <div class="input-group"><i class="fa-solid fa-shop"></i><input id="regName" type="text" placeholder="Shop Name"></div>
-      <div class="input-group"><i class="fa-solid fa-envelope"></i><input id="regEmail" type="email" placeholder="Email"></div>
-      <div class="input-group"><i class="fa-solid fa-lock"></i><input id="regPassword" type="password" placeholder="Password"></div>
-      <button id="registerBtn"><i class="fa-solid fa-user-plus"></i> Register</button>
-    </div>
-
-    <div class="form" id="forgot">
-      <div class="input-group"><i class="fa-solid fa-envelope"></i><input id="forgotEmail" type="email" placeholder="Enter your email"></div>
-      <button id="forgotBtn"><i class="fa-solid fa-paper-plane"></i> Send Reset Link</button>
+    <!-- SITE FOOTER -->
+    <div class="site-footer" role="contentinfo">
+      <div class="footer-links">
+        <a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'})">About</a>
+        <a href="#">Contact</a>
+        <a href="#">Privacy</a>
+        <a href="#">Docs</a>
+      </div>
+      <div class="copyright">© 2025 India Inventory Management</div>
     </div>
   </div>
 
+  <!-- SUCCESS SCREEN -->
+  <div id="successScreen">
+    <div class="success-box">
+      <i class="fa-solid fa-circle-check"></i>
+      <h3>Success!</h3>
+      <p id="successText">Redirecting...</p>
+    </div>
+  </div>
+
+  <!-- ORIGINAL JS + MODIFIED SUCCESS + FORM SWITCH -->
   <script defer>
     document.addEventListener("DOMContentLoaded", () => {
       const apiBase = window.location.origin.includes("localhost")
         ? "http://localhost:4000/api/auth"
         : "/api/auth";
       const msgEl = document.getElementById("msg");
+      const successScreen = document.getElementById("successScreen");
+      const successText = document.getElementById("successText");
 
-      const showMsg = (type, text) => msgEl.innerHTML = `<div class="msg ${type}">${text}</div>`;
-      const clearForms = () => ['loginEmail', 'loginPassword', 'regName', 'regEmail', 'regPassword', 'forgotEmail']
-        .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-
-      // Tabs
-      document.querySelectorAll(".tab").forEach(tab => tab.addEventListener("click", () => {
-        document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-        document.querySelectorAll(".form").forEach(f => f.classList.remove("active"));
-        tab.classList.add("active");
-        document.getElementById(tab.dataset.tab).classList.add("active");
-        msgEl.innerHTML = "";
-      }));
+      const showMsg = (type, text) => (msgEl.innerHTML = `<div class="msg ${type}">${text}</div>`);
+      const clearForms = () => ["loginEmail", "loginPassword", "regName", "regEmail", "regPassword", "forgotEmail"]
+        .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
 
       // Register
       document.getElementById("registerBtn").addEventListener("click", async () => {
         const name = regName.value.trim(), email = regEmail.value.trim(), password = regPassword.value;
         if (!name || !email || !password) return showMsg("error", "All fields required");
         try {
-          const res = await fetch(apiBase + "/register", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({ name, email, password }) });
+          const res = await fetch(apiBase + "/register", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, email, password })
+          });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || "Register failed");
-          showMsg("success", "🎉 Registration successful! Redirecting...");
+          showMsg("success", "🎉 Registration successful!");
           clearForms();
-          setTimeout(() => document.querySelector('[data-tab="login"]').click(), 1500);
+          successText.textContent = "Registration successful! Redirecting to login...";
+          successScreen.style.display = "flex";
+          setTimeout(() => {
+            successScreen.style.display = "none";
+            document.getElementById("register").classList.remove("active");
+            document.getElementById("login").classList.add("active");
+          }, 1500);
         } catch (err) { showMsg("error", err.message); }
       });
 
@@ -113,13 +605,18 @@
         const email = loginEmail.value.trim(), password = loginPassword.value;
         if (!email || !password) return showMsg("error", "All fields required");
         try {
-          const res = await fetch(apiBase + "/login", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({ email, password }) });
+          const res = await fetch(apiBase + "/login", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password })
+          });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || "Login failed");
           localStorage.setItem("token", data.token);
           localStorage.setItem("user", JSON.stringify(data.user));
-          showMsg("success", "✅ Login successful! Redirecting...");
-          setTimeout(() => window.location.href = "index.html", 1000);
+          showMsg("success", "✅ Login successful!");
+          successText.textContent = "Login successful! Redirecting...";
+          successScreen.style.display = "flex";
+          setTimeout(() => window.location.href = "index.html", 1200);
         } catch (err) { showMsg("error", err.message); }
       });
 
@@ -128,12 +625,32 @@
         const email = forgotEmail.value.trim();
         if (!email) return showMsg("error", "Enter your email");
         try {
-          const res = await fetch(apiBase + "/forgot-password", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({ email }) });
+          const res = await fetch(apiBase + "/forgot-password", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email })
+          });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || "Error");
           showMsg("success", data.message || "Reset link sent!");
           clearForms();
         } catch (err) { showMsg("error", err.message); }
+      });
+
+      // Form switching
+      const loginForm = document.getElementById("login");
+      const registerForm = document.getElementById("register");
+      const forgotForm = document.getElementById("forgot");
+      document.getElementById("forgotLink").addEventListener("click", e => {
+        e.preventDefault(); loginForm.classList.remove("active"); registerForm.classList.remove("active"); forgotForm.classList.add("active");
+      });
+      document.getElementById("createAccountLink").addEventListener("click", e => {
+        e.preventDefault(); loginForm.classList.remove("active"); forgotForm.classList.remove("active"); registerForm.classList.add("active");
+      });
+      document.getElementById("backToLogin1").addEventListener("click", e => {
+        e.preventDefault(); registerForm.classList.remove("active"); loginForm.classList.add("active");
+      });
+      document.getElementById("backToLogin2").addEventListener("click", e => {
+        e.preventDefault(); forgotForm.classList.remove("active"); loginForm.classList.add("active");
       });
     });
   </script>
@@ -143,4 +660,5 @@
     if (token) window.location.replace("index.html");
   </script>
 </body>
+
 </html>
