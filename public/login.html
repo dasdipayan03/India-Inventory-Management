@@ -714,7 +714,7 @@
       const successText = document.getElementById("successText");
 
       // Unified popup function — global, works for all (success + error)
-      const showPopup = (type, message, redirectUrl = null, delay = 1500) => {
+      const showPopup = (type, message, redirectUrl = null, delay = 2000) => {
         const popup = document.getElementById(type === "success" ? "successScreen" : "errorScreen");
         const textEl = document.getElementById(type === "success" ? "successText" : "errorText");
         if (!popup || !textEl) return;
@@ -754,7 +754,7 @@
           password = regPassword.value;
 
         if (!name || !email || !password)
-          return showPopup("error", "All fields required");
+          return showPopup("error", "All fields required!");
 
         try {
           const res = await fetch(apiBase + "/register", {
@@ -769,7 +769,7 @@
           clearForms();
 
           // ✅ unified popup
-          showPopup("success", "🎉 Registration successful! Redirecting to login...");
+          showPopup("success", "🎉 Registration successful!");
 
           // after popup disappears, switch to login form
           setTimeout(() => {
@@ -786,7 +786,7 @@
       // Login
       document.getElementById("loginBtn").addEventListener("click", async () => {
         const email = loginEmail.value.trim(), password = loginPassword.value;
-        if (!email || !password) return showPopup("error", "All fields required");
+        if (!email || !password) return showPopup("error", "All fields required!");
         try {
           const res = await fetch(apiBase + "/login", {
             method: "POST", headers: { "Content-Type": "application/json" },
@@ -797,7 +797,7 @@
           localStorage.setItem("token", data.token);
           localStorage.setItem("user", JSON.stringify(data.user));
           showPopup("success", "✅ Login successful!");
-          successText.textContent = "Login successful! Redirecting...";
+          successText.textContent = "Login successful!";
           successScreen.style.display = "flex";
           setTimeout(() => window.location.href = "index.html", 1200);
         } catch (err) { showPopup("error", err.message); }
@@ -806,7 +806,7 @@
       // Forgot Password
       document.getElementById("forgotBtn").addEventListener("click", async () => {
         const email = forgotEmail.value.trim();
-        if (!email) return showPopup("error", "Enter your email");
+        if (!email) return showPopup("error", "Enter your registered email!");
         try {
           const res = await fetch(apiBase + "/forgot-password", {
             method: "POST", headers: { "Content-Type": "application/json" },
@@ -814,7 +814,7 @@
           });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || "Error");
-          showPopup("success", data.message || "Reset link sent!");
+          showPopup("success", data.message || "Reset link sent on your registered email!");
           clearForms();
         } catch (err) { showPopup("error", err.message); }
       });
