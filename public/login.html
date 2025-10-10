@@ -396,42 +396,108 @@
     }
 
     .site-footer {
-      grid-column: 1 / -1;
+      background: #ffffff;
+      box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+      border-top: 1px solid #e5e7eb;
+      padding: 16px 28px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 12px;
-      padding: 18px 28px;
-      border-top: 1px solid rgba(2, 6, 23, 0.04);
-      background: transparent;
+      font-family: "Segoe UI", Arial, sans-serif;
+      position: relative;
+      z-index: 10;
     }
 
     .footer-links {
       display: flex;
-      gap: 14px;
-      align-items: center;
+      gap: 16px;
       font-size: 13px;
-      color: var(--muted);
     }
 
     .footer-links a {
-      color: var(--muted);
+      color: #6b7280;
       text-decoration: none;
+      transition: color 0.2s;
+      cursor: pointer;
     }
 
     .footer-links a:hover {
+      color: #0ea5e9;
       text-decoration: underline;
     }
 
     .copyright {
       font-size: 13px;
-      color: var(--muted);
+      color: #6b7280;
     }
 
-    .site-footer {
-      background: #ffffff;
-      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
-      border-top: 1px solid #e5e7eb;
+    /* Popup overlay */
+    .footer-popup-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9998;
+    }
+
+    .footer-popup-overlay.active {
+      display: flex;
+    }
+
+    /* Popup box */
+    .footer-popup {
+      background: #fff;
+      border-radius: 12px;
+      max-width: 500px;
+      width: 90%;
+      padding: 24px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+      text-align: center;
+      animation: fadeUp 0.35s ease;
+    }
+
+    .footer-popup h3 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      color: #0f172a;
+    }
+
+    .footer-popup p {
+      color: #374151;
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 0 0 10px;
+    }
+
+    .footer-popup .close-btn {
+      margin-top: 16px;
+      background: #0ea5e9;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .footer-popup .close-btn:hover {
+      background: #0284c7;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(25px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
   </style>
 </head>
@@ -531,14 +597,23 @@
 
       </div>
     </div>
-    <!-- SITE FOOTER -->
+    <!-- === FOOTER === -->
     <div class="site-footer" role="contentinfo">
       <div class="footer-links">
-        <a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'})">About</a>
-        <a href="#">Contact</a>
-        <a href="#">Privacy</a>
+        <a href="#" class="footer-link" data-type="about">About</a>
+        <a href="#" class="footer-link" data-type="contact">Contact</a>
+        <a href="#" class="footer-link" data-type="privacy">Privacy</a>
       </div>
       <div class="copyright">© 2025 India Inventory Management</div>
+    </div>
+
+    <!-- === POPUP OVERLAY === -->
+    <div id="footerPopupOverlay" class="footer-popup-overlay">
+      <div class="footer-popup">
+        <h3 id="popupTitle"></h3>
+        <p id="popupContent"></p>
+        <button class="close-btn" id="popupClose">Close</button>
+      </div>
     </div>
   </div>
 
@@ -641,6 +716,52 @@
         e.preventDefault(); forgotForm.classList.remove("active"); loginForm.classList.add("active");
       });
     });
+    // FOOTER SCRIPT
+    const footerPopupOverlay = document.getElementById("footerPopupOverlay");
+    const popupTitle = document.getElementById("popupTitle");
+    const popupContent = document.getElementById("popupContent");
+    const popupClose = document.getElementById("popupClose");
+
+    const footerData = {
+      about: {
+        title: "About India Inventory Management",
+        content: `India Inventory Management helps small shops and businesses manage stock, sales, invoices, and debts efficiently.
+      It’s inspired by professional tools but designed for simplicity and scalability.`,
+      },
+      contact: {
+        title: "Contact Us",
+        content: `📧 support@india-inventory.in<br>
+      📞 +91 98765 43210<br>
+      🕒 Mon–Sat, 10 AM – 6 PM`,
+      },
+      privacy: {
+        title: "Privacy Policy",
+        content: `We value your privacy — all your data is securely stored and never shared.
+      By using our platform, you agree to responsible and secure data handling.`,
+      },
+    };
+
+    document.querySelectorAll(".footer-link").forEach(link => {
+      link.addEventListener("click", e => {
+        e.preventDefault();
+        const type = link.dataset.type;
+        const data = footerData[type];
+        popupTitle.textContent = data.title;
+        popupContent.innerHTML = data.content;
+        footerPopupOverlay.classList.add("active");
+      });
+    });
+
+    popupClose.addEventListener("click", () => {
+      footerPopupOverlay.classList.remove("active");
+    });
+
+    footerPopupOverlay.addEventListener("click", e => {
+      if (e.target === footerPopupOverlay) {
+        footerPopupOverlay.classList.remove("active");
+      }
+    });
+
   </script>
 
   <script>
