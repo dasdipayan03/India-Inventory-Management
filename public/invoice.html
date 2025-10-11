@@ -3,9 +3,10 @@
 
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Generate Invoice</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
     <style>
         :root {
             --bg: #f7f8fa;
@@ -29,27 +30,48 @@
 
         .topbar {
             display: flex;
+            flex-wrap: wrap;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 12px;
+            gap: 8px;
         }
 
         .topbar h2 {
             margin: 0;
             font-size: 1.25rem;
+            flex: 1 1 100%;
+            text-align: center;
         }
 
         .gst-box {
             display: flex;
+            flex-wrap: wrap;
             gap: 8px;
             align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .gst-box details {
+            width: 100%;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 8px;
+        }
+
+        .gst-box summary {
+            font-weight: 600;
+            cursor: pointer;
         }
 
         .gst-box input {
             padding: 8px 10px;
             border-radius: 6px;
             border: 1px solid #e5e7eb;
-            width: 180px;
+            flex: 1 1 100%;
+            min-width: 120px;
         }
 
         .btn {
@@ -58,11 +80,12 @@
             border: 1px solid #d1d5db;
             background: #fff;
             cursor: pointer;
+            font-size: 0.9rem;
         }
 
         .btn.small {
             padding: 6px 8px;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
         }
 
         .btn.primary {
@@ -81,9 +104,14 @@
 
         .card-header {
             display: flex;
+            flex-wrap: wrap;
             justify-content: space-between;
-            align-items: center;
             margin-bottom: 10px;
+        }
+
+        .card-left,
+        .card-right {
+            flex: 1 1 45%;
         }
 
         .card-left label,
@@ -104,13 +132,14 @@
 
         .form-row {
             display: flex;
+            flex-wrap: wrap;
             gap: 8px;
             margin-bottom: 8px;
         }
 
         .form-row input,
         textarea {
-            flex: 1;
+            flex: 1 1 100%;
             padding: 8px 10px;
             border-radius: 6px;
             border: 1px solid #e5e7eb;
@@ -121,10 +150,16 @@
             resize: vertical;
         }
 
+        .items-table {
+            width: 100%;
+            overflow-x: auto;
+        }
+
         .items-table table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 8px;
+            font-size: 0.9rem;
         }
 
         .items-table th,
@@ -148,30 +183,47 @@
             align-items: flex-end;
             margin-top: 6px;
             font-weight: 600;
+            font-size: 0.9rem;
         }
 
         .totals .grand {
-            font-size: 1.1rem;
+            font-size: 1rem;
+            color: var(--primary);
         }
 
         .actions {
             display: flex;
+            flex-wrap: wrap;
             gap: 8px;
             margin-top: 10px;
         }
 
+        .actions .btn {
+            flex: 1 1 48%;
+            text-align: center;
+        }
+
+        .search-card h3 {
+            margin-bottom: 8px;
+        }
+
         .search-card .search-row {
             display: flex;
+            flex-wrap: wrap;
             gap: 8px;
             align-items: center;
             margin-bottom: 8px;
         }
 
         .search-card input {
+            flex: 1 1 100%;
             padding: 8px;
             border-radius: 6px;
             border: 1px solid #e5e7eb;
-            flex: 1;
+        }
+
+        .search-card .btn {
+            flex: 1 1 45%;
         }
 
         .search-result {
@@ -181,11 +233,12 @@
             background: #fafafa;
             min-height: 40px;
             color: #111827;
+            font-size: 0.9rem;
         }
 
         .back-link {
-            margin-top: 8px;
-            text-align: left;
+            margin-top: 10px;
+            text-align: center;
         }
 
         .back-link a {
@@ -193,7 +246,32 @@
             text-decoration: none;
             font-weight: 600;
         }
+
+        /* 📱 Mobile Optimization */
+        @media (max-width: 600px) {
+            .container {
+                padding: 8px;
+            }
+
+            .topbar h2 {
+                font-size: 1.1rem;
+            }
+
+            .card {
+                padding: 10px;
+            }
+
+            .actions .btn {
+                flex: 1 1 100%;
+            }
+
+            .items-table th,
+            .items-table td {
+                font-size: 0.8rem;
+            }
+        }
     </style>
+
 </head>
 
 <body>
