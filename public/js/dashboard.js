@@ -382,6 +382,9 @@ window.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("searchLedgerBtn").addEventListener("click", searchLedger);
   document.getElementById("showAllDuesBtn").addEventListener("click", showAllDues);
   document.getElementById("saleQuantity").addEventListener("input", updateSellingPrice);
+  document.getElementById("invoiceBtn").addEventListener("click", () => {
+    window.location.href = "invoice.html";
+  });
 
   setupFilterInput("newItemSearch", "newItemDropdownList", (val) => {
     document.getElementById("manualNewItem").value = "";
