@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Generate Invoice</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <style>
+        :root {
+            --bg: #f7f8fa;
+            --card: #fff;
+            --muted: #6b7280;
+            --primary: #2563eb;
+        }
+
+        body {
+            font-family: Inter, system-ui, Arial;
+            background: var(--bg);
+            margin: 0;
+            color: #111827;
+        }
+
+        .container {
+            max-width: 980px;
+            margin: 18px auto;
+            padding: 12px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .topbar h2 {
+            margin: 0;
+            font-size: 1.25rem;
+        }
+
+        .gst-box {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .gst-box input {
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            width: 180px;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .btn.small {
+            padding: 6px 8px;
+            font-size: 0.9rem;
+        }
+
+        .btn.primary {
+            background: var(--primary);
+            color: #fff;
+            border: 0;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 10px;
+            padding: 12px;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+            margin-bottom: 14px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .card-left label,
+        .card-right label {
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
+        #invoiceNo {
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        #invoiceDate {
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .form-row input,
+        textarea {
+            flex: 1;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+
+        textarea {
+            min-height: 60px;
+            resize: vertical;
+        }
+
+        .items-table table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+        }
+
+        .items-table th,
+        .items-table td {
+            padding: 8px 6px;
+            border-bottom: 1px solid #eef2f7;
+            text-align: left;
+        }
+
+        .items-table input {
+            width: 100%;
+            padding: 6px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .totals {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: flex-end;
+            margin-top: 6px;
+            font-weight: 600;
+        }
+
+        .totals .grand {
+            font-size: 1.1rem;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .search-card .search-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .search-card input {
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            flex: 1;
+        }
+
+        .search-result {
+            margin-top: 8px;
+            padding: 8px;
+            border-radius: 6px;
+            background: #fafafa;
+            min-height: 40px;
+            color: #111827;
+        }
+
+        .back-link {
+            margin-top: 8px;
+            text-align: left;
+        }
+
+        .back-link a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header class="topbar">
+            <div class="left">
+                <h2>Generate Invoice</h2>
+            </div>
+            <div class="right gst-box">
+                <details style="background:#fff;padding:6px 8px;border-radius:6px;border:1px solid #ddd;">
+                    <summary style="cursor:pointer;font-weight:600;">🛠️ Shop Info</summary>
+                    <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;">
+                        <input id="shopName" type="text" placeholder="Shop Name" />
+                        <input id="shopAddress" type="text" placeholder="Shop Address" />
+                        <input id="gstInput" type="text" placeholder="GST Number" />
+                        <button id="saveGstBtn" class="btn small">Save</button>
+                    </div>
+                </details>
+            </div>
+
+        </header>
+
+        <main>
+            <section class="card invoice-card">
+                <div class="card-header">
+                    <div class="card-left">
+                        <label>Invoice No:</label>
+                        <div id="invoiceNo">--</div>
+                    </div>
+                    <div class="card-right">
+                        <label>Date:</label>
+                        <div id="invoiceDate">--</div>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <div class="form-row">
+                        <input id="custName" placeholder="Customer name" />
+                        <input id="custContact" placeholder="Contact number" />
+                    </div>
+                    <div class="form-row"><textarea id="custAddress" placeholder="Customer address"></textarea></div>
+
+                    <div class="items-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Description</th>
+                                    <th>Qty</th>
+                                    <th>Rate</th>
+                                    <th>Amount</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemsTbody"></tbody>
+                        </table>
+                        <button id="addItemBtn" class="btn small">+ Add Item</button>
+                    </div>
+
+                    <div class="totals">
+                        <div>Subtotal: <span id="subtotal">0.00</span></div>
+                        <div>GST (18%): <span id="gstAmount">0.00</span></div>
+                        <div class="grand">Total: <span id="grandTotal">0.00</span></div>
+                    </div>
+
+                    <div class="actions">
+                        <button id="saveInvoiceBtn" class="btn primary">Save Invoice</button>
+                        <button id="downloadInvoiceBtn" class="btn">Download</button>
+                        <button id="clearBtn" class="btn">Clear</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card search-card">
+                <h3>Search Invoice</h3>
+                <div class="search-row">
+                    <input id="searchInvoiceInput" placeholder="Enter invoice no (e.g. INV-20251011-0001)" />
+                    <button id="searchInvoiceBtn" class="btn">Search</button>
+                    <button id="searchDownloadBtn" class="btn">Download</button>
+                </div>
+                <div id="searchResult" class="search-result"></div>
+            </section>
+
+            <div class="back-link">
+                <a href="index.html">← Back to main page</a>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API_PREFIX = '/api';
+        const GST_RATE = 0.18;
+        const token = localStorage.getItem('token');
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const shopName = document.getElementById('shopName');
+            const shopAddress = document.getElementById('shopAddress');
+            const gstInput = document.getElementById('gstInput');
+            const saveGstBtn = document.getElementById('saveGstBtn');
+            const invoiceNoEl = document.getElementById('invoiceNo');
+            const invoiceDateEl = document.getElementById('invoiceDate');
+            const custName = document.getElementById('custName');
+            const custContact = document.getElementById('custContact');
+            const custAddress = document.getElementById('custAddress');
+            const itemsTbody = document.getElementById('itemsTbody');
+            const addItemBtn = document.getElementById('addItemBtn');
+            const subtotalEl = document.getElementById('subtotal');
+            const gstAmountEl = document.getElementById('gstAmount');
+            const grandTotalEl = document.getElementById('grandTotal');
+            const saveInvoiceBtn = document.getElementById('saveInvoiceBtn');
+            const downloadInvoiceBtn = document.getElementById('downloadInvoiceBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const searchInput = document.getElementById('searchInvoiceInput');
+            const searchBtn = document.getElementById('searchInvoiceBtn');
+            const searchDownloadBtn = document.getElementById('searchDownloadBtn');
+            const searchResult = document.getElementById('searchResult');
+
+            function authHeaders() {
+                return { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+            }
+
+            async function init() {
+                if (!token) { alert('Please log in first'); return; }
+                try {
+                    const gstR = await fetch(API_PREFIX + '/settings/gst', { headers: authHeaders() });
+                    const gstJ = await gstR.json();
+                    if (gstJ.success && gstJ.settings) {
+                        const s = gstJ.settings;
+                        if (s.shop_name) shopName.value = s.shop_name;
+                        if (s.shop_address) shopAddress.value = s.shop_address;
+                        if (s.gst_no) gstInput.value = s.gst_no;
+                    }
+                } catch (e) { }
+
+                try {
+                    const r = await fetch(API_PREFIX + '/invoices/new', { headers: authHeaders() });
+                    const j = await r.json();
+                    if (j.success) {
+                        invoiceNoEl.textContent = j.invoice_no;
+                        invoiceDateEl.textContent = new Date(j.date).toLocaleDateString();
+                    }
+                } catch (e) { }
+
+                addItemRow();
+                recalcTotals();
+            }
+
+            saveGstBtn.onclick = async () => {
+                const data = {
+                    shop_name: shopName.value.trim(),
+                    shop_address: shopAddress.value.trim(),
+                    gst_no: gstInput.value.trim()
+                };
+                const r = await fetch(API_PREFIX + '/settings/gst', {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify(data)
+                });
+                const j = await r.json();
+                alert(j.success ? 'Shop info saved!' : 'Error saving shop info');
+            };
+
+            function addItemRow(item = { description: '', quantity: 1, rate: 0 }) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+          <td><input value="${item.description}"></td>
+          <td><input type="number" step="0.001" min="0" value="${item.quantity}"></td>
+          <td><input type="number" step="0.01" min="0" value="${item.rate}"></td>
+          <td>0.00</td>
+          <td><button class="btn small">Remove</button></td>`;
+                itemsTbody.appendChild(tr);
+                const qty = tr.children[1].querySelector('input'),
+                    rate = tr.children[2].querySelector('input'),
+                    amountCell = tr.children[3],
+                    remBtn = tr.children[4].querySelector('button');
+
+                function update() {
+                    const amt = (parseFloat(qty.value || 0) * parseFloat(rate.value || 0)).toFixed(2);
+                    amountCell.textContent = amt;
+                    recalcTotals();
+                }
+                qty.oninput = rate.oninput = update;
+                remBtn.onclick = () => { tr.remove(); recalcTotals(); };
+                update();
+            }
+
+            addItemBtn.onclick = () => addItemRow();
+
+            function recalcTotals() {
+                let sub = 0;
+                itemsTbody.querySelectorAll('tr').forEach(r => {
+                    sub += parseFloat(r.children[3].textContent) || 0;
+                });
+                const gst = (sub * GST_RATE).toFixed(2);
+                const total = (sub + parseFloat(gst)).toFixed(2);
+                subtotalEl.textContent = sub.toFixed(2);
+                gstAmountEl.textContent = gst;
+                grandTotalEl.textContent = total;
+            }
+
+            saveInvoiceBtn.onclick = async () => {
+                const data = {
+                    customer_name: custName.value.trim(),
+                    contact: custContact.value.trim(),
+                    address: custAddress.value.trim(),
+                    gst_no: gstInput.value.trim() || null,
+                    items: []
+                };
+                itemsTbody.querySelectorAll('tr').forEach(r => {
+                    const d = r.children[0].querySelector('input').value.trim(),
+                        q = parseFloat(r.children[1].querySelector('input').value) || 0,
+                        p = parseFloat(r.children[2].querySelector('input').value) || 0;
+                    if (d || q > 0 || p > 0) data.items.push({ description: d, quantity: q, rate: p });
+                });
+                if (!data.items.length) return alert('Add at least one item');
+                const res = await fetch(API_PREFIX + '/invoices', { method: 'POST', headers: authHeaders(), body: JSON.stringify(data) });
+                const j = await res.json();
+                if (j.success) {
+                    alert('Invoice saved: ' + j.invoice_no);
+                    clearForm();
+
+                    // 💡 Fetch new invoice number immediately
+                    try {
+                        const r = await fetch(API_PREFIX + '/invoices/new', { headers: authHeaders() });
+                        const next = await r.json();
+                        if (next.success) {
+                            invoiceNoEl.textContent = next.invoice_no;
+                            invoiceDateEl.textContent = new Date(next.date).toLocaleDateString();
+                        }
+                    } catch (e) {
+                        console.warn('Error fetching next invoice number', e);
+                    }
+                } else {
+                    alert('Error saving invoice');
+                }
+
+            };
+
+            async function downloadInvoice(invoiceNo) {
+                const r = await fetch(API_PREFIX + '/invoices/' + encodeURIComponent(invoiceNo) + '/pdf', { headers: { Authorization: 'Bearer ' + token } });
+                if (!r.ok) { alert('Invoice not found'); return; }
+                const blob = await r.blob(); const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = invoiceNo + '.pdf'; a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            downloadInvoiceBtn.onclick = () => {
+                const n = prompt('Enter invoice number');
+                if (n) downloadInvoice(n);
+            };
+
+            // ✅ Clear button: reset and fetch next invoice number
+            clearBtn.onclick = async () => {
+                custName.value = custContact.value = custAddress.value = '';
+                itemsTbody.innerHTML = '';
+                addItemRow();
+                recalcTotals();
+
+                // 💡 Fetch new invoice number immediately after clearing
+                try {
+                    const r = await fetch(API_PREFIX + '/invoices/new', { headers: authHeaders() });
+                    const j = await r.json();
+                    if (j.success) {
+                        invoiceNoEl.textContent = j.invoice_no;
+                        invoiceDateEl.textContent = new Date(j.date).toLocaleDateString();
+                    } else {
+                        console.warn("Error fetching new invoice number:", j.message);
+                    }
+                } catch (err) {
+                    console.warn("Network error fetching new invoice number:", err);
+                }
+            };
+
+
+            searchBtn.onclick = async () => {
+                const inv = searchInput.value.trim(); if (!inv) return;
+                const r = await fetch(API_PREFIX + '/invoices/' + encodeURIComponent(inv), { headers: { Authorization: 'Bearer ' + token } });
+                const j = await r.json();
+                if (!j.success) return alert('Not found');
+                renderSearch(j.invoice);
+            };
+
+            function renderSearch(inv) {
+                let html = `<div><b>${inv.invoice_no}</b> | ${new Date(inv.date).toLocaleString()}<br>
+        ${inv.customer_name || ''} ${inv.contact || ''}<br>${inv.address || ''}</div>
+        <table style="width:100%;border-collapse:collapse;margin-top:4px;">`;
+                inv.items.forEach(it => {
+                    html += `<tr><td>${it.description}</td><td style="text-align:right;">${it.quantity}</td>
+          <td style="text-align:right;">${it.rate}</td><td style="text-align:right;">${it.amount}</td></tr>`;
+                });
+                html += `</table><div style="text-align:right;"><b>Subtotal:</b> ${inv.subtotal}<br>
+        <b>GST(18%):</b> ${inv.gst_amount}<br><b>Total:</b> ${inv.total_amount}</div>`;
+                searchResult.innerHTML = html;
+            }
+
+            searchDownloadBtn.onclick = () => {
+                const inv = searchInput.value.trim();
+                if (inv) downloadInvoice(inv);
+            };
+
+            init();
+        });
+    </script>
+</body>
+
+</html>
