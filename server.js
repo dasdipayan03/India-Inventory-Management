@@ -1,3 +1,5 @@
+
+// require("dotenv").config(); // for local run, safe on Railway too
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -39,6 +41,7 @@ app.use(
 // -------------------- ROUTES --------------------
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api", require("./routes/inventory"));
+app.use("/api", require("./routes/invoices")); // ✅ invoice routes go here AFTER middleware
 
 // -------------------- DEBUG ROUTES --------------------
 app.get("/debug-env", (req, res) => {
@@ -80,4 +83,7 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
 
-
+// optional Loader.io verification
+// app.get('/loaderio-96829aec98b43bb91c1324f1e38c518f.txt', (req, res) => {
+//   res.type('text/plain').send('loaderio-96829aec98b43bb91c1324f1e38c518f');
+// });
