@@ -232,10 +232,7 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
         doc.fontSize(10).fillColor("#333")
            .text(companyAddress, 40, headerTop + 20)
            .text(`GSTIN: ${companyGST}`, 40, headerTop + 35);
-        doc.fontSize(20).fillColor("#000").text("INVOICE", { align: "right" });
-        // Right side: INVOICE (same row as shop name)
-        doc.fontSize(22).fillColor("#000").text("INVOICE", 0, headerTop, { align: "right" });
-        // Add spacing after header
+        doc.fontSize(18).fillColor("#000").text("INVOICE", 0, headerTop, { align: "right" });
         let currentY = headerTop + 70;
 
         // BOX + DETAILS
