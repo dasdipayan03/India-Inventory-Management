@@ -18,7 +18,8 @@ async function checkAuth() {
 
     const user = await res.json();
     localStorage.setItem("user", JSON.stringify(user));
-    document.getElementById("welcomeUser").innerText = `Welcome, ${user.name}`;
+    // document.getElementById("welcomeUser").innerText = `Welcome, ${user.name}`;
+    document.getElementById("welcomeUser").innerText = user.name ? user.name.trim() : "";
     document.body.style.visibility = "visible";
   } catch (err) {
     console.error("Auth fail:", err);
