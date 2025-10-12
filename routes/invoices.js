@@ -216,7 +216,7 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
         );
         const shop = shopRes.rows[0] || {};
         const companyName = shop.shop_name || "India Inventory Management";
-        const companyAddress = shop.shop_address || "Kolkata, India";
+        const companyAddress = shop.shop_address || "India";
         const companyGST = shop.gst_no || inv.gst_no || "GST Not Set";
 
         const doc = new PDFDocument({ size: 'A4', margin: 40 });
@@ -231,6 +231,7 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
         doc.fontSize(10).fillColor("#333").text(companyAddress, 40, 60);
         doc.text(`GSTIN: ${companyGST}`, 40, 75);
         doc.fontSize(20).fillColor("#000").text("INVOICE", { align: "right" });
+        let currentY = doc.y + 15; // Adds 15px space below the heading
 
         // BOX + DETAILS
         const yTop = 100;
@@ -238,8 +239,7 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
         const dateStr = new Date(inv.date).toLocaleDateString("en-IN");
         doc.fontSize(10).fillColor("#000");
         doc.text(`Invoice No: ${inv.invoice_no}`, 50, yTop + 10);
-        doc.text(`Invoice Date: ${dateStr}`, 50, yTop + 25);
-        doc.text(`Place of Supply: India`, 50, yTop + 40);
+        doc.text(`Invoice Date: ${dateStr}`, 50, yTop + 25)
 
         doc.text(`Bill To:`, 320, yTop + 10);
         doc.text(`${inv.customer_name || ""}`, 320, yTop + 25);
