@@ -385,7 +385,7 @@
             async function init() {
                 if (!token) { alert('Please log in first'); return; }
                 try {
-                    const gstR = await fetch(API_PREFIX + '/invoices/shop-info', { headers: authHeaders() });
+                    const gstR = await fetch(API_PREFIX + '/shop-info', { headers: authHeaders() });
                     const gstJ = await gstR.json();
                     if (gstJ.success && gstJ.settings) {
                         const s = gstJ.settings;
@@ -414,11 +414,12 @@
                     shop_address: shopAddress.value.trim(),
                     gst_no: gstInput.value.trim()
                 };
-                const r = await fetch(API_PREFIX + '/invoices/shop-info', {
+                const r = await fetch(API_PREFIX + '/shop-info', {
                     method: 'POST',
                     headers: authHeaders(),
                     body: JSON.stringify(data)
                 });
+
 
                 const j = await r.json();
                 alert(j.success ? 'Shop info saved!' : 'Error saving shop info');
