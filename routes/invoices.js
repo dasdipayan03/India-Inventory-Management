@@ -234,7 +234,7 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
         let currentY = doc.y + 15; // Adds 15px space below the heading
 
         // BOX + DETAILS
-        const yTop = 100;
+        const yTop = currentY;
         doc.rect(40, yTop, 520, 80).strokeColor("#2563eb").stroke();
         const dateStr = new Date(inv.date).toLocaleDateString("en-IN");
         doc.fontSize(10).fillColor("#000");
