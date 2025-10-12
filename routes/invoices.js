@@ -227,11 +227,16 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
         doc.pipe(res);
 
         // HEADER
-        doc.fontSize(18).fillColor("#2563eb").text(companyName, 40, 40);
-        doc.fontSize(10).fillColor("#333").text(companyAddress, 40, 60);
-        doc.text(`GSTIN: ${companyGST}`, 40, 75);
+        const headerTop = 40;
+        doc.fontSize(18).fillColor("#2563eb").text(companyName, 40, headerTop);
+        doc.fontSize(10).fillColor("#333")
+           .text(companyAddress, 40, headerTop + 20)
+           .text(`GSTIN: ${companyGST}`, 40, headerTop + 35);
         doc.fontSize(20).fillColor("#000").text("INVOICE", { align: "right" });
-        let currentY = doc.y + 15; // Adds 15px space below the heading
+        // Right side: INVOICE (same row as shop name)
+        doc.fontSize(22).fillColor("#000").text("INVOICE", 0, headerTop, { align: "right" });
+        // Add spacing after header
+        let currentY = headerTop + 70;
 
         // BOX + DETAILS
         const yTop = currentY;
