@@ -98,12 +98,9 @@ router.post('/invoices', authMiddleware, async (req, res) => {
             await client.query(itemQ, [invoiceId, it.description, it.quantity, it.rate, it.amount]);
 
         await client.query('COMMIT');
-        // ✅ Small wait ensures DB commit before frontend auto-download
         await new Promise(r => setTimeout(r, 100));
 
-        // Respond success for frontend auto-download
         res.json({ success: true, invoice_no: invoiceNo });
-
     } catch (err) {
         await client.query('ROLLBACK').catch(() => { });
         console.error('❌ Error saving invoice:', err);
@@ -170,7 +167,6 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
         if (!rows[0]) return res.status(404).json({ success: false, message: 'Invoice not found' });
         const inv = rows[0];
 
-        // --- Generate PDF as before ---
         const shopRes = await pool.query(`SELECT shop_name, shop_address, gst_no FROM settings WHERE user_id=$1`, [userId]);
         const shop = shopRes.rows[0] || {};
         const companyName = shop.shop_name || "India Inventory Management";
@@ -245,6 +241,59 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
         console.error('❌ Error generating PDF:', err.message);
         res.status(500).json({ success: false, message: 'Error generating PDF' });
     }
+});
+
+/* ---------------------- POST: Save or Update Shop Info ---------------------- */
+router.post('/shop-info', authMiddleware, async (req, res) => {
+    const userId = req.user.id;
+    const { shop_name, shop_address, gst_no } = req.body;
+
+    try {
+        await pool.query(`
+      CREATE TABLE IF NOT EXISTS settings (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+        shop_name TEXT,
+        shop_address TEXT,
+        gst_no TEXT
+      );
+    `);
+
+        await pool.query(
+            `
+      INSERT INTO settings (user_id, shop_name, shop_address, gst_no)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (user_id)
+      DO UPDATE SET
+        shop_name = EXCLUDED.shop_name,
+        shop_address = EXCLUDED.shop_address,
+        gst_no = EXCLUDED.gst_no;
+      `,
+            [userId, shop_name, shop_address, gst_no]
+        );
+
+        res.json({ success: true, message: 'Shop info saved successfully' });
+    } catch (err) {
+        console.error('❌ Error saving shop info:', err.message);
+        res.status(500).json({ success: false, message: 'Error saving shop info' });
+    }
+});
+
+/* ---------------------- Mirror endpoints for /settings/gst ---------------------- */
+router.get('/settings/gst', authMiddleware, async (req, res) => {
+    const userId = req.user.id;
+    try {
+        const { rows } = await pool.query(`SELECT shop_name, shop_address, gst_no FROM settings WHERE user_id=$1`, [userId]);
+        res.json({ success: true, settings: rows[0] || {} });
+    } catch (err) {
+        console.error('❌ Error fetching settings:', err.message);
+        res.status(500).json({ success: false, message: 'Error fetching settings' });
+    }
+});
+
+router.post('/settings/gst', authMiddleware, async (req, res) => {
+    req.url = '/shop-info';
+    router.handle(req, res);
 });
 
 module.exports = router;
