@@ -41,7 +41,7 @@ app.use(
 // -------------------- ROUTES --------------------
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api", require("./routes/inventory"));
-app.use("/api/invoices", require("./routes/invoices")); // ✅ invoice routes go here AFTER middleware
+app.use("/api", require("./routes/invoices")); // ✅ invoice routes go here AFTER middleware
 
 // -------------------- DEBUG ROUTES --------------------
 app.get("/debug-env", (req, res) => {
