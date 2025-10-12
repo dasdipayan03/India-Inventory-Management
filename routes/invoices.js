@@ -230,7 +230,7 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
         doc.fontSize(18).fillColor("#2563eb").text(companyName, 40, 40);
         doc.fontSize(10).fillColor("#333").text(companyAddress, 40, 60);
         doc.text(`GSTIN: ${companyGST}`, 40, 75);
-        doc.fontSize(20).fillColor("#000").text("", { align: "right" });
+        doc.fontSize(20).fillColor("#000").text("INVOICE", { align: "right" });
 
         // BOX + DETAILS
         const yTop = 100;
@@ -308,7 +308,7 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
         doc.text("(Authorized Signatory)", 410, y);
 
         doc.fontSize(9).fillColor("#555");
-        doc.text("This is a computer-generated invoice. Thank you for your business!", 0, 780, { align: "center" });
+        doc.text("This is a computer-generated invoice. Thank you!", 0, 780, { align: "center" });
 
         doc.end();
     } catch (err) {
