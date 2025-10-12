@@ -546,6 +546,50 @@
       color: #6b7280;
     }
 
+    .password-group {
+      position: relative;
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 12px;
+      font-size: 15px;
+      color: #94a3b8;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      padding: 4px;
+      border-radius: 50%;
+    }
+
+    .toggle-password:hover {
+      color: #0ea5e9;
+      background: rgba(14, 165, 233, 0.08);
+      box-shadow: 0 0 8px rgba(14, 165, 233, 0.2);
+    }
+
+    .toggle-password.active {
+      color: #0284c7;
+      background: rgba(14, 165, 233, 0.12);
+      box-shadow: 0 0 10px rgba(2, 132, 199, 0.3);
+      transform: scale(1.1);
+    }
+
+    .toggle-password {
+      opacity: 0.8;
+    }
+
+    .toggle-password.active {
+      opacity: 1;
+    }
+
+    .input-group:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+      background: #fff;
+      transition: all 0.25s ease;
+    }
+
+
     @keyframes fadeIn {
       from {
         opacity: 0;
@@ -594,8 +638,10 @@
         <div class="input-group"><i class="fa-solid fa-envelope"></i>
           <input id="loginEmail" type="email" placeholder="Email" autocomplete="email" />
         </div>
-        <div class="input-group"><i class="fa-solid fa-lock"></i>
+        <div class="input-group password-group">
+          <i class="fa-solid fa-lock"></i>
           <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" />
+          <i class="fa-solid fa-eye toggle-password" id="togglePassword"></i>
         </div>
         <button id="loginBtn" class="btn"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
         <div class="small-links">
@@ -835,6 +881,23 @@
       document.getElementById("backToLogin2").addEventListener("click", e => {
         e.preventDefault(); forgotForm.classList.remove("active"); loginForm.classList.add("active");
       });
+    });
+
+
+    // Show/Hide Password Toggle
+    document.addEventListener("DOMContentLoaded", () => {
+      const togglePassword = document.getElementById("togglePassword");
+      const passwordInput = document.getElementById("loginPassword");
+
+      if (togglePassword && passwordInput) {
+        togglePassword.addEventListener("click", () => {
+          const isHidden = passwordInput.type === "password";
+          passwordInput.type = isHidden ? "text" : "password";
+          togglePassword.classList.toggle("fa-eye");
+          togglePassword.classList.toggle("fa-eye-slash");
+          togglePassword.classList.toggle("active");
+        });
+      }
     });
 
     // FOOTER SCRIPT
