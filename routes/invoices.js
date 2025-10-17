@@ -76,8 +76,13 @@ router.post('/invoices', authMiddleware, async (req, res) => {
             return { description: it.description || '', quantity: qty, rate, amount };
         });
         subtotal = +subtotal.toFixed(2);
-        const gst_amount = +(subtotal * GST_RATE).toFixed(2);
+        // Fetch user's GST rate from settings
+        const gstRes = await client.query(`SELECT gst_rate FROM settings WHERE user_id=$1`, [userId]);
+        const userGstRate = gstRes.rows[0]?.gst_rate || 18.0;
+
+        const gst_amount = +(subtotal * (userGstRate / 100)).toFixed(2);
         const total_amount = +(subtotal + gst_amount).toFixed(2);
+
 
         // Insert invoice record
         const invQ = `
@@ -223,7 +228,9 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
         doc.text("Subtotal:", labelX, y, { width: 120, align: "right" });
         doc.text(Number(inv.subtotal).toFixed(2), valueX, y, { width: 80, align: "right" });
         y += 20;
-        doc.text("GST (18%):", labelX, y, { width: 120, align: "right" });
+        const gstRes = await pool.query(`SELECT gst_rate FROM settings WHERE user_id=$1`, [userId]);
+        const userGstRate = gstRes.rows[0]?.gst_rate || 18.0;
+        doc.text(`GST:`, labelX, y, { width: 120, align: "right" });
         doc.text(Number(inv.gst_amount).toFixed(2), valueX, y, { width: 80, align: "right" });
         y += 25;
         doc.fontSize(12).fillColor("#2563eb");
@@ -246,7 +253,8 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
 /* ---------------------- POST: Save or Update Shop Info ---------------------- */
 router.post('/shop-info', authMiddleware, async (req, res) => {
     const userId = req.user.id;
-    const { shop_name, shop_address, gst_no } = req.body;
+    const { shop_name, shop_address, gst_no, gst_rate } = req.body;
+
 
     try {
         await pool.query(`
@@ -255,28 +263,49 @@ router.post('/shop-info', authMiddleware, async (req, res) => {
         user_id INTEGER UNIQUE REFERENCES users(id) ON DELETE CASCADE,
         shop_name TEXT,
         shop_address TEXT,
-        gst_no TEXT
+    gst_no TEXT,
+    gst_rate NUMERIC DEFAULT 18.0
       );
     `);
 
-        await pool.query(
-            `
-      INSERT INTO settings (user_id, shop_name, shop_address, gst_no)
-      VALUES ($1, $2, $3, $4)
+        await pool.query(`
+  INSERT INTO settings (user_id, shop_name, shop_address, gst_no, gst_rate)
+  VALUES ($1, $2, $3, $4, $5)
       ON CONFLICT (user_id)
       DO UPDATE SET
         shop_name = EXCLUDED.shop_name,
         shop_address = EXCLUDED.shop_address,
-        gst_no = EXCLUDED.gst_no;
-      `,
-            [userId, shop_name, shop_address, gst_no]
+    gst_no = EXCLUDED.gst_no,
+    gst_rate = EXCLUDED.gst_rate;
+`, [userId, shop_name, shop_address, gst_no, gst_rate]
         );
 
-        res.json({ success: true, message: 'Shop info saved successfully' });
+
+        const { rows } = await pool.query(
+            `SELECT shop_name, shop_address, gst_no, gst_rate FROM settings WHERE user_id=$1`,
+            [userId]
+        );
+        res.json({ success: true, settings: rows[0] || {} });
+
     } catch (err) {
         console.error('❌ Error saving shop info:', err.message);
         res.status(500).json({ success: false, message: 'Error saving shop info' });
     }
+    /* ---------------------- GET: Fetch Shop Info ---------------------- */
+    router.get('/shop-info', authMiddleware, async (req, res) => {
+        const userId = req.user.id;
+        try {
+            const { rows } = await pool.query(
+                `SELECT shop_name, shop_address, gst_no, gst_rate FROM settings WHERE user_id=$1`,
+                [userId]
+            );
+            res.json({ success: true, settings: rows[0] || {} });
+        } catch (err) {
+            console.error('❌ Error fetching shop info:', err.message);
+            res.status(500).json({ success: false, message: 'Error fetching shop info' });
+        }
+    });
+
 });
 
 /* ---------------------- Mirror endpoints for /settings/gst ---------------------- */
