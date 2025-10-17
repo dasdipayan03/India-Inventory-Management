@@ -399,10 +399,12 @@
       background: #ffffff;
       box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
       border-top: 1px solid #e5e7eb;
-      padding: 16px 28px;
+      padding: 14px 22px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      /* allows wrapping on smaller screens */
       font-family: "Segoe UI", Arial, sans-serif;
       position: relative;
       z-index: 10;
@@ -410,15 +412,17 @@
 
     .footer-links {
       display: flex;
-      gap: 16px;
+      gap: 18px;
       font-size: 13px;
+      flex-wrap: wrap;
     }
 
     .footer-links a {
       color: #6b7280;
       text-decoration: none;
-      transition: color 0.2s;
+      transition: color 0.2s ease;
       cursor: pointer;
+      white-space: nowrap;
     }
 
     .footer-links a:hover {
@@ -429,6 +433,29 @@
     .copyright {
       font-size: 13px;
       color: #6b7280;
+    }
+
+    /* ✅ Responsive Smart Footer */
+    @media (max-width: 600px) {
+      .site-footer {
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+        gap: 6px;
+        padding: 16px 10px;
+      }
+
+      .footer-links {
+        justify-content: center;
+        gap: 14px;
+        font-size: 14px;
+      }
+
+      .copyright {
+        margin-top: 4px;
+        font-size: 13px;
+        color: #6b7280;
+      }
     }
 
     /* Popup overlay */
@@ -680,6 +707,8 @@
         text-shadow: 0 0 16px #fbbf24, 0 0 22px #f59e0b;
       }
     }
+
+    /* ✨ Smart occasion system end here (improved full fit) */
   </style>
 </head>
 
