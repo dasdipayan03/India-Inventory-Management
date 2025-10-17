@@ -458,7 +458,7 @@
       }
     }
 
-    /* Popup overlay */
+    /* ===== 🌐 Modern Responsive Footer Popup ===== */
     .footer-popup-overlay {
       position: fixed;
       inset: 0;
@@ -468,35 +468,39 @@
       align-items: center;
       justify-content: center;
       z-index: 9998;
+      padding: 16px;
     }
 
     .footer-popup-overlay.active {
       display: flex;
     }
 
-    /* Popup box */
     .footer-popup {
-      background: #fff;
-      border-radius: 12px;
-      max-width: 500px;
-      width: 90%;
-      padding: 24px;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
-      text-align: center;
+      background: #ffffff;
+      border-radius: 14px;
+      width: 100%;
+      max-width: 460px;
+      padding: 26px 28px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+      text-align: left;
       animation: fadeUp 0.35s ease;
+      font-family: "Segoe UI", Arial, sans-serif;
     }
 
     .footer-popup h3 {
-      margin: 0 0 12px;
+      margin: 0 0 10px;
       font-size: 18px;
       color: #0f172a;
+      font-weight: 700;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 6px;
     }
 
     .footer-popup p {
       color: #374151;
       font-size: 14px;
       line-height: 1.6;
-      margin: 0 0 10px;
+      margin: 8px 0;
     }
 
     .footer-popup .close-btn {
@@ -504,17 +508,21 @@
       background: #0ea5e9;
       color: #fff;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       padding: 10px 18px;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
+      transition: all 0.25s ease;
+      width: 100%;
     }
 
     .footer-popup .close-btn:hover {
       background: #0284c7;
+      transform: translateY(-1px);
     }
 
+    /* ✨ Smooth entrance */
     @keyframes fadeUp {
       from {
         opacity: 0;
@@ -524,6 +532,29 @@
       to {
         opacity: 1;
         transform: translateY(0);
+      }
+    }
+
+    /* ===== 📱 Mobile-Friendly Adjustments ===== */
+    @media (max-width: 480px) {
+      .footer-popup {
+        padding: 20px;
+        max-width: 90%;
+        font-size: 15px;
+        text-align: center;
+      }
+
+      .footer-popup h3 {
+        font-size: 17px;
+      }
+
+      .footer-popup p {
+        font-size: 13.5px;
+      }
+
+      .footer-popup .close-btn {
+        padding: 10px 12px;
+        font-size: 13.5px;
       }
     }
 
