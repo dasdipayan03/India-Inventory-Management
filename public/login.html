@@ -690,7 +690,6 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      background: linear-gradient(135deg, #fff7e6, #ffe8cc);
       border-radius: 12px;
       text-align: center;
       animation: none !important;
@@ -698,48 +697,42 @@
       transform: none !important;
     }
 
-    .poster-active img {
-      width: 150px;
-      height: auto;
-      margin-bottom: 16px;
-      animation: glow 2s ease-in-out infinite alternate;
+
+    /* 🎆 Happy New Year 2026 Poster */
+    .newyear-poster {
+      background: linear-gradient(135deg, #0f172a, #020617);
+      color: #ffffff;
+      padding: 24px;
     }
 
-    .poster-active h2 {
-      color: #d97706;
-      font-size: 2rem;
-      margin: 10px 0;
-      animation: glowText 2s ease-in-out infinite alternate;
+    .newyear-poster h2 {
+      font-size: 2.1rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: #f8fafc;
     }
 
-    .poster-active p {
-      font-size: 1.1rem;
-      color: #92400e;
-      margin-top: 6px;
+    .newyear-poster p {
+      font-size: 1.05rem;
+      color: #e5e7eb;
+      margin: 6px 0;
     }
 
-    /* Glow animation */
-    @keyframes glow {
-      0% {
-        filter: drop-shadow(0 0 4px #facc15);
-      }
-
-      100% {
-        filter: drop-shadow(0 0 16px #f59e0b);
-      }
+    .ny-sub {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: #94a3b8;
     }
 
-    @keyframes glowText {
-      0% {
-        text-shadow: 0 0 6px #fbbf24, 0 0 10px #f59e0b;
-      }
-
-      100% {
-        text-shadow: 0 0 16px #fbbf24, 0 0 22px #f59e0b;
-      }
+    .ny-badge {
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+      color: #020617;
+      margin-bottom: 8px;
     }
-
-    /* ✨ Smart occasion system end here (improved full fit) */
   </style>
 </head>
 
@@ -808,11 +801,13 @@
     <div class="promo">
       <div class="slides">
         <!-- Occasion poster (only add this when needed) -->
-        <div class="slide poster-active">
-          <!-- <img src="https://upload.wikimedia.org/wikipedia/commons/3/3a/Diya_lamp.png" alt="Diwali Lamp" /> -->
-          <h2>🪔 Happy Diwali 🪔</h2>
-          <p>Wishing you light, prosperity, and happiness!</p>
+        <div class="slide poster-active newyear-poster">
+          <div class="ny-badge">🎉 2026</div>
+          <h2>Happy New Year</h2>
+          <p>Wishing you a successful, profitable, and well-organized year ahead.</p>
+          <span class="ny-sub">Thank you for trusting India Inventory Management</span>
         </div>
+
 
         <!-- Normal slides -->
         <div class="slide">
@@ -980,10 +975,11 @@
           if (!res.ok) throw new Error(data.error || "Login failed");
           localStorage.setItem("token", data.token);
           localStorage.setItem("user", JSON.stringify(data.user));
-          showPopup("success", "✅ Login successful!");
-          successText.textContent = "Login successful!";
-          successScreen.style.display = "flex";
-          setTimeout(() => window.location.href = "index.html", 1200);
+          // showPopup("success", "✅ Login successful!");
+          // successText.textContent = "Login successful!";
+          // successScreen.style.display = "flex";
+          // setTimeout(() => window.location.href = "index.html", 1200);
+          showPopup("success", "✅ Login successful!", "index.html", 1200);
         } catch (err) { showPopup("error", err.message); }
       });
 
