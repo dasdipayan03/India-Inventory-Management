@@ -805,7 +805,6 @@
           <div class="ny-badge">🎉 2026</div>
           <h2>Happy New Year</h2>
           <p>Wishing you a successful, profitable, and well-organized year ahead.</p>
-          <span class="ny-sub">Thank you for trusting India Inventory Management</span>
         </div>
 
 
@@ -975,10 +974,6 @@
           if (!res.ok) throw new Error(data.error || "Login failed");
           localStorage.setItem("token", data.token);
           localStorage.setItem("user", JSON.stringify(data.user));
-          // showPopup("success", "✅ Login successful!");
-          // successText.textContent = "Login successful!";
-          // successScreen.style.display = "flex";
-          // setTimeout(() => window.location.href = "index.html", 1200);
           showPopup("success", "✅ Login successful!", "index.html", 1200);
         } catch (err) { showPopup("error", err.message); }
       });
