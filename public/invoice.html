@@ -277,8 +277,12 @@
         }
 
         .items-table {
+            width: 100%;
+            overflow-x: auto;
             overflow: visible;
+            margin-bottom: 60px;
         }
+
 
 
 
@@ -460,15 +464,16 @@
             function addItemRow(item = { quantity: 1, rate: 0 }) {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-            <td class="item-cell">
-                <input class="item-input" placeholder="Search item" autocomplete="off">
-                <div class="dropdown-list"></div>
-            </td>
-            <td><input type="number" step="0.001" min="0" value="${item.quantity}"></td>
-            <td><input type="number" step="0.01" min="0" value="${item.rate}"></td>
-            <td>0.00</td>
-            <td><button class="btn small">❌</button></td>
-        `;
+                <td class="item-cell">
+                    <input class="item-input" placeholder="Search item" autocomplete="off">
+                    <div class="dropdown-list"></div>
+                </td>
+                <td><input type="number" step="0.001" min="0" value="${item.quantity}"></td>
+                <td><input type="number" step="0.01" min="0" value="${item.rate}"></td>
+                <td>0.00</td>
+                <td><button class="btn small">❌</button></td>
+                `;
+
                 itemsTbody.appendChild(tr);
 
                 const itemInput = tr.querySelector('.item-input');
