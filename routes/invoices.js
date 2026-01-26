@@ -174,11 +174,90 @@ router.get('/invoices/:invoiceNo', authMiddleware, async (req, res) => {
     res.json({ success: true, invoice: rows[0] });
 });
 
-/* ---------------------- GET: PDF ---------------------- */
 router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
-    // (unchanged – your existing PDF code can stay)
-    res.status(501).json({ success: false, message: 'PDF code unchanged' });
+    const userId = req.user.id;
+    const invoiceNo = req.params.invoiceNo.replace(/['"%]+/g, '').trim();
+
+    try {
+        const q = `
+          SELECT i.id, i.invoice_no, i.customer_name, i.contact, i.address, i.gst_no,
+                 i.date, i.subtotal, i.gst_amount, i.total_amount,
+                 COALESCE(json_agg(json_build_object(
+                   'description', ii.description,
+                   'quantity', ii.quantity,
+                   'rate', ii.rate,
+                   'amount', ii.amount
+                 ) ORDER BY ii.id) FILTER (WHERE ii.id IS NOT NULL), '[]') AS items
+          FROM invoices i
+          LEFT JOIN invoice_items ii ON ii.invoice_id = i.id
+          WHERE i.user_id = $2 AND TRIM(i.invoice_no) = TRIM($1)
+          GROUP BY i.id
+          LIMIT 1;
+        `;
+        const { rows } = await pool.query(q, [invoiceNo, userId]);
+        if (!rows[0]) return res.status(404).json({ success: false, message: 'Invoice not found' });
+
+        const inv = rows[0];
+
+        const shopRes = await pool.query(
+            `SELECT shop_name, shop_address, gst_no FROM settings WHERE user_id=$1`,
+            [userId]
+        );
+        const shop = shopRes.rows[0] || {};
+
+        const doc = new PDFDocument({ size: 'A4', margin: 40 });
+        res.setHeader('Content-disposition', `attachment; filename="${inv.invoice_no}.pdf"`);
+        res.setHeader('Content-type', 'application/pdf');
+        doc.pipe(res);
+
+        doc.fontSize(18).text(shop.shop_name || 'India Inventory Management', 40, 40);
+        doc.fontSize(10).text(shop.shop_address || '', 40, 65);
+        doc.text(`GSTIN: ${shop.gst_no || inv.gst_no || ''}`, 40, 80);
+        doc.fontSize(16).text('INVOICE', 450, 40);
+
+        let y = 130;
+        doc.fontSize(10);
+        doc.text(`Invoice No: ${inv.invoice_no}`, 40, y);
+        doc.text(`Date: ${new Date(inv.date).toLocaleDateString('en-IN')}`, 40, y + 15);
+
+        doc.text(`Customer: ${inv.customer_name || ''}`, 300, y);
+        if (inv.contact) doc.text(`Contact: ${inv.contact}`, 300, y + 15);
+        if (inv.address) doc.text(`Address: ${inv.address}`, 300, y + 30, { width: 240 });
+
+        y += 70;
+        doc.moveTo(40, y).lineTo(560, y).stroke();
+        y += 10;
+
+        doc.font('Helvetica-Bold');
+        doc.text('Item', 40, y);
+        doc.text('Qty', 280, y, { width: 50, align: 'right' });
+        doc.text('Rate', 360, y, { width: 70, align: 'right' });
+        doc.text('Amount', 460, y, { width: 80, align: 'right' });
+
+        doc.font('Helvetica');
+        for (const it of inv.items) {
+            y += 18;
+            doc.text(it.description, 40, y, { width: 220 });
+            doc.text(it.quantity, 280, y, { width: 50, align: 'right' });
+            doc.text(it.rate, 360, y, { width: 70, align: 'right' });
+            doc.text(it.amount, 460, y, { width: 80, align: 'right' });
+        }
+
+        y += 25;
+        doc.text(`Subtotal: ${inv.subtotal}`, 400, y);
+        y += 15;
+        doc.text(`GST: ${inv.gst_amount}`, 400, y);
+        y += 20;
+        doc.font('Helvetica-Bold').text(`Total: ${inv.total_amount}`, 400, y);
+
+        doc.end();
+
+    } catch (err) {
+        console.error('❌ PDF error:', err);
+        res.status(500).json({ success: false, message: 'PDF generation failed' });
+    }
 });
+
 
 /* ---------------------- SHOP INFO ---------------------- */
 router.post('/shop-info', authMiddleware, async (req, res) => {
