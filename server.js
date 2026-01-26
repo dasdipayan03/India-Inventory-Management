@@ -5,14 +5,23 @@ const cors = require("cors");
 const path = require("path");
 const helmet = require("helmet");
 const compression = require("compression");
+const cookieParser = require("cookie-parser");
 const pool = require("./db");
 
 const app = express();
 
 // -------------------- MIDDLEWARE --------------------
-app.use(cors());
+app.set("trust proxy", 1);
+app.use(
+  cors({
+    origin: true,       // Railway + local allow
+    credentials: true,  // ✅ cookie allow
+  })
+);
 app.use(express.json());
 app.use(compression());
+app.use(cookieParser());
+
 
 // ✅ Helmet: allow CDN + inline scripts for Bootstrap, FontAwesome
 app.use(
