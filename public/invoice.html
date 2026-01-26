@@ -246,6 +246,37 @@
             font-weight: 600;
         }
 
+
+
+        .dropdown-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 999;
+            display: none;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, .15);
+        }
+
+        .dropdown-item {
+            padding: 6px 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .dropdown-item:hover {
+            background: #f1f5f9;
+        }
+
+
+
+
+
         @media (max-width: 600px) {
             .container {
                 padding: 8px
@@ -354,9 +385,30 @@
     </div>
 
     <script>
+
+        async function loadItemNames() {
+            try {
+                const r = await fetch(API_PREFIX + '/items/names', {
+                    headers: { Authorization: 'Bearer ' + token }
+                });
+                if (r.ok) {
+                    itemNames = await r.json();
+                } else {
+                    itemNames = [];
+                }
+            } catch (e) {
+                console.error('Failed to load item names', e);
+                itemNames = [];
+            }
+        }
+
+
+
+
         const API_PREFIX = '/api';
         const token = localStorage.getItem('token');
         let userGstRate = 18; // Default fallback
+        let itemNames = [];
 
         document.addEventListener('DOMContentLoaded', () => {
             const shopName = document.getElementById('shopName');
@@ -386,6 +438,7 @@
 
             async function init() {
                 if (!token) { alert('Please log in first'); return; }
+                await loadItemNames();
                 try {
                     const gstR = await fetch(API_PREFIX + '/shop-info', { headers: authHeaders() });
                     const gstJ = await gstR.json();
@@ -443,29 +496,94 @@
 
             };
 
+            function renderDropdown(listEl, items, onSelect) {
+                if (!items.length) {
+                    listEl.style.display = 'none';
+                    return;
+                }
+
+                listEl.innerHTML = items
+                    .map(i => `<div class="dropdown-item">${i}</div>`)
+                    .join('');
+
+                listEl.style.display = 'block';
+
+                listEl.querySelectorAll('.dropdown-item').forEach(el => {
+                    el.onclick = () => {
+                        onSelect(el.textContent);
+                        listEl.style.display = 'none';
+                    };
+                });
+            }
+
+
+
             function addItemRow(item = { description: '', quantity: 1, rate: 0 }) {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-      <td><input value="${item.description}"></td>
-      <td><input type="number" step="0.001" min="0" value="${item.quantity}"></td>
-      <td><input type="number" step="0.01" min="0" value="${item.rate}"></td>
-      <td>0.00</td>
-      <td><button class="btn small">❌</button></td>`;
+        <td style="position:relative">
+            <input class="item-input" placeholder="Search item" autocomplete="off">
+            <div class="dropdown-list"></div>
+        </td>
+        <td><input type="number" step="0.001" min="0" value="${item.quantity}"></td>
+        <td><input type="number" step="0.01" min="0" value="${item.rate}"></td>
+        <td>0.00</td>
+        <td><button class="btn small">❌</button></td>
+    `;
                 itemsTbody.appendChild(tr);
-                const qty = tr.children[1].querySelector('input'),
-                    rate = tr.children[2].querySelector('input'),
-                    amountCell = tr.children[3],
-                    remBtn = tr.children[4].querySelector('button');
 
-                function update() {
-                    const amt = (parseFloat(qty.value || 0) * parseFloat(rate.value || 0)).toFixed(2);
+                const itemInput = tr.querySelector('.item-input');
+                const dropdown = tr.querySelector('.dropdown-list');
+                const qtyInput = tr.children[1].querySelector('input');
+                const rateInput = tr.children[2].querySelector('input');
+                const amountCell = tr.children[3];
+                const removeBtn = tr.children[4].querySelector('button');
+
+                // 🔍 Item search
+                itemInput.addEventListener('input', async () => {
+                    const q = itemInput.value.toLowerCase();
+                    const filtered = itemNames
+                        .filter(n => n.toLowerCase().includes(q))
+                        .slice(0, 20);
+
+                    renderDropdown(dropdown, filtered, async (name) => {
+                        itemInput.value = name;
+
+                        // fetch rate from items table
+                        try {
+                            const r = await fetch(
+                                API_PREFIX + '/items/info?name=' + encodeURIComponent(name),
+                                { headers: { Authorization: 'Bearer ' + token } }
+                            );
+                            if (r.ok) {
+                                const j = await r.json();
+                                rateInput.value = j.rate || 0;
+                                recalcRow();
+                            }
+                        } catch (e) { }
+                    });
+                });
+
+                function recalcRow() {
+                    const amt =
+                        (parseFloat(qtyInput.value || 0) * parseFloat(rateInput.value || 0)).toFixed(2);
                     amountCell.textContent = amt;
                     recalcTotals();
                 }
-                qty.oninput = rate.oninput = update;
-                remBtn.onclick = () => { tr.remove(); recalcTotals(); };
-                update();
+
+                qtyInput.oninput = rateInput.oninput = recalcRow;
+                removeBtn.onclick = () => {
+                    tr.remove();
+                    recalcTotals();
+                };
+
+                recalcRow();
             }
+
+
+
+
+
 
             addItemBtn.onclick = () => addItemRow();
 
