@@ -19,13 +19,11 @@
             background: var(--bg);
             margin: 0;
             color: #111827;
-            padding-top: 56px;
-            box-sizing: border-box;
         }
 
         .container {
             max-width: 980px;
-            margin: 0px auto;
+            margin: 18px auto;
             padding: 12px;
         }
 
@@ -34,7 +32,6 @@
             flex-wrap: wrap;
             justify-content: space-between;
             align-items: center;
-            margin-top: 10px;
             margin-bottom: 12px;
             gap: 8px;
         }
@@ -240,7 +237,6 @@
 
         .back-link {
             margin-top: 10px;
-            margin-bottom: 35px;
             text-align: center;
         }
 
@@ -418,18 +414,7 @@
 
 
         const API_PREFIX = '/api';
-        function getToken() {
-            // 1️⃣ localStorage (old web login support)
-            const lsToken = localStorage.getItem("token");
-            if (lsToken) return lsToken;
-
-            // 2️⃣ cookie (Android + new web login)
-            const match = document.cookie.match(/(^| )token=([^;]+)/);
-            return match ? match[2] : null;
-        }
-
-        const token = getToken();
-
+        const token = localStorage.getItem('token');
         let userGstRate = 18; // Default fallback
         let itemNames = [];
 
@@ -668,12 +653,24 @@
                 const j = await res.json();
                 if (j.success) {
                     // ✅ Wait 1 second, then silently download PDF
-                    setTimeout(() => {
-                        const pdfUrl =
-                            `${API_PREFIX}/invoices/${encodeURIComponent(j.invoice_no)}/pdf?token=${token}`;
-                        window.open(pdfUrl, "_blank");
-                    }, 500);
-
+                    setTimeout(async () => {
+                        const pdfUrl = `${API_PREFIX}/invoices/${encodeURIComponent(j.invoice_no)}/pdf`;
+                        try {
+                            const response = await fetch(pdfUrl, { headers: { Authorization: 'Bearer ' + token } });
+                            if (!response.ok) throw new Error('Download failed');
+                            const blob = await response.blob();
+                            const link = document.createElement('a');
+                            link.style.display = 'none';
+                            link.href = URL.createObjectURL(blob);
+                            link.download = `${j.invoice_no}.pdf`;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            URL.revokeObjectURL(link.href);
+                        } catch (err) {
+                            alert('Failed to download PDF: ' + err.message);
+                        }
+                    }, 1000);
 
                     // ✅ Clear form and refresh next invoice number
                     custName.value = custContact.value = custAddress.value = '';
@@ -742,13 +739,26 @@
 
 
             // ✅ Silent Search Download
-            searchDownloadBtn.onclick = () => {
+            searchDownloadBtn.onclick = async () => {
                 const inv = searchInput.value.trim();
                 if (!inv) return;
-
-                const pdfUrl =
-                    `${API_PREFIX}/invoices/${encodeURIComponent(inv)}/pdf?token=${token}`;
-                window.open(pdfUrl, "_blank");
+                try {
+                    const response = await fetch(`${API_PREFIX}/invoices/${encodeURIComponent(inv)}/pdf`, {
+                        headers: { Authorization: 'Bearer ' + token }
+                    });
+                    if (!response.ok) throw new Error('Download failed');
+                    const blob = await response.blob();
+                    const link = document.createElement('a');
+                    link.style.display = 'none';
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `${inv}.pdf`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(link.href);
+                } catch (err) {
+                    alert('Failed to download PDF: ' + err.message);
+                }
             };
 
             init();

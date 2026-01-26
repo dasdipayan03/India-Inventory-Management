@@ -9,18 +9,12 @@ if (!process.env.JWT_SECRET) {
 
 // -------------------- AUTH MIDDLEWARE --------------------
 function authMiddleware(req, res, next) {
-  // ✅ Accept token from cookie OR header
-  const token =
-    req.cookies?.token ||
-    (req.headers.authorization &&
-      req.headers.authorization.startsWith("Bearer ")
-      ? req.headers.authorization.split(" ")[1]
-      : null);
-
-  if (!token) {
-    return res.status(401).json({ error: "Unauthorized" });
+  const header = req.headers["authorization"];
+  if (!header || !header.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Missing or invalid Authorization header" });
   }
 
+  const token = header.split(" ")[1];
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded; // attach user info to request

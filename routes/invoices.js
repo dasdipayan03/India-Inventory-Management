@@ -160,28 +160,25 @@ router.post('/invoices', authMiddleware, async (req, res) => {
 });
 
 /* ---------------------- GET: Invoice Details ---------------------- */
-router.get('/invoices/:invoiceNo/pdf', async (req, res) => {
+router.get('/invoices/:invoiceNo', authMiddleware, async (req, res) => {
+    const { rows } = await pool.query(`
+      SELECT i.*, COALESCE(json_agg(ii.*)
+      FILTER (WHERE ii.id IS NOT NULL),'[]') AS items
+      FROM invoices i
+      LEFT JOIN invoice_items ii ON ii.invoice_id=i.id
+      WHERE i.user_id=$2 AND i.invoice_no=$1
+      GROUP BY i.id
+    `, [req.params.invoiceNo, req.user.id]);
+
+    if (!rows[0]) return res.status(404).json({ success: false });
+    res.json({ success: true, invoice: rows[0] });
+});
+
+router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
+    const userId = req.user.id;
+    const invoiceNo = req.params.invoiceNo.replace(/['"%]+/g, '').trim();
+
     try {
-        // ✅ Accept JWT from query OR cookie OR header
-        const token =
-            req.query.token ||
-            req.cookies?.token ||
-            (req.headers.authorization &&
-                req.headers.authorization.startsWith("Bearer ")
-                ? req.headers.authorization.split(" ")[1]
-                : null);
-
-        if (!token) {
-            return res.status(401).send("Unauthorized");
-        }
-
-        const decoded = require("jsonwebtoken")
-            .verify(token, process.env.JWT_SECRET);
-
-        const userId = decoded.id;
-        const invoiceNo = req.params.invoiceNo.replace(/['"%]+/g, '').trim();
-
-        // ---------------- FETCH INVOICE ----------------
         const q = `
           SELECT i.id, i.invoice_no, i.customer_name, i.contact, i.address, i.gst_no,
                  i.date, i.subtotal, i.gst_amount, i.total_amount,
@@ -197,9 +194,8 @@ router.get('/invoices/:invoiceNo/pdf', async (req, res) => {
           GROUP BY i.id
           LIMIT 1;
         `;
-
         const { rows } = await pool.query(q, [invoiceNo, userId]);
-        if (!rows[0]) return res.status(404).send("Invoice not found");
+        if (!rows[0]) return res.status(404).json({ success: false, message: 'Invoice not found' });
 
         const inv = rows[0];
 
@@ -209,13 +205,9 @@ router.get('/invoices/:invoiceNo/pdf', async (req, res) => {
         );
         const shop = shopRes.rows[0] || {};
 
-        // ---------------- PDF ----------------
         const doc = new PDFDocument({ size: 'A4', margin: 40 });
-        res.setHeader(
-            "Content-Disposition",
-            `attachment; filename="${inv.invoice_no}.pdf"`
-        );
-        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader('Content-disposition', `attachment; filename="${inv.invoice_no}.pdf"`);
+        res.setHeader('Content-type', 'application/pdf');
         doc.pipe(res);
 
         doc.fontSize(18).text(shop.shop_name || 'India Inventory Management', 40, 40);
@@ -261,11 +253,10 @@ router.get('/invoices/:invoiceNo/pdf', async (req, res) => {
         doc.end();
 
     } catch (err) {
-        console.error("❌ PDF error:", err.message);
-        res.status(401).send("Unauthorized");
+        console.error('❌ PDF error:', err);
+        res.status(500).json({ success: false, message: 'PDF generation failed' });
     }
 });
-
 
 
 /* ---------------------- SHOP INFO ---------------------- */

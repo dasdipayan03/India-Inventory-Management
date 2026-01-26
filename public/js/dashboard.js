@@ -5,18 +5,9 @@ const apiBase = window.location.origin.includes("localhost")
 
 let itemNames = [];
 
-function getToken() {
-  const lsToken = localStorage.getItem("token");
-  if (lsToken) return lsToken;
-
-  const match = document.cookie.match(/(^| )token=([^;]+)/);
-  return match ? match[2] : null;
-}
-
-
 /* ---------------------- AUTH ----------------------- */
 async function checkAuth() {
-  const token = getToken();
+  const token = localStorage.getItem("token");
   if (!token) return (location.href = "login.html");
 
   try {
@@ -70,16 +61,11 @@ function setupSidebar() {
     });
   });
 
-  document.getElementById("logoutBtn").addEventListener("click", async () => {
-    try {
-      await fetch(`${apiBase}/auth/logout`, { method: "POST" });
-    } catch (e) { }
-
+  document.getElementById("logoutBtn").addEventListener("click", () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     location.href = "login.html";
   });
-
 }
 
 /* ---------------------- Dropdown helpers --------------------- */
@@ -243,35 +229,43 @@ async function recordSale() {
 }
 
 /* ---------------------- Reports --------------------- */
-function downloadSalesPDF() {
+async function downloadSalesPDF() {
   const from = document.getElementById("fromDate").value;
   const to = document.getElementById("toDate").value;
   if (!from || !to) return alert("Select both dates");
-
-  const token = getToken();
-  if (!token) return alert("Session expired. Please login again.");
-
-  const url =
-    `${apiBase}/sales/report/pdf?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&token=${token}`;
-
-  window.open(url, "_blank");
+  try {
+    const res = await fetch(`${apiBase}/sales/report/pdf?from=${from}&to=${to}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    });
+    const blob = await res.blob();
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "Sales_Report.pdf";
+    link.click();
+  } catch (err) {
+    console.error("PDF download error:", err);
+    alert("Could not download PDF");
+  }
 }
 
-
-function downloadSalesExcel() {
+async function downloadSalesExcel() {
   const from = document.getElementById("fromDate").value;
   const to = document.getElementById("toDate").value;
   if (!from || !to) return alert("Select both dates");
-
-  const token = getToken();
-  if (!token) return alert("Session expired. Please login again.");
-
-  const url =
-    `${apiBase}/sales/report/excel?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&token=${token}`;
-
-  window.open(url, "_blank");
+  try {
+    const res = await fetch(`${apiBase}/sales/report/excel?from=${from}&to=${to}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    });
+    const blob = await res.blob();
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "Sales_Report.xlsx";
+    link.click();
+  } catch (err) {
+    console.error("Excel download error:", err);
+    alert("Could not download Excel");
+  }
 }
-
 
 /* ---------------------- Debts --------------------- */
 async function submitDebt() {

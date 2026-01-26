@@ -65,19 +65,11 @@ router.post("/login", async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    // ✅ Set JWT as HttpOnly cookie
-    res.cookie("token", token, {
-      httpOnly: true,                 // JS থেকে access করা যাবে না
-      secure: process.env.NODE_ENV !== "development", // Railway = true
-      sameSite: "lax",                // Web + WebView safe
-      maxAge: 24 * 60 * 60 * 1000     // 1 day
-    });
-
     return res.json({
       message: "Login successful",
-      user: { id: user.id, name: user.name, email: user.email }
+      user: { id: user.id, name: user.name, email: user.email },
+      token,
     });
-
   } catch (err) {
     console.error("Login error:", err.message);
     res.status(500).json({ error: "Server error" });
@@ -159,17 +151,12 @@ router.post("/reset-password", async (req, res) => {
 // ✅ Verify token and return user info
 router.get("/me", async (req, res) => {
   try {
-    const token =
-      req.cookies?.token ||
-      (req.headers.authorization &&
-        req.headers.authorization.startsWith("Bearer ")
-        ? req.headers.authorization.split(" ")[1]
-        : null);
-
-    if (!token) {
+    const auth = req.headers.authorization;
+    if (!auth || !auth.startsWith("Bearer ")) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
+    const token = auth.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Find user in DB
@@ -188,17 +175,6 @@ router.get("/me", async (req, res) => {
     res.status(401).json({ error: "Unauthorized" });
   }
 });
-
-
-router.post("/logout", (req, res) => {
-  res.clearCookie("token", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV !== "development",
-    sameSite: "lax",
-  });
-  res.json({ message: "Logged out" });
-});
-
 
 
 module.exports = router;
