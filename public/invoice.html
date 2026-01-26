@@ -418,7 +418,18 @@
 
 
         const API_PREFIX = '/api';
-        const token = localStorage.getItem('token');
+        function getToken() {
+            // 1️⃣ localStorage (old web login support)
+            const lsToken = localStorage.getItem("token");
+            if (lsToken) return lsToken;
+
+            // 2️⃣ cookie (Android + new web login)
+            const match = document.cookie.match(/(^| )token=([^;]+)/);
+            return match ? match[2] : null;
+        }
+
+        const token = getToken();
+
         let userGstRate = 18; // Default fallback
         let itemNames = [];
 
@@ -659,7 +670,7 @@
                     // ✅ Wait 1 second, then silently download PDF
                     setTimeout(() => {
                         const pdfUrl =
-                            `${API_PREFIX}/invoices/${encodeURIComponent(j.invoice_no)}/pdf`;
+                            `${API_PREFIX}/invoices/${encodeURIComponent(j.invoice_no)}/pdf?token=${token}`;
                         window.open(pdfUrl, "_blank");
                     }, 500);
 
@@ -736,10 +747,9 @@
                 if (!inv) return;
 
                 const pdfUrl =
-                    `${API_PREFIX}/invoices/${encodeURIComponent(inv)}/pdf`;
+                    `${API_PREFIX}/invoices/${encodeURIComponent(inv)}/pdf?token=${token}`;
                 window.open(pdfUrl, "_blank");
             };
-
 
             init();
         });
