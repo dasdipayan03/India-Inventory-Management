@@ -1,5 +1,5 @@
 
-// require("dotenv").config(); // for local run, safe on Railway too railway
+// require("dotenv").config(); // for local run, safe on Railway too
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
