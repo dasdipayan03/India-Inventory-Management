@@ -23,8 +23,9 @@
 
         .container {
             max-width: 980px;
-            margin: 18px auto;
+            margin: 0px auto;
             padding: 12px;
+            padding-top: calc(env(safe-area-inset-top, 24px) + 20px);
         }
 
         .topbar {
@@ -32,6 +33,7 @@
             flex-wrap: wrap;
             justify-content: space-between;
             align-items: center;
+            margin-top: 10px;
             margin-bottom: 12px;
             gap: 8px;
         }
