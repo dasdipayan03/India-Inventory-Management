@@ -20,6 +20,15 @@ const mailer = nodemailer.createTransport({
   },
 });
 
+mailer.verify((error, success) => {
+  if (error) {
+    console.error("❌ SMTP connection error:", error);
+  } else {
+    console.log("✅ SMTP server is ready to take messages");
+  }
+});
+
+
 
 // -------------------- ENVIRONMENT CHECK --------------------
 if (!process.env.JWT_SECRET) {
