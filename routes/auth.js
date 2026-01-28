@@ -7,6 +7,20 @@ const pool = require("../db");
 
 const router = express.Router();
 
+const nodemailer = require("nodemailer");
+
+const mailer = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false,
+  },
+});
+
+
 // -------------------- ENVIRONMENT CHECK --------------------
 if (!process.env.JWT_SECRET) {
   console.error("❌ JWT_SECRET not found in environment variables.");
