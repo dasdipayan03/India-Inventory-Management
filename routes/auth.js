@@ -96,6 +96,7 @@ router.post("/forgot-password", async (req, res) => {
       [reset_token, expires, email]
     );
 
+    
     const baseUrl = process.env.BASE_URL || `https://${req.get("host")}`;
     const resetLink = `${baseUrl}/reset.html?token=${reset_token}&email=${encodeURIComponent(email)}`;
 
