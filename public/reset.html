@@ -98,32 +98,37 @@
     <div id="msg"></div>
 
     <input id="email" type="email" placeholder="Email" autocomplete="off">
-    <input id="token" type="text" placeholder="Reset Token" autocomplete="off">
+    <input id="token" type="hidden" placeholder="Reset Token" autocomplete="off">
     <input id="newPassword" type="password" placeholder="New Password" autocomplete="new-password">
-    <button onclick="resetPassword()">Reset Password</button>
+    <button id="resetBtn()">Reset Password</button>
   </div>
 
   <script>
-    const apiBase = "https://india-inventory-management-dev-production.up.railway.app/api/auth";
+    const apiBase =
+      location.hostname.includes("railway.app")
+        ? "https://india-inventory-management-dev-production.up.railway.app/api/auth"
+        : "http://localhost:3000/api/auth";
+
     const msgEl = document.getElementById("msg");
 
-    // Auto-fill from URL
     const params = new URLSearchParams(window.location.search);
-    const tokenParam = params.get("token");
-    const emailParam = params.get("email");
-    if (tokenParam) document.getElementById("token").value = tokenParam;
-    if (emailParam) document.getElementById("email").value = decodeURIComponent(emailParam);
+    document.getElementById("email").value =
+      decodeURIComponent(params.get("email") || "");
+    document.getElementById("token").value =
+      params.get("token") || "";
 
     function showMsg(type, text) {
       msgEl.innerHTML = `<div class="msg ${type}">${text}</div>`;
     }
 
     async function resetPassword() {
-      const email = document.getElementById("email").value.trim();
-      const token = document.getElementById("token").value.trim();
+      const email = document.getElementById("email").value;
+      const token = document.getElementById("token").value;
       const newPassword = document.getElementById("newPassword").value;
-      if (!email || !token || !newPassword)
+
+      if (!email || !token || !newPassword) {
         return showMsg("error", "All fields required");
+      }
 
       try {
         const res = await fetch(apiBase + "/reset-password", {
@@ -131,16 +136,24 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, token, newPassword })
         });
+
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Reset failed");
 
         showMsg("success", data.message + " Redirecting...");
-        setTimeout(() => (window.location.href = "login.html"), 1500);
+        setTimeout(() => location.href = "login.html", 1500);
+
       } catch (err) {
-        showMsg("error", err.message || "Server not reachable. Please try again later.");
+        showMsg("error", err.message);
       }
     }
+
+    // ✅ CSP-safe click handler
+    document
+      .getElementById("resetBtn")
+      .addEventListener("click", resetPassword);
   </script>
+
 </body>
 
 </html>
