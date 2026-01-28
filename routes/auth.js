@@ -80,38 +80,43 @@ router.post("/login", async (req, res) => {
 router.post("/forgot-password", async (req, res) => {
   try {
     const { email } = req.body;
+    console.log("📩 Forgot password request for:", email);
+
     if (!email)
       return res.status(400).json({ error: "Email required" });
 
     const result = await pool.query("SELECT id FROM users WHERE email=$1", [email]);
     if (result.rowCount === 0) {
-      return res.json({ message: "If account exists, reset link will be shown here." });
+      console.log("⚠️ Email not found in DB");
+      return res.json({ message: "If account exists, reset link has been sent." });
     }
 
     const reset_token = crypto.randomBytes(20).toString("hex");
-    const expires = new Date(Date.now() + 1000 * 60 * 15); // 15 min expiry
+    const expires = new Date(Date.now() + 1000 * 60 * 15);
 
     await pool.query(
       "UPDATE users SET reset_token=$1, reset_token_expires=$2 WHERE email=$3",
       [reset_token, expires, email]
     );
 
-    
-    const baseUrl = process.env.BASE_URL || `https://${req.get("host")}`;
-    const resetLink = `${baseUrl}/reset.html?token=${reset_token}&email=${encodeURIComponent(email)}`;
+    const resetLink = `${process.env.BASE_URL}/reset.html?token=${reset_token}&email=${encodeURIComponent(email)}`;
+    console.log("🔗 Reset link generated:", resetLink);
 
-    if (process.env.NODE_ENV === "development") {
-      return res.json({
-        message: "Password reset link generated (demo mode).",
-        resetLink,
-      });
-    } else {
-      return res.json({
-        message: "If account exists, you will receive reset instructions.",
-      });
-    }
+    await mailer.sendMail({
+      from: `"India Inventory Management" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Reset your password",
+      html: `<p><a href="${resetLink}">Reset Password</a></p>`
+    });
+
+    console.log("✅ Mail sent successfully");
+
+    return res.json({
+      message: "If account exists, reset link has been sent to your email.",
+    });
+
   } catch (err) {
-    console.error("Forgot password error:", err.message);
+    console.error("❌ Forgot password error:", err);
     return res.status(500).json({ error: "Server error" });
   }
 });
