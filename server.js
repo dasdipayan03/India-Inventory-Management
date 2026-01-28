@@ -50,8 +50,11 @@ app.get("/debug-env", (req, res) => {
     PORT: process.env.PORT || "not set",
     DATABASE_URL: process.env.DATABASE_URL ? "✅ exists" : "❌ missing",
     JWT_SECRET: process.env.JWT_SECRET ? "✅ exists" : "❌ missing",
+    EMAIL_USER: process.env.EMAIL_USER ? "✅ exists" : "❌ missing",
+    EMAIL_PASS: process.env.EMAIL_PASS ? "✅ exists" : "❌ missing",
   });
 });
+
 
 app.get("/debug-db", async (req, res) => {
   try {
