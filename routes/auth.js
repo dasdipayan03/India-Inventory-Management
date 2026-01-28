@@ -7,22 +7,6 @@ const pool = require("../db");
 
 const router = express.Router();
 
-const nodemailer = require("nodemailer");
-
-const mailer = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  connectionTimeout: 10000,
-  socketTimeout: 10000,
-});
-
-
-
 // -------------------- ENVIRONMENT CHECK --------------------
 if (!process.env.JWT_SECRET) {
   console.error("❌ JWT_SECRET not found in environment variables.");
@@ -101,10 +85,15 @@ router.post("/forgot-password", async (req, res) => {
     if (!email)
       return res.status(400).json({ error: "Email required" });
 
-    const result = await pool.query("SELECT id FROM users WHERE email=$1", [email]);
+    const result = await pool.query(
+      "SELECT id FROM users WHERE email=$1",
+      [email]
+    );
+
     if (result.rowCount === 0) {
-      console.log("⚠️ Email not found in DB");
-      return res.json({ message: "If account exists, reset link has been sent." });
+      return res.json({
+        message: "If account exists, reset link has been sent."
+      });
     }
 
     const reset_token = crypto.randomBytes(20).toString("hex");
@@ -115,20 +104,31 @@ router.post("/forgot-password", async (req, res) => {
       [reset_token, expires, email]
     );
 
-    const resetLink = `${process.env.BASE_URL}/reset.html?token=${reset_token}&email=${encodeURIComponent(email)}`;
+    const resetLink =
+      `${process.env.BASE_URL}/reset.html?token=${reset_token}&email=${encodeURIComponent(email)}`;
+
     console.log("🔗 Reset link generated:", resetLink);
 
-    await mailer.sendMail({
-      from: `"India Inventory Management" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: "Reset your password",
-      html: `<p><a href="${resetLink}">Reset Password</a></p>`
+    // 🔥 SEND MAIL VIA GOOGLE APPS SCRIPT
+    await fetch(process.env.MAIL_RELAY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        key: process.env.MAIL_RELAY_KEY,
+        to: email,
+        subject: "Reset your password",
+        html: `
+          <p>You requested a password reset.</p>
+          <p><a href="${resetLink}">Reset Password</a></p>
+          <p>Valid for 15 minutes.</p>
+        `
+      })
     });
 
-    console.log("✅ Mail sent successfully");
+    console.log("✅ Mail sent via Google Apps Script");
 
     return res.json({
-      message: "If account exists, reset link has been sent to your email.",
+      message: "If account exists, reset link has been sent."
     });
 
   } catch (err) {
@@ -137,38 +137,47 @@ router.post("/forgot-password", async (req, res) => {
   }
 });
 
-
 // -------------------- RESET PASSWORD --------------------
 router.post("/reset-password", async (req, res) => {
   try {
     const { email, token, newPassword } = req.body;
-    if (!email || !token || !newPassword)
+
+    if (!email || !token || !newPassword) {
       return res.status(400).json({ error: "All fields required" });
+    }
 
     const result = await pool.query(
       "SELECT id, reset_token_expires FROM users WHERE email=$1 AND reset_token=$2",
       [email, token]
     );
 
-    if (result.rowCount === 0)
+    if (result.rowCount === 0) {
       return res.status(400).json({ error: "Invalid token or email" });
+    }
 
     const user = result.rows[0];
-    if (new Date(user.reset_token_expires) < new Date())
+    if (new Date(user.reset_token_expires) < new Date()) {
       return res.status(400).json({ error: "Reset token expired" });
+    }
 
     const password_hash = await bcrypt.hash(newPassword, 12);
+
     await pool.query(
       "UPDATE users SET password_hash=$1, reset_token=NULL, reset_token_expires=NULL WHERE id=$2",
       [password_hash, user.id]
     );
 
-    return res.json({ message: "Password reset successful. You can log in now." });
+    return res.json({
+      message: "Password reset successful. You can now log in."
+    });
+
   } catch (err) {
-    console.error("Reset password error:", err.message);
+    console.error("Reset password error:", err);
     return res.status(500).json({ error: "Server error" });
   }
 });
+
+
 
 
 // ✅ Verify token and return user info
