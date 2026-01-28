@@ -121,6 +121,7 @@ router.post("/forgot-password", async (req, res) => {
   }
 });
 
+
 // -------------------- RESET PASSWORD --------------------
 router.post("/reset-password", async (req, res) => {
   try {
