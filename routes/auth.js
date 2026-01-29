@@ -91,10 +91,11 @@ router.post("/forgot-password", async (req, res) => {
     );
 
     if (result.rowCount === 0) {
-      return res.json({
-        message: "If account exists, reset link has been sent."
+      return res.status(400).json({
+        error: "Email does not exist"
       });
     }
+
 
     const reset_token = crypto.randomBytes(20).toString("hex");
     const expires = new Date(Date.now() + 1000 * 60 * 15);
