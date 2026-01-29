@@ -283,45 +283,6 @@
             margin-bottom: 150px;
         }
 
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            min-width: 260px;
-            max-width: 360px;
-            padding: 12px 16px;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            color: #fff;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-            opacity: 0;
-            transform: translateY(-10px);
-            transition: all 0.3s ease;
-            z-index: 99999;
-        }
-
-        .toast.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .toast.success {
-            background: #16a34a;
-        }
-
-        /* green */
-        .toast.error {
-            background: #dc2626;
-        }
-
-        /* red */
-        .toast.warn {
-            background: #d97706;
-        }
-
-        /* yellow */
-
-
 
 
         @media (max-width: 600px) {
@@ -350,7 +311,6 @@
 </head>
 
 <body>
-    <div id="toast" class="toast"></div>
     <div class="container">
         <header class="topbar">
             <h2>Generate Invoice</h2>
@@ -433,17 +393,6 @@
     </div>
 
     <script>
-
-        function showToast(message, type = 'error') {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = `toast ${type} show`;
-
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
-        }
-
 
         async function loadItemNames() {
             try {
@@ -740,7 +689,7 @@
                         console.warn('Error fetching next invoice number', e);
                     }
                 } else {
-                    showToast(j.message || 'Error saving invoice', 'error');
+                    alert(j.message || 'Error saving invoice');
                 }
             };
 
