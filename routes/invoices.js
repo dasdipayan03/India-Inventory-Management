@@ -54,7 +54,7 @@ router.get('/invoices/new', authMiddleware, async (req, res) => {
         res.json({
             success: true,
             invoice_no: `INV-${datePart}-${userId}-${padSerial(nextNo)}`,
-            date: new Date().toISOString()
+            date: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
         });
     } catch (err) {
         res.status(500).json({ success: false });
@@ -104,7 +104,7 @@ router.post('/invoices', authMiddleware, async (req, res) => {
         `, [
             invoiceNo, userId, gst_no || null,
             customer_name || null, contact || null, address || null,
-            subtotal, gst_amount, total_amount, dateKey
+            subtotal, gst_amount, total_amount, new Date()
         ]);
 
         const invoiceId = inv.rows[0].id;
@@ -218,7 +218,14 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
         let y = 130;
         doc.fontSize(10);
         doc.text(`Invoice No: ${inv.invoice_no}`, 40, y);
-        doc.text(`Date: ${new Date(inv.date).toLocaleDateString('en-IN')}`, 40, y + 15);
+        doc.text(
+            `Date: ${new Date(inv.date).toLocaleString('en-IN', {
+                timeZone: 'Asia/Kolkata'
+            })}`,
+            40,
+            y + 15
+        );
+
 
         doc.text(`Customer: ${inv.customer_name || ''}`, 300, y);
         if (inv.contact) doc.text(`Contact: ${inv.contact}`, 300, y + 15);
