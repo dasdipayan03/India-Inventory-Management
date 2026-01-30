@@ -393,90 +393,153 @@
     </div>
 
     <script>
-        const API_PREFIX = '/api';
-        const token = localStorage.getItem('token');
-        let userGstRate = 18;
-        let itemNames = [];
 
         async function loadItemNames() {
             try {
                 const r = await fetch(API_PREFIX + '/items/names', {
                     headers: { Authorization: 'Bearer ' + token }
                 });
-                itemNames = r.ok ? await r.json() : [];
-            } catch {
+                if (r.ok) {
+                    itemNames = await r.json();
+                } else {
+                    itemNames = [];
+                }
+            } catch (e) {
+                console.error('Failed to load item names', e);
                 itemNames = [];
             }
         }
 
-        function authHeaders() {
-            return { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
-        }
+
+
+
+        const API_PREFIX = '/api';
+        const token = localStorage.getItem('token');
+        let userGstRate = 18; // Default fallback
+        let itemNames = [];
 
         document.addEventListener('DOMContentLoaded', () => {
-
             const shopName = document.getElementById('shopName');
             const shopAddress = document.getElementById('shopAddress');
             const gstInput = document.getElementById('gstInput');
-            const gstRateInput = document.getElementById('gstRateInput');
             const saveGstBtn = document.getElementById('saveGstBtn');
-
             const invoiceNoEl = document.getElementById('invoiceNo');
             const invoiceDateEl = document.getElementById('invoiceDate');
-
             const custName = document.getElementById('custName');
             const custContact = document.getElementById('custContact');
             const custAddress = document.getElementById('custAddress');
-
             const itemsTbody = document.getElementById('itemsTbody');
             const addItemBtn = document.getElementById('addItemBtn');
-
             const subtotalEl = document.getElementById('subtotal');
             const gstAmountEl = document.getElementById('gstAmount');
             const grandTotalEl = document.getElementById('grandTotal');
-
             const saveInvoiceBtn = document.getElementById('saveInvoiceBtn');
             const clearBtn = document.getElementById('clearBtn');
-
             const searchInput = document.getElementById('searchInvoiceInput');
             const searchBtn = document.getElementById('searchInvoiceBtn');
             const searchDownloadBtn = document.getElementById('searchDownloadBtn');
             const searchResult = document.getElementById('searchResult');
 
-            function setInvoiceDate(d = null) {
-                const date = d ? new Date(d) : new Date();
-                invoiceDateEl.textContent = date.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+            function authHeaders() {
+                return { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
             }
 
-            function recalcTotals() {
-                let sub = 0;
-                itemsTbody.querySelectorAll('tr').forEach(r => {
-                    sub += parseFloat(r.children[3].textContent) || 0;
+            async function init() {
+                if (!token) { alert('Please log in first'); return; }
+                await loadItemNames();
+                try {
+                    const gstR = await fetch(API_PREFIX + '/shop-info', { headers: authHeaders() });
+                    const gstJ = await gstR.json();
+                    if (gstJ.success && gstJ.settings) {
+                        const s = gstJ.settings;
+                        if (s.shop_name) shopName.value = s.shop_name;
+                        if (s.shop_address) shopAddress.value = s.shop_address;
+                        if (s.gst_no) gstInput.value = s.gst_no;
+                        if (s.gst_rate) {
+                            userGstRate = parseFloat(s.gst_rate) || 18;
+                            document.getElementById('gstRateInput').value = userGstRate;
+                        }
+                        // Update GST label text to match user's saved rate
+                        const gstLabelDiv = document.querySelector('.totals div:nth-child(2)');
+                        if (gstLabelDiv) {
+                            gstLabelDiv.innerHTML = `GST (${userGstRate}%): <span id="gstAmount">${gstAmountEl.textContent}</span>`;
+                        }
+                        recalcTotals(); // ✅ Immediately refresh subtotal, GST, and label
+                    }
+                } catch (e) { }
+
+                try {
+                    const r = await fetch(API_PREFIX + '/invoices/new', { headers: authHeaders() });
+                    const j = await r.json();
+                    if (j.success) {
+                        invoiceNoEl.textContent = j.invoice_no;
+                        invoiceDateEl.textContent = new Date(j.date).toLocaleString('en-IN', {
+                            timeZone: 'Asia/Kolkata'
+                        });
+
+                    }
+                } catch (e) { }
+
+                addItemRow();
+                recalcTotals();
+            }
+
+            saveGstBtn.onclick = async () => {
+                const data = {
+                    shop_name: shopName.value.trim(),
+                    shop_address: shopAddress.value.trim(),
+                    gst_no: gstInput.value.trim(),
+                    gst_rate: parseFloat(document.getElementById('gstRateInput').value) || 18
+                };
+                const r = await fetch(API_PREFIX + '/shop-info', {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify(data)
                 });
 
-                const gst = +(sub * userGstRate / 100).toFixed(2);
-                const total = +(sub + gst).toFixed(2);
 
-                subtotalEl.textContent = sub.toFixed(2);
-                gstAmountEl.textContent = gst.toFixed(2);
-                grandTotalEl.textContent = total.toFixed(2);
+                const j = await r.json();
+                alert(j.success ? 'Shop info saved!' : 'Error saving shop info');
+                if (j.success) {
+                    userGstRate = parseFloat(document.getElementById('gstRateInput').value) || 18;
+                    recalcTotals();
+                }
 
-                document.querySelector('.totals div:nth-child(2)').innerHTML =
-                    `GST (${userGstRate}%): <span id="gstAmount">${gst.toFixed(2)}</span>`;
+            };
+
+            function renderDropdown(listEl, items, onSelect) {
+                if (!items.length) {
+                    listEl.style.display = 'none';
+                    return;
+                }
+
+                listEl.innerHTML = items
+                    .map(i => `<div class="dropdown-item">${i}</div>`)
+                    .join('');
+
+                listEl.style.display = 'block';
+
+                listEl.querySelectorAll('.dropdown-item').forEach(el => {
+                    el.onclick = () => {
+                        onSelect(el.textContent);
+                        listEl.style.display = 'none';
+                    };
+                });
             }
 
-            function addItemRow() {
+            function addItemRow(item = { description: '', quantity: 1, rate: 0 }) {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-            <td class="item-cell">
-                <input class="item-input" placeholder="Search item" autocomplete="off">
-                <div class="dropdown-list"></div>
-            </td>
-            <td><input type="number" step="0.001" min="0" value="1"></td>
-            <td><input type="number" step="0.01" min="0" value="0"></td>
-            <td>0.00</td>
-            <td><button class="btn small">❌</button></td>
-        `;
+                <td class="item-cell">
+                    <input class="item-input" placeholder="Search item" autocomplete="off">
+                    <div class="dropdown-list"></div>
+                </td>
+                <td><input type="number" step="0.001" min="0" value="${item.quantity}"></td>
+                <td><input type="number" step="0.01" min="0" value="${item.rate}"></td>
+                <td>0.00</td>
+                <td><button class="btn small">❌</button></td>
+                `;
+
                 itemsTbody.appendChild(tr);
 
                 const itemInput = tr.querySelector('.item-input');
@@ -484,139 +547,235 @@
                 const qtyInput = tr.children[1].querySelector('input');
                 const rateInput = tr.children[2].querySelector('input');
                 const amountCell = tr.children[3];
+                const removeBtn = tr.children[4].querySelector('button');
 
-                itemInput.oninput = () => {
+                // ✅ Sale page style dropdown (ONLY THIS)
+                itemInput.addEventListener('input', () => {
                     const q = itemInput.value.toLowerCase();
                     dropdown.innerHTML = '';
-                    if (!q) return dropdown.style.display = 'none';
 
-                    itemNames.filter(n => n.toLowerCase().includes(q)).slice(0, 15).forEach(name => {
-                        const d = document.createElement('div');
-                        d.className = 'dropdown-item';
-                        d.textContent = name;
-                        d.onclick = async () => {
+                    if (!q) {
+                        dropdown.style.display = 'none';
+                        return;
+                    }
+
+                    const matches = itemNames
+                        .filter(name => name.toLowerCase().includes(q))
+                        .slice(0, 15);
+
+                    if (!matches.length) {
+                        dropdown.style.display = 'none';
+                        return;
+                    }
+
+                    matches.forEach(name => {
+                        const div = document.createElement('div');
+                        div.className = 'dropdown-item';
+                        div.textContent = name;
+
+                        div.onclick = async () => {
                             itemInput.value = name;
                             dropdown.style.display = 'none';
-                            const r = await fetch(API_PREFIX + '/items/info?name=' + encodeURIComponent(name), {
-                                headers: { Authorization: 'Bearer ' + token }
-                            });
+
+                            const r = await fetch(
+                                API_PREFIX + '/items/info?name=' + encodeURIComponent(name),
+                                { headers: { Authorization: 'Bearer ' + token } }
+                            );
                             if (r.ok) {
                                 const j = await r.json();
                                 rateInput.value = j.rate || 0;
                                 recalcRow();
                             }
                         };
-                        dropdown.appendChild(d);
+
+                        dropdown.appendChild(div);
                     });
+
                     dropdown.style.display = 'block';
-                };
+                });
 
                 function recalcRow() {
-                    amountCell.textContent =
-                        (qtyInput.value * rateInput.value).toFixed(2);
+                    const amt =
+                        (parseFloat(qtyInput.value || 0) *
+                            parseFloat(rateInput.value || 0)).toFixed(2);
+                    amountCell.textContent = amt;
                     recalcTotals();
                 }
 
                 qtyInput.oninput = rateInput.oninput = recalcRow;
-                tr.querySelector('button').onclick = () => { tr.remove(); recalcTotals(); };
+
+                removeBtn.onclick = () => {
+                    tr.remove();
+                    recalcTotals();
+                };
+
                 recalcRow();
             }
 
-            addItemBtn.onclick = addItemRow;
 
-            saveInvoiceBtn.onclick = async () => {
-                const items = [];
+            addItemBtn.onclick = () => addItemRow();
+
+            function recalcTotals() {
+                let sub = 0;
                 itemsTbody.querySelectorAll('tr').forEach(r => {
-                    const d = r.querySelector('.item-input').value.trim();
-                    const q = +r.children[1].querySelector('input').value;
-                    const p = +r.children[2].querySelector('input').value;
-                    if (d && q > 0) items.push({ description: d, quantity: q, rate: p });
-                });
-                if (!items.length) return alert('Add items');
-
-                const res = await fetch(API_PREFIX + '/invoices', {
-                    method: 'POST',
-                    headers: authHeaders(),
-                    body: JSON.stringify({
-                        customer_name: custName.value,
-                        contact: custContact.value,
-                        address: custAddress.value,
-                        gst_no: gstInput.value || null,
-                        items
-                    })
+                    sub += parseFloat(r.children[3].textContent) || 0;
                 });
 
-                const j = await res.json();
-                if (!j.success) return alert('Save failed');
+                const gst = (sub * (userGstRate / 100)).toFixed(2);
+                const total = (sub + parseFloat(gst)).toFixed(2);
 
-                const pdf = await fetch(`${API_PREFIX}/invoices/${encodeURIComponent(j.invoice_no)}/pdf`,
-                    { headers: { Authorization: 'Bearer ' + token } });
-                const blob = await pdf.blob();
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = j.invoice_no + '.pdf';
-                a.click();
+                subtotalEl.textContent = sub.toFixed(2);
+                gstAmountEl.textContent = gst;
+                grandTotalEl.textContent = total;
 
-                custName.value = custContact.value = custAddress.value = '';
-                itemsTbody.innerHTML = '';
-                addItemRow();
-                recalcTotals();
-                initInvoice();
-            };
-
-            clearBtn.onclick = () => {
-                custName.value = custContact.value = custAddress.value = '';
-                itemsTbody.innerHTML = '';
-                addItemRow();
-                recalcTotals();
-                initInvoice();
-            };
-
-            searchBtn.onclick = async () => {
-                const inv = searchInput.value.trim();
-                if (!inv) return;
-                const r = await fetch(API_PREFIX + '/invoices/' + encodeURIComponent(inv),
-                    { headers: { Authorization: 'Bearer ' + token } });
-                const j = await r.json();
-                if (!j.success) return alert('Not found');
-
-                const d = new Date(j.invoice.date).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
-                searchResult.innerHTML = `<b>${j.invoice.invoice_no}</b> | ${d}`;
-            };
-
-            searchDownloadBtn.onclick = async () => {
-                const inv = searchInput.value.trim();
-                if (!inv) return;
-                const r = await fetch(`${API_PREFIX}/invoices/${encodeURIComponent(inv)}/pdf`,
-                    { headers: { Authorization: 'Bearer ' + token } });
-                const b = await r.blob();
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(b);
-                a.download = inv + '.pdf';
-                a.click();
-            };
-
-            async function initInvoice() {
-                const r = await fetch(API_PREFIX + '/invoices/new', { headers: authHeaders() });
-                const j = await r.json();
-                if (j.success) {
-                    invoiceNoEl.textContent = j.invoice_no;
-                    setInvoiceDate(j.date);
+                // ✅ Update GST label dynamically on every refresh/recalc
+                const gstLabelDiv = document.querySelector('.totals div:nth-child(2)');
+                if (gstLabelDiv) {
+                    gstLabelDiv.innerHTML = `GST (${userGstRate}%): <span id="gstAmount">${gst}</span>`;
                 }
             }
 
-            async function init() {
-                if (!token) return alert('Login first');
-                await loadItemNames();
+
+            // ✅ Save Invoice + Silent PDF Download
+            saveInvoiceBtn.onclick = async () => {
+                const data = {
+                    customer_name: custName.value.trim(),
+                    contact: custContact.value.trim(),
+                    address: custAddress.value.trim(),
+                    gst_no: gstInput.value.trim() || null,
+                    items: []
+                };
+                itemsTbody.querySelectorAll('tr').forEach(r => {
+                    const d = r.children[0].querySelector('input').value.trim(),
+                        q = parseFloat(r.children[1].querySelector('input').value) || 0,
+                        p = parseFloat(r.children[2].querySelector('input').value) || 0;
+                    if (d || q > 0 || p > 0) data.items.push({ description: d, quantity: q, rate: p });
+                });
+                if (!data.items.length) return alert('Add at least one item');
+                const res = await fetch(API_PREFIX + '/invoices', { method: 'POST', headers: authHeaders(), body: JSON.stringify(data) });
+                const j = await res.json();
+                if (j.success) {
+                    // ✅ Wait 1 second, then silently download PDF
+                    setTimeout(async () => {
+                        const pdfUrl = `${API_PREFIX}/invoices/${encodeURIComponent(j.invoice_no)}/pdf`;
+                        try {
+                            const response = await fetch(pdfUrl, { headers: { Authorization: 'Bearer ' + token } });
+                            if (!response.ok) throw new Error('Download failed');
+                            const blob = await response.blob();
+                            const link = document.createElement('a');
+                            link.style.display = 'none';
+                            link.href = URL.createObjectURL(blob);
+                            link.download = `${j.invoice_no}.pdf`;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            URL.revokeObjectURL(link.href);
+                        } catch (err) {
+                            alert('Failed to download PDF: ' + err.message);
+                        }
+                    }, 1000);
+
+                    // ✅ Clear form and refresh next invoice number
+                    custName.value = custContact.value = custAddress.value = '';
+                    itemsTbody.innerHTML = '';
+                    addItemRow();
+                    recalcTotals();
+
+                    try {
+                        const r = await fetch(API_PREFIX + '/invoices/new', { headers: authHeaders() });
+                        const next = await r.json();
+                        if (next.success) {
+                            invoiceNoEl.textContent = next.invoice_no;
+                            invoiceDateEl.textContent = new Date(next.date).toLocaleString('en-IN', {
+                                timeZone: 'Asia/Kolkata'
+                            });
+                        }
+                    } catch (e) {
+                        console.warn('Error fetching next invoice number', e);
+                    }
+                } else {
+                    alert('Error saving invoice');
+                }
+            };
+
+            // ✅ Clear Button
+            clearBtn.onclick = async () => {
+                custName.value = custContact.value = custAddress.value = '';
+                itemsTbody.innerHTML = '';
                 addItemRow();
                 recalcTotals();
-                initInvoice();
+                try {
+                    const r = await fetch(API_PREFIX + '/invoices/new', { headers: authHeaders() });
+                    const j = await r.json();
+                    if (j.success) {
+                        invoiceNoEl.textContent = j.invoice_no;
+                        invoiceDateEl.textContent = new Date(j.date).toLocaleString('en-IN', {
+                            timeZone: 'Asia/Kolkata'
+                        });
+
+
+                    }
+                } catch (err) {
+                    console.warn('Network error fetching new invoice number:', err);
+                }
+            };
+
+            // ✅ Search & Render Invoice
+            searchBtn.onclick = async () => {
+                const inv = searchInput.value.trim();
+                if (!inv) return;
+                const r = await fetch(API_PREFIX + '/invoices/' + encodeURIComponent(inv), { headers: { Authorization: 'Bearer ' + token } });
+                const j = await r.json();
+                if (!j.success) return alert('Not found');
+                renderSearch(j.invoice);
+            };
+
+            function renderSearch(inv) {
+                let html = `<div><b>${inv.invoice_no}</b> | ${new Date(inv.date).toLocaleString('en-IN', {
+                    timeZone: 'Asia/Kolkata'
+                })
+                    }<br>
+      ${inv.customer_name || ''} ${inv.contact || ''}<br>${inv.address || ''}</div>
+      <table style="width:100%;border-collapse:collapse;margin-top:4px;">`;
+
+                inv.items.forEach(it => {
+                    html += `<tr><td>${it.description}</td><td style="text-align:right;">${it.quantity}</td>
+        <td style="text-align:right;">${it.rate}</td><td style="text-align:right;">${it.amount}</td></tr>`;
+                });
+
+                html += `</table><div style="text-align:right;"><b>Subtotal:</b> ${inv.subtotal}<br>
+  <b>GST:</b> ${inv.gst_amount}<br><b>Total:</b> ${inv.total_amount}</div>`;
+
+                searchResult.innerHTML = html;
             }
+
+
+            // ✅ Silent Search Download
+            searchDownloadBtn.onclick = async () => {
+                const inv = searchInput.value.trim();
+                if (!inv) return;
+                try {
+                    const response = await fetch(`${API_PREFIX}/invoices/${encodeURIComponent(inv)}/pdf`, {
+                        headers: { Authorization: 'Bearer ' + token }
+                    });
+                    if (!response.ok) throw new Error('Download failed');
+                    const blob = await response.blob();
+                    const link = document.createElement('a');
+                    link.style.display = 'none';
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `${inv}.pdf`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(link.href);
+                } catch (err) {
+                    alert('Failed to download PDF: ' + err.message);
+                }
+            };
 
             init();
         });
     </script>
-
 
 </body>
 
