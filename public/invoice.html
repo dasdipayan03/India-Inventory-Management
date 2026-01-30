@@ -394,6 +394,26 @@
 
     <script>
 
+        function safeInvoiceDate(d) {
+            if (!d) {
+                return new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+            }
+
+            // YYYY-MM-DD case
+            if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+                d = d + 'T00:00:00';
+            }
+
+            const dt = new Date(d);
+
+            if (isNaN(dt.getTime())) {
+                return new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+            }
+
+            return dt.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+        }
+
+
         async function loadItemNames() {
             try {
                 const r = await fetch(API_PREFIX + '/items/names', {
@@ -473,10 +493,7 @@
                     const j = await r.json();
                     if (j.success) {
                         invoiceNoEl.textContent = j.invoice_no;
-                        invoiceDateEl.textContent = new Date(j.date).toLocaleString('en-IN', {
-                            timeZone: 'Asia/Kolkata'
-                        });
-
+                        invoiceDateEl.textContent = safeInvoiceDate(j.date);
                     }
                 } catch (e) { }
 
@@ -686,9 +703,7 @@
                         const next = await r.json();
                         if (next.success) {
                             invoiceNoEl.textContent = next.invoice_no;
-                            invoiceDateEl.textContent = new Date(next.date).toLocaleString('en-IN', {
-                                timeZone: 'Asia/Kolkata'
-                            });
+                           invoiceDateEl.textContent = safeInvoiceDate(j.date);
                         }
                     } catch (e) {
                         console.warn('Error fetching next invoice number', e);
@@ -709,11 +724,7 @@
                     const j = await r.json();
                     if (j.success) {
                         invoiceNoEl.textContent = j.invoice_no;
-                        invoiceDateEl.textContent = new Date(j.date).toLocaleString('en-IN', {
-                            timeZone: 'Asia/Kolkata'
-                        });
-
-
+                        invoiceDateEl.textContent = safeInvoiceDate(j.date);
                     }
                 } catch (err) {
                     console.warn('Network error fetching new invoice number:', err);
@@ -731,10 +742,7 @@
             };
 
             function renderSearch(inv) {
-                let html = `<div><b>${inv.invoice_no}</b> | ${new Date(inv.date).toLocaleString('en-IN', {
-                    timeZone: 'Asia/Kolkata'
-                })
-                    }<br>
+                let html = `<div><b>${inv.invoice_no}</b> | ${new Date(inv.date).toLocaleString()}<br>
       ${inv.customer_name || ''} ${inv.contact || ''}<br>${inv.address || ''}</div>
       <table style="width:100%;border-collapse:collapse;margin-top:4px;">`;
 
