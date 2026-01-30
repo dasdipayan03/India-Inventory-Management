@@ -140,18 +140,17 @@ router.get("/sales/report/pdf", async (req, res) => {
     if (!from || !to)
       return res.status(400).json({ error: "Missing date range" });
 
-    const fromDate = new Date(from);
-    const toDate = new Date(to);
-    toDate.setDate(toDate.getDate() + 1);
-
     const result = await pool.query(
       `SELECT s.id, i.name, s.quantity, s.selling_price, s.actual_price, s.created_at
-       FROM sales s
-       JOIN items i ON s.item_id = i.id
-       WHERE s.user_id=$1 AND s.created_at >= $2 AND s.created_at < $3
-       ORDER BY s.created_at ASC`,
-      [user_id, fromDate, toDate]
+      FROM sales s
+      JOIN items i ON s.item_id = i.id
+      WHERE s.user_id = $1
+        AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date
+            BETWEEN $2 AND $3
+      ORDER BY s.created_at ASC`,
+      [user_id, from, to]
     );
+
 
     const rows = result.rows;
     if (rows.length === 0)
@@ -189,7 +188,10 @@ router.get("/sales/report/pdf", async (req, res) => {
       const qty = Number(r.quantity) || 0;
       const calc = Number(r.selling_price) || 0;
       const actual = Number(r.actual_price) || 0;
-      const date = new Date(r.created_at).toLocaleDateString();
+      const date = new Date(r.created_at).toLocaleDateString('en-IN', {
+        timeZone: 'Asia/Kolkata'
+      });
+
       total += actual;
 
       const row = [
@@ -230,17 +232,16 @@ router.get("/sales/report/excel", async (req, res) => {
     if (!from || !to)
       return res.status(400).json({ error: "Missing date range" });
 
-    const fromDate = new Date(from);
-    const toDate = new Date(to);
-    toDate.setDate(toDate.getDate() + 1);
-
     const result = await pool.query(
       `SELECT s.id, i.name, s.quantity, s.selling_price, s.actual_price, s.created_at
        FROM sales s
        JOIN items i ON s.item_id = i.id
-       WHERE s.user_id=$1 AND s.created_at >= $2 AND s.created_at < $3
+       WHERE s.user_id = $1
+      AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date
+      BETWEEN $2 AND $3
+
        ORDER BY s.created_at ASC`,
-      [user_id, fromDate, toDate]
+      [user_id, from, to]
     );
 
     const rows = result.rows;
@@ -259,7 +260,10 @@ router.get("/sales/report/excel", async (req, res) => {
         r.quantity,
         r.selling_price,
         r.actual_price,
-        r.created_at,
+        new Date(r.created_at).toLocaleString('en-IN', {
+          timeZone: 'Asia/Kolkata'
+        })
+
       ]);
       total += Number(r.actual_price);
     });
