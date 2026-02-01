@@ -67,69 +67,69 @@ router.get("/items/names", async (req, res) => {
   }
 });
 
-// Get stock info
-router.get("/items/info", async (req, res) => {
-  try {
-    const user_id = getUserId(req);
-    const name = req.query.name;
-    if (!name) return res.status(400).json({ error: "Missing item name" });
+// // Get stock info delete
+// router.get("/items/info", async (req, res) => {
+//   try {
+//     const user_id = getUserId(req);
+//     const name = req.query.name;
+//     if (!name) return res.status(400).json({ error: "Missing item name" });
 
-    const result = await pool.query(
-      "SELECT id, name, quantity, rate FROM items WHERE user_id=$1 AND LOWER(TRIM(name))=LOWER($2)",
-      [user_id, name.trim()]
-    );
+//     const result = await pool.query(
+//       "SELECT id, name, quantity, rate FROM items WHERE user_id=$1 AND LOWER(TRIM(name))=LOWER($2)",
+//       [user_id, name.trim()]
+//     );
 
-    if (result.rows.length === 0)
-      return res.status(404).json({ error: "Item not found" });
+//     if (result.rows.length === 0)
+//       return res.status(404).json({ error: "Item not found" });
 
-    res.json(result.rows[0]);
-  } catch (err) {
-    if (process.env.NODE_ENV !== "production") console.error("Error in GET /items/info:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+//     res.json(result.rows[0]);
+//   } catch (err) {
+//     if (process.env.NODE_ENV !== "production") console.error("Error in GET /items/info:", err);
+//     res.status(500).json({ error: "Server error" });
+//   }
+// });
 
-// ----------------- SALES -----------------
+// ----------------- SALES ----------------- delete
 
-router.post("/sales", async (req, res) => {
-  try {
-    const user_id = getUserId(req);
-    const { name, quantity, actualPrice } = req.body;
+// router.post("/sales", async (req, res) => {
+//   try {
+//     const user_id = getUserId(req);
+//     const { name, quantity, actualPrice } = req.body;
 
-    if (!name || !quantity || !actualPrice)
-      return res.status(400).json({ error: "Missing fields" });
+//     if (!name || !quantity || !actualPrice)
+//       return res.status(400).json({ error: "Missing fields" });
 
-    const check = await pool.query(
-      "SELECT * FROM items WHERE user_id=$1 AND LOWER(TRIM(name))=LOWER($2)",
-      [user_id, name.trim()]
-    );
+//     const check = await pool.query(
+//       "SELECT * FROM items WHERE user_id=$1 AND LOWER(TRIM(name))=LOWER($2)",
+//       [user_id, name.trim()]
+//     );
 
-    if (check.rows.length === 0)
-      return res.status(404).json({ error: "Item not found" });
+//     if (check.rows.length === 0)
+//       return res.status(404).json({ error: "Item not found" });
 
-    const existing = check.rows[0];
-    const qty = parseFloat(quantity);
-    if (existing.quantity < qty)
-      return res.status(400).json({ error: "Not enough stock" });
+//     const existing = check.rows[0];
+//     const qty = parseFloat(quantity);
+//     if (existing.quantity < qty)
+//       return res.status(400).json({ error: "Not enough stock" });
 
-    const newQty = existing.quantity - qty;
+//     const newQty = existing.quantity - qty;
 
-    await pool.query(
-      "UPDATE items SET quantity=$1, updated_at=NOW() WHERE id=$2 AND user_id=$3",
-      [newQty, existing.id, user_id]
-    );
+//     await pool.query(
+//       "UPDATE items SET quantity=$1, updated_at=NOW() WHERE id=$2 AND user_id=$3",
+//       [newQty, existing.id, user_id]
+//     );
 
-    const sale = await pool.query(
-      "INSERT INTO sales (user_id, item_id, quantity, selling_price, actual_price) VALUES ($1,$2,$3,$4,$5) RETURNING *",
-      [user_id, existing.id, qty, existing.rate * qty, actualPrice]
-    );
+//     const sale = await pool.query(
+//       "INSERT INTO sales (user_id, item_id, quantity, selling_price, actual_price) VALUES ($1,$2,$3,$4,$5) RETURNING *",
+//       [user_id, existing.id, qty, existing.rate * qty, actualPrice]
+//     );
 
-    res.json({ message: "Sale recorded", sale: sale.rows[0] });
-  } catch (err) {
-    if (process.env.NODE_ENV !== "production") console.error("Error in POST /sales:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+//     res.json({ message: "Sale recorded", sale: sale.rows[0] });
+//   } catch (err) {
+//     if (process.env.NODE_ENV !== "production") console.error("Error in POST /sales:", err);
+//     res.status(500).json({ error: "Server error" });
+//   }
+// }); delete
 
 // ----------------- SALES REPORTS -----------------
 

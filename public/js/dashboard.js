@@ -181,52 +181,52 @@ async function addStock() {
   }
 }
 
-/* ---------------------- Record Sale --------------------- */
-async function updateSellingPrice() {
-  const item = document.getElementById("saleItemSearch").value.trim();
-  const quantity = parseInt(document.getElementById("saleQuantity").value) || 0;
-  if (!item) return;
-  try {
-    const res = await fetch(
-      `${apiBase}/items/info?name=${encodeURIComponent(item)}`,
-      { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-    );
-    const data = await res.json();
-    if (!res.ok) return alert(data.error || "Item info error");
-    document.getElementById("availableStock").value = data.quantity;
-    document.getElementById("sellingPrice").value = (data.rate * quantity).toFixed(2);
-  } catch (err) {
-    console.error("Update price error:", err);
-  }
-}
-
-async function recordSale() {
-  const name = document.getElementById("saleItemSearch").value.trim();
-  const quantity = parseFloat(document.getElementById("saleQuantity").value);
-  const actualPrice = parseFloat(document.getElementById("actualSellingPrice").value);
-  if (!name || isNaN(quantity) || isNaN(actualPrice))
-    return alert("Invalid input");
-  try {
-    const res = await fetch(`${apiBase}/sales`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify({ name, quantity, actualPrice }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Sale failed");
-    alert(data.message || "Sale recorded");
-    await loadItemNames();
-    ["saleItemSearch", "saleQuantity", "availableStock", "sellingPrice", "actualSellingPrice"].forEach(
-      (id) => (document.getElementById(id).value = "")
-    );
-  } catch (err) {
-    console.error("Record sale error:", err);
-    alert(err.message || "Server error");
-  }
-}
+/* ---------------------- Record Sale --------------------- delete*/
+// async function updateSellingPrice() {
+//   const item = document.getElementById("saleItemSearch").value.trim();
+//   const quantity = parseInt(document.getElementById("saleQuantity").value) || 0;
+//   if (!item) return;
+//   try {
+//     const res = await fetch(
+//       `${apiBase}/items/info?name=${encodeURIComponent(item)}`,
+//       { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+//     );
+//     const data = await res.json();
+//     if (!res.ok) return alert(data.error || "Item info error");
+//     document.getElementById("availableStock").value = data.quantity;
+//     document.getElementById("sellingPrice").value = (data.rate * quantity).toFixed(2);
+//   } catch (err) {
+//     console.error("Update price error:", err);
+//   }
+// }
+// delete
+// async function recordSale() {
+//   const name = document.getElementById("saleItemSearch").value.trim();
+//   const quantity = parseFloat(document.getElementById("saleQuantity").value);
+//   const actualPrice = parseFloat(document.getElementById("actualSellingPrice").value);
+//   if (!name || isNaN(quantity) || isNaN(actualPrice))
+//     return alert("Invalid input");
+//   try {
+//     const res = await fetch(`${apiBase}/sales`, {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//         Authorization: `Bearer ${localStorage.getItem("token")}`,
+//       },
+//       body: JSON.stringify({ name, quantity, actualPrice }),
+//     });
+//     const data = await res.json();
+//     if (!res.ok) throw new Error(data.error || "Sale failed");
+//     alert(data.message || "Sale recorded");
+//     await loadItemNames();
+//     ["saleItemSearch", "saleQuantity", "availableStock", "sellingPrice", "actualSellingPrice"].forEach(
+//       (id) => (document.getElementById(id).value = "")
+//     );
+//   } catch (err) {
+//     console.error("Record sale error:", err);
+//     alert(err.message || "Server error");
+//   }
+// }
 
 /* ---------------------- Reports --------------------- */
 async function downloadSalesPDF() {
@@ -390,7 +390,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   setupFilterInput("newItemSearch", "newItemDropdownList", (val) => {
     document.getElementById("manualNewItem").value = "";
   });
-  setupFilterInput("saleItemSearch", "saleItemDropdownList");
+  // setupFilterInput("saleItemSearch", "saleItemDropdownList"); delete
 
   await checkAuth();
   await loadItemNames();
