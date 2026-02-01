@@ -156,9 +156,13 @@ async function addStock() {
       document.getElementById("newItemSearch").value ||
       "").trim();
   const quantity = parseFloat(document.getElementById("newQuantity").value);
-  const rate = parseFloat(document.getElementById("newRate").value);
-  if (!item || isNaN(quantity) || isNaN(rate))
+  const buying_rate = parseFloat(document.getElementById("buyingRate").value);
+  const selling_rate = parseFloat(document.getElementById("sellingRate").value);
+
+  if (!item || isNaN(quantity) || isNaN(buying_rate) || isNaN(selling_rate)) {
     return alert("Fill all fields correctly");
+  }
+
   try {
     const res = await fetch(`${apiBase}/items`, {
       method: "POST",
@@ -166,20 +170,47 @@ async function addStock() {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
-      body: JSON.stringify({ name: item, quantity, rate }),
+      body: JSON.stringify({
+        name: item,
+        quantity,
+        buying_rate,
+        selling_rate
+      }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Add failed");
     alert(data.message || "Added");
     await loadItemNames();
-    ["manualNewItem", "newItemSearch", "newQuantity", "newRate"].forEach(
-      (id) => (document.getElementById(id).value = "")
-    );
+    [
+      "manualNewItem",
+      "newItemSearch",
+      "newQuantity",
+      "buyingRate",
+      "sellingRate"
+    ].forEach(id => document.getElementById(id).value = "");
   } catch (err) {
     console.error("Add stock error:", err);
     alert(err.message || "Server error");
   }
 }
+
+
+// --- Add Stock rate inputs ---
+const buyingRateInput = document.getElementById("buyingRate");
+const sellingRateInput = document.getElementById("sellingRate");
+// Auto calculate selling rate = buying + 30%
+if (buyingRateInput && sellingRateInput) {
+  buyingRateInput.addEventListener("input", () => {
+    const buyingRate = parseFloat(buyingRateInput.value);
+
+    if (!isNaN(buyingRate)) {
+      const autoSelling = buyingRate * 1.3;
+      sellingRateInput.value = autoSelling.toFixed(2);
+    }
+  });
+}
+
+
 
 /* ---------------------- Record Sale --------------------- delete*/
 // async function updateSellingPrice() {
