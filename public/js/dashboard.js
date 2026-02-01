@@ -376,13 +376,13 @@ window.addEventListener("DOMContentLoaded", async () => {
   setupSidebar();
 
   document.getElementById("addStockBtn").addEventListener("click", addStock);
-  document.getElementById("recordSaleBtn").addEventListener("click", recordSale);
+  // document.getElementById("recordSaleBtn").addEventListener("click", recordSale); delete
   document.getElementById("pdfBtn").addEventListener("click", downloadSalesPDF);
   document.getElementById("excelBtn").addEventListener("click", downloadSalesExcel);
   document.getElementById("submitDebtBtn").addEventListener("click", submitDebt);
   document.getElementById("searchLedgerBtn").addEventListener("click", searchLedger);
   document.getElementById("showAllDuesBtn").addEventListener("click", showAllDues);
-  document.getElementById("saleQuantity").addEventListener("input", updateSellingPrice);
+  // document.getElementById("saleQuantity").addEventListener("input", updateSellingPrice); delete
   document.getElementById("invoiceBtn").addEventListener("click", () => {
     window.location.href = "invoice.html";
   });
