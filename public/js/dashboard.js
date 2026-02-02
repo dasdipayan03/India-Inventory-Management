@@ -56,6 +56,7 @@ function setupSidebar() {
         .querySelectorAll(".sidebar button")
         .forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
+      localStorage.setItem("activeSection", btn.dataset.section);
       sidebar.classList.remove("sidebar--open");
       overlay.classList.remove("visible");
     });
@@ -439,6 +440,29 @@ window.addEventListener("DOMContentLoaded", async () => {
   setupFilterInput("newItemSearch", "newItemDropdownList", (val) => {
     document.getElementById("manualNewItem").value = "";
   });
+
+
+
+  //-------------- AFTER REFRESH ALWASE LOAD IN SAME PAGE ---------------------
+  const lastSection = localStorage.getItem("activeSection");
+
+  if (lastSection && document.getElementById(lastSection)) {
+    document
+      .querySelectorAll(".form-section")
+      .forEach((s) => s.classList.remove("active"));
+
+    document
+      .querySelectorAll(".sidebar button")
+      .forEach((b) => b.classList.remove("active"));
+
+    document.getElementById(lastSection).classList.add("active");
+
+    const btn = document.querySelector(
+      `.sidebar button[data-section="${lastSection}"]`
+    );
+    if (btn) btn.classList.add("active");
+  }
+
 
   await checkAuth();
   await loadItemNames();
