@@ -242,11 +242,46 @@
           <div class="col-md-6"><input type="date" id="fromDate" class="form-control" placeholder="From Date"></div>
           <div class="col-md-6"><input type="date" id="toDate" class="form-control" placeholder="To Date"></div>
         </div>
+        <button class="btn btn-primary w-100 mb-3" id="loadSalesBtn">
+          <i class="fas fa-search"></i> Load Sales Report
+        </button>
+
         <div class="d-flex flex-column flex-md-row gap-2">
-          <button class="btn btn-info flex-fill" id="pdfBtn"><i class="fas fa-file-pdf"></i>Download PDF</button>
-          <button class="btn btn-success flex-fill" id="excelBtn"><i class="fas fa-file-excel"></i>Download
-            Excel</button>
+          <button class="btn btn-info flex-fill" id="pdfBtn">
+            <i class="fas fa-file-pdf"></i> Download PDF
+          </button>
+
+          <button class="btn btn-success flex-fill" id="excelBtn">
+            <i class="fas fa-file-excel"></i> Download Excel
+          </button>
+
         </div>
+        <hr />
+
+        <div class="table-responsive mt-3">
+          <table class="table table-bordered table-sm text-center">
+            <thead class="table-light">
+              <tr>
+                <th>Date</th>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Unit Price</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="salesReportBody">
+              <tr>
+                <td colspan="5" class="text-muted">No data loaded</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="text-end fw-bold mt-2">
+          Total Sale: ₹ <span id="salesGrandTotal">0.00</span>
+        </div>
+
+
       </div>
     </div>
 

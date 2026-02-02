@@ -259,7 +259,75 @@ if (buyingRateInput && sellingRateInput) {
 //   }
 // }
 
+
 /* ---------------------- Reports --------------------- */
+async function loadSalesReport() {
+  const from = document.getElementById("fromDate").value;
+  const to = document.getElementById("toDate").value;
+
+  if (!from || !to) {
+    return alert("Select both From and To date");
+  }
+
+  try {
+    const res = await fetch(
+      `${apiBase}/sales/report?from=${from}&to=${to}`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
+
+    if (!res.ok) throw new Error("Failed to load report");
+
+    const rows = await res.json();
+    renderSalesReport(rows);
+
+  } catch (err) {
+    console.error("Load sales report error:", err);
+    alert("Could not load sales report");
+  }
+}
+
+
+function renderSalesReport(rows) {
+  const tbody = document.getElementById("salesReportBody");
+  const totalEl = document.getElementById("salesGrandTotal");
+
+  tbody.innerHTML = "";
+  let grandTotal = 0;
+
+  if (!rows || rows.length === 0) {
+    tbody.innerHTML =
+      `<tr><td colspan="5" class="text-muted">No records found</td></tr>`;
+    totalEl.textContent = "0.00";
+    return;
+  }
+
+  rows.forEach((r) => {
+    const date = new Date(r.created_at).toLocaleDateString("en-IN", {
+      timeZone: "Asia/Kolkata",
+    });
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${date}</td>
+      <td>${escapeHtml(r.item_name)}</td>
+      <td>${r.quantity}</td>
+      <td>${Number(r.selling_price).toFixed(2)}</td>
+      <td>${Number(r.total_price).toFixed(2)}</td>
+    `;
+
+    grandTotal += Number(r.total_price) || 0;
+    tbody.appendChild(tr);
+  });
+
+  totalEl.textContent = grandTotal.toFixed(2);
+}
+
+
+
 async function downloadSalesPDF() {
   const from = document.getElementById("fromDate").value;
   const to = document.getElementById("toDate").value;
@@ -408,6 +476,11 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   document.getElementById("addStockBtn").addEventListener("click", addStock);
   // document.getElementById("recordSaleBtn").addEventListener("click", recordSale); delete
+  document
+    .getElementById("loadSalesBtn")
+    .addEventListener("click", loadSalesReport);
+
+
   document.getElementById("pdfBtn").addEventListener("click", downloadSalesPDF);
   document.getElementById("excelBtn").addEventListener("click", downloadSalesExcel);
   document.getElementById("submitDebtBtn").addEventListener("click", submitDebt);

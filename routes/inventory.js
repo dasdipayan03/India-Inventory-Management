@@ -178,155 +178,221 @@ router.get("/items/info", async (req, res) => {
 // }); delete
 
 // ----------------- SALES REPORTS -----------------
+router.get("/sales/report", async (req, res) => {
+  try {
+    const user_id = getUserId(req);
+    const { from, to } = req.query;
+
+    if (!from || !to) {
+      return res.status(400).json({ error: "Missing date range" });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT
+        s.created_at,
+        i.name AS item_name,
+        s.quantity,
+        s.selling_price,
+        s.total_price
+      FROM sales s
+      JOIN items i ON i.id = s.item_id
+      WHERE s.user_id = $1
+        AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date
+            BETWEEN $2 AND $3
+      ORDER BY s.created_at ASC
+      `,
+      [user_id, from, to]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Sales report error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+
 
 router.get("/sales/report/pdf", async (req, res) => {
   try {
     const user_id = getUserId(req);
     const { from, to } = req.query;
-    if (!from || !to)
-      return res.status(400).json({ error: "Missing date range" });
 
-    const result = await pool.query(
-      `SELECT s.id, i.name, s.quantity, s.selling_price, s.actual_price, s.created_at
+    if (!from || !to) {
+      return res.status(400).json({ error: "Missing date range" });
+    }
+
+    const { rows } = await pool.query(
+      `
+      SELECT
+        s.created_at,
+        i.name AS item_name,
+        s.quantity,
+        s.selling_price,
+        s.total_price
       FROM sales s
-      JOIN items i ON s.item_id = i.id
+      JOIN items i ON i.id = s.item_id
       WHERE s.user_id = $1
         AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date
             BETWEEN $2 AND $3
-      ORDER BY s.created_at ASC`,
+      ORDER BY s.created_at ASC
+      `,
       [user_id, from, to]
     );
 
-
-    const rows = result.rows;
-    if (rows.length === 0)
+    if (!rows.length) {
       return res.status(404).json({ error: "No sales found" });
+    }
 
+    const doc = new PDFDocument({ size: "A4", margin: 30 });
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename=Sales_Report_${Date.now()}.pdf`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=Sales_Report_${from}_to_${to}.pdf`
+    );
 
-    const doc = new PDFDocument({ margin: 30, size: "A4" });
     doc.pipe(res);
 
     doc.fontSize(18).text("Sales Report", { align: "center" });
-    doc.moveDown();
-    doc.fontSize(12).text(`From: ${from}  To: ${to}`);
+    doc.moveDown(0.5);
+    doc.fontSize(11).text(`From: ${from}    To: ${to}`, { align: "center" });
     doc.moveDown();
 
-    const headers = ["#", "Item", "Qty", "Calc Price", "Actual Price", "Date"];
-    const columnWidths = [30, 120, 50, 80, 80, 100];
-    let startY = doc.y + 10;
-    let startX = doc.x;
+    const headers = ["Date", "Item", "Qty", "Rate", "Total"];
+    const widths = [90, 160, 60, 80, 80];
+
+    let y = doc.y;
+    let x = 30;
 
     doc.font("Helvetica-Bold").fontSize(10);
     headers.forEach((h, i) => {
-      doc.text(h, startX, startY, { width: columnWidths[i], align: "center" });
-      startX += columnWidths[i];
+      doc.text(h, x, y, { width: widths[i], align: "center" });
+      x += widths[i];
     });
-    doc.moveTo(30, startY + 15).lineTo(550, startY + 15).stroke();
+
+    doc.moveTo(30, y + 15).lineTo(550, y + 15).stroke();
+    y += 22;
 
     doc.font("Helvetica").fontSize(9);
-    let y = startY + 20;
-    let total = 0;
+    let grandTotal = 0;
 
-    rows.forEach((r, idx) => {
-      let x = 30;
-      const qty = Number(r.quantity) || 0;
-      const calc = Number(r.selling_price) || 0;
-      const actual = Number(r.actual_price) || 0;
-      const date = new Date(r.created_at).toLocaleDateString('en-IN', {
-        timeZone: 'Asia/Kolkata'
+    for (const r of rows) {
+      x = 30;
+
+      const date = new Date(r.created_at).toLocaleDateString("en-IN", {
+        timeZone: "Asia/Kolkata",
       });
 
-      total += actual;
-
       const row = [
-        (idx + 1).toString(),
-        r.name || "",
-        qty.toString(),
-        calc.toFixed(2),
-        actual.toFixed(2),
         date,
+        r.item_name,
+        r.quantity,
+        Number(r.selling_price).toFixed(2),
+        Number(r.total_price).toFixed(2),
       ];
 
       row.forEach((val, i) => {
-        doc.text(val, x, y, { width: columnWidths[i], align: "center" });
-        x += columnWidths[i];
+        doc.text(val, x, y, { width: widths[i], align: "center" });
+        x += widths[i];
       });
 
-      y += 20;
-      if (y > 750) {
+      grandTotal += Number(r.total_price);
+      y += 18;
+
+      if (y > 760) {
         doc.addPage();
         y = 50;
       }
-    });
+    }
 
     doc.moveDown();
-    doc.fontSize(12).font("Helvetica-Bold").text(`TOTAL: ${total.toFixed(2)}`, { align: "right" });
+    doc.font("Helvetica-Bold")
+      .fontSize(12)
+      .text(`Grand Total: ₹ ${grandTotal.toFixed(2)}`, {
+        align: "right",
+      });
+
     doc.end();
   } catch (err) {
-    if (process.env.NODE_ENV !== "production") console.error("Error generating PDF report:", err);
+    console.error("PDF report error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
+
 
 // Excel Report
 router.get("/sales/report/excel", async (req, res) => {
   try {
     const user_id = getUserId(req);
-    let { from, to } = req.query;
-    if (!from || !to)
+    const { from, to } = req.query;
+
+    if (!from || !to) {
       return res.status(400).json({ error: "Missing date range" });
+    }
 
-    const result = await pool.query(
-      `SELECT s.id, i.name, s.quantity, s.selling_price, s.actual_price, s.created_at
-       FROM sales s
-       JOIN items i ON s.item_id = i.id
-       WHERE s.user_id = $1
-      AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date
-      BETWEEN $2 AND $3
-
-       ORDER BY s.created_at ASC`,
+    const { rows } = await pool.query(
+      `
+      SELECT
+        s.created_at,
+        i.name AS item_name,
+        s.quantity,
+        s.selling_price,
+        s.total_price
+      FROM sales s
+      JOIN items i ON i.id = s.item_id
+      WHERE s.user_id = $1
+        AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date
+            BETWEEN $2 AND $3
+      ORDER BY s.created_at ASC
+      `,
       [user_id, from, to]
     );
 
-    const rows = result.rows;
-    if (rows.length === 0)
+    if (!rows.length) {
       return res.status(404).json({ error: "No sales found" });
+    }
 
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Sales Report");
-    sheet.addRow(["#", "Item", "Quantity", "Calc Price", "Actual Price", "Date"]);
 
-    let total = 0;
-    rows.forEach((r, idx) => {
+    sheet.addRow(["Date", "Item", "Quantity", "Rate", "Total"]);
+
+    let grandTotal = 0;
+
+    rows.forEach((r) => {
       sheet.addRow([
-        idx + 1,
-        r.name,
+        new Date(r.created_at).toLocaleDateString("en-IN", {
+          timeZone: "Asia/Kolkata",
+        }),
+        r.item_name,
         r.quantity,
         r.selling_price,
-        r.actual_price,
-        new Date(r.created_at).toLocaleString('en-IN', {
-          timeZone: 'Asia/Kolkata'
-        })
-
+        r.total_price,
       ]);
-      total += Number(r.actual_price);
+      grandTotal += Number(r.total_price);
     });
 
     sheet.addRow([]);
-    sheet.addRow(["", "", "", "TOTAL", total]);
+    sheet.addRow(["", "", "", "Grand Total", grandTotal]);
 
-    res.setHeader("Content-Disposition", `attachment; filename=Sales_Report_${Date.now()}.xlsx`);
-    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=Sales_Report_${from}_to_${to}.xlsx`
+    );
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
 
     await workbook.xlsx.write(res);
     res.end();
   } catch (err) {
-    if (process.env.NODE_ENV !== "production") console.error("Error generating Excel report:", err);
+    console.error("Excel report error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
+
 
 // ------------------- CUSTOMER DEBTS -------------------
 
