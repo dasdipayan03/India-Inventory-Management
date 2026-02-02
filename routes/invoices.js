@@ -136,16 +136,17 @@ router.post('/invoices', authMiddleware, async (req, res) => {
             `, [it.quantity, itemRow.rows[0].id]);
 
             await client.query(`
-              INSERT INTO sales
-              (user_id,item_id,quantity,selling_price,actual_price)
-              VALUES ($1,$2,$3,$4,$5)
-            `, [
+                INSERT INTO sales
+                (user_id, item_id, quantity, selling_price, total_price)
+                VALUES ($1, $2, $3, $4, $5)
+                `, [
                 userId,
                 itemRow.rows[0].id,
                 it.quantity,
-                it.amount,
-                it.rate
+                it.rate,      // ✅ unit selling price
+                it.amount     // ✅ total price
             ]);
+
         }
 
         await client.query('COMMIT');
