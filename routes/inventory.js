@@ -306,12 +306,26 @@ router.get("/sales/report/pdf", async (req, res) => {
       }
     }
 
-    doc.moveDown();
+    // spacing after table
+    doc.moveDown(2);
+
+    // optional separator line
+    doc.moveTo(350, doc.y).lineTo(550, doc.y).stroke();
+    doc.moveDown(0.5);
+
+    // FIXED position text (no ghost character)
     doc.font("Helvetica-Bold")
       .fontSize(12)
-      .text(`Grand Total: ₹ ${grandTotal.toFixed(2)}`, {
-        align: "right",
-      });
+      .text(
+        `Grand Total: ₹ ${grandTotal.toFixed(2)}`,
+        350,               // absolute X
+        doc.y,
+        {
+          width: 200,
+          align: "right",
+        }
+      );
+
 
     doc.end();
   } catch (err) {
