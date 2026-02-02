@@ -288,16 +288,34 @@ async function downloadSalesPDF() {
     const res = await fetch(`${apiBase}/sales/report/pdf?from=${from}&to=${to}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     });
-    const blob = await res.blob();
+    // const blob = await res.blob();
+    // const link = document.createElement("a");
+    // link.href = URL.createObjectURL(blob);
+    // link.download = "Sales_Report.pdf";
+    // link.click();
+    const url = URL.createObjectURL(blob);
+
     const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
+    link.href = url;
     link.download = "Sales_Report.pdf";
+    document.body.appendChild(link);
     link.click();
+
+    // 🔥 VERY IMPORTANT FOR MOBILE
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+    }, 100);
+
+
   } catch (err) {
     console.error("PDF download error:", err);
     alert("Could not download PDF");
   }
 }
+
+
+
 
 async function downloadSalesExcel() {
   const from = document.getElementById("fromDate").value;
@@ -307,11 +325,25 @@ async function downloadSalesExcel() {
     const res = await fetch(`${apiBase}/sales/report/excel?from=${from}&to=${to}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     });
-    const blob = await res.blob();
+    // const blob = await res.blob();
+    // const link = document.createElement("a");
+    // link.href = URL.createObjectURL(blob);
+    // link.download = "Sales_Report.xlsx";
+    // link.click();
+    const url = URL.createObjectURL(blob);
+
     const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
+    link.href = url;
     link.download = "Sales_Report.xlsx";
+    document.body.appendChild(link);
     link.click();
+
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+    }, 100);
+
+
   } catch (err) {
     console.error("Excel download error:", err);
     alert("Could not download Excel");
