@@ -299,7 +299,7 @@ function renderSalesReport(rows) {
 //   }
 // }
 
-function downloadSalesPDF() {
+async function downloadSalesPDF() {
   const from = document.getElementById("fromDate").value;
   const to = document.getElementById("toDate").value;
 
@@ -308,29 +308,40 @@ function downloadSalesPDF() {
     return;
   }
 
-  // browser handled download (mobile safe)
-  window.open(
-    `${apiBase}/sales/report/pdf?from=${from}&to=${to}`,
-    "_blank"
-  );
-}
+  try {
+    const res = await fetch(
+      `${apiBase}/sales/report/pdf?from=${from}&to=${to}&_=${Date.now()}`, // 🔥 cache buster
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
 
-function downloadSalesExcel() {
-  const from = document.getElementById("fromDate").value;
-  const to = document.getElementById("toDate").value;
+    if (!res.ok) throw new Error("PDF fetch failed");
 
-  if (!from || !to) {
-    alert("Select both dates");
-    return;
+    const blob = await res.blob();
+
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Sales_Report_${from}_to_${to}.pdf`;
+    link.target = "_blank"; // 🔥 MOBILE FIX
+
+    document.body.appendChild(link);
+    link.click();
+
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+    }, 1000);
+
+  } catch (err) {
+    console.error("PDF download error:", err);
+    alert("Could not download PDF");
   }
-
-  window.open(
-    `${apiBase}/sales/report/excel?from=${from}&to=${to}`,
-    "_blank"
-  );
 }
-
-
 
 
 
@@ -355,6 +366,51 @@ function downloadSalesExcel() {
 //     alert("Could not download Excel");
 //   }
 // }
+
+async function downloadSalesExcel() {
+  const from = document.getElementById("fromDate").value;
+  const to = document.getElementById("toDate").value;
+
+  if (!from || !to) {
+    alert("Select both dates");
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      `${apiBase}/sales/report/excel?from=${from}&to=${to}&_=${Date.now()}`, // 🔥 cache buster
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
+
+    if (!res.ok) throw new Error("Excel fetch failed");
+
+    const blob = await res.blob();
+
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Sales_Report_${from}_to_${to}.xlsx`;
+    link.target = "_blank";
+
+    document.body.appendChild(link);
+    link.click();
+
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+    }, 1000);
+
+  } catch (err) {
+    console.error("Excel download error:", err);
+    alert("Could not download Excel");
+  }
+}
+
 
 
 
