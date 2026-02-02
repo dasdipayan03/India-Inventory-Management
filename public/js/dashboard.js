@@ -280,55 +280,19 @@ function renderSalesReport(rows) {
 
 
 // ----------------- PDF REPORT --------------------------
-// async function downloadSalesPDF() {
-//   const from = document.getElementById("fromDate").value;
-//   const to = document.getElementById("toDate").value;
-//   if (!from || !to) return alert("Select both dates");
-//   try {
-//     const res = await fetch(`${apiBase}/sales/report/pdf?from=${from}&to=${to}`, {
-//       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-//     });
-//     const blob = await res.blob();
-//     const link = document.createElement("a");
-//     link.href = URL.createObjectURL(blob);
-//     link.download = "Sales_Report.pdf";
-//     link.click();
-//   } catch (err) {
-//     console.error("PDF download error:", err);
-//     alert("Could not download PDF");
-//   }
-// }
-
-
 async function downloadSalesPDF() {
   const from = document.getElementById("fromDate").value;
   const to = document.getElementById("toDate").value;
   if (!from || !to) return alert("Select both dates");
-
   try {
-    const res = await fetch(
-      `${apiBase}/sales/report/pdf?from=${from}&to=${to}&t=${Date.now()}`,
-      {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      }
-    );
-
-    if (!res.ok) throw new Error("PDF fetch failed");
-
+    const res = await fetch(`${apiBase}/sales/report/pdf?from=${from}&to=${to}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    });
     const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-
     const link = document.createElement("a");
-    link.href = url;
-    link.download = `Sales_Report_${Date.now()}.pdf`;
-    document.body.appendChild(link);
+    link.href = URL.createObjectURL(blob);
+    link.download = "Sales_Report.pdf";
     link.click();
-
-    setTimeout(() => {
-      URL.revokeObjectURL(url);
-      link.remove();
-    }, 500);
-
   } catch (err) {
     console.error("PDF download error:", err);
     alert("Could not download PDF");
@@ -336,64 +300,25 @@ async function downloadSalesPDF() {
 }
 
 
-
-
 // -------------------- EXCELL REPORT ----------------------------
-// async function downloadSalesExcel() {
-//   const from = document.getElementById("fromDate").value;
-//   const to = document.getElementById("toDate").value;
-//   if (!from || !to) return alert("Select both dates");
-//   try {
-//     const res = await fetch(`${apiBase}/sales/report/excel?from=${from}&to=${to}`, {
-//       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-//     });
-//     const blob = await res.blob();
-//     const link = document.createElement("a");
-//     link.href = URL.createObjectURL(blob);
-//     link.download = "Sales_Report.xlsx";
-//     link.click();
-//   } catch (err) {
-//     console.error("Excel download error:", err);
-//     alert("Could not download Excel");
-//   }
-// }
-
 async function downloadSalesExcel() {
   const from = document.getElementById("fromDate").value;
   const to = document.getElementById("toDate").value;
   if (!from || !to) return alert("Select both dates");
-
   try {
-    const res = await fetch(
-      `${apiBase}/sales/report/excel?from=${from}&to=${to}&t=${Date.now()}`,
-      {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      }
-    );
-
-    if (!res.ok) throw new Error("Excel fetch failed");
-
+    const res = await fetch(`${apiBase}/sales/report/excel?from=${from}&to=${to}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    });
     const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-
     const link = document.createElement("a");
-    link.href = url;
-    link.download = `Sales_Report_${Date.now()}.xlsx`;
-    document.body.appendChild(link);
+    link.href = URL.createObjectURL(blob);
+    link.download = "Sales_Report.xlsx";
     link.click();
-
-    setTimeout(() => {
-      URL.revokeObjectURL(url);
-      link.remove();
-    }, 500);
-
   } catch (err) {
     console.error("Excel download error:", err);
     alert("Could not download Excel");
   }
 }
-
-
 
 
 
