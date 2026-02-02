@@ -10,7 +10,7 @@ const router = express.Router();
 // ✅ Protect all routes
 router.use(authMiddleware);
 
-// ------------------------------- ITEMS ---------------------------------------
+// ------------------------------- ADD ITEMS ---------------------------------------
 
 // Add or update stock item
 router.post("/items", async (req, res) => {
@@ -112,72 +112,8 @@ router.get("/items/info", async (req, res) => {
   }
 });
 
-
-// // Get stock info delete
-// router.get("/items/info", async (req, res) => {
-//   try {
-//     const user_id = getUserId(req);
-//     const name = req.query.name;
-//     if (!name) return res.status(400).json({ error: "Missing item name" });
-
-//     const result = await pool.query(
-//       "SELECT id, name, quantity, rate FROM items WHERE user_id=$1 AND LOWER(TRIM(name))=LOWER($2)",
-//       [user_id, name.trim()]
-//     );
-
-//     if (result.rows.length === 0)
-//       return res.status(404).json({ error: "Item not found" });
-
-//     res.json(result.rows[0]);
-//   } catch (err) {
-//     if (process.env.NODE_ENV !== "production") console.error("Error in GET /items/info:", err);
-//     res.status(500).json({ error: "Server error" });
-//   }
-// });
-
-// ----------------- SALES ----------------- delete
-
-// router.post("/sales", async (req, res) => {
-//   try {
-//     const user_id = getUserId(req);
-//     const { name, quantity, actualPrice } = req.body;
-
-//     if (!name || !quantity || !actualPrice)
-//       return res.status(400).json({ error: "Missing fields" });
-
-//     const check = await pool.query(
-//       "SELECT * FROM items WHERE user_id=$1 AND LOWER(TRIM(name))=LOWER($2)",
-//       [user_id, name.trim()]
-//     );
-
-//     if (check.rows.length === 0)
-//       return res.status(404).json({ error: "Item not found" });
-
-//     const existing = check.rows[0];
-//     const qty = parseFloat(quantity);
-//     if (existing.quantity < qty)
-//       return res.status(400).json({ error: "Not enough stock" });
-
-//     const newQty = existing.quantity - qty;
-
-//     await pool.query(
-//       "UPDATE items SET quantity=$1, updated_at=NOW() WHERE id=$2 AND user_id=$3",
-//       [newQty, existing.id, user_id]
-//     );
-
-//     const sale = await pool.query(
-//       "INSERT INTO sales (user_id, item_id, quantity, selling_price, actual_price) VALUES ($1,$2,$3,$4,$5) RETURNING *",
-//       [user_id, existing.id, qty, existing.rate * qty, actualPrice]
-//     );
-
-//     res.json({ message: "Sale recorded", sale: sale.rows[0] });
-//   } catch (err) {
-//     if (process.env.NODE_ENV !== "production") console.error("Error in POST /sales:", err);
-//     res.status(500).json({ error: "Server error" });
-//   }
-// }); delete
-
 // ----------------- SALES REPORTS -----------------
+// --------------PDF------------------
 router.get("/sales/report", async (req, res) => {
   try {
     const user_id = getUserId(req);
@@ -211,8 +147,6 @@ router.get("/sales/report", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
-
-
 
 router.get("/sales/report/pdf", async (req, res) => {
   try {
@@ -306,26 +240,20 @@ router.get("/sales/report/pdf", async (req, res) => {
       }
     }
 
-    // spacing after table
     doc.moveDown(2);
-
-    // optional separator line
     doc.moveTo(350, doc.y).lineTo(550, doc.y).stroke();
     doc.moveDown(0.5);
-
-    // FIXED position text (no ghost character)
     doc.font("Helvetica-Bold")
       .fontSize(12)
       .text(
-        `Grand Total: ₹ ${grandTotal.toFixed(2)}`,
-        350,               // absolute X
+        `Grand Total: Rs. ${grandTotal.toFixed(2)}`,
+        350,
         doc.y,
         {
           width: 200,
           align: "right",
         }
       );
-
 
     doc.end();
   } catch (err) {
@@ -335,7 +263,8 @@ router.get("/sales/report/pdf", async (req, res) => {
 });
 
 
-// Excel Report
+// ------------------- Excel Report ----------------
+
 router.get("/sales/report/excel", async (req, res) => {
   try {
     const user_id = getUserId(req);
