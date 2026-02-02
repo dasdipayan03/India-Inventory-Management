@@ -89,6 +89,30 @@ router.get("/items/names", async (req, res) => {
   }
 });
 
+router.get("/items/info", async (req, res) => {
+  try {
+    const user_id = getUserId(req);
+    const name = req.query.name;
+    if (!name) return res.status(400).json({ error: "Missing item name" });
+
+    const result = await pool.query(
+      `SELECT id, name, quantity, selling_rate
+       FROM items
+       WHERE user_id=$1 AND LOWER(TRIM(name))=LOWER($2)`,
+      [user_id, name.trim()]
+    );
+
+    if (!result.rows.length)
+      return res.status(404).json({ error: "Item not found" });
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Item info error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+
 // // Get stock info delete
 // router.get("/items/info", async (req, res) => {
 //   try {
