@@ -307,6 +307,9 @@ async function downloadSalesPDF() {
     alert("Select both dates");
     return;
   }
+  // 🔥 force fresh user gesture (mobile fix)
+  await new Promise(r => setTimeout(r, 50));
+
 
   try {
     const res = await fetch(
@@ -375,6 +378,9 @@ async function downloadSalesExcel() {
     alert("Select both dates");
     return;
   }
+  // 🔥 force fresh user gesture (mobile fix)
+  await new Promise(r => setTimeout(r, 50));
+
 
   try {
     const res = await fetch(
@@ -525,8 +531,12 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   document.getElementById("addStockBtn").addEventListener("click", addStock);
   document.getElementById("loadSalesBtn").addEventListener("click", loadSalesReport);
-  document.getElementById("pdfBtn").addEventListener("click", downloadSalesPDF);
-  document.getElementById("excelBtn").addEventListener("click", downloadSalesExcel);
+  document.getElementById("pdfBtn")
+    .addEventListener("click", withButtonReset("pdfBtn", downloadSalesPDF));
+
+  document.getElementById("excelBtn")
+    .addEventListener("click", withButtonReset("excelBtn", downloadSalesExcel));
+    
   document.getElementById("submitDebtBtn").addEventListener("click", submitDebt);
   document.getElementById("searchLedgerBtn").addEventListener("click", searchLedger);
   document.getElementById("showAllDuesBtn").addEventListener("click", showAllDues);
@@ -537,6 +547,25 @@ window.addEventListener("DOMContentLoaded", async () => {
   setupFilterInput("newItemSearch", "newItemDropdownList", (val) => {
     document.getElementById("manualNewItem").value = "";
   });
+
+
+  // 🔥 MOBILE SAFE BUTTON RESET HELPER
+  function withButtonReset(btnId, fn) {
+    const btn = document.getElementById(btnId);
+
+    return async function () {
+      if (btn.disabled) return;
+
+      btn.disabled = true;
+      try {
+        await fn();
+      } finally {
+        setTimeout(() => {
+          btn.disabled = false;
+        }, 300);
+      }
+    };
+  }
 
 
 
