@@ -299,7 +299,7 @@ function renderSalesReport(rows) {
 //   }
 // }
 
-function downloadSalesPDF() {
+async function downloadSalesPDF() {
   const from = document.getElementById("fromDate").value;
   const to = document.getElementById("toDate").value;
 
@@ -310,17 +310,37 @@ function downloadSalesPDF() {
 
   showDownloadingPopup("Downloading PDF report...");
 
-  const url =
-    `${apiBase}/sales/report/pdf` +
-    `?from=${encodeURIComponent(from)}` +
-    `&to=${encodeURIComponent(to)}` +
-    `&t=${Date.now()}`;
+  try {
+    const res = await fetch(
+      `${apiBase}/sales/report/pdf?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
 
-  window.location.href = url;
+    if (!res.ok) throw new Error("Unauthorized / Download failed");
 
-  setTimeout(() => {
-    location.reload();
-  }, 1500);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Sales_Report_${from}_to_${to}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+
+    // ✅ VERY IMPORTANT (mobile fix)
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    }, 100);
+
+  } catch (err) {
+    console.error(err);
+    alert("PDF download failed");
+  }
 }
 
 
@@ -348,7 +368,7 @@ function downloadSalesPDF() {
 //   }
 // }
 
-function downloadSalesExcel() {
+async function downloadSalesExcel() {
   const from = document.getElementById("fromDate").value;
   const to = document.getElementById("toDate").value;
 
@@ -359,17 +379,36 @@ function downloadSalesExcel() {
 
   showDownloadingPopup("Downloading Excel report...");
 
-  const url =
-    `${apiBase}/sales/report/excel` +
-    `?from=${encodeURIComponent(from)}` +
-    `&to=${encodeURIComponent(to)}` +
-    `&t=${Date.now()}`;
+  try {
+    const res = await fetch(
+      `${apiBase}/sales/report/excel?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
 
-  window.location.href = url;
+    if (!res.ok) throw new Error("Unauthorized / Download failed");
 
-  setTimeout(() => {
-    location.reload();
-  }, 1500);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Sales_Report_${from}_to_${to}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    }, 100);
+
+  } catch (err) {
+    console.error(err);
+    alert("Excel download failed");
+  }
 }
 
 
