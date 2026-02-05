@@ -265,7 +265,7 @@ function renderSalesReport(rows) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${date}</td>
-      <td>${escapeHtml(r.item_name)}</td>
+      <td class="item-name">${escapeHtml(r.item_name)}</td>
       <td>${r.quantity}</td>
       <td>${Number(r.selling_price).toFixed(2)}</td>
       <td>${Number(r.total_price).toFixed(2)}</td>

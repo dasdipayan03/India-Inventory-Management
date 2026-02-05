@@ -154,6 +154,40 @@
     tr:hover {
       background: #d9edf7;
     }
+
+    /* ================= MOBILE SALES TABLE FIX ================= */
+    @media (max-width: 576px) {
+
+      /* Table text & spacing smaller */
+      table {
+        font-size: 12px;
+      }
+
+      th,
+      td {
+        padding: 4px 6px;
+        vertical-align: middle;
+      }
+
+      /* Item name wrap properly */
+      td:nth-child(2),
+      th:nth-child(2) {
+        max-width: 130px;
+        white-space: normal;
+        word-break: break-word;
+        line-height: 1.2;
+      }
+
+      /* Smooth horizontal scroll */
+      .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+    }
+
+    .item-name {
+      max-width: 200px;
+    }
   </style>
 </head>
 
