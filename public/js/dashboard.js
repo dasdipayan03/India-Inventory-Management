@@ -310,30 +310,32 @@ function downloadSalesPDF() {
 
   const token = localStorage.getItem("token");
 
-  // 🔥 MUST be synchronous (user gesture)
-  const win = window.open("", "_blank");
-
-  fetch(
-    `${apiBase}/sales/report/pdf?from=${from}&to=${to}&_=${Date.now()}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  )
+  fetch(`${apiBase}/sales/report/pdf?from=${from}&to=${to}&_=${Date.now()}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
     .then(res => {
       if (!res.ok) throw new Error("PDF fetch failed");
       return res.blob();
     })
     .then(blob => {
       const url = URL.createObjectURL(blob);
-      win.location.href = url;
 
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      // 🔥 FORCE DOWNLOAD (NO PREVIEW)
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Sales_Report_${from}_to_${to}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 1000);
     })
     .catch(err => {
       console.error(err);
-      win.close();
       alert("Could not download PDF");
     });
 }
@@ -372,29 +374,32 @@ function downloadSalesExcel() {
   }
 
   const token = localStorage.getItem("token");
-  const win = window.open("", "_blank");
 
-  fetch(
-    `${apiBase}/sales/report/excel?from=${from}&to=${to}&_=${Date.now()}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  )
+  fetch(`${apiBase}/sales/report/excel?from=${from}&to=${to}&_=${Date.now()}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
     .then(res => {
       if (!res.ok) throw new Error("Excel fetch failed");
       return res.blob();
     })
     .then(blob => {
       const url = URL.createObjectURL(blob);
-      win.location.href = url;
 
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Sales_Report_${from}_to_${to}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 1000);
     })
     .catch(err => {
       console.error(err);
-      win.close();
       alert("Could not download Excel");
     });
 }
