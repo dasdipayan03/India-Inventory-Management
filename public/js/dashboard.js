@@ -299,7 +299,7 @@ function renderSalesReport(rows) {
 //   }
 // }
 
-async function downloadSalesPDF() {
+function downloadSalesPDF() {
   const from = document.getElementById("fromDate").value;
   const to = document.getElementById("toDate").value;
 
@@ -307,43 +307,35 @@ async function downloadSalesPDF() {
     alert("Select both dates");
     return;
   }
-  // 🔥 force fresh user gesture (mobile fix)
-  await new Promise(r => setTimeout(r, 50));
 
+  const token = localStorage.getItem("token");
 
-  try {
-    const res = await fetch(
-      `${apiBase}/sales/report/pdf?from=${from}&to=${to}&_=${Date.now()}`, // 🔥 cache buster
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      }
-    );
+  // 🔥 MUST be synchronous (user gesture)
+  const win = window.open("", "_blank");
 
-    if (!res.ok) throw new Error("PDF fetch failed");
+  fetch(
+    `${apiBase}/sales/report/pdf?from=${from}&to=${to}&_=${Date.now()}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  )
+    .then(res => {
+      if (!res.ok) throw new Error("PDF fetch failed");
+      return res.blob();
+    })
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      win.location.href = url;
 
-    const blob = await res.blob();
-
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Sales_Report_${from}_to_${to}.pdf`;
-    link.target = "_blank"; // 🔥 MOBILE FIX
-
-    document.body.appendChild(link);
-    link.click();
-
-    setTimeout(() => {
-      URL.revokeObjectURL(url);
-      document.body.removeChild(link);
-    }, 1000);
-
-  } catch (err) {
-    console.error("PDF download error:", err);
-    alert("Could not download PDF");
-  }
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    })
+    .catch(err => {
+      console.error(err);
+      win.close();
+      alert("Could not download PDF");
+    });
 }
 
 
@@ -370,7 +362,7 @@ async function downloadSalesPDF() {
 //   }
 // }
 
-async function downloadSalesExcel() {
+function downloadSalesExcel() {
   const from = document.getElementById("fromDate").value;
   const to = document.getElementById("toDate").value;
 
@@ -378,43 +370,33 @@ async function downloadSalesExcel() {
     alert("Select both dates");
     return;
   }
-  // 🔥 force fresh user gesture (mobile fix)
-  await new Promise(r => setTimeout(r, 50));
 
+  const token = localStorage.getItem("token");
+  const win = window.open("", "_blank");
 
-  try {
-    const res = await fetch(
-      `${apiBase}/sales/report/excel?from=${from}&to=${to}&_=${Date.now()}`, // 🔥 cache buster
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      }
-    );
+  fetch(
+    `${apiBase}/sales/report/excel?from=${from}&to=${to}&_=${Date.now()}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  )
+    .then(res => {
+      if (!res.ok) throw new Error("Excel fetch failed");
+      return res.blob();
+    })
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      win.location.href = url;
 
-    if (!res.ok) throw new Error("Excel fetch failed");
-
-    const blob = await res.blob();
-
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Sales_Report_${from}_to_${to}.xlsx`;
-    link.target = "_blank";
-
-    document.body.appendChild(link);
-    link.click();
-
-    setTimeout(() => {
-      URL.revokeObjectURL(url);
-      document.body.removeChild(link);
-    }, 1000);
-
-  } catch (err) {
-    console.error("Excel download error:", err);
-    alert("Could not download Excel");
-  }
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    })
+    .catch(err => {
+      console.error(err);
+      win.close();
+      alert("Could not download Excel");
+    });
 }
 
 
@@ -531,12 +513,8 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   document.getElementById("addStockBtn").addEventListener("click", addStock);
   document.getElementById("loadSalesBtn").addEventListener("click", loadSalesReport);
-  document.getElementById("pdfBtn")
-    .addEventListener("click", withButtonReset("pdfBtn", downloadSalesPDF));
-
-  document.getElementById("excelBtn")
-    .addEventListener("click", withButtonReset("excelBtn", downloadSalesExcel));
-    
+  document.getElementById("pdfBtn").addEventListener("click", downloadSalesPDF);
+  document.getElementById("excelBtn").addEventListener("click", downloadSalesExcel);
   document.getElementById("submitDebtBtn").addEventListener("click", submitDebt);
   document.getElementById("searchLedgerBtn").addEventListener("click", searchLedger);
   document.getElementById("showAllDuesBtn").addEventListener("click", showAllDues);
