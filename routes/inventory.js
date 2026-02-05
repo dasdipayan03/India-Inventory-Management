@@ -183,12 +183,9 @@ router.get("/sales/report/pdf", async (req, res) => {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=Sales_Report_${from}_to_${to}_${Date.now()}.pdf`
+      `attachment; filename=Sales_Report_${from}_to_${to}.pdf`
     );
-    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-    res.setHeader("Pragma", "no-cache");
 
-    res.flushHeaders();
     doc.pipe(res);
 
     doc.fontSize(18).text("Sales Report", { align: "center" });
@@ -324,11 +321,8 @@ router.get("/sales/report/excel", async (req, res) => {
 
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=Sales_Report_${from}_to_${to}_${Date.now()}.xlsx`
+      `attachment; filename=Sales_Report_${from}_to_${to}.xlsx`
     );
-    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-    res.setHeader("Pragma", "no-cache");
-
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
