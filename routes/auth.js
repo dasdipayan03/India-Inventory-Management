@@ -65,11 +65,20 @@ router.post("/login", async (req, res) => {
       { expiresIn: "1d" }
     );
 
+    // 🔥 SET COOKIE (VERY IMPORTANT)
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+    });
+
     return res.json({
       message: "Login successful",
-      user: { id: user.id, name: user.name, email: user.email },
-      token,
+      user: { id: user.id, name: user.name, email: user.email }
     });
+
+
   } catch (err) {
     console.error("Login error:", err.message);
     res.status(500).json({ error: "Server error" });
