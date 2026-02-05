@@ -299,38 +299,32 @@ function renderSalesReport(rows) {
 //   }
 // }
 
-async function downloadSalesPDF() {
+function downloadSalesPDF() {
   const from = document.getElementById("fromDate").value;
   const to = document.getElementById("toDate").value;
 
-  if (!from || !to) return alert("Select both dates");
-
-  try {
-    const res = await fetch(
-      `${apiBase}/sales/report/pdf?from=${from}&to=${to}&_=${Date.now()}`, // cache buster only
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      }
-    );
-
-    if (!res.ok) throw new Error("PDF fetch failed");
-
-    const blob = await res.blob();
-
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `Sales_Report_${from}_to_${to}.pdf`;
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-  } catch (err) {
-    console.error("PDF download error:", err);
-    alert("Could not download PDF");
+  if (!from || !to) {
+    alert("Select both dates");
+    return;
   }
+
+  const token = localStorage.getItem("token");
+
+  const url =
+    `${apiBase}/sales/report/pdf` +
+    `?from=${encodeURIComponent(from)}` +
+    `&to=${encodeURIComponent(to)}` +
+    `&t=${Date.now()}`;
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "";
+  a.rel = "noopener";
+  a.target = "_self";   // 🔥 IMPORTANT
+
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 
@@ -358,40 +352,31 @@ async function downloadSalesPDF() {
 //   }
 // }
 
-async function downloadSalesExcel() {
+function downloadSalesExcel() {
   const from = document.getElementById("fromDate").value;
   const to = document.getElementById("toDate").value;
 
-  if (!from || !to) return alert("Select both dates");
-
-  try {
-    const res = await fetch(
-      `${apiBase}/sales/report/excel?from=${from}&to=${to}&_=${Date.now()}`,
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      }
-    );
-
-    if (!res.ok) throw new Error("Excel fetch failed");
-
-    const blob = await res.blob();
-
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `Sales_Report_${from}_to_${to}.xlsx`;
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-  } catch (err) {
-    console.error("Excel download error:", err);
-    alert("Could not download Excel");
+  if (!from || !to) {
+    alert("Select both dates");
+    return;
   }
-}
 
+  const url =
+    `${apiBase}/sales/report/excel` +
+    `?from=${encodeURIComponent(from)}` +
+    `&to=${encodeURIComponent(to)}` +
+    `&t=${Date.now()}`;
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "";
+  a.rel = "noopener";
+  a.target = "_self";
+
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
 
 
 
