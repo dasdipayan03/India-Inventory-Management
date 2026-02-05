@@ -521,25 +521,6 @@ window.addEventListener("DOMContentLoaded", async () => {
   });
 
 
-  // 🔥 MOBILE SAFE BUTTON RESET HELPER
-  function withButtonReset(btnId, fn) {
-    const btn = document.getElementById(btnId);
-
-    return async function () {
-      if (btn.disabled) return;
-
-      btn.disabled = true;
-      try {
-        await fn();
-      } finally {
-        setTimeout(() => {
-          btn.disabled = false;
-        }, 300);
-      }
-    };
-  }
-
-
 
   //-------------- AFTER REFRESH ALWASE LOAD IN SAME PAGE ---------------------
   const lastSection = localStorage.getItem("activeSection");
