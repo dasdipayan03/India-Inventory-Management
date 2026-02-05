@@ -280,48 +280,50 @@ function renderSalesReport(rows) {
 
 
 // ----------------- PDF REPORT --------------------------
-async function downloadSalesPDF() {
+function downloadSalesPDF() {
   const from = document.getElementById("fromDate").value;
   const to = document.getElementById("toDate").value;
-  if (!from || !to) return alert("Select both dates");
-  try {
-    const res = await fetch(`${apiBase}/sales/report/pdf?from=${from}&to=${to}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    });
-    const blob = await res.blob();
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "Sales_Report.pdf";
-    link.click();
-  } catch (err) {
-    console.error("PDF download error:", err);
-    alert("Could not download PDF");
+  const token = localStorage.getItem("token");
+
+  if (!from || !to) {
+    alert("Select both dates");
+    return;
   }
+
+  const url =
+    `${apiBase}/sales/report/pdf` +
+    `?from=${encodeURIComponent(from)}` +
+    `&to=${encodeURIComponent(to)}` +
+    `&token=${encodeURIComponent(token)}`;
+
+  window.location.href = url;
 }
+
 
 
 
 
 
 // -------------------- EXCELL REPORT ----------------------------
-async function downloadSalesExcel() {
+function downloadSalesExcel() {
   const from = document.getElementById("fromDate").value;
   const to = document.getElementById("toDate").value;
-  if (!from || !to) return alert("Select both dates");
-  try {
-    const res = await fetch(`${apiBase}/sales/report/excel?from=${from}&to=${to}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    });
-    const blob = await res.blob();
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "Sales_Report.xlsx";
-    link.click();
-  } catch (err) {
-    console.error("Excel download error:", err);
-    alert("Could not download Excel");
+  const token = localStorage.getItem("token");
+
+  if (!from || !to) {
+    alert("Select both dates");
+    return;
   }
+
+  const url =
+    `${apiBase}/sales/report/excel` +
+    `?from=${encodeURIComponent(from)}` +
+    `&to=${encodeURIComponent(to)}` +
+    `&token=${encodeURIComponent(token)}`;
+
+  window.location.href = url;
 }
+
 
 
 
