@@ -280,139 +280,48 @@ function renderSalesReport(rows) {
 
 
 // ----------------- PDF REPORT --------------------------
-// async function downloadSalesPDF() {
-//   const from = document.getElementById("fromDate").value;
-//   const to = document.getElementById("toDate").value;
-//   if (!from || !to) return alert("Select both dates");
-//   try {
-//     const res = await fetch(`${apiBase}/sales/report/pdf?from=${from}&to=${to}`, {
-//       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-//     });
-//     const blob = await res.blob();
-//     const link = document.createElement("a");
-//     link.href = URL.createObjectURL(blob);
-//     link.download = "Sales_Report.pdf";
-//     link.click();
-//   } catch (err) {
-//     console.error("PDF download error:", err);
-//     alert("Could not download PDF");
-//   }
-// }
-
 async function downloadSalesPDF() {
   const from = document.getElementById("fromDate").value;
   const to = document.getElementById("toDate").value;
-
-  if (!from || !to) {
-    alert("Select both dates");
-    return;
-  }
-
-  showDownloadingPopup("Downloading PDF report...");
-
+  if (!from || !to) return alert("Select both dates");
   try {
-    const res = await fetch(
-      `${apiBase}/sales/report/pdf?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      }
-    );
-
-    if (!res.ok) throw new Error("Unauthorized / Download failed");
-
+    const res = await fetch(`${apiBase}/sales/report/pdf?from=${from}&to=${to}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    });
     const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `Sales_Report_${from}_to_${to}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-
-    // ✅ VERY IMPORTANT (mobile fix)
-    setTimeout(() => {
-      URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    }, 100);
-
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "Sales_Report.pdf";
+    link.click();
   } catch (err) {
-    console.error(err);
-    alert("PDF download failed");
+    console.error("PDF download error:", err);
+    alert("Could not download PDF");
   }
 }
-
 
 
 
 
 
 // -------------------- EXCELL REPORT ----------------------------
-// async function downloadSalesExcel() {
-//   const from = document.getElementById("fromDate").value;
-//   const to = document.getElementById("toDate").value;
-//   if (!from || !to) return alert("Select both dates");
-//   try {
-//     const res = await fetch(`${apiBase}/sales/report/excel?from=${from}&to=${to}`, {
-//       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-//     });
-//     const blob = await res.blob();
-//     const link = document.createElement("a");
-//     link.href = URL.createObjectURL(blob);
-//     link.download = "Sales_Report.xlsx";
-//     link.click();
-//   } catch (err) {
-//     console.error("Excel download error:", err);
-//     alert("Could not download Excel");
-//   }
-// }
-
 async function downloadSalesExcel() {
   const from = document.getElementById("fromDate").value;
   const to = document.getElementById("toDate").value;
-
-  if (!from || !to) {
-    alert("Select both dates");
-    return;
-  }
-
-  showDownloadingPopup("Downloading Excel report...");
-
+  if (!from || !to) return alert("Select both dates");
   try {
-    const res = await fetch(
-      `${apiBase}/sales/report/excel?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      }
-    );
-
-    if (!res.ok) throw new Error("Unauthorized / Download failed");
-
+    const res = await fetch(`${apiBase}/sales/report/excel?from=${from}&to=${to}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    });
     const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `Sales_Report_${from}_to_${to}.xlsx`;
-    document.body.appendChild(a);
-    a.click();
-
-    setTimeout(() => {
-      URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    }, 100);
-
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "Sales_Report.xlsx";
+    link.click();
   } catch (err) {
-    console.error(err);
-    alert("Excel download failed");
+    console.error("Excel download error:", err);
+    alert("Could not download Excel");
   }
 }
-
-
-
 
 
 
@@ -566,30 +475,6 @@ window.addEventListener("DOMContentLoaded", async () => {
 });
 
 
-// ✅ GLOBAL — MUST be outside DOMContentLoaded
-function showDownloadingPopup(text) {
-  let popup = document.getElementById("downloadPopup");
-
-  if (!popup) {
-    popup = document.createElement("div");
-    popup.id = "downloadPopup";
-    popup.style.position = "fixed";
-    popup.style.bottom = "20px";
-    popup.style.left = "50%";
-    popup.style.transform = "translateX(-50%)";
-    popup.style.background = "#2563eb";
-    popup.style.color = "#fff";
-    popup.style.padding = "10px 18px";
-    popup.style.borderRadius = "8px";
-    popup.style.fontSize = "14px";
-    popup.style.boxShadow = "0 6px 15px rgba(0,0,0,0.25)";
-    popup.style.zIndex = "9999";
-    document.body.appendChild(popup);
-  }
-
-  popup.textContent = text;
-  popup.style.display = "block";
-}
 
 
 // Allow only digits in number fields
