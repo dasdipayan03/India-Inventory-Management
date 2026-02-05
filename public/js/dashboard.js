@@ -280,47 +280,101 @@ function renderSalesReport(rows) {
 
 
 // ----------------- PDF REPORT --------------------------
-async function downloadSalesPDF() {
+// async function downloadSalesPDF() {
+//   const from = document.getElementById("fromDate").value;
+//   const to = document.getElementById("toDate").value;
+//   if (!from || !to) return alert("Select both dates");
+//   try {
+//     const res = await fetch(`${apiBase}/sales/report/pdf?from=${from}&to=${to}`, {
+//       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+//     });
+//     const blob = await res.blob();
+//     const link = document.createElement("a");
+//     link.href = URL.createObjectURL(blob);
+//     link.download = "Sales_Report.pdf";
+//     link.click();
+//   } catch (err) {
+//     console.error("PDF download error:", err);
+//     alert("Could not download PDF");
+//   }
+// }
+
+function downloadSalesPDF() {
   const from = document.getElementById("fromDate").value;
   const to = document.getElementById("toDate").value;
-  if (!from || !to) return alert("Select both dates");
-  try {
-    const res = await fetch(`${apiBase}/sales/report/pdf?from=${from}&to=${to}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    });
-    const blob = await res.blob();
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "Sales_Report.pdf";
-    link.click();
-  } catch (err) {
-    console.error("PDF download error:", err);
-    alert("Could not download PDF");
+
+  if (!from || !to) {
+    alert("Select both dates");
+    return;
   }
+
+  showDownloadingPopup("Downloading PDF report...");
+
+  const url =
+    `${apiBase}/sales/report/pdf` +
+    `?from=${encodeURIComponent(from)}` +
+    `&to=${encodeURIComponent(to)}` +
+    `&t=${Date.now()}`;
+
+  window.location.href = url;
+
+  setTimeout(() => {
+    location.reload();
+  }, 1500);
 }
+
+
 
 
 
 
 // -------------------- EXCELL REPORT ----------------------------
-async function downloadSalesExcel() {
+// async function downloadSalesExcel() {
+//   const from = document.getElementById("fromDate").value;
+//   const to = document.getElementById("toDate").value;
+//   if (!from || !to) return alert("Select both dates");
+//   try {
+//     const res = await fetch(`${apiBase}/sales/report/excel?from=${from}&to=${to}`, {
+//       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+//     });
+//     const blob = await res.blob();
+//     const link = document.createElement("a");
+//     link.href = URL.createObjectURL(blob);
+//     link.download = "Sales_Report.xlsx";
+//     link.click();
+//   } catch (err) {
+//     console.error("Excel download error:", err);
+//     alert("Could not download Excel");
+//   }
+// }
+
+function downloadSalesExcel() {
   const from = document.getElementById("fromDate").value;
   const to = document.getElementById("toDate").value;
-  if (!from || !to) return alert("Select both dates");
-  try {
-    const res = await fetch(`${apiBase}/sales/report/excel?from=${from}&to=${to}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    });
-    const blob = await res.blob();
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "Sales_Report.xlsx";
-    link.click();
-  } catch (err) {
-    console.error("Excel download error:", err);
-    alert("Could not download Excel");
+
+  if (!from || !to) {
+    alert("Select both dates");
+    return;
   }
+
+  showDownloadingPopup("Downloading Excel report...");
+
+  const url =
+    `${apiBase}/sales/report/excel` +
+    `?from=${encodeURIComponent(from)}` +
+    `&to=${encodeURIComponent(to)}` +
+    `&t=${Date.now()}`;
+
+  window.location.href = url;
+
+  setTimeout(() => {
+    location.reload();
+  }, 1500);
 }
+
+
+
+
 
 
 
@@ -446,6 +500,33 @@ window.addEventListener("DOMContentLoaded", async () => {
   setupFilterInput("newItemSearch", "newItemDropdownList", (val) => {
     document.getElementById("manualNewItem").value = "";
   });
+
+
+
+  function showDownloadingPopup(text) {
+    let popup = document.getElementById("downloadPopup");
+
+    if (!popup) {
+      popup = document.createElement("div");
+      popup.id = "downloadPopup";
+      popup.style.position = "fixed";
+      popup.style.bottom = "20px";
+      popup.style.left = "50%";
+      popup.style.transform = "translateX(-50%)";
+      popup.style.background = "#2563eb";
+      popup.style.color = "#fff";
+      popup.style.padding = "10px 18px";
+      popup.style.borderRadius = "8px";
+      popup.style.fontSize = "14px";
+      popup.style.boxShadow = "0 6px 15px rgba(0,0,0,0.25)";
+      popup.style.zIndex = "9999";
+      document.body.appendChild(popup);
+    }
+
+    popup.textContent = text;
+    popup.style.display = "block";
+  }
+
 
 
 
