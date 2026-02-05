@@ -501,35 +501,6 @@ window.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("manualNewItem").value = "";
   });
 
-
-
-  function showDownloadingPopup(text) {
-    let popup = document.getElementById("downloadPopup");
-
-    if (!popup) {
-      popup = document.createElement("div");
-      popup.id = "downloadPopup";
-      popup.style.position = "fixed";
-      popup.style.bottom = "20px";
-      popup.style.left = "50%";
-      popup.style.transform = "translateX(-50%)";
-      popup.style.background = "#2563eb";
-      popup.style.color = "#fff";
-      popup.style.padding = "10px 18px";
-      popup.style.borderRadius = "8px";
-      popup.style.fontSize = "14px";
-      popup.style.boxShadow = "0 6px 15px rgba(0,0,0,0.25)";
-      popup.style.zIndex = "9999";
-      document.body.appendChild(popup);
-    }
-
-    popup.textContent = text;
-    popup.style.display = "block";
-  }
-
-
-
-
   //-------------- AFTER REFRESH ALWASE LOAD IN SAME PAGE ---------------------
   const lastSection = localStorage.getItem("activeSection");
 
@@ -554,6 +525,32 @@ window.addEventListener("DOMContentLoaded", async () => {
   await checkAuth();
   await loadItemNames();
 });
+
+
+// ✅ GLOBAL — MUST be outside DOMContentLoaded
+function showDownloadingPopup(text) {
+  let popup = document.getElementById("downloadPopup");
+
+  if (!popup) {
+    popup = document.createElement("div");
+    popup.id = "downloadPopup";
+    popup.style.position = "fixed";
+    popup.style.bottom = "20px";
+    popup.style.left = "50%";
+    popup.style.transform = "translateX(-50%)";
+    popup.style.background = "#2563eb";
+    popup.style.color = "#fff";
+    popup.style.padding = "10px 18px";
+    popup.style.borderRadius = "8px";
+    popup.style.fontSize = "14px";
+    popup.style.boxShadow = "0 6px 15px rgba(0,0,0,0.25)";
+    popup.style.zIndex = "9999";
+    document.body.appendChild(popup);
+  }
+
+  popup.textContent = text;
+  popup.style.display = "block";
+}
 
 
 // Allow only digits in number fields
