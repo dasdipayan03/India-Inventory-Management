@@ -114,6 +114,42 @@ router.get("/items/info", async (req, res) => {
 
 
 
+// ----------------- SALES REPORT (JSON PREVIEW) -----------------
+router.get("/sales/report", async (req, res) => {
+  try {
+    const user_id = getUserId(req);
+    const { from, to } = req.query;
+
+    if (!from || !to) {
+      return res.status(400).json({ error: "Missing date range" });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT
+        s.created_at,
+        i.name AS item_name,
+        s.quantity,
+        s.selling_price,
+        s.total_price
+      FROM sales s
+      JOIN items i ON i.id = s.item_id
+      WHERE s.user_id = $1
+        AND s.created_at >= ($2::date)
+        AND s.created_at < ($3::date + INTERVAL '1 day')
+      ORDER BY s.created_at ASC
+      `,
+      [user_id, from, to]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Sales report JSON error:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+
 
 
 // ----------------- SALES REPORT (PDF DOWNLOAD) -----------------
