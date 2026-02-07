@@ -39,6 +39,7 @@ router.post("/register", async (req, res) => {
 });
 
 // -------------------- LOGIN --------------------
+// -------------------- LOGIN --------------------
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -65,6 +66,14 @@ router.post("/login", async (req, res) => {
       { expiresIn: "1d" }
     );
 
+    // ✅ ADD: set JWT cookie (for downloads / navigation)
+    res.cookie("token", token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+
+    // ✅ KEEP response SAME (frontend stays untouched)
     return res.json({
       message: "Login successful",
       user: { id: user.id, name: user.name, email: user.email },
@@ -75,6 +84,8 @@ router.post("/login", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
+
 
 // -------------------- FORGOT PASSWORD --------------------
 router.post("/forgot-password", async (req, res) => {
@@ -208,6 +219,7 @@ router.get("/me", async (req, res) => {
     res.status(401).json({ error: "Unauthorized" });
   }
 });
+
 
 
 module.exports = router;

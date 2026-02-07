@@ -1,18 +1,26 @@
-
+// server.js
 // require("dotenv").config(); // for local run, safe on Railway too
+
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const helmet = require("helmet");
 const compression = require("compression");
+const cookieParser = require("cookie-parser"); // ✅ ADD
 const pool = require("./db");
 
 const app = express();
 
 // -------------------- MIDDLEWARE --------------------
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true, // ✅ cookie allow
+}));
+
 app.use(express.json());
+app.use(cookieParser()); // ✅ ADD (json er por)
 app.use(compression());
+
 
 // ✅ Helmet: allow CDN + inline scripts for Bootstrap, FontAwesome
 app.use(
@@ -33,7 +41,11 @@ app.use(
         "https://cdn.jsdelivr.net"
       ],
       "img-src": ["'self'", "data:", "https://cdn.jsdelivr.net"],
-      "font-src": ["'self'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
+      "font-src": [
+        "'self'",
+        "https://cdnjs.cloudflare.com",
+        "https://cdn.jsdelivr.net"
+      ],
     },
   })
 );
@@ -41,7 +53,7 @@ app.use(
 // -------------------- ROUTES --------------------
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api", require("./routes/inventory"));
-app.use("/api", require("./routes/invoices")); // ✅ invoice routes go here AFTER middleware
+app.use("/api", require("./routes/invoices")); // ✅ invoice routes
 
 // -------------------- DEBUG ROUTES --------------------
 app.get("/debug-env", (req, res) => {
@@ -54,7 +66,6 @@ app.get("/debug-env", (req, res) => {
     EMAIL_PASS: process.env.EMAIL_PASS ? "✅ exists" : "❌ missing",
   });
 });
-
 
 app.get("/debug-db", async (req, res) => {
   try {
@@ -75,8 +86,9 @@ app.get("/", (req, res) => {
 
 // ✅ Fallback (non-API → login.html, API → JSON 404)
 app.use((req, res) => {
-  if (req.path.startsWith("/api"))
+  if (req.path.startsWith("/api")) {
     return res.status(404).json({ error: "API route not found" });
+  }
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
@@ -87,6 +99,6 @@ app.listen(PORT, "0.0.0.0", () => {
 });
 
 // optional Loader.io verification
-// app.get('/loaderio-96829aec98b43bb91c1324f1e38c518f.txt', (req, res) => {
-//   res.type('text/plain').send('loaderio-96829aec98b43bb91c1324f1e38c518f');
+// app.get('/loaderio-xxxx.txt', (req, res) => {
+//   res.type('text/plain').send('loaderio-xxxx');
 // });

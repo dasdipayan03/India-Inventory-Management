@@ -112,9 +112,12 @@ router.get("/items/info", async (req, res) => {
   }
 });
 
-// ----------------- SALES REPORTS -----------------
-// --------------PDF------------------
-router.get("/sales/report", async (req, res) => {
+
+
+
+
+// ----------------- SALES REPORT (PDF DOWNLOAD) -----------------
+router.get("/sales/report/pdf", async (req, res) => {
   try {
     const user_id = getUserId(req);
     const { from, to } = req.query;
@@ -134,137 +137,45 @@ router.get("/sales/report", async (req, res) => {
       FROM sales s
       JOIN items i ON i.id = s.item_id
       WHERE s.user_id = $1
-        AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date
-            BETWEEN $2 AND $3
+        AND DATE(s.created_at) BETWEEN $2 AND $3
       ORDER BY s.created_at ASC
       `,
       [user_id, from, to]
     );
 
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Sales report error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+    const doc = new PDFDocument({ margin: 40, size: "A4" });
 
-router.get("/sales/report/pdf", async (req, res) => {
-  try {
-    const user_id = getUserId(req);
-    const { from, to } = req.query;
-
-    if (!from || !to) {
-      return res.status(400).json({ error: "Missing date range" });
-    }
-
-    const { rows } = await pool.query(
-      `
-      SELECT
-        s.created_at,
-        i.name AS item_name,
-        s.quantity,
-        s.selling_price,
-        s.total_price
-      FROM sales s
-      JOIN items i ON i.id = s.item_id
-      WHERE s.user_id = $1
-        AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date
-            BETWEEN $2 AND $3
-      ORDER BY s.created_at ASC
-      `,
-      [user_id, from, to]
-    );
-
-    if (!rows.length) {
-      return res.status(404).json({ error: "No sales found" });
-    }
-
-    const doc = new PDFDocument({ size: "A4", margin: 30 });
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=Sales_Report_${from}_to_${to}.pdf`
+      `attachment; filename=sales_report_${from}_to_${to}.pdf`
     );
 
     doc.pipe(res);
 
-    doc.fontSize(18).text("Sales Report", { align: "center" });
-    doc.moveDown(0.5);
-    doc.fontSize(11).text(`From: ${from}    To: ${to}`, { align: "center" });
+    doc.fontSize(16).text("Sales Report", { align: "center" });
     doc.moveDown();
 
-    const headers = ["Date", "Item", "Qty", "Rate", "Total"];
-    const widths = [90, 160, 60, 80, 80];
-
-    let y = doc.y;
-    let x = 30;
-
-    doc.font("Helvetica-Bold").fontSize(10);
-    headers.forEach((h, i) => {
-      doc.text(h, x, y, { width: widths[i], align: "center" });
-      x += widths[i];
-    });
-
-    doc.moveTo(30, y + 15).lineTo(550, y + 15).stroke();
-    y += 22;
-
-    doc.font("Helvetica").fontSize(9);
-    let grandTotal = 0;
-
-    for (const r of rows) {
-      x = 30;
-
-      const date = new Date(r.created_at).toLocaleDateString("en-IN", {
-        timeZone: "Asia/Kolkata",
-      });
-
-      const row = [
-        date,
-        r.item_name,
-        r.quantity,
-        Number(r.selling_price).toFixed(2),
-        Number(r.total_price).toFixed(2),
-      ];
-
-      row.forEach((val, i) => {
-        doc.text(val, x, y, { width: widths[i], align: "center" });
-        x += widths[i];
-      });
-
-      grandTotal += Number(r.total_price);
-      y += 18;
-
-      if (y > 760) {
-        doc.addPage();
-        y = 50;
-      }
-    }
-
-    doc.moveDown(2);
-    doc.moveTo(350, doc.y).lineTo(550, doc.y).stroke();
-    doc.moveDown(0.5);
-    doc.font("Helvetica-Bold")
-      .fontSize(12)
-      .text(
-        `Grand Total: Rs. ${grandTotal.toFixed(2)}`,
-        350,
-        doc.y,
-        {
-          width: 200,
-          align: "right",
-        }
+    doc.fontSize(10);
+    result.rows.forEach((row, idx) => {
+      doc.text(
+        `${idx + 1}. ${row.item_name} | Qty: ${row.quantity} | Rate: ${row.selling_price} | Total: ${row.total_price}`
       );
+    });
 
     doc.end();
   } catch (err) {
-    console.error("PDF report error:", err);
+    console.error("Sales PDF error:", err.message);
     res.status(500).json({ error: "Server error" });
   }
 });
 
 
-// ------------------- Excel Report ----------------
 
+
+
+
+// ----------------- SALES REPORT (EXCEL DOWNLOAD) -----------------
 router.get("/sales/report/excel", async (req, res) => {
   try {
     const user_id = getUserId(req);
@@ -274,7 +185,7 @@ router.get("/sales/report/excel", async (req, res) => {
       return res.status(400).json({ error: "Missing date range" });
     }
 
-    const { rows } = await pool.query(
+    const result = await pool.query(
       `
       SELECT
         s.created_at,
@@ -285,56 +196,52 @@ router.get("/sales/report/excel", async (req, res) => {
       FROM sales s
       JOIN items i ON i.id = s.item_id
       WHERE s.user_id = $1
-        AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date
-            BETWEEN $2 AND $3
+        AND DATE(s.created_at) BETWEEN $2 AND $3
       ORDER BY s.created_at ASC
       `,
       [user_id, from, to]
     );
 
-    if (!rows.length) {
-      return res.status(404).json({ error: "No sales found" });
-    }
-
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Sales Report");
 
-    sheet.addRow(["Date", "Item", "Quantity", "Rate", "Total"]);
+    sheet.columns = [
+      { header: "Date", key: "date", width: 15 },
+      { header: "Item", key: "item", width: 30 },
+      { header: "Quantity", key: "qty", width: 10 },
+      { header: "Rate", key: "rate", width: 10 },
+      { header: "Total", key: "total", width: 12 },
+    ];
 
-    let grandTotal = 0;
-
-    rows.forEach((r) => {
-      sheet.addRow([
-        new Date(r.created_at).toLocaleDateString("en-IN", {
-          timeZone: "Asia/Kolkata",
-        }),
-        r.item_name,
-        r.quantity,
-        r.selling_price,
-        r.total_price,
-      ]);
-      grandTotal += Number(r.total_price);
+    result.rows.forEach(r => {
+      sheet.addRow({
+        date: r.created_at.toISOString().slice(0, 10),
+        item: r.item_name,
+        qty: r.quantity,
+        rate: r.selling_price,
+        total: r.total_price,
+      });
     });
 
-    sheet.addRow([]);
-    sheet.addRow(["", "", "", "Grand Total", grandTotal]);
-
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=Sales_Report_${from}_to_${to}.xlsx`
-    );
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=sales_report_${from}_to_${to}.xlsx`
     );
 
     await workbook.xlsx.write(res);
     res.end();
   } catch (err) {
-    console.error("Excel report error:", err);
+    console.error("Sales Excel error:", err.message);
     res.status(500).json({ error: "Server error" });
   }
 });
+
+
+
 
 
 // ------------------- CUSTOMER DEBTS -------------------
