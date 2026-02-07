@@ -218,14 +218,20 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
             `attachment; filename="${inv.invoice_no}.pdf"`
         );
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Cache-Control', 'no-store');
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
 
         doc.pipe(res);
 
         /* ================= HEADER ================= */
 
         // Header background
+        // Header background (SAFE VERSION)
+        doc.save();
         doc.rect(40, 30, 520, 70).fill('#f1f5f9');
+        doc.restore();
+
         doc.fillColor('#000');
 
         doc.font('Helvetica-Bold').fontSize(20)
@@ -278,6 +284,12 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
         /* ================= TABLE ROWS ================= */
 
         for (const it of inv.items) {
+
+            if (y > 720) {          // ⬅️ VERY IMPORTANT
+                doc.addPage();
+                y = 50;
+            }
+
             y += 20;
 
             doc.text(it.description, 40, y, { width: 220 });
@@ -289,6 +301,10 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
         /* ================= TOTALS BOX ================= */
 
         y += 30;
+        if (y > 650) {
+            doc.addPage();
+            y = 50;
+        }
 
         doc.rect(340, y, 220, 85).stroke('#999');
 
