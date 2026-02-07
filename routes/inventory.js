@@ -133,9 +133,9 @@ router.get("/sales/report", async (req, res) => {
         s.total_price
        FROM sales s
        JOIN items i ON i.id = s.item_id
-       WHERE s.user_id = $1
-        AND s.created_at >= ($2::date AT TIME ZONE 'Asia/Kolkata')
-        AND s.created_at < (($3::date + INTERVAL '1 day') AT TIME ZONE 'Asia/Kolkata')
+        WHERE s.user_id = $1
+          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date >= $2::date
+          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date <= $3::date
       ORDER BY s.created_at ASC`,
       [user_id, from, to]
     );
@@ -169,9 +169,9 @@ router.get("/sales/report/pdf", async (req, res) => {
         s.total_price
        FROM sales s
        JOIN items i ON i.id = s.item_id
-       WHERE s.user_id = $1
-        AND s.created_at >= ($2::date AT TIME ZONE 'Asia/Kolkata')
-        AND s.created_at < (($3::date + INTERVAL '1 day') AT TIME ZONE 'Asia/Kolkata')
+        WHERE s.user_id = $1
+          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date >= $2::date
+          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date <= $3::date
       ORDER BY s.created_at ASC`,
       [user_id, from, to]
     );
@@ -227,9 +227,9 @@ router.get("/sales/report/excel", async (req, res) => {
         s.total_price
        FROM sales s
        JOIN items i ON i.id = s.item_id
-       WHERE s.user_id = $1
-        AND s.created_at >= ($2::date AT TIME ZONE 'Asia/Kolkata')
-        AND s.created_at < (($3::date + INTERVAL '1 day') AT TIME ZONE 'Asia/Kolkata')
+        WHERE s.user_id = $1
+          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date >= $2::date
+          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date <= $3::date
       ORDER BY s.created_at ASC`,
       [user_id, from, to]
     );
