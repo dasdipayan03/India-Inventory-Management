@@ -326,7 +326,7 @@
         }
 
 
-        
+
 
         .back-link {
             margin-top: 14px;
@@ -338,8 +338,8 @@
             padding: 10px 16px;
             border-radius: 8px;
             background: #2563eb;
-            /* primary blue */
-            color: #fff;
+            color: #fff !important;
+            /* 🔥 THIS LINE FIXES IT */
             text-decoration: none;
             font-weight: 600;
             font-size: 0.9rem;
@@ -348,12 +348,24 @@
 
         .back-btn:hover {
             background: #1e40af;
-            transform: translateY(-1px);
+            color: #fff;
         }
 
         .back-btn:active {
-            transform: translateY(0);
+            color: #fff;
         }
+
+
+        @media (max-width: 600px) {
+            .back-link {
+                position: fixed;
+                bottom: 12px;
+                left: 0;
+                right: 0;
+                z-index: 999;
+            }
+        }
+
 
 
 
