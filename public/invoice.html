@@ -326,6 +326,37 @@
         }
 
 
+        
+
+        .back-link {
+            margin-top: 14px;
+            text-align: center;
+        }
+
+        .back-btn {
+            display: inline-block;
+            padding: 10px 16px;
+            border-radius: 8px;
+            background: #2563eb;
+            /* primary blue */
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background 0.2s ease, transform 0.1s ease;
+        }
+
+        .back-btn:hover {
+            background: #1e40af;
+            transform: translateY(-1px);
+        }
+
+        .back-btn:active {
+            transform: translateY(0);
+        }
+
+
+
 
         @media (max-width: 600px) {
             .container {
@@ -430,7 +461,12 @@
                 <div id="searchResult" class="search-result"></div>
             </section>
 
-            <div class="back-link"><a href="index.html">← Back to main page</a></div>
+            <div class="back-link">
+                <a href="index.html" class="back-btn">
+                    ← Back to Main Page
+                </a>
+            </div>
+
         </main>
     </div>
 
