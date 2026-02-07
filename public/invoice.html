@@ -283,6 +283,48 @@
             margin-bottom: 150px;
         }
 
+        .invoice-preview {
+            font-size: 0.9rem;
+        }
+
+        .invoice-head {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .invoice-customer {
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .invoice-item {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .item-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+        }
+
+        .invoice-totals {
+            margin-top: 8px;
+            text-align: right;
+        }
+
+        .invoice-totals .grand {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
 
 
         @media (max-width: 600px) {
@@ -750,21 +792,52 @@
                 renderSearch(j.invoice);
             };
 
+
+            //for search invoice table
+
             function renderSearch(inv) {
-                let html = `<div><b>${inv.invoice_no}</b> | ${new Date(inv.date).toLocaleString()}<br>
-      ${inv.customer_name || ''} ${inv.contact || ''}<br>${inv.address || ''}</div>
-      <table style="width:100%;border-collapse:collapse;margin-top:4px;">`;
+                let html = `
+                <div class="invoice-preview">
+                <div class="invoice-head">
+                    <b>${inv.invoice_no}</b>
+                    <span>${new Date(inv.date).toLocaleString()}</span>
+                </div>
+
+                <div class="invoice-customer">
+                    ${inv.customer_name || ''} ${inv.contact || ''}<br>
+                    ${inv.address || ''}
+                </div>
+
+                <div class="invoice-items">
+            `;
 
                 inv.items.forEach(it => {
-                    html += `<tr><td>${it.description}</td><td style="text-align:right;">${it.quantity}</td>
-        <td style="text-align:right;">${it.rate}</td><td style="text-align:right;">${it.amount}</td></tr>`;
+                    html += `
+                <div class="invoice-item">
+                    <div class="item-name">${it.description}</div>
+                    <div class="item-row">
+                    <span>Qty: <b>${it.quantity}</b></span>
+                    <span>Rate: <b>${it.rate}</b></span>
+                    <span>Amt: <b>${it.amount}</b></span>
+                    </div>
+                </div>
+                `;
                 });
 
-                html += `</table><div style="text-align:right;"><b>Subtotal:</b> ${inv.subtotal}<br>
-  <b>GST:</b> ${inv.gst_amount}<br><b>Total:</b> ${inv.total_amount}</div>`;
+                html += `
+                </div>
+
+                <div class="invoice-totals">
+                    <div>Subtotal: <b>${inv.subtotal}</b></div>
+                    <div>GST: <b>${inv.gst_amount}</b></div>
+                    <div class="grand">Total: ${inv.total_amount}</div>
+                </div>
+                </div>
+            `;
 
                 searchResult.innerHTML = html;
             }
+
 
 
             // ✅ Silent Search Download
