@@ -185,7 +185,7 @@ router.get("/sales/report/pdf", async (req, res) => {
     );
 
     doc.pipe(res);
-    
+
     // ---- Header ----
     doc.fontSize(16).text("Sales Report", { align: "center" });
     doc.moveDown(0.5);
@@ -229,9 +229,10 @@ router.get("/sales/report/pdf", async (req, res) => {
     // ---- Footer Total ----
     doc.moveDown(1);
     doc.font("Helvetica-Bold");
-    doc.text(`Grand Total: ₹ ${grandTotal.toFixed(2)}`, {
+    doc.text(`Grand Total: Rs. ${grandTotal.toFixed(2)}`, {
       align: "right",
     });
+
 
 
     doc.end();
@@ -331,8 +332,8 @@ router.get("/sales/report/excel", async (req, res) => {
         };
       });
 
-      row.getCell("D").numFmt = "₹#,##0.00";
-      row.getCell("E").numFmt = "₹#,##0.00";
+      row.getCell("D").numFmt = "#,##0.00";
+      row.getCell("E").numFmt = "#,##0.00";
 
       grandTotal += Number(r.total_price);
       rowIndex++;
@@ -342,12 +343,12 @@ router.get("/sales/report/excel", async (req, res) => {
     sheet.addRow([]);
 
     const totalRow = sheet.addRow({
-      item: "Grand Total",
+      item: "Grand Total (Rs.)",
       total: grandTotal,
     });
 
     totalRow.font = { bold: true };
-    totalRow.getCell("E").numFmt = "₹#,##0.00";
+    totalRow.getCell("E").numFmt = "#,##0.00";
     totalRow.alignment = { horizontal: "right" };
 
     // ----------------- Response -----------------
