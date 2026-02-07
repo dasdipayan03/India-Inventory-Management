@@ -65,20 +65,11 @@ router.post("/login", async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    // 🔥 SET COOKIE (VERY IMPORTANT)
     return res.json({
       message: "Login successful",
       user: { id: user.id, name: user.name, email: user.email },
-      token
+      token,
     });
-
-
-    return res.json({
-      message: "Login successful",
-      user: { id: user.id, name: user.name, email: user.email }
-    });
-
-
   } catch (err) {
     console.error("Login error:", err.message);
     res.status(500).json({ error: "Server error" });
@@ -191,17 +182,24 @@ router.post("/reset-password", async (req, res) => {
 
 
 // ✅ Verify token and return user info
-const { authMiddleware } = require("../middleware/auth");
-
-router.get("/me", authMiddleware, async (req, res) => {
+router.get("/me", async (req, res) => {
   try {
+    const auth = req.headers.authorization;
+    if (!auth || !auth.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const token = auth.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Find user in DB
     const result = await pool.query(
       "SELECT id, name, email FROM users WHERE id=$1",
-      [req.user.id]
+      [decoded.id]
     );
 
-    if (result.rowCount === 0) {
-      return res.status(401).json({ error: "User not found" });
+    if (!result || result.rowCount === 0) {
+      return res.status(401).json({ error: "Invalid or expired token" });
     }
 
     res.json(result.rows[0]);
@@ -210,7 +208,6 @@ router.get("/me", authMiddleware, async (req, res) => {
     res.status(401).json({ error: "Unauthorized" });
   }
 });
-
 
 
 module.exports = router;

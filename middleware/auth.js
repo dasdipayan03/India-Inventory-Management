@@ -9,26 +9,15 @@ if (!process.env.JWT_SECRET) {
 
 // -------------------- AUTH MIDDLEWARE --------------------
 function authMiddleware(req, res, next) {
-  let token = null;
-
-  // 🔹 1. Try Authorization header (normal API calls)
-  const header = req.headers.authorization;
-  if (header && header.startsWith("Bearer ")) {
-    token = header.split(" ")[1];
+  const header = req.headers["authorization"];
+  if (!header || !header.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Missing or invalid Authorization header" });
   }
 
-  // 🔹 2. Fallback to cookie (download / mobile)
-  if (!token && req.cookies && req.cookies.token) {
-    token = req.cookies.token;
-  }
-
-  if (!token) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
+  const token = header.split(" ")[1];
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    req.user = decoded; // attach user info to request
     next();
   } catch (err) {
     if (process.env.NODE_ENV !== "production") {
@@ -37,7 +26,6 @@ function authMiddleware(req, res, next) {
     return res.status(401).json({ error: "Invalid or expired token" });
   }
 }
-
 
 // -------------------- USER ID HELPER --------------------
 function getUserId(req) {

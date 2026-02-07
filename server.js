@@ -1,6 +1,5 @@
-//server.js
+
 // require("dotenv").config(); // for local run, safe on Railway too
-const cookieParser = require("cookie-parser");
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -8,22 +7,10 @@ const helmet = require("helmet");
 const compression = require("compression");
 const pool = require("./db");
 
-
 const app = express();
 
 // -------------------- MIDDLEWARE --------------------
-// app.use(cors());
-app.use(
-  cors({
-    origin: true,       // allow same origin + Railway domain
-    credentials: true,  // 🔥 VERY IMPORTANT for cookies
-  })
-);
-
-app.use(cookieParser()); // 🔥 MUST for reading token cookie
-app.use(express.json());
-app.use(compression());
-
+app.use(cors());
 app.use(express.json());
 app.use(compression());
 
