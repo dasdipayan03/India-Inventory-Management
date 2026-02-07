@@ -150,7 +150,12 @@ router.post('/invoices', authMiddleware, async (req, res) => {
         }
 
         await client.query('COMMIT');
-        res.json({ success: true, invoice_no: invoiceNo });
+        res.json({
+            success: true,
+            invoice_no: invoiceNo,
+            date: new Date().toISOString()
+        });
+
 
     } catch (err) {
         await client.query('ROLLBACK');
@@ -207,9 +212,15 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
         const shop = shopRes.rows[0] || {};
 
         const doc = new PDFDocument({ size: 'A4', margin: 40 });
+
         res.setHeader('Content-disposition', `attachment; filename="${inv.invoice_no}.pdf"`);
         res.setHeader('Content-type', 'application/pdf');
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+
         doc.pipe(res);
+
 
         doc.fontSize(18).text(shop.shop_name || 'India Inventory Management', 40, 40);
         doc.fontSize(10).text(shop.shop_address || '', 40, 65);

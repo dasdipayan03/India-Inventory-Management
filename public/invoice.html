@@ -414,6 +414,22 @@
         }
 
 
+        function downloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            // mobile & multiple download safe
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+
+
+
         async function loadItemNames() {
             try {
                 const r = await fetch(API_PREFIX + '/items/names', {
@@ -493,7 +509,7 @@
                     const j = await r.json();
                     if (j.success) {
                         invoiceNoEl.textContent = j.invoice_no;
-                        invoiceDateEl.textContent = safeInvoiceDate(j.date);
+                        invoiceDateEl.textContent = safeInvoiceDate(j.date || new Date());
                     }
                 } catch (e) { }
 
@@ -679,14 +695,7 @@
                             const response = await fetch(pdfUrl, { headers: { Authorization: 'Bearer ' + token } });
                             if (!response.ok) throw new Error('Download failed');
                             const blob = await response.blob();
-                            const link = document.createElement('a');
-                            link.style.display = 'none';
-                            link.href = URL.createObjectURL(blob);
-                            link.download = `${j.invoice_no}.pdf`;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                            URL.revokeObjectURL(link.href);
+                            downloadBlob(blob, `${j.invoice_no}.pdf`);
                         } catch (err) {
                             alert('Failed to download PDF: ' + err.message);
                         }
@@ -703,7 +712,7 @@
                         const next = await r.json();
                         if (next.success) {
                             invoiceNoEl.textContent = next.invoice_no;
-                           invoiceDateEl.textContent = safeInvoiceDate(j.date);
+                            invoiceDateEl.textContent = safeInvoiceDate(next.date || new Date());
                         }
                     } catch (e) {
                         console.warn('Error fetching next invoice number', e);
@@ -724,7 +733,7 @@
                     const j = await r.json();
                     if (j.success) {
                         invoiceNoEl.textContent = j.invoice_no;
-                        invoiceDateEl.textContent = safeInvoiceDate(j.date);
+                        invoiceDateEl.textContent = safeInvoiceDate(j.date || new Date());
                     }
                 } catch (err) {
                     console.warn('Network error fetching new invoice number:', err);
@@ -768,14 +777,7 @@
                     });
                     if (!response.ok) throw new Error('Download failed');
                     const blob = await response.blob();
-                    const link = document.createElement('a');
-                    link.style.display = 'none';
-                    link.href = URL.createObjectURL(blob);
-                    link.download = `${inv}.pdf`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(link.href);
+                    downloadBlob(blob, `${inv}.pdf`);
                 } catch (err) {
                     alert('Failed to download PDF: ' + err.message);
                 }

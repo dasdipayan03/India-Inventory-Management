@@ -1,4 +1,4 @@
-// middleware/auth.js
+//middleware/auth.js
 const jwt = require("jsonwebtoken");
 
 // -------------------- ENV CHECK --------------------
@@ -9,24 +9,28 @@ if (!process.env.JWT_SECRET) {
 
 // -------------------- AUTH MIDDLEWARE --------------------
 function authMiddleware(req, res, next) {
-  const header = req.headers["authorization"];
-
-  // ✅ Support BOTH:
-  // 1. Authorization: Bearer <token>  (fetch calls)
-  // 2. Cookie: token=<token>           (window.location.href downloads)
-  const token =
-    header && header.startsWith("Bearer ")
-      ? header.split(" ")[1]
-      : req.cookies?.token;
-
-  if (!token) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
   try {
+    let token = null;
+
+    // 1️⃣ Authorization header
+    const header = req.headers["authorization"];
+    if (header && header.startsWith("Bearer ")) {
+      token = header.split(" ")[1];
+    }
+
+    // 2️⃣ Cookie fallback (for downloads)
+    if (!token && req.cookies && req.cookies.token) {
+      token = req.cookies.token;
+    }
+
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // attach user info to request
+    req.user = decoded; // attach user info
     next();
+
   } catch (err) {
     if (process.env.NODE_ENV !== "production") {
       console.error("JWT verification failed:", err.message);
