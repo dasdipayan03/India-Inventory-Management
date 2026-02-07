@@ -185,16 +185,54 @@ router.get("/sales/report/pdf", async (req, res) => {
     );
 
     doc.pipe(res);
-
+    
+    // ---- Header ----
     doc.fontSize(16).text("Sales Report", { align: "center" });
-    doc.moveDown();
+    doc.moveDown(0.5);
 
-    doc.fontSize(10);
-    result.rows.forEach((row, idx) => {
-      doc.text(
-        `${idx + 1}. ${row.item_name} | Qty: ${row.quantity} | Rate: ${row.selling_price} | Total: ${row.total_price}`
-      );
+    doc
+      .fontSize(10)
+      .text(`From: ${from}    To: ${to}`, { align: "center" });
+
+    doc.moveDown(1);
+
+    // ---- Table Header ----
+    const startX = 40;
+    let y = doc.y;
+
+    doc.fontSize(10).font("Helvetica-Bold");
+    doc.text("Sl", startX, y, { width: 30 });
+    doc.text("Item", startX + 30, y, { width: 200 });
+    doc.text("Qty", startX + 230, y, { width: 50, align: "right" });
+    doc.text("Rate", startX + 280, y, { width: 80, align: "right" });
+    doc.text("Total", startX + 360, y, { width: 100, align: "right" });
+
+    doc.moveDown(0.5);
+    doc.font("Helvetica");
+
+    // ---- Rows ----
+    let grandTotal = 0;
+
+    result.rows.forEach((r, i) => {
+      y = doc.y;
+
+      doc.text(i + 1, startX, y, { width: 30 });
+      doc.text(r.item_name, startX + 30, y, { width: 200 });
+      doc.text(r.quantity, startX + 230, y, { width: 50, align: "right" });
+      doc.text(Number(r.selling_price).toFixed(2), startX + 280, y, { width: 80, align: "right" });
+      doc.text(Number(r.total_price).toFixed(2), startX + 360, y, { width: 100, align: "right" });
+
+      grandTotal += Number(r.total_price);
+      doc.moveDown(0.4);
     });
+
+    // ---- Footer Total ----
+    doc.moveDown(1);
+    doc.font("Helvetica-Bold");
+    doc.text(`Grand Total: ₹ ${grandTotal.toFixed(2)}`, {
+      align: "right",
+    });
+
 
     doc.end();
   } catch (err) {
@@ -237,24 +275,82 @@ router.get("/sales/report/excel", async (req, res) => {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Sales Report");
 
+    // ----------------- Header -----------------
+    sheet.mergeCells("A1:E1");
+    sheet.getCell("A1").value = "Sales Report";
+    sheet.getCell("A1").font = { size: 16, bold: true };
+    sheet.getCell("A1").alignment = { horizontal: "center" };
+
+    sheet.mergeCells("A2:E2");
+    sheet.getCell("A2").value = `From: ${from}   To: ${to}`;
+    sheet.getCell("A2").alignment = { horizontal: "center" };
+
+    sheet.addRow([]); // empty row
+
+    // ----------------- Table Header -----------------
     sheet.columns = [
-      { header: "Date", key: "date", width: 15 },
-      { header: "Item", key: "item", width: 30 },
-      { header: "Quantity", key: "qty", width: 10 },
-      { header: "Rate", key: "rate", width: 10 },
-      { header: "Total", key: "total", width: 12 },
+      { header: "Sl No", key: "sl", width: 8 },
+      { header: "Item Name", key: "item", width: 30 },
+      { header: "Quantity", key: "qty", width: 12 },
+      { header: "Rate", key: "rate", width: 12 },
+      { header: "Total", key: "total", width: 14 },
     ];
 
-    result.rows.forEach(r => {
-      sheet.addRow({
-        date: r.created_at.toISOString().slice(0, 10),
-        item: r.item_name,
-        qty: r.quantity,
-        rate: r.selling_price,
-        total: r.total_price,
-      });
+    const headerRow = sheet.getRow(4);
+    headerRow.font = { bold: true };
+    headerRow.alignment = { horizontal: "center" };
+
+    headerRow.eachCell(cell => {
+      cell.border = {
+        top: { style: "thin" },
+        bottom: { style: "thin" },
+        left: { style: "thin" },
+        right: { style: "thin" },
+      };
     });
 
+    // ----------------- Data Rows -----------------
+    let grandTotal = 0;
+    let rowIndex = 5;
+
+    result.rows.forEach((r, i) => {
+      const row = sheet.addRow({
+        sl: i + 1,
+        item: r.item_name,
+        qty: r.quantity,
+        rate: Number(r.selling_price),
+        total: Number(r.total_price),
+      });
+
+      row.eachCell(cell => {
+        cell.border = {
+          top: { style: "thin" },
+          bottom: { style: "thin" },
+          left: { style: "thin" },
+          right: { style: "thin" },
+        };
+      });
+
+      row.getCell("D").numFmt = "₹#,##0.00";
+      row.getCell("E").numFmt = "₹#,##0.00";
+
+      grandTotal += Number(r.total_price);
+      rowIndex++;
+    });
+
+    // ----------------- Grand Total -----------------
+    sheet.addRow([]);
+
+    const totalRow = sheet.addRow({
+      item: "Grand Total",
+      total: grandTotal,
+    });
+
+    totalRow.font = { bold: true };
+    totalRow.getCell("E").numFmt = "₹#,##0.00";
+    totalRow.alignment = { horizontal: "right" };
+
+    // ----------------- Response -----------------
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -266,6 +362,7 @@ router.get("/sales/report/excel", async (req, res) => {
 
     await workbook.xlsx.write(res);
     res.end();
+
   } catch (err) {
     console.error("Sales Excel error:", err.message);
     res.status(500).json({ error: "Server error" });
