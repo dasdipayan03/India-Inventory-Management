@@ -173,7 +173,8 @@ router.get("/sales/report/pdf", async (req, res) => {
       FROM sales s
       JOIN items i ON i.id = s.item_id
       WHERE s.user_id = $1
-        AND DATE(s.created_at) BETWEEN $2 AND $3
+        AND s.created_at >= ($2::date)
+        AND s.created_at < ($3::date + INTERVAL '1 day')
       ORDER BY s.created_at ASC
       `,
       [user_id, from, to]
@@ -232,7 +233,8 @@ router.get("/sales/report/excel", async (req, res) => {
       FROM sales s
       JOIN items i ON i.id = s.item_id
       WHERE s.user_id = $1
-        AND DATE(s.created_at) BETWEEN $2 AND $3
+        AND s.created_at >= ($2::date)
+        AND s.created_at < ($3::date + INTERVAL '1 day')
       ORDER BY s.created_at ASC
       `,
       [user_id, from, to]
