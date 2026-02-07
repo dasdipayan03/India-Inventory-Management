@@ -213,22 +213,37 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
 
         const doc = new PDFDocument({ size: 'A4', margin: 40 });
 
-        res.setHeader('Content-disposition', `attachment; filename="${inv.invoice_no}.pdf"`);
-        res.setHeader('Content-type', 'application/pdf');
-        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="${inv.invoice_no}.pdf"`
+        );
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Cache-Control', 'no-store');
 
         doc.pipe(res);
 
+        /* ================= HEADER ================= */
 
-        doc.fontSize(18).text(shop.shop_name || 'India Inventory Management', 40, 40);
-        doc.fontSize(10).text(shop.shop_address || '', 40, 65);
-        doc.text(`GSTIN: ${shop.gst_no || inv.gst_no || ''}`, 40, 80);
-        doc.fontSize(16).text('INVOICE', 450, 40);
+        // Header background
+        doc.rect(40, 30, 520, 70).fill('#f1f5f9');
+        doc.fillColor('#000');
+
+        doc.font('Helvetica-Bold').fontSize(20)
+            .text(shop.shop_name || 'India Inventory Management', 50, 45);
+
+        doc.font('Helvetica').fontSize(10)
+            .text(shop.shop_address || '', 50, 70)
+            .text(`GSTIN: ${shop.gst_no || inv.gst_no || 'N/A'}`, 50, 85);
+
+        doc.font('Helvetica-Bold').fontSize(18)
+            .text('INVOICE', 430, 55);
+
+        /* ================= INVOICE INFO ================= */
 
         let y = 130;
-        doc.fontSize(10);
+
+        doc.font('Helvetica').fontSize(10);
+
         doc.text(`Invoice No: ${inv.invoice_no}`, 40, y);
         doc.text(
             `Date: ${new Date(inv.date).toLocaleString('en-IN', {
@@ -238,12 +253,14 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
             y + 15
         );
 
+        doc.text(`Customer: ${inv.customer_name || '-'}`, 320, y);
+        doc.text(`Contact: ${inv.contact || '-'}`, 320, y + 15);
+        doc.text(`Address: ${inv.address || '-'}`, 320, y + 30, { width: 220 });
 
-        doc.text(`Customer: ${inv.customer_name || ''}`, 300, y);
-        if (inv.contact) doc.text(`Contact: ${inv.contact}`, 300, y + 15);
-        if (inv.address) doc.text(`Address: ${inv.address}`, 300, y + 30, { width: 240 });
+        y += 80;
 
-        y += 70;
+        /* ================= TABLE HEADER ================= */
+
         doc.moveTo(40, y).lineTo(560, y).stroke();
         y += 10;
 
@@ -253,23 +270,47 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
         doc.text('Rate', 360, y, { width: 70, align: 'right' });
         doc.text('Amount', 460, y, { width: 80, align: 'right' });
 
+        y += 15;
+        doc.moveTo(40, y).lineTo(560, y).stroke();
+
         doc.font('Helvetica');
+
+        /* ================= TABLE ROWS ================= */
+
         for (const it of inv.items) {
-            y += 18;
+            y += 20;
+
             doc.text(it.description, 40, y, { width: 220 });
             doc.text(it.quantity, 280, y, { width: 50, align: 'right' });
-            doc.text(it.rate, 360, y, { width: 70, align: 'right' });
-            doc.text(it.amount, 460, y, { width: 80, align: 'right' });
+            doc.text(Number(it.rate).toFixed(2), 360, y, { width: 70, align: 'right' });
+            doc.text(Number(it.amount).toFixed(2), 460, y, { width: 80, align: 'right' });
         }
 
-        y += 25;
-        doc.text(`Subtotal: ${inv.subtotal}`, 400, y);
-        y += 15;
-        doc.text(`GST: ${inv.gst_amount}`, 400, y);
-        y += 20;
-        doc.font('Helvetica-Bold').text(`Total: ${inv.total_amount}`, 400, y);
+        /* ================= TOTALS BOX ================= */
+
+        y += 30;
+
+        doc.rect(340, y, 220, 85).stroke('#999');
+
+        doc.font('Helvetica').fontSize(10);
+        doc.text(`Subtotal: ${Number(inv.subtotal).toFixed(2)}`, 350, y + 12);
+        doc.text(`GST: ${Number(inv.gst_amount).toFixed(2)}`, 350, y + 32);
+
+        doc.font('Helvetica-Bold').fontSize(12);
+        doc.text(`Total: ${Number(inv.total_amount).toFixed(2)}`, 350, y + 55);
+
+        /* ================= FOOTER ================= */
+
+        doc.font('Helvetica').fontSize(9);
+        doc.text(
+            'This is a system generated invoice. No signature required.',
+            40,
+            780,
+            { width: 520, align: 'center' }
+        );
 
         doc.end();
+
 
     } catch (err) {
         console.error('❌ PDF error:', err);
