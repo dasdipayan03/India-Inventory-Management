@@ -734,13 +734,14 @@
             async function loadInvoiceNumbers() {
                 try {
                     const r = await fetch(API_PREFIX + '/invoices/numbers', {
-                        headers: { Authorization: 'Bearer ' + token }
+                        credentials: 'include'
                     });
                     invoiceNumbers = r.ok ? await r.json() : [];
                 } catch {
                     invoiceNumbers = [];
                 }
             }
+
 
 
             saveGstBtn.onclick = async () => {
