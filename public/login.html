@@ -49,18 +49,29 @@
       align-items: stretch;
     }
 
+    .auth-card {
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 22px;
+      box-shadow:
+        0 10px 30px rgba(2, 6, 23, 0.08),
+        0 1px 0 rgba(255, 255, 255, 0.8) inset;
+      margin-top: 10px;
+    }
+
     .auth-head {
       margin-bottom: 10px;
     }
 
     .auth-head h2 {
-      margin-bottom: 4px;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
     }
 
     .auth-head .lead {
-      margin-top: 0;
-      margin-bottom: 8px;
-      line-height: 1.4;
+      font-size: 14px;
+      color: #475569;
     }
 
     .brand {
@@ -88,6 +99,7 @@
       margin: 0;
       font-size: 18px;
       color: #0f172a;
+      font-weight: 600;
     }
 
     .brand p {
@@ -116,11 +128,12 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      background: #fbfdff;
-      border: 1px solid #e8eef5;
-      border-radius: 10px;
-      padding: 10px 12px;
+      background: linear-gradient(#ffffff, #f9fbfd);
+      border: 1px solid #e5edf5;
+      border-radius: 12px;
+      padding: 12px 14px;
       margin-bottom: 14px;
+      transition: all 0.25s ease;
     }
 
     .input-group i {
@@ -138,19 +151,27 @@
 
     .btn {
       width: 100%;
-      padding: 12px;
+      padding: 13px;
       border: none;
-      border-radius: 10px;
-      background: var(--accent);
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
       color: #fff;
       font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 8px 20px rgba(14, 165, 233, 0.12);
-      transition: background .3s;
+      box-shadow:
+        0 10px 24px rgba(14, 165, 233, 0.35),
+        0 2px 0 rgba(255, 255, 255, 0.25) inset;
+      transition: all .25s ease;
     }
 
     .btn:hover {
-      background: var(--accent-dark);
+      transform: translateY(-1px);
+      box-shadow:
+        0 14px 32px rgba(14, 165, 233, 0.45);
+    }
+
+    .btn:active {
+      transform: translateY(0);
     }
 
     .small-links {
@@ -182,13 +203,12 @@
     .slides {
       position: relative;
       height: 220px;
-      border-radius: 12px;
-      background: linear-gradient(180deg, #4bc0f6, #eff2f3ef);
-      border: 0px solid #1fa8e8;
-      padding: 18px;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #5fc8ff, #eaf6fb);
+      padding: 22px;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        0 20px 40px rgba(2, 6, 23, 0.12);
     }
 
     .slide {
@@ -293,12 +313,18 @@
     }
 
     .feature {
+      transition: all 0.25s ease;
       background: #fff;
       border-radius: 10px;
       padding: 12px;
       border: 1px solid #eef6fb;
       display: flex;
       gap: 10px;
+    }
+
+    .feature:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(2, 6, 23, 0.12);
     }
 
     .feature i {
@@ -664,9 +690,10 @@
 
     .input-group:focus-within {
       border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-      background: #fff;
-      transition: all 0.25s ease;
+      box-shadow:
+        0 0 0 3px rgba(14, 165, 233, 0.12),
+        0 6px 18px rgba(14, 165, 233, 0.18);
+      transform: translateY(-1px);
     }
 
 
@@ -765,19 +792,21 @@
       <div id="msg"></div>
 
       <!-- LOGIN -->
-      <div class="form active" id="login">
-        <div class="input-group"><i class="fa-solid fa-envelope"></i>
-          <input id="loginEmail" type="email" placeholder="Email" autocomplete="email" />
-        </div>
-        <div class="input-group password-group">
-          <i class="fa-solid fa-lock"></i>
-          <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" />
-          <i class="fa-solid fa-eye toggle-password" id="togglePassword"></i>
-        </div>
-        <button id="loginBtn" class="btn"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
-        <div class="small-links">
-          <a href="#" id="forgotLink">Forgot password?</a> |
-          <a href="#" id="createAccountLink">Create an account</a>
+      <div class="auth-card">
+        <div class="form active" id="login">
+          <div class="input-group"><i class="fa-solid fa-envelope"></i>
+            <input id="loginEmail" type="email" placeholder="Email" autocomplete="email" />
+          </div>
+          <div class="input-group password-group">
+            <i class="fa-solid fa-lock"></i>
+            <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" />
+            <i class="fa-solid fa-eye toggle-password" id="togglePassword"></i>
+          </div>
+          <button id="loginBtn" class="btn"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
+          <div class="small-links">
+            <a href="#" id="forgotLink">Forgot password?</a> |
+            <a href="#" id="createAccountLink">Create an account</a>
+          </div>
         </div>
       </div>
 
