@@ -872,7 +872,10 @@
                     }
 
                     const matches = itemNames
-                        .filter(it => it.name.toLowerCase().includes(q))
+                        .filter(item =>
+                            item.name &&
+                            item.name.toLowerCase().includes(q)
+                        )
                         .slice(0, 15);
 
                     if (!matches.length) {
@@ -880,7 +883,7 @@
                         return;
                     }
 
-                    
+
 
                     matches.forEach(item => {
                         const div = document.createElement('div');
