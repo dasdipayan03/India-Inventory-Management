@@ -206,10 +206,11 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
         const inv = rows[0];
 
         const shopRes = await pool.query(
-            `SELECT shop_name, shop_address, gst_no FROM settings WHERE user_id=$1`,
+            `SELECT shop_name, shop_address, gst_no, gst_rate FROM settings WHERE user_id=$1`,
             [userId]
         );
         const shop = shopRes.rows[0] || {};
+        const gstRate = shop.gst_rate ?? 18;
 
         const doc = new PDFDocument({ size: 'A4', margin: 40 });
 
@@ -310,7 +311,11 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
 
         doc.font('Helvetica').fontSize(10);
         doc.text(`Subtotal: ${Number(inv.subtotal).toFixed(2)}`, 350, y + 12);
-        doc.text(`GST: ${Number(inv.gst_amount).toFixed(2)}`, 350, y + 32);
+        doc.text(
+            `GST (${gstRate}%): ${Number(inv.gst_amount).toFixed(2)}`,
+            350,
+            y + 32
+        );
 
         doc.font('Helvetica-Bold').fontSize(12);
         doc.text(`Total: ${Number(inv.total_amount).toFixed(2)}`, 350, y + 55);
