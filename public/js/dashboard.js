@@ -266,7 +266,7 @@ function renderItemReport(rows) {
 
 
 
-/* ---------------------- Reports --------------------- */
+/* ---------------------- sale report table --------------------- */
 async function loadSalesReport() {
   const from = document.getElementById("fromDate").value;
   const to = document.getElementById("toDate").value;

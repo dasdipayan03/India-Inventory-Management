@@ -200,6 +200,20 @@
         margin-right: -8px;
       }
     }
+
+    /* ================= ITEM / STOCK REPORT CARD WIDTH FIX ================= */
+    @media (max-width: 576px) {
+
+      #itemReportSection .card {
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+      }
+
+      #itemReportSection .table-responsive {
+        margin-left: -8px;
+        margin-right: -8px;
+      }
+    }
   </style>
 </head>
 
@@ -210,7 +224,7 @@
     <h2>Inventory</h2>
     <button data-section="addStockSection" class="active"><i class="fas fa-plus-circle"></i> Add New Stock</button>
     <button id="invoiceBtn" class="btn primary"><i class="fa-solid fa-file-invoice"></i> Sale & Invoice</button>
-    <button data-section="itemReportSection"><i class="fas fa-boxes"></i> Item Report</button>
+    <button data-section="itemReportSection"><i class="fas fa-boxes"></i> Stock Report</button>
     <button data-section="salesReportSection"><i class="fas fa-chart-line"></i> Sales Report</button>
     <button data-section="customerDebtSection"><i class="fas fa-user-clock"></i> Customer's Due</button>
     <button id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
@@ -255,26 +269,20 @@
       </div>
     </div>
 
-
-
-
-
     <!-- Item Wise Report -->
     <div id="itemReportSection" class="form-section">
       <div class="card shadow-sm p-3">
         <h4 class="text-center mb-3">
           <i class="fas fa-boxes text-success"></i>
-          Item Wise Stock & Sales Report
+          Stock Report
         </h4>
-
         <!-- Item Search -->
         <div class="mb-3 position-relative">
-          <label class="form-label small">Search Item (optional)</label>
+          <label class="form-label small">Item Search / Direct Search</label>
           <input type="text" id="itemReportSearch" class="form-control" placeholder="Search or select item"
             autocomplete="off" />
           <div id="itemReportDropdown" class="dropdown-list"></div>
         </div>
-
         <!-- Buttons -->
         <div class="d-flex gap-2 mb-3">
           <button class="btn btn-primary flex-fill" id="loadItemReportBtn">
@@ -285,9 +293,7 @@
             <i class="fas fa-file-pdf"></i> Download PDF
           </button>
         </div>
-
         <hr />
-
         <!-- Table -->
         <div class="table-responsive">
           <table class="table table-bordered table-sm text-center">

@@ -197,39 +197,55 @@ router.get("/items/report/pdf", async (req, res) => {
     doc.pipe(res);
 
     // ---- Header ----
-    doc.fontSize(16).text("Item Wise Stock & Sales Report", { align: "center" });
-    doc.moveDown(1);
+    doc.fontSize(16).text("Stock Report", { align: "center" });
+    doc.moveDown(0.5);
 
     // ---- Table Header ----
-    let y = doc.y;
-    const startX = 40;
+    function drawStockTableHeader(doc) {
+      const startX = 40;
+      const y = doc.y;
 
-    doc.font("Helvetica-Bold").fontSize(10);
-    doc.text("Sl", startX, y, { width: 30 });
-    doc.text("Item Name", startX + 30, y, { width: 200 });
-    doc.text("Available", startX + 230, y, { width: 80, align: "right" });
-    doc.text("Rate", startX + 310, y, { width: 80, align: "right" });
-    doc.text("Sold", startX + 390, y, { width: 80, align: "right" });
+      doc.fontSize(10).font("Helvetica-Bold");
+      doc.text("Sl", startX, y, { width: 30 });
+      doc.text("Item Name", startX + 30, y, { width: 200 });
+      doc.text("Available", startX + 230, y, { width: 80, align: "right" });
+      doc.text("Rate", startX + 310, y, { width: 80, align: "right" });
+      doc.text("Sold", startX + 390, y, { width: 80, align: "right" });
 
-    doc.moveDown(0.5);
-    doc.font("Helvetica");
+      doc.moveDown(0.5);
+      doc.font("Helvetica");
+    }
+
+    // ✅ draw table header for first page
+    drawStockTableHeader(doc);
 
     // ---- Rows ----
+    const startX = 40;
+
     result.rows.forEach((r, i) => {
+
+      // 🔒 Page overflow handling (same as Sales PDF)
       if (doc.y > 720) {
         doc.addPage();
-        doc.moveDown();
+        drawStockTableHeader(doc);
       }
 
-      const rowY = doc.y;
+      const y = doc.y;
 
-      doc.text(i + 1, startX, rowY, { width: 30 });
-      doc.text(r.item_name, startX + 30, rowY, { width: 200 });
-      doc.text(r.available_qty, startX + 230, rowY, { width: 80, align: "right" });
-      doc.text(Number(r.selling_rate).toFixed(2), startX + 310, rowY, { width: 80, align: "right" });
-      doc.text(r.sold_qty, startX + 390, rowY, { width: 80, align: "right" });
+      // 👉 Dynamic height based on item name
+      const itemHeight = doc.heightOfString(r.item_name || "", {
+        width: 200,
+        align: "left",
+      });
 
-      doc.moveDown(1);
+      doc.text(i + 1, startX, y, { width: 30 });
+      doc.text(r.item_name || "", startX + 30, y, { width: 200 });
+      doc.text(Number(r.available_qty).toFixed(2), startX + 230, y, { width: 80, align: "right" });
+      doc.text(Number(r.selling_rate).toFixed(2), startX + 310, y, { width: 80, align: "right" });
+      doc.text(Number(r.sold_qty).toFixed(2), startX + 390, y, { width: 80, align: "right" });
+
+      // 👉 Move Y exactly like Sales PDF
+      doc.y = y + Math.max(itemHeight, 18) + 6;
     });
 
     doc.end();
@@ -240,13 +256,7 @@ router.get("/items/report/pdf", async (req, res) => {
 });
 
 
-
-
-
-
-
-
-// ----------------- SALES REPORT (JSON PREVIEW) -----------------
+// ----------------- SALES REPORT table (JSON PREVIEW) -----------------
 router.get("/sales/report", async (req, res) => {
   try {
     const user_id = getUserId(req);
