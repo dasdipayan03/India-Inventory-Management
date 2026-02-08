@@ -362,31 +362,4 @@ router.get('/shop-info', authMiddleware, async (req, res) => {
     res.json({ success: true, settings: rows[0] || {} });
 });
 
-
-// GET all invoice numbers for dropdown
-router.get('/invoices/numbers', authMiddleware, async (req, res) => {
-    try {
-        const userId = req.user.id;
-
-        const result = await pool.query(
-            `SELECT invoice_no 
-       FROM invoices 
-       WHERE user_id = $1
-       ORDER BY date DESC
-       LIMIT 50`,
-            [userId]
-        );
-
-        // 🔥 IMPORTANT: return ARRAY ONLY
-        res.json(result.rows.map(r => r.invoice_no));
-
-    } catch (err) {
-        console.error('Invoice numbers error:', err.message);
-        res.status(500).json([]);
-    }
-});
-
-
-
-
 module.exports = router;

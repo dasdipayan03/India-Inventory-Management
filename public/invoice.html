@@ -210,11 +210,12 @@
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
-            align-items: flex-start;
+            align-items: center;
             margin-bottom: 8px;
         }
 
         .search-card input {
+            flex: 1 1 100%;
             padding: 8px;
             border-radius: 6px;
             border: 1px solid #e5e7eb;
@@ -366,20 +367,6 @@
             background: #7dd3fc;
         }
 
-        .search-input-wrap {
-            position: relative;
-            width: 100%;
-        }
-
-        .search-btn-row {
-            display: flex;
-            gap: 8px;
-            width: 100%;
-        }
-
-        .search-btn-row .btn {
-            flex: 1;
-        }
 
         .back-link {
             margin-top: 14px;
@@ -408,12 +395,6 @@
             color: #fff;
         }
 
-        .invoice-dropdown {
-            width: 100%;
-            max-width: 100%;
-            top: 42px;
-            z-index: 99999;
-        }
 
         @media (max-width: 600px) {
             .back-link {
@@ -526,20 +507,13 @@
             <section class="card search-card">
                 <h3>Search Invoice</h3>
                 <div class="search-row">
-                    <div class="search-input-wrap">
-                        <input id="searchInvoiceInput" placeholder="Enter invoice no" autocomplete="off" />
-                        <div id="invoiceDropdown" class="dropdown-list invoice-dropdown"></div>
-                    </div>
-
-                    <div class="search-btn-row">
-                        <button id="searchInvoiceBtn" class="btn info">
-                            <i class="fa fa-magnifying-glass"></i> Search
-                        </button>
-
-                        <button id="searchDownloadBtn" class="btn info">
-                            <i class="fa fa-download"></i> Download
-                        </button>
-                    </div>
+                    <input id="searchInvoiceInput" placeholder="Enter invoice no (e.g. INV-20251011-123-0001)" />
+                    <button id="searchInvoiceBtn" class="btn info">
+                        <i class="fa fa-magnifying-glass"></i> Search
+                    </button>
+                    <button id="searchDownloadBtn" class="btn info">
+                        <i class="fa fa-download"></i> Download
+                    </button>
                 </div>
                 <div id="searchResult" class="search-result"></div>
             </section>
@@ -554,8 +528,6 @@
     </div>
 
     <script>
-
-        let invoiceNumbers = [];
 
         function safeInvoiceDate(d) {
             if (!d) {
@@ -646,7 +618,6 @@
             async function init() {
                 if (!token) { alert('Please log in first'); return; }
                 await loadItemNames();
-                await loadInvoiceNumbers();
                 try {
                     const gstR = await fetch(API_PREFIX + '/shop-info', { headers: authHeaders() });
                     const gstJ = await gstR.json();
@@ -680,69 +651,6 @@
                 addItemRow();
                 recalcTotals();
             }
-
-
-
-
-            const invoiceInput = document.getElementById('searchInvoiceInput');
-            const invoiceDropdown = document.getElementById('invoiceDropdown');
-
-            invoiceInput.addEventListener('input', () => {
-                const q = invoiceInput.value.toLowerCase().trim();
-                invoiceDropdown.innerHTML = '';
-
-                if (!q || !Array.isArray(invoiceNumbers)) {
-                    invoiceDropdown.style.display = 'none';
-                    return;
-                }
-
-                const matches = invoiceNumbers
-                    .filter(no => no.toLowerCase().includes(q))
-                    .slice(0, 10);
-
-                if (!matches.length) {
-                    invoiceDropdown.style.display = 'none';
-                    return;
-                }
-
-                matches.forEach(no => {
-                    const div = document.createElement('div');
-                    div.className = 'dropdown-item';
-                    div.textContent = no;
-
-                    div.onclick = () => {
-                        invoiceInput.value = no;
-                        invoiceDropdown.style.display = 'none';
-                    };
-
-                    invoiceDropdown.appendChild(div);
-                });
-
-                invoiceDropdown.style.display = 'block';
-            });
-
-            /* ✅ close dropdown on outside click */
-            document.addEventListener('click', (e) => {
-                if (!invoiceInput.contains(e.target) &&
-                    !invoiceDropdown.contains(e.target)) {
-                    invoiceDropdown.style.display = 'none';
-                }
-            });
-
-
-
-            async function loadInvoiceNumbers() {
-                try {
-                    const r = await fetch(API_PREFIX + '/invoices/numbers', {
-                        credentials: 'include'
-                    });
-                    invoiceNumbers = r.ok ? await r.json() : [];
-                } catch {
-                    invoiceNumbers = [];
-                }
-            }
-
-
 
             saveGstBtn.onclick = async () => {
                 const data = {
@@ -971,7 +879,6 @@
 
             // ✅ Search & Render Invoice
             searchBtn.onclick = async () => {
-                invoiceDropdown.style.display = 'none';
                 const inv = searchInput.value.trim();
                 if (!inv) return;
                 const r = await fetch(API_PREFIX + '/invoices/' + encodeURIComponent(inv), { headers: { Authorization: 'Bearer ' + token } });
