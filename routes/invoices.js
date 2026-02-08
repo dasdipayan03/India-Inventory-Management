@@ -97,8 +97,8 @@ router.post('/invoices', authMiddleware, async (req, res) => {
         /* ---- invoice ---- */
         const inv = await client.query(`
             INSERT INTO invoices
-            (invoice_no,user_id,gst_no,customer_name,contact,address,
-            subtotal,gst_rate,gst_amount,total_amount,date)
+            (invoice_no, user_id, gst_no, customer_name, contact, address,
+            subtotal, gst_rate, gst_amount, total_amount, date)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
             RETURNING id
             `, [
@@ -109,10 +109,10 @@ router.post('/invoices', authMiddleware, async (req, res) => {
             contact || null,
             address || null,
             subtotal,
-            gstRate,        // ✅ SAVE RATE HERE (LOCKED)
+            gstRate,          // 🔒 locked GST %
             gst_amount,
             total_amount,
-            new Date()
+            new Date()        // ✅ because `date` column EXISTS
         ]);
 
         const invoiceId = inv.rows[0].id;
