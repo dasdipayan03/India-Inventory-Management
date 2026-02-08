@@ -350,6 +350,23 @@
             background: #fca5a5;
         }
 
+        /* ---------- LIGHT BLUE BUTTON (SEARCH / DOWNLOAD) ---------- */
+        .btn.info {
+            background: #e0f2fe;
+            /* light blue */
+            color: #075985;
+            /* deep blue text */
+            border: 1px solid #bae6fd;
+        }
+
+        .btn.info:hover {
+            background: #bae6fd;
+        }
+
+        .btn.info:active {
+            background: #7dd3fc;
+        }
+
 
         .back-link {
             margin-top: 14px;
@@ -481,7 +498,7 @@
 
                     <div class="actions">
                         <button id="saveInvoiceBtn" class="btn primary"><i class="fa fa-file-invoice">
-                        </i> Submit Invoice</button>
+                            </i> Submit Invoice</button>
                         <button id="clearBtn" class="btn danger"><i class="fa fa-trash"></i> Clear</button>
                     </div>
                 </div>
@@ -491,8 +508,12 @@
                 <h3>Search Invoice</h3>
                 <div class="search-row">
                     <input id="searchInvoiceInput" placeholder="Enter invoice no (e.g. INV-20251011-123-0001)" />
-                    <button id="searchInvoiceBtn" class="btn">Search</button>
-                    <button id="searchDownloadBtn" class="btn">Download</button>
+                    <button id="searchInvoiceBtn" class="btn info">
+                        <i class="fa fa-magnifying-glass"></i> Search
+                    </button>
+                    <button id="searchDownloadBtn" class="btn info">
+                        <i class="fa fa-download"></i> Download
+                    </button>
                 </div>
                 <div id="searchResult" class="search-result"></div>
             </section>
