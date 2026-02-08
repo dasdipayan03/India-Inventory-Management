@@ -392,6 +392,95 @@
                 font-size: 0.8rem
             }
         }
+
+        /* ===== Premium Layout ===== */
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        @media (min-width: 768px) {
+            .layout {
+                grid-template-columns: 2fr 1fr;
+                align-items: start;
+            }
+
+            .invoice-right {
+                position: sticky;
+                top: 16px;
+            }
+        }
+
+        /* ===== Summary Card ===== */
+        .invoice-right h3 {
+            margin-top: 0;
+            font-size: 1.05rem;
+        }
+
+        .invoice-right .totals div {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .invoice-right .grand {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--primary);
+            border-top: 1px dashed #ddd;
+            padding-top: 8px;
+        }
+
+        /* ===== Premium Table Look ===== */
+        .items-table table {
+            border-collapse: separate;
+            border-spacing: 0 8px;
+        }
+
+        .items-table tbody tr {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .items-table td {
+            border-bottom: none;
+        }
+
+        /* ===== Inputs Focus ===== */
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+        }
+
+        /* ===== Buttons ===== */
+        .btn.primary {
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+        }
+
+        .btn.primary:hover {
+            transform: translateY(-1px);
+        }
+
+        /* ===== Mobile Sticky Summary ===== */
+        @media (max-width: 767px) {
+            .invoice-right {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                border-radius: 14px 14px 0 0;
+                z-index: 999;
+                box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.15);
+            }
+
+            body {
+                padding-bottom: 180px;
+            }
+        }
     </style>
 </head>
 
@@ -415,54 +504,65 @@
         </header>
 
         <main>
-            <section class="card invoice-card">
+            <!-- LEFT SIDE -->
+            <section class="card invoice-left">
                 <div class="card-header">
-                    <div class="card-left">
-                        <label>Invoice No:</label>
+                    <div>
+                        <label>Invoice No</label>
                         <div id="invoiceNo">--</div>
                     </div>
-                    <div class="card-right">
-                        <label>Date:</label>
+                    <div>
+                        <label>Date</label>
                         <div id="invoiceDate">--</div>
                     </div>
                 </div>
 
-                <div class="card-body">
-                    <div class="form-row">
-                        <input id="custName" placeholder="Customer name" />
-                        <input id="custContact" placeholder="Contact number" />
-                    </div>
-                    <div class="form-row"><textarea id="custAddress" placeholder="Customer address"></textarea></div>
+                <div class="form-row">
+                    <input id="custName" placeholder="Customer name" />
+                    <input id="custContact" placeholder="Contact number" />
+                </div>
 
-                    <div class="items-table">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Item Name</th>
-                                    <th>Qty</th>
-                                    <th>Rate</th>
-                                    <th>Amount</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody id="itemsTbody"></tbody>
-                        </table>
-                        <button id="addItemBtn" class="btn small">+ Add Item</button>
-                    </div>
+                <div class="form-row">
+                    <textarea id="custAddress" placeholder="Customer address"></textarea>
+                </div>
 
-                    <div class="totals">
-                        <div>Subtotal: <span id="subtotal">0.00</span></div>
-                        <div>GST (18%): <span id="gstAmount">0.00</span></div>
-                        <div class="grand">Total: <span id="grandTotal">0.00</span></div>
-                    </div>
-
-                    <div class="actions">
-                        <button id="saveInvoiceBtn" class="btn primary">Save Invoice</button>
-                        <button id="clearBtn" class="btn">Clear</button>
-                    </div>
+                <div class="items-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th width="80">Qty</th>
+                                <th width="100">Rate</th>
+                                <th width="120">Amount</th>
+                                <th width="40"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsTbody"></tbody>
+                    </table>
+                    <button id="addItemBtn" class="btn small">+ Add Item</button>
                 </div>
             </section>
 
+            <!-- RIGHT SIDE SUMMARY -->
+            <aside class="card invoice-right">
+                <h3>Invoice Summary</h3>
+
+                <div class="totals">
+                    <div><span>Subtotal</span><span id="subtotal">0.00</span></div>
+                    <div><span>GST</span><span id="gstAmount">0.00</span></div>
+                    <div class="grand">
+                        <span>Total</span>
+                        <span id="grandTotal">0.00</span>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button id="saveInvoiceBtn" class="btn primary">
+                        <i class="fa fa-file-invoice"></i> Save Invoice
+                    </button>
+                    <button id="clearBtn" class="btn">Clear</button>
+                </div>
+            </aside>
             <section class="card search-card">
                 <h3>Search Invoice</h3>
                 <div class="search-row">
