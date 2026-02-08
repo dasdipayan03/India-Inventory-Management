@@ -367,8 +367,19 @@
             background: #7dd3fc;
         }
 
-        #invoiceDropdown {
-            display: none;
+        .search-input-wrap {
+            position: relative;
+            width: 100%;
+        }
+
+        .search-btn-row {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .search-btn-row .btn {
+            flex: 1;
         }
 
         .back-link {
@@ -510,18 +521,20 @@
             <section class="card search-card">
                 <h3>Search Invoice</h3>
                 <div class="search-row">
-                    <div class="item-cell">
+                    <div class="search-input-wrap">
                         <input id="searchInvoiceInput" placeholder="Enter invoice no" autocomplete="off" />
                         <div id="invoiceDropdown" class="dropdown-list"></div>
                     </div>
 
-                    <button id="searchInvoiceBtn" class="btn info">
-                        <i class="fa fa-magnifying-glass"></i> Search
-                    </button>
+                    <div class="search-btn-row">
+                        <button id="searchInvoiceBtn" class="btn info">
+                            <i class="fa fa-magnifying-glass"></i> Search
+                        </button>
 
-                    <button id="searchDownloadBtn" class="btn info">
-                        <i class="fa fa-download"></i> Download
-                    </button>
+                        <button id="searchDownloadBtn" class="btn info">
+                            <i class="fa fa-download"></i> Download
+                        </button>
+                    </div>
                 </div>
                 <div id="searchResult" class="search-result"></div>
             </section>
