@@ -872,7 +872,7 @@
                     }
 
                     const matches = itemNames
-                        .filter(name => name.toLowerCase().includes(q))
+                        .filter(it => it.name.toLowerCase().includes(q))
                         .slice(0, 15);
 
                     if (!matches.length) {
@@ -880,19 +880,29 @@
                         return;
                     }
 
-                    matches.forEach(name => {
+                    
+
+                    matches.forEach(item => {
                         const div = document.createElement('div');
                         div.className = 'dropdown-item';
-                        div.textContent = name;
+
+                        // 🔥 name + available qty
+                        div.innerHTML = `
+                            <div style="font-weight:600">${item.name}</div>
+                            <div style="font-size:12px;color:${item.available_qty === 0 ? 'red' : '#6b7280'}">
+                                Available: ${item.available_qty}
+                            </div>
+                        `;
 
                         div.onclick = async () => {
-                            itemInput.value = name;
+                            itemInput.value = item.name;
                             dropdown.style.display = 'none';
 
                             const r = await fetch(
-                                API_PREFIX + '/items/info?name=' + encodeURIComponent(name),
+                                API_PREFIX + '/items/info?name=' + encodeURIComponent(item.name),
                                 { headers: { Authorization: 'Bearer ' + token } }
                             );
+
                             if (r.ok) {
                                 const j = await r.json();
                                 rateInput.value = j.selling_rate || 0;

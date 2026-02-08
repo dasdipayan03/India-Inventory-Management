@@ -379,4 +379,33 @@ router.get('/shop-info', authMiddleware, async (req, res) => {
 
 
 
+/* ---------------------- GET: ITEM NAMES + AVAILABLE QTY ---------------------- */
+router.get('/items/names', authMiddleware, async (req, res) => {
+    try {
+        const { rows } = await pool.query(
+            `
+            SELECT name, quantity
+            FROM items
+            WHERE user_id = $1
+            ORDER BY name
+            `,
+            [req.user.id]
+        );
+
+        // 🔑 Important: frontend friendly format
+        res.json(
+            rows.map(r => ({
+                name: r.name,
+                available_qty: r.quantity
+            }))
+        );
+
+    } catch (err) {
+        console.error('Item names fetch error:', err);
+        res.status(500).json([]);
+    }
+});
+
+
+
 module.exports = router;
