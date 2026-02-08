@@ -215,7 +215,6 @@
         }
 
         .search-card input {
-            flex: 1 1 100%;
             padding: 8px;
             border-radius: 6px;
             border: 1px solid #e5e7eb;
@@ -409,6 +408,11 @@
             color: #fff;
         }
 
+        .invoice-dropdown {
+            width: 100%;
+            max-width: 100%;
+            top: 42px;
+        }
 
         @media (max-width: 600px) {
             .back-link {
@@ -523,7 +527,7 @@
                 <div class="search-row">
                     <div class="search-input-wrap">
                         <input id="searchInvoiceInput" placeholder="Enter invoice no" autocomplete="off" />
-                        <div id="invoiceDropdown" class="dropdown-list"></div>
+                        <div id="invoiceDropdown" class="dropdown-list invoice-dropdown"></div>
                     </div>
 
                     <div class="search-btn-row">
