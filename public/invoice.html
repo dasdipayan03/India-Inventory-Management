@@ -256,21 +256,16 @@
 
         .dropdown-list {
             position: absolute;
-            top: 38px;
+            top: 100%;
             left: 0;
-
-            /* 🔥 MAIN MAGIC */
-            width: calc(100vw - 40px);
-            /* mobile safe */
-            max-width: 600px;
-            /* desktop control */
-
+            width: 100%;
+            max-width: 100%;
             background: #fff;
             border: 1px solid #ccc;
             border-radius: 6px;
             max-height: 220px;
             overflow-y: auto;
-            z-index: 10000;
+            z-index: 200;
         }
 
         .dropdown-item {
@@ -348,6 +343,32 @@
 
         .btn.danger:active {
             background: #fca5a5;
+        }
+
+        .search-input-wrap {
+            flex: 1 1 100%;
+            position: relative;
+        }
+
+        .search-actions {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+        }
+
+        @media (min-width: 600px) {
+            .search-row {
+                flex-wrap: nowrap;
+                align-items: flex-start;
+            }
+
+            .search-input-wrap {
+                flex: 1;
+            }
+
+            .search-actions {
+                width: auto;
+            }
         }
 
         /* ---------- LIGHT BLUE BUTTON (SEARCH / DOWNLOAD) ---------- */
@@ -507,15 +528,18 @@
             <section class="card search-card">
                 <h3>Search Invoice</h3>
                 <div class="search-row">
-                    <div class="dropdown-wrap">
-                        <input id="searchInvoiceInput" placeholder="Enter invoice no (e.g. INV-20251011-123-0001)" />
+                    <div class="dropdown-wrap search-input-wrap">
+                        <input id="searchInvoiceInput" placeholder="Enter invoice no" />
                     </div>
-                    <button id="searchInvoiceBtn" class="btn info">
-                        <i class="fa fa-magnifying-glass"></i> Search
-                    </button>
-                    <button id="searchDownloadBtn" class="btn info">
-                        <i class="fa fa-download"></i> Download
-                    </button>
+
+                    <div class="search-actions">
+                        <button id="searchInvoiceBtn" class="btn info">
+                            <i class="fa fa-magnifying-glass"></i> Search
+                        </button>
+                        <button id="searchDownloadBtn" class="btn info">
+                            <i class="fa fa-download"></i> Download
+                        </button>
+                    </div>
                 </div>
                 <div id="searchResult" class="search-result"></div>
             </section>

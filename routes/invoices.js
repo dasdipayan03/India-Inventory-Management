@@ -165,10 +165,7 @@ router.post('/invoices', authMiddleware, async (req, res) => {
     }
 });
 
-
-
-
-
+//---------- invoice search dropdown -----------//
 router.get('/invoices/numbers', authMiddleware, async (req, res) => {
     const { rows } = await pool.query(
         `SELECT invoice_no
@@ -181,11 +178,6 @@ router.get('/invoices/numbers', authMiddleware, async (req, res) => {
 
     res.json(rows.map(r => r.invoice_no));
 });
-
-
-
-
-
 
 
 /* ---------------------- GET: Invoice Details ---------------------- */
