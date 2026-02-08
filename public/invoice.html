@@ -236,7 +236,7 @@
             padding: 8px;
             border-radius: 6px;
             background: #fafafa;
-            min-height: 40px;
+            min-height: 120px;
             color: #111827;
             font-size: 0.9rem;
         }
@@ -258,6 +258,22 @@
 
         .dropdown-wrap {
             position: relative;
+            width: 100%;
+        }
+
+        .dropdown-wrap .dropdown-list {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            width: 100%;
+            /* 🔥 MAGIC LINE */
+            max-width: 100%;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 500;
         }
 
         .dropdown-list {
@@ -275,11 +291,11 @@
         }
 
         .dropdown-item {
-            padding: 8px 12px;
+            padding: 10px 12px;
             white-space: normal;
-            /* allow 2 lines */
             line-height: 1.3;
             font-size: 0.9rem;
+            cursor: pointer;
         }
 
         .dropdown-item:hover {
@@ -383,10 +399,15 @@
 
         .search-card {
             overflow: hidden;
+            min-height: 240px;
         }
 
         .search-input-wrap input {
-            box-shadow: inset 0 0 0 1px #e5e7eb;
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            font-size: 0.9rem;
         }
 
 
