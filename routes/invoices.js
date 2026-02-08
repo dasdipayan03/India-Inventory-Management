@@ -96,15 +96,23 @@ router.post('/invoices', authMiddleware, async (req, res) => {
 
         /* ---- invoice ---- */
         const inv = await client.query(`
-          INSERT INTO invoices
-          (invoice_no,user_id,gst_no,customer_name,contact,address,
-           subtotal,gst_amount,total_amount,date)
-          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-          RETURNING id
-        `, [
-            invoiceNo, userId, gst_no || null,
-            customer_name || null, contact || null, address || null,
-            subtotal, gst_amount, total_amount, new Date()
+            INSERT INTO invoices
+            (invoice_no,user_id,gst_no,customer_name,contact,address,
+            subtotal,gst_rate,gst_amount,total_amount,date)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+            RETURNING id
+            `, [
+            invoiceNo,
+            userId,
+            gst_no || null,
+            customer_name || null,
+            contact || null,
+            address || null,
+            subtotal,
+            gstRate,        // ✅ SAVE RATE HERE (LOCKED)
+            gst_amount,
+            total_amount,
+            new Date()
         ]);
 
         const invoiceId = inv.rows[0].id;
@@ -186,19 +194,19 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
 
     try {
         const q = `
-          SELECT i.id, i.invoice_no, i.customer_name, i.contact, i.address, i.gst_no,
-                 i.date, i.subtotal, i.gst_amount, i.total_amount,
-                 COALESCE(json_agg(json_build_object(
-                   'description', ii.description,
-                   'quantity', ii.quantity,
-                   'rate', ii.rate,
-                   'amount', ii.amount
-                 ) ORDER BY ii.id) FILTER (WHERE ii.id IS NOT NULL), '[]') AS items
-          FROM invoices i
-          LEFT JOIN invoice_items ii ON ii.invoice_id = i.id
-          WHERE i.user_id = $2 AND TRIM(i.invoice_no) = TRIM($1)
-          GROUP BY i.id
-          LIMIT 1;
+            SELECT i.id, i.invoice_no, i.customer_name, i.contact, i.address, i.gst_no,
+                i.date, i.subtotal, i.gst_rate, i.gst_amount, i.total_amount,
+                COALESCE(json_agg(json_build_object(
+                    'description', ii.description,
+                    'quantity', ii.quantity,
+                    'rate', ii.rate,
+                    'amount', ii.amount
+                ) ORDER BY ii.id) FILTER (WHERE ii.id IS NOT NULL), '[]') AS items
+            FROM invoices i
+            LEFT JOIN invoice_items ii ON ii.invoice_id = i.id
+            WHERE i.user_id = $2 AND TRIM(i.invoice_no) = TRIM($1)
+            GROUP BY i.id
+            LIMIT 1;
         `;
         const { rows } = await pool.query(q, [invoiceNo, userId]);
         if (!rows[0]) return res.status(404).json({ success: false, message: 'Invoice not found' });
@@ -210,7 +218,7 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
             [userId]
         );
         const shop = shopRes.rows[0] || {};
-        const gstRate = shop.gst_rate ?? 18;
+        const gstRate = inv.gst_rate ?? shop.gst_rate ?? 18;
 
         const doc = new PDFDocument({ size: 'A4', margin: 40 });
 
