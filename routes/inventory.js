@@ -211,19 +211,45 @@ router.get("/sales/report/pdf", async (req, res) => {
     doc.font("Helvetica");
 
     // ---- Rows ----
+    // ---- Rows ----
     let grandTotal = 0;
 
     result.rows.forEach((r, i) => {
-      y = doc.y;
+
+      // 🔒 Page overflow protection
+      if (doc.y > 720) {
+        doc.addPage();
+        doc.fontSize(10).font("Helvetica-Bold");
+
+        let yHeader = doc.y;
+        doc.text("Sl", startX, yHeader, { width: 30 });
+        doc.text("Item", startX + 30, yHeader, { width: 200 });
+        doc.text("Qty", startX + 230, yHeader, { width: 50, align: "right" });
+        doc.text("Rate", startX + 280, yHeader, { width: 80, align: "right" });
+        doc.text("Total", startX + 360, yHeader, { width: 100, align: "right" });
+
+        doc.moveDown(0.5);
+        doc.font("Helvetica");
+      }
+
+      const y = doc.y;
+
+      // 👉 calculate dynamic height for item name
+      const itemHeight = doc.heightOfString(r.item_name || "", {
+        width: 200,
+        align: "left",
+      });
 
       doc.text(i + 1, startX, y, { width: 30 });
-      doc.text(r.item_name, startX + 30, y, { width: 200 });
+      doc.text(r.item_name || "", startX + 30, y, { width: 200 });
       doc.text(r.quantity, startX + 230, y, { width: 50, align: "right" });
       doc.text(Number(r.selling_price).toFixed(2), startX + 280, y, { width: 80, align: "right" });
       doc.text(Number(r.total_price).toFixed(2), startX + 360, y, { width: 100, align: "right" });
 
+      // 👉 move y based on tallest content
+      doc.y = y + Math.max(itemHeight, 18) + 6;
+
       grandTotal += Number(r.total_price);
-      doc.moveDown(0.4);
     });
 
     // ---- Footer Total ----
