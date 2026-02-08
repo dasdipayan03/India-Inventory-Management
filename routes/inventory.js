@@ -113,6 +113,138 @@ router.get("/items/info", async (req, res) => {
 });
 
 
+// ----------------- ITEM WISE STOCK & SALES REPORT (JSON) -----------------
+router.get("/items/report", async (req, res) => {
+  try {
+    const user_id = getUserId(req);
+    const { name } = req.query;
+
+    let params = [user_id];
+    let nameFilter = "";
+
+    if (name && name.trim()) {
+      params.push(name.trim());
+      nameFilter = "AND LOWER(TRIM(i.name)) = LOWER($2)";
+    }
+
+    const result = await pool.query(
+      `
+      SELECT
+        i.name AS item_name,
+        i.quantity AS available_qty,
+        i.selling_rate,
+        COALESCE(SUM(s.quantity), 0) AS sold_qty
+      FROM items i
+      LEFT JOIN sales s
+        ON s.item_id = i.id
+        AND s.user_id = $1
+      WHERE i.user_id = $1
+      ${nameFilter}
+      GROUP BY i.id, i.name, i.quantity, i.selling_rate
+      ORDER BY i.name ASC
+      `,
+      params
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Item report error:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ----------------- ITEM WISE STOCK & SALES REPORT (PDF) -----------------
+router.get("/items/report/pdf", async (req, res) => {
+  try {
+    const user_id = getUserId(req);
+    const { name } = req.query;
+
+    let params = [user_id];
+    let nameFilter = "";
+
+    if (name && name.trim()) {
+      params.push(name.trim());
+      nameFilter = "AND LOWER(TRIM(i.name)) = LOWER($2)";
+    }
+
+    const result = await pool.query(
+      `
+      SELECT
+        i.name AS item_name,
+        i.quantity AS available_qty,
+        i.selling_rate,
+        COALESCE(SUM(s.quantity), 0) AS sold_qty
+      FROM items i
+      LEFT JOIN sales s
+        ON s.item_id = i.id
+        AND s.user_id = $1
+      WHERE i.user_id = $1
+      ${nameFilter}
+      GROUP BY i.id, i.name, i.quantity, i.selling_rate
+      ORDER BY i.name ASC
+      `,
+      params
+    );
+
+    const doc = new PDFDocument({ size: "A4", margin: 40 });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=item_report.pdf`
+    );
+
+    doc.pipe(res);
+
+    // ---- Header ----
+    doc.fontSize(16).text("Item Wise Stock & Sales Report", { align: "center" });
+    doc.moveDown(1);
+
+    // ---- Table Header ----
+    let y = doc.y;
+    const startX = 40;
+
+    doc.font("Helvetica-Bold").fontSize(10);
+    doc.text("Sl", startX, y, { width: 30 });
+    doc.text("Item Name", startX + 30, y, { width: 200 });
+    doc.text("Available", startX + 230, y, { width: 80, align: "right" });
+    doc.text("Rate", startX + 310, y, { width: 80, align: "right" });
+    doc.text("Sold", startX + 390, y, { width: 80, align: "right" });
+
+    doc.moveDown(0.5);
+    doc.font("Helvetica");
+
+    // ---- Rows ----
+    result.rows.forEach((r, i) => {
+      if (doc.y > 720) {
+        doc.addPage();
+        doc.moveDown();
+      }
+
+      const rowY = doc.y;
+
+      doc.text(i + 1, startX, rowY, { width: 30 });
+      doc.text(r.item_name, startX + 30, rowY, { width: 200 });
+      doc.text(r.available_qty, startX + 230, rowY, { width: 80, align: "right" });
+      doc.text(Number(r.selling_rate).toFixed(2), startX + 310, rowY, { width: 80, align: "right" });
+      doc.text(r.sold_qty, startX + 390, rowY, { width: 80, align: "right" });
+
+      doc.moveDown(1);
+    });
+
+    doc.end();
+  } catch (err) {
+    console.error("Item report PDF error:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+
+
+
+
+
+
 
 // ----------------- SALES REPORT (JSON PREVIEW) -----------------
 router.get("/sales/report", async (req, res) => {

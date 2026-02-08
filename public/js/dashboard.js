@@ -4,6 +4,7 @@ const apiBase = window.location.origin.includes("localhost")
   : "/api";
 
 let itemNames = [];
+let currentItemReportRows = [];
 
 /* ---------------------- AUTH ----------------------- */
 async function checkAuth() {
@@ -211,6 +212,59 @@ if (buyingRateInput && sellingRateInput) {
   });
 }
 
+//---------- stock view and download ----------------//
+async function loadItemReport() {
+  const item = document
+    .getElementById("itemReportSearch")
+    .value
+    .trim();
+
+  try {
+    const url = item
+      ? `${apiBase}/items/report?name=${encodeURIComponent(item)}`
+      : `${apiBase}/items/report`;
+
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+
+    if (!res.ok) throw new Error("Failed to load item report");
+
+    const rows = await res.json();
+    currentItemReportRows = rows; // 🔒 for PDF
+    renderItemReport(rows);
+
+  } catch (err) {
+    console.error("Item report error:", err);
+    alert("Could not load item report");
+  }
+}
+function renderItemReport(rows) {
+  const tbody = document.getElementById("itemReportBody");
+  tbody.innerHTML = "";
+
+  if (!rows || rows.length === 0) {
+    tbody.innerHTML =
+      `<tr><td colspan="5" class="text-muted">No records found</td></tr>`;
+    return;
+  }
+
+  rows.forEach((r, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${escapeHtml(r.item_name)}</td>
+      <td>${Number(r.available_qty).toFixed(2)}</td>
+      <td>${Number(r.selling_rate).toFixed(2)}</td>
+      <td>${Number(r.sold_qty).toFixed(2)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+
 
 /* ---------------------- Reports --------------------- */
 async function loadSalesReport() {
@@ -277,6 +331,24 @@ function renderSalesReport(rows) {
 
   totalEl.textContent = grandTotal.toFixed(2);
 }
+
+function downloadItemReportPDF() {
+  const item = document
+    .getElementById("itemReportSearch")
+    .value
+    .trim();
+
+  const url = item
+    ? `/api/items/report/pdf?name=${encodeURIComponent(item)}`
+    : `/api/items/report/pdf`;
+
+  window.location.href = url;
+}
+
+
+
+
+
 
 
 // ----------------- PDF REPORT --------------------------
@@ -421,6 +493,8 @@ window.addEventListener("DOMContentLoaded", async () => {
   setupSidebar();
 
   document.getElementById("addStockBtn").addEventListener("click", addStock);
+  document.getElementById("loadItemReportBtn").addEventListener("click", loadItemReport);
+  document.getElementById("itemReportPdfBtn").addEventListener("click", downloadItemReportPDF);
   document.getElementById("loadSalesBtn").addEventListener("click", loadSalesReport);
   document.getElementById("pdfBtn").addEventListener("click", downloadSalesPDF);
   document.getElementById("excelBtn").addEventListener("click", downloadSalesExcel);
@@ -434,6 +508,11 @@ window.addEventListener("DOMContentLoaded", async () => {
   setupFilterInput("newItemSearch", "newItemDropdownList", (val) => {
     document.getElementById("manualNewItem").value = "";
   });
+
+  // Item Report search dropdown
+  setupFilterInput("itemReportSearch", "itemReportDropdown", () => { }
+  );
+
 
   //-------------- AFTER REFRESH ALWASE LOAD IN SAME PAGE ---------------------
   const lastSection = localStorage.getItem("activeSection");
