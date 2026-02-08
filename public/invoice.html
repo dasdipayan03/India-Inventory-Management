@@ -250,30 +250,39 @@
             position: relative;
         }
 
-
+        .dropdown-wrap {
+            position: relative;
+        }
 
         .dropdown-list {
             position: absolute;
             top: 38px;
             left: 0;
-            right: 0;
+
+            /* 🔥 MAIN MAGIC */
+            width: calc(100vw - 40px);
+            /* mobile safe */
+            max-width: 600px;
+            /* desktop control */
+
             background: #fff;
             border: 1px solid #ccc;
             border-radius: 6px;
-            max-height: 180px;
+            max-height: 220px;
             overflow-y: auto;
             z-index: 10000;
-            display: none;
         }
 
         .dropdown-item {
-            padding: 6px 10px;
-            cursor: pointer;
+            padding: 8px 12px;
+            white-space: normal;
+            /* allow 2 lines */
+            line-height: 1.3;
             font-size: 0.9rem;
         }
 
         .dropdown-item:hover {
-            background: #e5f0ff;
+            background: #f1f5f9;
         }
 
         .items-table {
@@ -325,7 +334,21 @@
             font-size: 1rem;
         }
 
+        .btn.danger {
+            background: #fee2e2;
+            /* halka red */
+            color: #991b1b;
+            /* deep red text */
+            border: 1px solid #fecaca;
+        }
 
+        .btn.danger:hover {
+            background: #fecaca;
+        }
+
+        .btn.danger:active {
+            background: #fca5a5;
+        }
 
 
         .back-link {
@@ -457,8 +480,9 @@
                     </div>
 
                     <div class="actions">
-                        <button id="saveInvoiceBtn" class="btn primary">Save Invoice</button>
-                        <button id="clearBtn" class="btn">Clear</button>
+                        <button id="saveInvoiceBtn" class="btn primary"><i class="fa fa-file-invoice">
+                        </i> Submit Invoice</button>
+                        <button id="clearBtn" class="btn danger"><i class="fa fa-trash"></i> Clear</button>
                     </div>
                 </div>
             </section>
@@ -654,8 +678,10 @@
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                 <td class="item-cell">
-                    <input class="item-input" placeholder="Search item" autocomplete="off">
+                <div class="dropdown-wrap">
+                    <input class="item-input" placeholder="Search item">
                     <div class="dropdown-list"></div>
+                </div>
                 </td>
                 <td><input type="number" step="0.001" min="0" value="${item.quantity}"></td>
                 <td><input type="number" step="0.01" min="0" value="${item.rate}"></td>
