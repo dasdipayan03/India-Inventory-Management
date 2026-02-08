@@ -165,6 +165,29 @@ router.post('/invoices', authMiddleware, async (req, res) => {
     }
 });
 
+
+
+
+
+router.get('/invoices/numbers', authMiddleware, async (req, res) => {
+    const { rows } = await pool.query(
+        `SELECT invoice_no
+         FROM invoices
+         WHERE user_id = $1
+         ORDER BY date DESC
+         LIMIT 50`,
+        [req.user.id]
+    );
+
+    res.json(rows.map(r => r.invoice_no));
+});
+
+
+
+
+
+
+
 /* ---------------------- GET: Invoice Details ---------------------- */
 router.get('/invoices/:invoiceNo', authMiddleware, async (req, res) => {
     const { rows } = await pool.query(`
@@ -361,22 +384,6 @@ router.get('/shop-info', authMiddleware, async (req, res) => {
     );
     res.json({ success: true, settings: rows[0] || {} });
 });
-
-
-
-router.get('/invoices/numbers', authMiddleware, async (req, res) => {
-    const { rows } = await pool.query(
-        `SELECT invoice_no
-         FROM invoices
-         WHERE user_id = $1
-         ORDER BY date DESC
-         LIMIT 50`,
-        [req.user.id]
-    );
-
-    res.json(rows.map(r => r.invoice_no));
-});
-
 
 
 
