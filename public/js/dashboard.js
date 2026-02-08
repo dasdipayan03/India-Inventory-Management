@@ -247,14 +247,13 @@ function renderItemReport(rows) {
 
   if (!rows || rows.length === 0) {
     tbody.innerHTML =
-      `<tr><td colspan="5" class="text-muted">No records found</td></tr>`;
+      `<tr><td colspan="4" class="text-muted">No records found</td></tr>`;
     return;
   }
 
   rows.forEach((r, i) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${i + 1}</td>
       <td>${escapeHtml(r.item_name)}</td>
       <td>${Number(r.available_qty).toFixed(2)}</td>
       <td>${Number(r.selling_rate).toFixed(2)}</td>
@@ -490,8 +489,9 @@ function renderLedgerTable(rows, mode = "summary") {
 
 /* ---------------------- Init --------------------- */
 window.addEventListener("DOMContentLoaded", async () => {
-  setupSidebar();
+  await checkAuth();
 
+  setupSidebar();
   document.getElementById("addStockBtn").addEventListener("click", addStock);
   document.getElementById("loadItemReportBtn").addEventListener("click", loadItemReport);
   document.getElementById("itemReportPdfBtn").addEventListener("click", downloadItemReportPDF);
@@ -534,8 +534,6 @@ window.addEventListener("DOMContentLoaded", async () => {
     if (btn) btn.classList.add("active");
   }
 
-
-  await checkAuth();
   await loadItemNames();
 });
 
@@ -543,19 +541,33 @@ window.addEventListener("DOMContentLoaded", async () => {
 
 
 // Allow only digits in number fields
+// function restrictToDigits(id) {
+//   const input = document.getElementById(id);
+
+//   // Prevent typing letters
+//   input.addEventListener("keypress", (e) => {
+//     if (!/[0-9]/.test(e.key)) e.preventDefault();
+//   });
+
+//   // Prevent pasting letters
+//   input.addEventListener("input", () => {
+//     input.value = input.value.replace(/[^0-9]/g, "").slice(0, 10);
+//   });
+// }
+
 function restrictToDigits(id) {
   const input = document.getElementById(id);
+  if (!input) return;
 
-  // Prevent typing letters
   input.addEventListener("keypress", (e) => {
     if (!/[0-9]/.test(e.key)) e.preventDefault();
   });
 
-  // Prevent pasting letters
   input.addEventListener("input", () => {
     input.value = input.value.replace(/[^0-9]/g, "").slice(0, 10);
   });
 }
+
 
 // Apply to both fields
 restrictToDigits("cdNumber");
