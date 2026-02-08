@@ -192,6 +192,7 @@
       margin: 0;
       font-size: 18px;
       color: #0f172a;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.6);
     }
 
     .slide p {
@@ -202,19 +203,23 @@
     }
 
     .slide:nth-child(1) {
-      animation: slideAnim 12s infinite 0s;
+      animation: slideAnim 15s infinite 0s;
     }
 
     .slide:nth-child(2) {
-      animation: slideAnim 12s infinite 3s;
+      animation: slideAnim 15s infinite 3s;
     }
 
     .slide:nth-child(3) {
-      animation: slideAnim 12s infinite 6s;
+      animation: slideAnim 15s infinite 6s;
     }
 
     .slide:nth-child(4) {
-      animation: slideAnim 12s infinite 9s;
+      animation: slideAnim 15s infinite 9s;
+    }
+
+    .slide:nth-child(5) {
+      animation: slideAnim 15s infinite 12s;
     }
 
     @keyframes slideAnim {
@@ -797,38 +802,74 @@
 
         <!-- Normal slides -->
         <div class="slide">
-          <h3>Smart Stock Control</h3>
-          <p>Track inventory with precision and automation.</p>
+          <h3>📦 Smart Stock Management</h3>
+          <p>Add new items and update stock quantities with buying & selling rates.</p>
         </div>
+
         <div class="slide">
-          <h3>Fast Invoicing</h3>
-          <p>Create invoices and manage customer debts seamlessly.</p>
+          <h3>📋 Stock Report</h3>
+          <p>View item-wise stock availability, sold quantity, and current balance instantly.</p>
         </div>
+
         <div class="slide">
-          <h3>Reports & Insights</h3>
-          <p>Generate and export performance reports instantly.</p>
+          <h3>🧾 Sale & Invoice</h3>
+          <p>Create professional invoices while stock updates automatically in real time.</p>
         </div>
+
         <div class="slide">
-          <h3>Secure & Cloud-based</h3>
-          <p>Your data is encrypted and safely synchronized.</p>
+          <h3>📊 Sales Report</h3>
+          <p>Generate date-wise sales reports and download them as PDF or Excel.</p>
+        </div>
+
+        <div class="slide">
+          <h3>👥 Customer Due Management</h3>
+          <p>Track customer credits, pending dues, and payment history easily.</p>
         </div>
       </div>
 
+
+
+
       <div class="features">
-        <div class="feature"><i class="fa-solid fa-box"></i>
-          <div><strong>Item Tracking</strong><span>Handle hundreds easily.</span></div>
-        </div>
-        <div class="feature"><i class="fa-solid fa-chart-simple"></i>
-          <div><strong>Reports</strong><span>Export and analyze data.</span></div>
-        </div>
-        <div class="feature"><i class="fa-solid fa-hand-holding-dollar"></i>
+
+        <div class="feature">
+          <i class="fa-solid fa-boxes-stacked"></i>
           <div>
-            <strong>Customer Debts</strong>
-            <span>Track, manage, and clear outstanding balances easily.</span>
+            <strong>Stock Control</strong>
+            <span>Add & manage unlimited items with real-time quantity tracking.</span>
+          </div>
+        </div>
+
+        <div class="feature">
+          <i class="fa-solid fa-file-invoice-dollar"></i>
+          <div>
+            <strong>Billing & Invoices</strong>
+            <span>Generate clean invoices and manage sales without manual effort.</span>
+          </div>
+        </div>
+
+        <div class="feature">
+          <i class="fa-solid fa-chart-line"></i>
+          <div>
+            <strong>Sales Reports</strong>
+            <span>Analyze business performance with downloadable reports.</span>
+          </div>
+        </div>
+
+        <div class="feature">
+          <i class="fa-solid fa-user-clock"></i>
+          <div>
+            <strong>Customer Dues</strong>
+            <span>Track pending payments and customer balances accurately.</span>
           </div>
         </div>
 
       </div>
+
+
+
+
+
     </div>
     <!-- === FOOTER === -->
     <div class="site-footer" role="contentinfo">
