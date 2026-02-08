@@ -621,6 +621,8 @@
         }
 
 
+
+
         function downloadBlob(blob, filename) {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -634,6 +636,9 @@
             // mobile & multiple download safe
             setTimeout(() => URL.revokeObjectURL(url), 1000);
         }
+
+
+
 
 
 
@@ -652,6 +657,9 @@
                 itemNames = [];
             }
         }
+
+
+
 
 
 
@@ -675,6 +683,8 @@
                 invoiceNumbers = [];
             }
         }
+
+
 
 
 
@@ -745,9 +755,6 @@
                     invoiceDropdown.style.display = 'none';
                 }
             });
-
-
-
             const searchBtn = document.getElementById('searchInvoiceBtn');
             const searchDownloadBtn = document.getElementById('searchDownloadBtn');
             const searchResult = document.getElementById('searchResult');
@@ -837,20 +844,22 @@
                 });
             }
 
+
+
             function addItemRow(item = { description: '', quantity: 1, rate: 0 }) {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                <td class="item-cell">
-                <div class="dropdown-wrap">
-                    <input class="item-input" placeholder="Search item">
-                    <div class="dropdown-list"></div>
-                </div>
-                </td>
-                <td><input type="number" step="0.001" min="0" value="${item.quantity}"></td>
-                <td><input type="number" step="0.01" min="0" value="${item.rate}"></td>
-                <td>0.00</td>
-                <td><button class="btn small">❌</button></td>
-                `;
+        <td class="item-cell">
+            <div class="dropdown-wrap">
+                <input class="item-input" placeholder="Search item">
+                <div class="dropdown-list"></div>
+            </div>
+        </td>
+        <td><input type="number" step="0.001" min="0" value="${item.quantity}"></td>
+        <td><input type="number" step="0.01" min="0" value="${item.rate}"></td>
+        <td>0.00</td>
+        <td><button class="btn small">❌</button></td>
+    `;
 
                 itemsTbody.appendChild(tr);
 
@@ -861,19 +870,18 @@
                 const amountCell = tr.children[3];
                 const removeBtn = tr.children[4].querySelector('button');
 
-                // ✅ Sale page style dropdown (ONLY THIS)
+                // 🔹 Dropdown logic
                 itemInput.addEventListener('input', () => {
-                    console.log('itemNames at typing:', itemNames);
-                    const q = itemInput.value.toLowerCase();
+                    const q = itemInput.value.toLowerCase().trim();
                     dropdown.innerHTML = '';
 
                     if (!q) {
                         dropdown.style.display = 'none';
                         return;
                     }
+
                     const matches = itemNames
                         .filter(item =>
-                            typeof item === 'object' &&
                             item.name &&
                             item.name.toLowerCase().includes(q)
                         )
@@ -884,19 +892,16 @@
                         return;
                     }
 
-
-
                     matches.forEach(item => {
                         const div = document.createElement('div');
                         div.className = 'dropdown-item';
 
-                        // 🔥 name + available qty
                         div.innerHTML = `
-                            <div style="font-weight:600">${item.name}</div>
-                            <div style="font-size:12px;color:${item.available_qty === 0 ? 'red' : '#6b7280'}">
-                                Available: ${item.available_qty}
-                            </div>
-                        `;
+            <div style="font-weight:600">${item.name}</div>
+            <div style="font-size:12px;color:${item.available_qty === 0 ? 'red' : '#6b7280'}">
+                Available: ${item.available_qty}
+            </div>
+        `;
 
                         div.onclick = async () => {
                             itemInput.value = item.name;
@@ -920,6 +925,7 @@
                     dropdown.style.display = 'block';
                 });
 
+                // 🔹 Calculation logic (OUTSIDE input handler)
                 function recalcRow() {
                     const amt =
                         (parseFloat(qtyInput.value || 0) *
@@ -937,6 +943,10 @@
 
                 recalcRow();
             }
+
+
+
+
 
 
             addItemBtn.onclick = () => addItemRow();
