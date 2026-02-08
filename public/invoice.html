@@ -507,7 +507,9 @@
             <section class="card search-card">
                 <h3>Search Invoice</h3>
                 <div class="search-row">
-                    <input id="searchInvoiceInput" placeholder="Enter invoice no (e.g. INV-20251011-123-0001)" />
+                    <div class="dropdown-wrap">
+                        <input id="searchInvoiceInput" placeholder="Enter invoice no (e.g. INV-20251011-123-0001)" />
+                    </div>
                     <button id="searchInvoiceBtn" class="btn info">
                         <i class="fa fa-magnifying-glass"></i> Search
                     </button>
@@ -583,11 +585,36 @@
 
 
 
+        async function loadInvoiceNumbers() {
+            try {
+                const r = await fetch(API_PREFIX + '/invoices/numbers', {
+                    headers: { Authorization: 'Bearer ' + token }
+                });
+
+                if (!r.ok) {
+                    console.error('Invoice number fetch failed');
+                    invoiceNumbers = [];
+                    return;
+                }
+
+                invoiceNumbers = await r.json();
+                console.log('✅ Invoice numbers loaded:', invoiceNumbers);
+
+            } catch (err) {
+                console.error('Invoice fetch error:', err);
+                invoiceNumbers = [];
+            }
+        }
+
+
+
+
 
         const API_PREFIX = '/api';
         const token = localStorage.getItem('token');
         let userGstRate = 18; // Default fallback
         let itemNames = [];
+        let invoiceNumbers = []; // 🔥 SEARCH DROPDOWN CACHE
 
         document.addEventListener('DOMContentLoaded', () => {
             const shopName = document.getElementById('shopName');
@@ -607,6 +634,50 @@
             const saveInvoiceBtn = document.getElementById('saveInvoiceBtn');
             const clearBtn = document.getElementById('clearBtn');
             const searchInput = document.getElementById('searchInvoiceInput');
+            const invoiceDropdown = document.createElement('div');
+            invoiceDropdown.className = 'dropdown-list';
+            searchInput.closest('.dropdown-wrap').appendChild(invoiceDropdown);
+
+            searchInput.addEventListener('input', () => {
+                const q = searchInput.value.trim().toLowerCase();
+                invoiceDropdown.innerHTML = '';
+
+                if (!q) {
+                    invoiceDropdown.style.display = 'none';
+                    return;
+                }
+
+                const matches = invoiceNumbers
+                    .filter(no => no.toLowerCase().includes(q))
+                    .slice(0, 10);
+
+                if (!matches.length) {
+                    invoiceDropdown.style.display = 'none';
+                    return;
+                }
+
+                matches.forEach(no => {
+                    const div = document.createElement('div');
+                    div.className = 'dropdown-item';
+                    div.textContent = no;
+                    div.onclick = () => {
+                        searchInput.value = no;
+                        invoiceDropdown.style.display = 'none';
+                    };
+                    invoiceDropdown.appendChild(div);
+                });
+
+                invoiceDropdown.style.display = 'block';
+            });
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('#searchInvoiceInput') &&
+                    !e.target.closest('.dropdown-list')) {
+                    invoiceDropdown.style.display = 'none';
+                }
+            });
+
+
+
             const searchBtn = document.getElementById('searchInvoiceBtn');
             const searchDownloadBtn = document.getElementById('searchDownloadBtn');
             const searchResult = document.getElementById('searchResult');
@@ -618,6 +689,7 @@
             async function init() {
                 if (!token) { alert('Please log in first'); return; }
                 await loadItemNames();
+                await loadInvoiceNumbers();
                 try {
                     const gstR = await fetch(API_PREFIX + '/shop-info', { headers: authHeaders() });
                     const gstJ = await gstR.json();
