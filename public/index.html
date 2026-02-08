@@ -155,6 +155,54 @@
       background: #d9edf7;
     }
 
+    /* ===== Floating Input System ===== */
+    .float-group {
+      position: relative;
+      margin-bottom: 18px;
+    }
+
+    .float-group input,
+    .float-group select {
+      width: 100%;
+      padding: 12px 10px;
+      font-size: 14px;
+      border: 1px solid #ced4da;
+      border-radius: 8px;
+      background: transparent;
+      outline: none;
+    }
+
+    .float-group label {
+      position: absolute;
+      top: 50%;
+      left: 10px;
+      color: #6c757d;
+      font-size: 13px;
+      pointer-events: none;
+      background: white;
+      padding: 0 6px;
+      transform: translateY(-50%);
+      transition: 0.2s ease;
+    }
+
+    /* When focused or value present */
+    .float-group input:focus+label,
+    .float-group input:not(:placeholder-shown)+label,
+    .float-group select:focus+label,
+    .float-group select:not([value=""])+label {
+      top: -6px;
+      font-size: 11px;
+      color: #0d6efd;
+    }
+
+    /* Focus border */
+    .float-group input:focus,
+    .float-group select:focus {
+      border-color: #0d6efd;
+      box-shadow: 0 0 0 2px rgba(13, 110, 253, .15);
+    }
+
+
     @media (max-width: 576px) {
       .main {
         padding-left: 10px !important;
@@ -259,19 +307,15 @@
         <div class="mb-3"><label class="form-label small">Add New Item</label><input type="text" id="manualNewItem"
             class="form-control" placeholder="Enter New Item Name" /></div>
 
-        <div class="mb-3"><label class="form-label small">Quantity</label><input type="number" id="newQuantity"
-            class="form-control" placeholder="Enter Quantity" /></div>
-
-        <div class="mb-3">
-          <label class="form-label small">Buying Rate</label>
-          <input type="number" id="buyingRate" class="form-control" placeholder="Enter buying rate" step="0.01" />
+        <div class="float-group">
+          <input type="number" id="newQuantity" required placeholder=" " />
         </div>
-
-        <div class="mb-3">
-          <label class="form-label small">Selling Rate</label>
-          <input type="number" id="sellingRate" class="form-control" placeholder="Auto (Buying + 30%)" step="0.01" />
+        <div class="float-group">
+          <input type="number" id="buyingRate" step="0.01" required placeholder="Enter buying rate" />
         </div>
-
+        <div class="float-group">
+          <input type="number" id="sellingRate" step="0.01" required placeholder="Auto (Buying + 30%)" />
+        </div>
         <button class="btn btn-primary w-100 py-2" id="addStockBtn"><i class="fas fa-plus-circle"></i> Add
           Stock</button>
       </div>
