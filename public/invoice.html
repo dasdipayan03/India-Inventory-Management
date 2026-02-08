@@ -641,23 +641,28 @@
 
 
 
-
         async function loadItemNames() {
             try {
                 const r = await fetch(API_PREFIX + '/items/names', {
                     headers: { Authorization: 'Bearer ' + token }
                 });
-                if (r.ok) {
-                    itemNames = await r.json();
-                    itemNames = j.items || []; 
-                } else {
+
+                if (!r.ok) {
                     itemNames = [];
+                    return;
                 }
+
+                const j = await r.json();   // ✅ THIS LINE WAS MISSING
+                itemNames = j.items || [];  // ✅ SAFE
+
+                console.log('ITEM NAMES:', itemNames);
+
             } catch (e) {
                 console.error('Failed to load item names', e);
                 itemNames = [];
             }
         }
+
 
 
 
@@ -928,7 +933,7 @@
                 });
 
 
-                
+
 
                 // 🔹 Calculation logic (OUTSIDE input handler)
                 function recalcRow() {
