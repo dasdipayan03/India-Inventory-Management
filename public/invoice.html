@@ -286,10 +286,16 @@
         }
 
         .dropdown-item {
-            padding: 10px 12px;
-            white-space: normal;
-            line-height: 1.3;
+            padding: 8px 12px;
             font-size: 0.9rem;
+            line-height: 1.3;
+
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            /* 🔥 2 lines only */
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+
             cursor: pointer;
         }
 
@@ -298,10 +304,33 @@
         }
 
         .items-table {
+            position: relative;
             width: 100%;
             overflow-x: auto;
-            overflow: visible;
-            margin-bottom: 150px;
+        }
+
+        .item-cell .dropdown-list {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+
+            /* 🔥 FULL TABLE WIDTH */
+            width: calc(100vw - 40px);
+            /* mobile safe */
+            max-width: 100%;
+
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 500;
+        }
+
+        @media (min-width: 768px) {
+            .item-cell .dropdown-list {
+                width: 100%;
+            }
         }
 
         .invoice-preview {
