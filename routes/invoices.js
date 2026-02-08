@@ -96,23 +96,15 @@ router.post('/invoices', authMiddleware, async (req, res) => {
 
         /* ---- invoice ---- */
         const inv = await client.query(`
-            INSERT INTO invoices
-            (invoice_no, user_id, gst_no, customer_name, contact, address,
-            subtotal, gst_rate, gst_amount, total_amount, date)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-            RETURNING id
-            `, [
-            invoiceNo,
-            userId,
-            gst_no || null,
-            customer_name || null,
-            contact || null,
-            address || null,
-            subtotal,
-            gstRate,          // 🔒 locked GST %
-            gst_amount,
-            total_amount,
-            new Date()        // ✅ because `date` column EXISTS
+          INSERT INTO invoices
+          (invoice_no,user_id,gst_no,customer_name,contact,address,
+           subtotal,gst_amount,total_amount,date)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+          RETURNING id
+        `, [
+            invoiceNo, userId, gst_no || null,
+            customer_name || null, contact || null, address || null,
+            subtotal, gst_amount, total_amount, new Date()
         ]);
 
         const invoiceId = inv.rows[0].id;
@@ -194,19 +186,19 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
 
     try {
         const q = `
-            SELECT i.id, i.invoice_no, i.customer_name, i.contact, i.address, i.gst_no,
-                i.date, i.subtotal, i.gst_rate, i.gst_amount, i.total_amount,
-                COALESCE(json_agg(json_build_object(
-                    'description', ii.description,
-                    'quantity', ii.quantity,
-                    'rate', ii.rate,
-                    'amount', ii.amount
-                ) ORDER BY ii.id) FILTER (WHERE ii.id IS NOT NULL), '[]') AS items
-            FROM invoices i
-            LEFT JOIN invoice_items ii ON ii.invoice_id = i.id
-            WHERE i.user_id = $2 AND TRIM(i.invoice_no) = TRIM($1)
-            GROUP BY i.id
-            LIMIT 1;
+          SELECT i.id, i.invoice_no, i.customer_name, i.contact, i.address, i.gst_no,
+                 i.date, i.subtotal, i.gst_amount, i.total_amount,
+                 COALESCE(json_agg(json_build_object(
+                   'description', ii.description,
+                   'quantity', ii.quantity,
+                   'rate', ii.rate,
+                   'amount', ii.amount
+                 ) ORDER BY ii.id) FILTER (WHERE ii.id IS NOT NULL), '[]') AS items
+          FROM invoices i
+          LEFT JOIN invoice_items ii ON ii.invoice_id = i.id
+          WHERE i.user_id = $2 AND TRIM(i.invoice_no) = TRIM($1)
+          GROUP BY i.id
+          LIMIT 1;
         `;
         const { rows } = await pool.query(q, [invoiceNo, userId]);
         if (!rows[0]) return res.status(404).json({ success: false, message: 'Invoice not found' });
@@ -214,11 +206,10 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
         const inv = rows[0];
 
         const shopRes = await pool.query(
-            `SELECT shop_name, shop_address, gst_no, gst_rate FROM settings WHERE user_id=$1`,
+            `SELECT shop_name, shop_address, gst_no FROM settings WHERE user_id=$1`,
             [userId]
         );
         const shop = shopRes.rows[0] || {};
-        const gstRate = inv.gst_rate ?? shop.gst_rate ?? 18;
 
         const doc = new PDFDocument({ size: 'A4', margin: 40 });
 
@@ -319,11 +310,7 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
 
         doc.font('Helvetica').fontSize(10);
         doc.text(`Subtotal: ${Number(inv.subtotal).toFixed(2)}`, 350, y + 12);
-        doc.text(
-            `GST (${gstRate}%): ${Number(inv.gst_amount).toFixed(2)}`,
-            350,
-            y + 32
-        );
+        doc.text(`GST: ${Number(inv.gst_amount).toFixed(2)}`, 350, y + 32);
 
         doc.font('Helvetica-Bold').fontSize(12);
         doc.text(`Total: ${Number(inv.total_amount).toFixed(2)}`, 350, y + 55);
