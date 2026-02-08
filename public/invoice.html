@@ -863,6 +863,7 @@
 
                 // ✅ Sale page style dropdown (ONLY THIS)
                 itemInput.addEventListener('input', () => {
+                    console.log('itemNames at typing:', itemNames);
                     const q = itemInput.value.toLowerCase();
                     dropdown.innerHTML = '';
 
@@ -870,9 +871,9 @@
                         dropdown.style.display = 'none';
                         return;
                     }
-
                     const matches = itemNames
                         .filter(item =>
+                            typeof item === 'object' &&
                             item.name &&
                             item.name.toLowerCase().includes(q)
                         )
