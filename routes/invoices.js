@@ -407,5 +407,42 @@ router.get('/items/names', authMiddleware, async (req, res) => {
 });
 
 
+/* ---------------------- GET: ITEM INFO ---------------------- */
+router.get('/items/info', authMiddleware, async (req, res) => {
+    const name = req.query.name;
+
+    if (!name) {
+        return res.status(400).json({});
+    }
+
+    try {
+        const { rows } = await pool.query(
+            `
+            SELECT selling_rate, quantity
+            FROM items
+            WHERE user_id = $1
+              AND LOWER(TRIM(name)) = LOWER(TRIM($2))
+            LIMIT 1
+            `,
+            [req.user.id, name]
+        );
+
+        if (!rows.length) {
+            return res.json({});
+        }
+
+        res.json({
+            selling_rate: rows[0].selling_rate,
+            available_qty: rows[0].quantity
+        });
+
+    } catch (err) {
+        console.error('Item info error:', err);
+        res.status(500).json({});
+    }
+});
+
+
+
 
 module.exports = router;
