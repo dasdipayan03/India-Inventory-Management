@@ -649,6 +649,7 @@
                 });
                 if (r.ok) {
                     itemNames = await r.json();
+                    itemNames = j.items || []; 
                 } else {
                     itemNames = [];
                 }
@@ -846,6 +847,7 @@
 
 
 
+
             function addItemRow(item = { description: '', quantity: 1, rate: 0 }) {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -899,7 +901,7 @@
                         div.innerHTML = `
             <div style="font-weight:600">${item.name}</div>
             <div style="font-size:12px;color:${item.available_qty === 0 ? 'red' : '#6b7280'}">
-                Available: ${item.available_qty}
+                Available: ${item.quantity}
             </div>
         `;
 
@@ -924,6 +926,9 @@
 
                     dropdown.style.display = 'block';
                 });
+
+
+                
 
                 // 🔹 Calculation logic (OUTSIDE input handler)
                 function recalcRow() {
