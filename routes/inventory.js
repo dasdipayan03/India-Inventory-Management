@@ -444,8 +444,6 @@ router.get("/sales/report/excel", async (req, res) => {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Sales Report");
 
-    // ----------------- Header -----------------
-
     // 1️⃣ Column headers FIRST
     sheet.columns = [
       { header: "Sl No", key: "sl", width: 8 },
@@ -506,8 +504,6 @@ router.get("/sales/report/excel", async (req, res) => {
       grandTotal += Number(r.total_price);
     });
 
-
-    
     // ----------------- Grand Total -----------------
     sheet.addRow([]);
 
