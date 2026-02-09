@@ -599,8 +599,6 @@
         </main>
     </div>
 
-
-
     <!-- ===== Download Confirmation Modal ===== -->
     <div id="downloadModal" style="display:none; position:fixed; inset:0; z-index:2000;">
         <div style="position:absolute; inset:0; background:rgba(0,0,0,0.45);"></div>
@@ -623,57 +621,83 @@
         </div>
     </div>
 
-
-
     <script>
 
+        // =====================================================
+        // Utility: Invoice date safe ভাবে show করার জন্য
+        // Backend থেকে null / invalid / YYYY-MM-DD এলে handle করে
+        // =====================================================
         function safeInvoiceDate(d) {
+
+            // যদি date না আসে → current India time দেখাবে
             if (!d) {
                 return new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
             }
 
-            // YYYY-MM-DD case
+            // YYYY-MM-DD format হলে JS Date ঠিকমতো parse করে না
+            // তাই time অংশ জুড়ে দেওয়া হচ্ছে
             if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
                 d = d + 'T00:00:00';
             }
 
+            // JS Date object বানানো
             const dt = new Date(d);
 
+            // যদি date invalid হয় → fallback current time
             if (isNaN(dt.getTime())) {
                 return new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
             }
 
+            // সব ঠিক থাকলে India timezone অনুযায়ী return
             return dt.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
         }
 
 
+        // =====================================================
+        // Utility: Blob থেকে file download করানোর helper
+        // Mobile + multiple download safe
+        // =====================================================
         function downloadBlob(blob, filename) {
+
+            // Browser memory তে temporary URL বানানো
             const url = URL.createObjectURL(blob);
+
+            // Invisible <a> tag বানানো
             const a = document.createElement('a');
             a.style.display = 'none';
             a.href = url;
             a.download = filename;
+
+            // DOM এ add করে click trigger
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
 
-            // mobile & multiple download safe
+            // Memory leak avoid + mobile safe
             setTimeout(() => URL.revokeObjectURL(url), 1000);
         }
 
 
 
+        // =====================================================
+        // API CALL: সব item নাম load করে memory তে রাখে
+        // Item autocomplete dropdown এর জন্য
+        // =====================================================
         async function loadItemNames() {
             try {
                 const r = await fetch(API_PREFIX + '/items/names', {
                     headers: { Authorization: 'Bearer ' + token }
                 });
+
+                // API success হলে cache এ রাখি
                 if (r.ok) {
                     itemNames = await r.json();
                 } else {
                     itemNames = [];
                 }
+
             } catch (e) {
+                // Network fail হলেও page crash করবে না
                 console.error('Failed to load item names', e);
                 itemNames = [];
             }
@@ -681,22 +705,29 @@
 
 
 
+        // =====================================================
+        // API CALL: সব invoice number load করে memory তে রাখে
+        // Invoice search dropdown এর জন্য
+        // =====================================================
         async function loadInvoiceNumbers() {
             try {
                 const r = await fetch(API_PREFIX + '/invoices/numbers', {
                     headers: { Authorization: 'Bearer ' + token }
                 });
 
+                // API fail হলে empty রাখি
                 if (!r.ok) {
                     console.error('Invoice number fetch failed');
                     invoiceNumbers = [];
                     return;
                 }
 
+                // Success হলে cache
                 invoiceNumbers = await r.json();
                 console.log('✅ Invoice numbers loaded:', invoiceNumbers);
 
             } catch (err) {
+                // Search optional feature → fail হলেও problem না
                 console.error('Invoice fetch error:', err);
                 invoiceNumbers = [];
             }
@@ -704,29 +735,44 @@
 
 
 
-
-
+        // =====================================================
+        // Global config & runtime state
+        // =====================================================
         const API_PREFIX = '/api';
-        const token = localStorage.getItem('token');
-        let userGstRate = 18; // Default fallback
-        let itemNames = [];
-        let invoiceNumbers = []; // 🔥 SEARCH DROPDOWN CACHE
 
+        // Login এর পরে localStorage এ token থাকে
+        const token = localStorage.getItem('token');
+
+        let userGstRate = 18;        // Default GST fallback
+        let itemNames = [];         // Item dropdown cache
+        let invoiceNumbers = [];    // Invoice search cache
+
+
+        // =====================================================
+        // Main page entry point
+        // DOM load হলেই সব শুরু
+        // =====================================================
         document.addEventListener('DOMContentLoaded', () => {
 
 
 
+            // =========================
+            // Download modal elements
+            // =========================
             const downloadModal = document.getElementById('downloadModal');
             const modalYes = document.getElementById('modalYes');
             const modalNo = document.getElementById('modalNo');
 
+            // কোন invoice download হবে সেটা মনে রাখার জন্য
             let pendingInvoiceNo = null;
 
+            // Modal show করলে invoice number store করা হয়
             function showDownloadModal(invoiceNo) {
                 pendingInvoiceNo = invoiceNo;
                 downloadModal.style.display = 'block';
             }
 
+            // Modal hide করলে state reset
             function hideDownloadModal() {
                 pendingInvoiceNo = null;
                 downloadModal.style.display = 'none';
@@ -734,36 +780,55 @@
 
 
 
+            // =========================
+            // All DOM element references
+            // =========================
             const shopName = document.getElementById('shopName');
             const shopAddress = document.getElementById('shopAddress');
             const gstInput = document.getElementById('gstInput');
             const saveGstBtn = document.getElementById('saveGstBtn');
+
             const invoiceNoEl = document.getElementById('invoiceNo');
             const invoiceDateEl = document.getElementById('invoiceDate');
+
             const custName = document.getElementById('custName');
             const custContact = document.getElementById('custContact');
             const custAddress = document.getElementById('custAddress');
+
             const itemsTbody = document.getElementById('itemsTbody');
             const addItemBtn = document.getElementById('addItemBtn');
+
             const subtotalEl = document.getElementById('subtotal');
             const gstAmountEl = document.getElementById('gstAmount');
             const grandTotalEl = document.getElementById('grandTotal');
+
             const saveInvoiceBtn = document.getElementById('saveInvoiceBtn');
             const clearBtn = document.getElementById('clearBtn');
+
             const searchInput = document.getElementById('searchInvoiceInput');
+
+            // Invoice search dropdown dynamically বানানো
             const invoiceDropdown = document.createElement('div');
             invoiceDropdown.className = 'dropdown-list';
             searchInput.closest('.dropdown-wrap').appendChild(invoiceDropdown);
 
+
+
+            // =====================================================
+            // Invoice number search autocomplete logic
+            // =====================================================
             searchInput.addEventListener('input', () => {
+
                 const q = searchInput.value.trim().toLowerCase();
                 invoiceDropdown.innerHTML = '';
 
+                // Empty হলে dropdown hide
                 if (!q) {
                     invoiceDropdown.style.display = 'none';
                     return;
                 }
 
+                // Cache থেকে match বের করা
                 const matches = invoiceNumbers
                     .filter(no => no.toLowerCase().includes(q))
                     .slice(0, 10);
@@ -773,19 +838,25 @@
                     return;
                 }
 
+                // Dropdown item তৈরি
                 matches.forEach(no => {
                     const div = document.createElement('div');
                     div.className = 'dropdown-item';
                     div.textContent = no;
+
+                    // Click করলে input fill
                     div.onclick = () => {
                         searchInput.value = no;
                         invoiceDropdown.style.display = 'none';
                     };
+
                     invoiceDropdown.appendChild(div);
                 });
 
                 invoiceDropdown.style.display = 'block';
             });
+
+            // Outside click করলে dropdown hide
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('#searchInvoiceInput') &&
                     !e.target.closest('.dropdown-list')) {
@@ -795,39 +866,68 @@
 
 
 
+            // =========================
+            // Search buttons
+            // =========================
             const searchBtn = document.getElementById('searchInvoiceBtn');
             const searchDownloadBtn = document.getElementById('searchDownloadBtn');
             const searchResult = document.getElementById('searchResult');
 
+
+            // Authorization header helper
             function authHeaders() {
-                return { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+                return {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                };
             }
 
+
+
+            // =====================================================
+            // Initial page load flow
+            // =====================================================
             async function init() {
-                if (!token) { alert('Please log in first'); return; }
+
+                // Login না থাকলে page access বন্ধ
+                if (!token) {
+                    alert('Please log in first');
+                    return;
+                }
+
+                // Dropdown cache preload
                 await loadItemNames();
                 await loadInvoiceNumbers();
+
+                // Shop info load (name, GST, address)
                 try {
                     const gstR = await fetch(API_PREFIX + '/shop-info', { headers: authHeaders() });
                     const gstJ = await gstR.json();
+
                     if (gstJ.success && gstJ.settings) {
                         const s = gstJ.settings;
+
                         if (s.shop_name) shopName.value = s.shop_name;
                         if (s.shop_address) shopAddress.value = s.shop_address;
                         if (s.gst_no) gstInput.value = s.gst_no;
+
                         if (s.gst_rate) {
                             userGstRate = parseFloat(s.gst_rate) || 18;
                             document.getElementById('gstRateInput').value = userGstRate;
                         }
-                        // Update GST label text to match user's saved rate
+
+                        // GST label update
                         const gstLabelDiv = document.querySelector('.totals div:nth-child(2)');
                         if (gstLabelDiv) {
-                            gstLabelDiv.innerHTML = `GST (${userGstRate}%): <span id="gstAmount">${gstAmountEl.textContent}</span>`;
+                            gstLabelDiv.innerHTML =
+                                `GST (${userGstRate}%): <span id="gstAmount">${gstAmountEl.textContent}</span>`;
                         }
-                        recalcTotals(); // ✅ Immediately refresh subtotal, GST, and label
+
+                        recalcTotals();
                     }
                 } catch (e) { }
 
+                // New invoice number load
                 try {
                     const r = await fetch(API_PREFIX + '/invoices/new', { headers: authHeaders() });
                     const j = await r.json();
@@ -837,166 +937,19 @@
                     }
                 } catch (e) { }
 
+                // First empty row
                 addItemRow();
                 recalcTotals();
             }
 
-            saveGstBtn.onclick = async () => {
-                const data = {
-                    shop_name: shopName.value.trim(),
-                    shop_address: shopAddress.value.trim(),
-                    gst_no: gstInput.value.trim(),
-                    gst_rate: parseFloat(document.getElementById('gstRateInput').value) || 18
-                };
-                const r = await fetch(API_PREFIX + '/shop-info', {
-                    method: 'POST',
-                    headers: authHeaders(),
-                    body: JSON.stringify(data)
-                });
 
 
-                const j = await r.json();
-                alert(j.success ? 'Shop info saved!' : 'Error saving shop info');
-                if (j.success) {
-                    userGstRate = parseFloat(document.getElementById('gstRateInput').value) || 18;
-                    recalcTotals();
-                }
-
-            };
-
-            function renderDropdown(listEl, items, onSelect) {
-                if (!items.length) {
-                    listEl.style.display = 'none';
-                    return;
-                }
-
-                listEl.innerHTML = items
-                    .map(i => `<div class="dropdown-item">${i}</div>`)
-                    .join('');
-
-                listEl.style.display = 'block';
-
-                listEl.querySelectorAll('.dropdown-item').forEach(el => {
-                    el.onclick = () => {
-                        onSelect(el.textContent);
-                        listEl.style.display = 'none';
-                    };
-                });
-            }
-
-            function addItemRow(item = { description: '', quantity: 1, rate: 0 }) {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-    <td class="item-cell">
-        <div class="dropdown-wrap">
-            <input class="item-input" placeholder="Search item">
-            <div class="dropdown-list"></div>
-        </div>
-    </td>
-    <td><input type="number" step="0.001" min="0" value="${item.quantity}"></td>
-    <td><input type="number" step="0.01" min="0" value="${item.rate}"></td>
-    <td>0.00</td>
-    <td><button class="btn small">❌</button></td>
-    `;
-
-                itemsTbody.appendChild(tr);
-
-                const itemInput = tr.querySelector('.item-input');
-                const dropdown = tr.querySelector('.dropdown-list');
-                const qtyInput = tr.children[1].querySelector('input');
-                const rateInput = tr.children[2].querySelector('input');
-                const amountCell = tr.children[3];
-                const removeBtn = tr.children[4].querySelector('button');
-
-                // ✅ Sale page style dropdown (ONLY THIS)
-                itemInput.addEventListener('input', () => {
-                    const q = itemInput.value.toLowerCase();
-                    dropdown.innerHTML = '';
-
-                    if (!q) {
-                        dropdown.style.display = 'none';
-                        return;
-                    }
-
-                    const matches = itemNames
-                        .filter(name => name.toLowerCase().includes(q))
-                        .slice(0, 15);
-
-                    if (!matches.length) {
-                        dropdown.style.display = 'none';
-                        return;
-                    }
-
-                    matches.forEach(name => {
-                        const div = document.createElement('div');
-                        div.className = 'dropdown-item';
-                        div.textContent = name;
-
-                        div.onclick = async () => {
-                            itemInput.value = name;
-                            dropdown.style.display = 'none';
-
-                            const r = await fetch(
-                                API_PREFIX + '/items/info?name=' + encodeURIComponent(name),
-                                { headers: { Authorization: 'Bearer ' + token } }
-                            );
-                            if (r.ok) {
-                                const j = await r.json();
-                                rateInput.value = j.selling_rate || 0;
-                                recalcRow();
-                            }
-                        };
-
-                        dropdown.appendChild(div);
-                    });
-
-                    dropdown.style.display = 'block';
-                });
-
-                function recalcRow() {
-                    const amt =
-                        (parseFloat(qtyInput.value || 0) *
-                            parseFloat(rateInput.value || 0)).toFixed(2);
-                    amountCell.textContent = amt;
-                    recalcTotals();
-                }
-
-                qtyInput.oninput = rateInput.oninput = recalcRow;
-
-                removeBtn.onclick = () => {
-                    tr.remove();
-                    recalcTotals();
-                };
-
-                recalcRow();
-            }
-
-
-            addItemBtn.onclick = () => addItemRow();
-
-            function recalcTotals() {
-                let sub = 0;
-                itemsTbody.querySelectorAll('tr').forEach(r => {
-                    sub += parseFloat(r.children[3].textContent) || 0;
-                });
-
-                const gst = (sub * (userGstRate / 100)).toFixed(2);
-                const total = (sub + parseFloat(gst)).toFixed(2);
-
-                subtotalEl.textContent = sub.toFixed(2);
-                gstAmountEl.textContent = gst;
-                grandTotalEl.textContent = total;
-
-                // ✅ Update GST label dynamically on every refresh/recalc
-                const gstLabelDiv = document.querySelector('.totals div:nth-child(2)');
-                if (gstLabelDiv) {
-                    gstLabelDiv.innerHTML = `GST (${userGstRate}%): <span id="gstAmount">${gst}</span>`;
-                }
-            }
-
-
-            // ✅ Save Invoice + Silent PDF Download
+            // =====================================================
+            // Submit invoice (MAIN BUSINESS FLOW)
+            // =====================================================
             saveInvoiceBtn.onclick = async () => {
+
+                // UI data collect
                 const data = {
                     customer_name: custName.value.trim(),
                     contact: custContact.value.trim(),
@@ -1004,28 +957,45 @@
                     gst_no: gstInput.value.trim() || null,
                     items: []
                 };
+
+                // Items table loop
                 itemsTbody.querySelectorAll('tr').forEach(r => {
-                    const d = r.children[0].querySelector('input').value.trim(),
-                        q = parseFloat(r.children[1].querySelector('input').value) || 0,
-                        p = parseFloat(r.children[2].querySelector('input').value) || 0;
-                    if (d || q > 0 || p > 0) data.items.push({ description: d, quantity: q, rate: p });
+                    const d = r.children[0].querySelector('input').value.trim();
+                    const q = parseFloat(r.children[1].querySelector('input').value) || 0;
+                    const p = parseFloat(r.children[2].querySelector('input').value) || 0;
+
+                    // Empty row skip
+                    if (d || q > 0 || p > 0) {
+                        data.items.push({ description: d, quantity: q, rate: p });
+                    }
                 });
-                if (!data.items.length) return alert('Add at least one item');
+
+                if (!data.items.length) {
+                    alert('Add at least one item');
+                    return;
+                }
+
+                // Backend এ invoice save
                 const res = await fetch(API_PREFIX + '/invoices', {
-                    method: 'POST', headers: authHeaders(), body:
-                        JSON.stringify(data)
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify(data)
                 });
+
                 const j = await res.json();
+
                 if (j.success) {
 
+                    // Download confirmation popup
                     showDownloadModal(j.invoice_no);
 
-                    // ✅ Clear form and refresh next invoice number
+                    // UI reset
                     custName.value = custContact.value = custAddress.value = '';
                     itemsTbody.innerHTML = '';
                     addItemRow();
                     recalcTotals();
 
+                    // Next invoice number load
                     try {
                         const r = await fetch(API_PREFIX + '/invoices/new', { headers: authHeaders() });
                         const next = await r.json();
@@ -1036,111 +1006,19 @@
                     } catch (e) {
                         console.warn('Error fetching next invoice number', e);
                     }
+
                 } else {
                     alert('Error saving invoice');
                 }
             };
 
-            // ✅ Clear Button
-            clearBtn.onclick = async () => {
-                custName.value = custContact.value = custAddress.value = '';
-                itemsTbody.innerHTML = '';
-                addItemRow();
-                recalcTotals();
-                try {
-                    const r = await fetch(API_PREFIX + '/invoices/new', { headers: authHeaders() });
-                    const j = await r.json();
-                    if (j.success) {
-                        invoiceNoEl.textContent = j.invoice_no;
-                        invoiceDateEl.textContent = safeInvoiceDate(j.date || new Date());
-                    }
-                } catch (err) {
-                    console.warn('Network error fetching new invoice number:', err);
-                }
-            };
-
-            // ✅ Search & Render Invoice
-            searchBtn.onclick = async () => {
-                const inv = searchInput.value.trim();
-                if (!inv) return;
-                const r = await fetch(API_PREFIX + '/invoices/' + encodeURIComponent(inv), {
-                    headers: {
-                        Authorization: 'Bearer ' +
-                            token
-                    }
-                });
-                const j = await r.json();
-                if (!j.success) return alert('Not found');
-                renderSearch(j.invoice);
-            };
 
 
-            //for search invoice table
-
-            function renderSearch(inv) {
-                let html = `
-    <div class="invoice-preview">
-        <div class="invoice-head">
-            <b>${inv.invoice_no}</b>
-            <span>${new Date(inv.date).toLocaleString()}</span>
-        </div>
-
-        <div class="invoice-customer">
-            ${inv.customer_name || ''} ${inv.contact || ''}<br>
-            ${inv.address || ''}
-        </div>
-
-        <div class="invoice-items">
-            `;
-
-                inv.items.forEach(it => {
-                    html += `
-            <div class="invoice-item">
-                <div class="item-name">${it.description}</div>
-                <div class="item-row">
-                    <span>Qty: <b>${it.quantity}</b></span>
-                    <span>Rate: <b>${it.rate}</b></span>
-                    <span>Amt: <b>${it.amount}</b></span>
-                </div>
-            </div>
-            `;
-                });
-
-                html += `
-        </div>
-
-        <div class="invoice-totals">
-            <div>Subtotal: <b>${inv.subtotal}</b></div>
-            <div>GST: <b>${inv.gst_amount}</b></div>
-            <div class="grand">Total: ${inv.total_amount}</div>
-        </div>
-    </div>
-    `;
-
-                searchResult.innerHTML = html;
-            }
-
-
-
-            // ✅ Silent Search Download
-            searchDownloadBtn.onclick = async () => {
-                const inv = searchInput.value.trim();
-                if (!inv) return;
-                try {
-                    const response = await fetch(`${API_PREFIX}/invoices/${encodeURIComponent(inv)}/pdf`, {
-                        headers: { Authorization: 'Bearer ' + token }
-                    });
-                    if (!response.ok) throw new Error('Download failed');
-                    const blob = await response.blob();
-                    downloadBlob(blob, `${inv}.pdf`);
-                } catch (err) {
-                    alert('Failed to download PDF: ' + err.message);
-                }
-            };
-
-
-
+            // =====================================================
+            // Modal YES → PDF download
+            // =====================================================
             modalYes.onclick = async () => {
+
                 if (!pendingInvoiceNo) return;
 
                 try {
@@ -1148,10 +1026,12 @@
                         `${API_PREFIX}/invoices/${encodeURIComponent(pendingInvoiceNo)}/pdf`,
                         { headers: { Authorization: 'Bearer ' + token } }
                     );
+
                     if (!response.ok) throw new Error('Download failed');
 
                     const blob = await response.blob();
                     downloadBlob(blob, `${pendingInvoiceNo}.pdf`);
+
                 } catch (err) {
                     alert('Failed to download PDF: ' + err.message);
                 }
@@ -1159,14 +1039,17 @@
                 hideDownloadModal();
             };
 
+            // Modal NO → শুধু close
             modalNo.onclick = () => {
                 hideDownloadModal();
             };
 
 
-
-
+            // =========================
+            // Start everything
+            // =========================
             init();
+
         });
     </script>
 
