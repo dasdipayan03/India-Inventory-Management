@@ -445,18 +445,8 @@ router.get("/sales/report/excel", async (req, res) => {
     const sheet = workbook.addWorksheet("Sales Report");
 
     // ----------------- Header -----------------
-    // sheet.mergeCells("A1:E1");
-    // sheet.getCell("A1").value = "Sales Report";
-    sheet.getCell("A1").font = { size: 16, bold: true };
-    sheet.getCell("A1").alignment = { horizontal: "center" };
 
-    sheet.mergeCells("A2:E2");
-    sheet.getCell("A2").value = `From: ${from}   To: ${to}`;
-    sheet.getCell("A2").alignment = { horizontal: "center" };
-
-    sheet.addRow([]); // empty row
-
-    // ----------------- Table Header -----------------
+    // 1️⃣ Column headers FIRST
     sheet.columns = [
       { header: "Sl No", key: "sl", width: 8 },
       { header: "Item Name", key: "item", width: 30 },
@@ -464,6 +454,8 @@ router.get("/sales/report/excel", async (req, res) => {
       { header: "Rate", key: "rate", width: 12 },
       { header: "Amount", key: "total", width: 14 },
     ];
+
+    // style header row (row-1)
     const headerRow = sheet.getRow(1);
     headerRow.font = { bold: true };
     headerRow.alignment = { horizontal: "center" };
@@ -476,20 +468,19 @@ router.get("/sales/report/excel", async (req, res) => {
       };
     });
 
-    sheet.spliceRows(1, 0, [], []); // push header down by 2 rows
-
+    // 2️⃣ Insert title rows ABOVE data (not splice)
+    sheet.insertRow(1, []);
+    sheet.insertRow(1, [`Sales Report`]);
     sheet.mergeCells("A1:E1");
-    sheet.getCell("A1").value = "Sales Report";
     sheet.getCell("A1").font = { size: 16, bold: true };
     sheet.getCell("A1").alignment = { horizontal: "center" };
 
+    sheet.insertRow(2, [`From: ${from}   To: ${to}`]);
     sheet.mergeCells("A2:E2");
-    sheet.getCell("A2").value = `From: ${from}   To: ${to}`;
     sheet.getCell("A2").alignment = { horizontal: "center" };
 
-    // ----------------- Data Rows -----------------
+    // 3️⃣ Data rows
     let grandTotal = 0;
-    let rowIndex = 5;
 
     result.rows.forEach((r, i) => {
       const row = sheet.addRow({
@@ -509,13 +500,14 @@ router.get("/sales/report/excel", async (req, res) => {
         };
       });
 
-      row.getCell("D").numFmt = "#,##0.00";
-      row.getCell("E").numFmt = "#,##0.00";
+      row.getCell(4).numFmt = "#,##0.00";
+      row.getCell(5).numFmt = "#,##0.00";
 
       grandTotal += Number(r.total_price);
-      rowIndex++;
     });
 
+
+    
     // ----------------- Grand Total -----------------
     sheet.addRow([]);
 
