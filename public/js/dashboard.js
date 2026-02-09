@@ -345,11 +345,6 @@ function downloadItemReportPDF() {
 }
 
 
-
-
-
-
-
 // ----------------- PDF REPORT --------------------------
 function downloadSalesPDF() {
   const from = document.getElementById("fromDate").value;
@@ -362,9 +357,6 @@ function downloadSalesPDF() {
 
   window.location.href = `/api/sales/report/pdf?from=${from}&to=${to}`;
 }
-
-
-
 
 
 // -------------------- EXCELL REPORT ----------------------------
