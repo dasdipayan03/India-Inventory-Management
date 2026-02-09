@@ -445,8 +445,8 @@ router.get("/sales/report/excel", async (req, res) => {
     const sheet = workbook.addWorksheet("Sales Report");
 
     // ----------------- Header -----------------
-    sheet.mergeCells("A1:E1");
-    sheet.getCell("A1").value = "Sales Report";
+    // sheet.mergeCells("A1:E1");
+    // sheet.getCell("A1").value = "Sales Report";
     sheet.getCell("A1").font = { size: 16, bold: true };
     sheet.getCell("A1").alignment = { horizontal: "center" };
 
@@ -462,9 +462,9 @@ router.get("/sales/report/excel", async (req, res) => {
       { header: "Item Name", key: "item", width: 30 },
       { header: "Quantity", key: "qty", width: 12 },
       { header: "Rate", key: "rate", width: 12 },
-      { header: "total", key: "total", width: 14 },
+      { header: "Amount", key: "total", width: 14 },
     ];
-    const headerRow = sheet.getRow(4);
+    const headerRow = sheet.getRow(1);
     headerRow.font = { bold: true };
     headerRow.alignment = { horizontal: "center" };
     headerRow.eachCell(cell => {
@@ -475,6 +475,18 @@ router.get("/sales/report/excel", async (req, res) => {
         right: { style: "thin" },
       };
     });
+
+    sheet.spliceRows(1, 0, [], []); // push header down by 2 rows
+
+    sheet.mergeCells("A1:E1");
+    sheet.getCell("A1").value = "Sales Report";
+    sheet.getCell("A1").font = { size: 16, bold: true };
+    sheet.getCell("A1").alignment = { horizontal: "center" };
+
+    sheet.mergeCells("A2:E2");
+    sheet.getCell("A2").value = `From: ${from}   To: ${to}`;
+    sheet.getCell("A2").alignment = { horizontal: "center" };
+
     // ----------------- Data Rows -----------------
     let grandTotal = 0;
     let rowIndex = 5;
