@@ -457,18 +457,16 @@ router.get("/sales/report/excel", async (req, res) => {
     sheet.addRow([]); // empty row
 
     // ----------------- Table Header -----------------
-    sheet.addRow([
-      "Sl No",
-      "Item Name",
-      "Quantity",
-      "Rate",
-      "Amount"
-    ]);
-
+    sheet.columns = [
+      { header: "Sl No", key: "sl", width: 8 },
+      { header: "Item Name", key: "item", width: 30 },
+      { header: "Quantity", key: "qty", width: 12 },
+      { header: "Rate", key: "rate", width: 12 },
+      { header: "total", key: "total", width: 14 },
+    ];
     const headerRow = sheet.getRow(4);
     headerRow.font = { bold: true };
     headerRow.alignment = { horizontal: "center" };
-
     headerRow.eachCell(cell => {
       cell.border = {
         top: { style: "thin" },
@@ -476,8 +474,7 @@ router.get("/sales/report/excel", async (req, res) => {
         left: { style: "thin" },
         right: { style: "thin" },
       };
-    })
-
+    });
     // ----------------- Data Rows -----------------
     let grandTotal = 0;
     let rowIndex = 5;
