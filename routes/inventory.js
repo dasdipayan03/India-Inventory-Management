@@ -462,7 +462,7 @@ router.get("/sales/report/excel", async (req, res) => {
       { header: "Item Name", key: "item", width: 30 },
       { header: "Quantity", key: "qty", width: 12 },
       { header: "Rate", key: "rate", width: 12 },
-      { header: "Sales Report", key: "Sales Report", width: 14 },
+      { header: "Sales Report", key: "total", width: 14 },
     ];
 
     const headerRow = sheet.getRow(4);
