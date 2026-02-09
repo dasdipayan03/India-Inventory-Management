@@ -239,6 +239,8 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
 
         doc.pipe(res);
 
+        
+
         /* ================= HEADER ================= */
 
         // Header background
@@ -313,7 +315,9 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
             doc.text(Number(it.amount).toFixed(2), 460, y, { width: 80, align: 'right' });
         }
 
-        /* ================= TOTALS BOX ================= */
+
+
+        /* ================= TOTALS ================= */
 
         y += 30;
         if (y > 650) {
@@ -321,16 +325,31 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
             y = 50;
         }
 
-        doc.rect(340, y, 220, 85).stroke('#999');
-
         doc.font('Helvetica').fontSize(10);
-        doc.text(`Subtotal: ${Number(inv.subtotal).toFixed(2)}`, 350, y + 12);
-        doc.text(`GST: ${Number(inv.gst_amount).toFixed(2)}`, 350, y + 32);
+        doc.text(
+            `Subtotal: ${Number(inv.subtotal).toFixed(2)}`,
+            360,           // x position
+            y,
+            { width: 200, align: 'right' }
+        );
+
+        doc.text(
+            `GST: ${Number(inv.gst_amount).toFixed(2)}`,
+            360,
+            y + 15,
+            { width: 200, align: 'right' }
+        );
 
         doc.font('Helvetica-Bold').fontSize(12);
-        doc.text(`Total: ${Number(inv.total_amount).toFixed(2)}`, 350, y + 55);
+        doc.text(
+            `Total: ${Number(inv.total_amount).toFixed(2)}`,
+            360,
+            y + 35,
+            { width: 200, align: 'right' }
+        );
 
-        /* ================= FOOTER ================= */
+
+        /* ================= invoice pdf FOOTER ================= */
 
         doc.font('Helvetica').fontSize(9);
         doc.text(
@@ -350,7 +369,7 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
 });
 
 
-/* ---------------------- SHOP INFO ---------------------- */
+/* ---------------------- SHOP INFO save ---------------------- */
 router.post('/shop-info', authMiddleware, async (req, res) => {
     const { shop_name, shop_address, gst_no, gst_rate } = req.body;
     const userId = req.user.id;
