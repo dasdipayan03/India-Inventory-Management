@@ -599,6 +599,32 @@
         </main>
     </div>
 
+
+
+    <!-- ===== Download Confirmation Modal ===== -->
+    <div id="downloadModal" style="display:none; position:fixed; inset:0; z-index:2000;">
+        <div style="position:absolute; inset:0; background:rgba(0,0,0,0.45);"></div>
+        <div style="
+                position:relative;
+                max-width:320px;
+                margin:25vh auto;
+                background:#fff;
+                border-radius:10px;
+                padding:16px;
+                text-align:center;
+                box-shadow:0 20px 40px rgba(0,0,0,0.2);
+            ">
+            <h3>Download Invoice</h3>
+            <p>Do you want to download the invoice?</p>
+            <div style="display:flex; gap:10px; margin-top:14px;">
+                <button id="modalYes" class="btn primary" style="flex:1;">Yes</button>
+                <button id="modalNo" class="btn danger" style="flex:1;">No</button>
+            </div>
+        </div>
+    </div>
+
+
+
     <script>
 
         function safeInvoiceDate(d) {
@@ -687,6 +713,27 @@
         let invoiceNumbers = []; // 🔥 SEARCH DROPDOWN CACHE
 
         document.addEventListener('DOMContentLoaded', () => {
+
+
+
+            const downloadModal = document.getElementById('downloadModal');
+            const modalYes = document.getElementById('modalYes');
+            const modalNo = document.getElementById('modalNo');
+
+            let pendingInvoiceNo = null;
+
+            function showDownloadModal(invoiceNo) {
+                pendingInvoiceNo = invoiceNo;
+                downloadModal.style.display = 'block';
+            }
+
+            function hideDownloadModal() {
+                pendingInvoiceNo = null;
+                downloadModal.style.display = 'none';
+            }
+
+
+
             const shopName = document.getElementById('shopName');
             const shopAddress = document.getElementById('shopAddress');
             const gstInput = document.getElementById('gstInput');
@@ -840,17 +887,17 @@
             function addItemRow(item = { description: '', quantity: 1, rate: 0 }) {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                <td class="item-cell">
-                <div class="dropdown-wrap">
-                    <input class="item-input" placeholder="Search item">
-                    <div class="dropdown-list"></div>
-                </div>
-                </td>
-                <td><input type="number" step="0.001" min="0" value="${item.quantity}"></td>
-                <td><input type="number" step="0.01" min="0" value="${item.rate}"></td>
-                <td>0.00</td>
-                <td><button class="btn small">❌</button></td>
-                `;
+    <td class="item-cell">
+        <div class="dropdown-wrap">
+            <input class="item-input" placeholder="Search item">
+            <div class="dropdown-list"></div>
+        </div>
+    </td>
+    <td><input type="number" step="0.001" min="0" value="${item.quantity}"></td>
+    <td><input type="number" step="0.01" min="0" value="${item.rate}"></td>
+    <td>0.00</td>
+    <td><button class="btn small">❌</button></td>
+    `;
 
                 itemsTbody.appendChild(tr);
 
@@ -964,21 +1011,14 @@
                     if (d || q > 0 || p > 0) data.items.push({ description: d, quantity: q, rate: p });
                 });
                 if (!data.items.length) return alert('Add at least one item');
-                const res = await fetch(API_PREFIX + '/invoices', { method: 'POST', headers: authHeaders(), body: JSON.stringify(data) });
+                const res = await fetch(API_PREFIX + '/invoices', {
+                    method: 'POST', headers: authHeaders(), body:
+                        JSON.stringify(data)
+                });
                 const j = await res.json();
                 if (j.success) {
-                    // ✅ Wait 1 second, then silently download PDF
-                    setTimeout(async () => {
-                        const pdfUrl = `${API_PREFIX}/invoices/${encodeURIComponent(j.invoice_no)}/pdf`;
-                        try {
-                            const response = await fetch(pdfUrl, { headers: { Authorization: 'Bearer ' + token } });
-                            if (!response.ok) throw new Error('Download failed');
-                            const blob = await response.blob();
-                            downloadBlob(blob, `${j.invoice_no}.pdf`);
-                        } catch (err) {
-                            alert('Failed to download PDF: ' + err.message);
-                        }
-                    }, 1000);
+
+                    showDownloadModal(j.invoice_no);
 
                     // ✅ Clear form and refresh next invoice number
                     custName.value = custContact.value = custAddress.value = '';
@@ -1023,7 +1063,12 @@
             searchBtn.onclick = async () => {
                 const inv = searchInput.value.trim();
                 if (!inv) return;
-                const r = await fetch(API_PREFIX + '/invoices/' + encodeURIComponent(inv), { headers: { Authorization: 'Bearer ' + token } });
+                const r = await fetch(API_PREFIX + '/invoices/' + encodeURIComponent(inv), {
+                    headers: {
+                        Authorization: 'Bearer ' +
+                            token
+                    }
+                });
                 const j = await r.json();
                 if (!j.success) return alert('Not found');
                 renderSearch(j.invoice);
@@ -1034,43 +1079,43 @@
 
             function renderSearch(inv) {
                 let html = `
-                <div class="invoice-preview">
-                <div class="invoice-head">
-                    <b>${inv.invoice_no}</b>
-                    <span>${new Date(inv.date).toLocaleString()}</span>
-                </div>
+    <div class="invoice-preview">
+        <div class="invoice-head">
+            <b>${inv.invoice_no}</b>
+            <span>${new Date(inv.date).toLocaleString()}</span>
+        </div>
 
-                <div class="invoice-customer">
-                    ${inv.customer_name || ''} ${inv.contact || ''}<br>
-                    ${inv.address || ''}
-                </div>
+        <div class="invoice-customer">
+            ${inv.customer_name || ''} ${inv.contact || ''}<br>
+            ${inv.address || ''}
+        </div>
 
-                <div class="invoice-items">
+        <div class="invoice-items">
             `;
 
                 inv.items.forEach(it => {
                     html += `
-                <div class="invoice-item">
-                    <div class="item-name">${it.description}</div>
-                    <div class="item-row">
+            <div class="invoice-item">
+                <div class="item-name">${it.description}</div>
+                <div class="item-row">
                     <span>Qty: <b>${it.quantity}</b></span>
                     <span>Rate: <b>${it.rate}</b></span>
                     <span>Amt: <b>${it.amount}</b></span>
-                    </div>
                 </div>
-                `;
+            </div>
+            `;
                 });
 
                 html += `
-                </div>
+        </div>
 
-                <div class="invoice-totals">
-                    <div>Subtotal: <b>${inv.subtotal}</b></div>
-                    <div>GST: <b>${inv.gst_amount}</b></div>
-                    <div class="grand">Total: ${inv.total_amount}</div>
-                </div>
-                </div>
-            `;
+        <div class="invoice-totals">
+            <div>Subtotal: <b>${inv.subtotal}</b></div>
+            <div>GST: <b>${inv.gst_amount}</b></div>
+            <div class="grand">Total: ${inv.total_amount}</div>
+        </div>
+    </div>
+    `;
 
                 searchResult.innerHTML = html;
             }
@@ -1092,6 +1137,34 @@
                     alert('Failed to download PDF: ' + err.message);
                 }
             };
+
+
+
+            modalYes.onclick = async () => {
+                if (!pendingInvoiceNo) return;
+
+                try {
+                    const response = await fetch(
+                        `${API_PREFIX}/invoices/${encodeURIComponent(pendingInvoiceNo)}/pdf`,
+                        { headers: { Authorization: 'Bearer ' + token } }
+                    );
+                    if (!response.ok) throw new Error('Download failed');
+
+                    const blob = await response.blob();
+                    downloadBlob(blob, `${pendingInvoiceNo}.pdf`);
+                } catch (err) {
+                    alert('Failed to download PDF: ' + err.message);
+                }
+
+                hideDownloadModal();
+            };
+
+            modalNo.onclick = () => {
+                hideDownloadModal();
+            };
+
+
+
 
             init();
         });
