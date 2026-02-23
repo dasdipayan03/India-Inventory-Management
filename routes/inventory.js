@@ -544,12 +544,12 @@ router.get("/sales/report/excel", async (req, res) => {
     // 2️⃣ Insert title rows ABOVE data (not splice)
     sheet.insertRow(1, []);
     sheet.insertRow(1, [`Sales Report`]);
-    sheet.mergeCells("A1:E1");
+    sheet.mergeCells("A1:F1");
     sheet.getCell("A1").font = { size: 16, bold: true };
     sheet.getCell("A1").alignment = { horizontal: "center" };
 
     sheet.insertRow(2, [`From: ${from}   To: ${to}`]);
-    sheet.mergeCells("A2:E2");
+    sheet.mergeCells("A2:F2");
     sheet.getCell("A2").alignment = { horizontal: "center" };
 
     // 3️⃣ Data rows
@@ -578,6 +578,7 @@ router.get("/sales/report/excel", async (req, res) => {
 
       row.getCell(4).numFmt = "#,##0.00";
       row.getCell(5).numFmt = "#,##0.00";
+      row.getCell(6).numFmt = "#,##0.00";
 
       grandTotal += Number(r.total_price);
     });
@@ -591,7 +592,7 @@ router.get("/sales/report/excel", async (req, res) => {
     });
 
     totalRow.font = { bold: true };
-    totalRow.getCell("E").numFmt = "#,##0.00";
+    totalRow.getCell("F").numFmt = "#,##0.00";
     totalRow.alignment = { horizontal: "right" };
 
     // ----------------- Response -----------------
