@@ -188,7 +188,7 @@ router.get('/invoices', authMiddleware, async (req, res) => {
                 date,
                 invoice_no,
                 customer_name,
-                address,
+                contact,
                 total_amount
             FROM invoices
             WHERE user_id = $1

@@ -1156,7 +1156,7 @@
             }
 
 
-              // show all invoices
+            // show all invoices
             function renderAllInvoices(rows) {
 
                 if (!rows.length) {
@@ -1165,14 +1165,14 @@
                 }
 
                 let html = `
-    <div style="overflow-x:auto;">
-    <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+    <div style="width:100%; overflow-x:auto;">
+    <table style="width:100%; table-layout:fixed; border-collapse:collapse; font-size:0.85rem;">
         <thead>
             <tr style="background:#f1f5f9;">
                 <th style="padding:8px; border:1px solid #ddd;">Date</th>
                 <th style="padding:8px; border:1px solid #ddd;">Invoice No</th>
                 <th style="padding:8px; border:1px solid #ddd;">Customer</th>
-                <th style="padding:8px; border:1px solid #ddd;">Address</th>
+                <th style="padding:8px; border:1px solid #ddd;">Contact</th>
                 <th style="padding:8px; border:1px solid #ddd; text-align:right;">Total</th>
             </tr>
         </thead>
@@ -1192,7 +1192,7 @@
                 ${r.customer_name || '-'}
             </td>
             <td style="padding:6px; border:1px solid #eee;">
-                ${r.address || '-'}
+                ${r.contact || '-'}
             </td>
             <td style="padding:6px; border:1px solid #eee; text-align:right;">
                 ${Number(r.total_amount).toFixed(2)}
@@ -1212,7 +1212,7 @@
 
 
 
-            
+
 
             // ✅ Silent Search Download
             searchDownloadBtn.onclick = async () => {
