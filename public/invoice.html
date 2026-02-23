@@ -1085,16 +1085,28 @@
             // ✅ Search & Render Invoice
             searchBtn.onclick = async () => {
                 const inv = searchInput.value.trim();
-                if (!inv) return;
-                const r = await authFetch(API_PREFIX + '/invoices/' + encodeURIComponent(inv), {
-                    headers: {
-                        Authorization: 'Bearer ' +
-                            token
-                    }
+
+                // 🔹 If invoice number দেওয়া থাকে → old behaviour
+                if (inv) {
+                    const r = await authFetch(API_PREFIX + '/invoices/' + encodeURIComponent(inv), {
+                        headers: { Authorization: 'Bearer ' + token }
+                    });
+
+                    const j = await r.json();
+                    if (!j.success) return alert('Invoice not found');
+                    renderSearch(j.invoice);
+                    return;
+                }
+
+                // 🔹 If empty → load all invoices
+                const r = await authFetch(API_PREFIX + '/invoices', {
+                    headers: { Authorization: 'Bearer ' + token }
                 });
+
                 const j = await r.json();
-                if (!j.success) return alert('Not found');
-                renderSearch(j.invoice);
+                if (!j.success) return alert('Failed to load invoices');
+
+                renderAllInvoices(j.invoices);
             };
 
 
@@ -1144,6 +1156,63 @@
             }
 
 
+              // show all invoices
+            function renderAllInvoices(rows) {
+
+                if (!rows.length) {
+                    searchResult.innerHTML = '<p>No invoices found</p>';
+                    return;
+                }
+
+                let html = `
+    <div style="overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+        <thead>
+            <tr style="background:#f1f5f9;">
+                <th style="padding:8px; border:1px solid #ddd;">Date</th>
+                <th style="padding:8px; border:1px solid #ddd;">Invoice No</th>
+                <th style="padding:8px; border:1px solid #ddd;">Customer</th>
+                <th style="padding:8px; border:1px solid #ddd;">Address</th>
+                <th style="padding:8px; border:1px solid #ddd; text-align:right;">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+    `;
+
+                rows.forEach(r => {
+                    html += `
+        <tr>
+            <td style="padding:6px; border:1px solid #eee;">
+                ${new Date(r.date).toLocaleDateString('en-IN')}
+            </td>
+            <td style="padding:6px; border:1px solid #eee; color:#2563eb; cursor:pointer;">
+                ${r.invoice_no}
+            </td>
+            <td style="padding:6px; border:1px solid #eee;">
+                ${r.customer_name || '-'}
+            </td>
+            <td style="padding:6px; border:1px solid #eee;">
+                ${r.address || '-'}
+            </td>
+            <td style="padding:6px; border:1px solid #eee; text-align:right;">
+                ${Number(r.total_amount).toFixed(2)}
+            </td>
+        </tr>
+        `;
+                });
+
+                html += `
+        </tbody>
+    </table>
+    </div>
+    `;
+
+                searchResult.innerHTML = html;
+            }
+
+
+
+            
 
             // ✅ Silent Search Download
             searchDownloadBtn.onclick = async () => {
