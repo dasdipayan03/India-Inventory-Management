@@ -1,6 +1,7 @@
 // server.js
 // require("dotenv").config(); // for local run, safe on Railway too
 
+const rateLimit = require("express-rate-limit");
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -10,16 +11,22 @@ const cookieParser = require("cookie-parser"); // ✅ ADD
 const pool = require("./db");
 
 const app = express();
+app.set("trust proxy", 1);
 
 // -------------------- MIDDLEWARE --------------------
 app.use(cors({
   origin: true,
   credentials: true, // ✅ cookie allow
 }));
-
 app.use(express.json());
-app.use(cookieParser()); // ✅ ADD (json er por)
+app.use(cookieParser());
 app.use(compression());
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200, // 15 min e 200 request
+});
+
+app.use(limiter);
 
 
 // ✅ Helmet: allow CDN + inline scripts for Bootstrap, FontAwesome
@@ -101,18 +108,46 @@ app.use((req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
+// -------------------- GLOBAL ERROR HANDLER --------------------
+app.use((err, req, res, next) => {
+  console.error("🔥 Global Error:", err);
+
+  res.status(err.status || 500).json({
+    error: "Internal Server Error",
+    message: process.env.NODE_ENV === "development"
+      ? err.message
+      : "Something went wrong"
+  });
+});
+
 
 // -------------------- START SERVER --------------------
 const PORT = process.env.PORT || 8080;
 
-app.listen(PORT, "0.0.0.0", () => {
+const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
 
 // Graceful shutdown (Railway container stop)
-process.on("SIGTERM", () => {
-  console.log("🛑 SIGTERM received. Shutting down gracefully...");
-  process.exit(0);
+process.on("SIGTERM", async () => {
+  console.log("🛑 SIGTERM received. Closing server...");
+
+  server.close(async () => {
+    console.log("🔌 HTTP server closed.");
+
+    await pool.end();
+    console.log("🔌 PostgreSQL pool closed.");
+
+    process.exit(0);
+  });
+});
+
+process.on("unhandledRejection", (err) => {
+  console.error("Unhandled Rejection:", err);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err);
 });
 
 // optional Loader.io verification

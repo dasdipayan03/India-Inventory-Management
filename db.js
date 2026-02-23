@@ -17,15 +17,16 @@ const pool = new Pool({
   idleTimeoutMillis: 30000 // ✅ Close idle connections after 30s
 });
 
-// Optional: Listen for connection and error events
-pool.on("connect", () => {
-  console.log("✅ PostgreSQL pool connected");
-});
-
 pool.on("error", (err) => {
   console.error("⚠️ Unexpected PostgreSQL error:", err);
   // Don’t exit here — allow auto-reconnect
 });
 
+
+// Test DB connection once at startup
+pool.query("SELECT 1")
+  .then(() => console.log("✅ PostgreSQL connected"))
+  .catch(err => console.error("❌ PostgreSQL connection error:", err));
+  
 // Export pool for use in queries
 module.exports = pool;
