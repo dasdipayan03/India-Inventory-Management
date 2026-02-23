@@ -1221,7 +1221,24 @@
                 <div>
                     <strong>Contact:</strong> ${r.contact || '-'}
                 </div>
-
+                
+                <div style="margin-top:10px; text-align:right;">
+                    <button 
+                        class="invoice-download-btn"
+                        data-inv="${r.invoice_no}"
+                        style="
+                            padding:6px 10px;
+                            font-size:0.8rem;
+                            border-radius:6px;
+                            border:1px solid #dbeafe;
+                            background:#e0f2fe;
+                            color:#075985;
+                            cursor:pointer;
+                        "
+                    >
+                        ⬇ Download
+                    </button>
+                </div>
                     </div>
                 `;
                 });
@@ -1254,6 +1271,30 @@
                             alert('Failed to load invoice');
                         }
 
+                    });
+                });
+                // download button click
+                document.querySelectorAll('.invoice-download-btn').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+
+                        e.stopPropagation(); // prevent invoice click trigger
+
+                        const invNo = btn.getAttribute('data-inv');
+
+                        try {
+                            const response = await fetch(
+                                `${API_PREFIX}/invoices/${encodeURIComponent(invNo)}/pdf`,
+                                { headers: { Authorization: 'Bearer ' + token } }
+                            );
+
+                            if (!response.ok) throw new Error('Download failed');
+
+                            const blob = await response.blob();
+                            downloadBlob(blob, `${invNo}.pdf`);
+
+                        } catch (err) {
+                            alert('Failed to download invoice');
+                        }
                     });
                 });
             }
