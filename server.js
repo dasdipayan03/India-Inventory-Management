@@ -1,6 +1,4 @@
 // server.js
-// require("dotenv").config(); // for local run, safe on Railway too
-
 const rateLimit = require("express-rate-limit");
 const express = require("express");
 const cors = require("cors");
@@ -25,7 +23,6 @@ const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200, // 15 min e 200 request
 });
-
 app.use(limiter);
 
 
