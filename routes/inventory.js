@@ -413,10 +413,11 @@ router.get("/sales/report/pdf", async (req, res) => {
 
     doc.fontSize(10).font("Helvetica-Bold");
     doc.text("Sl", startX, y, { width: 30 });
-    doc.text("Item", startX + 30, y, { width: 200 });
-    doc.text("Qty", startX + 230, y, { width: 50, align: "right" });
-    doc.text("Rate", startX + 280, y, { width: 80, align: "right" });
-    doc.text("Total", startX + 360, y, { width: 100, align: "right" });
+    doc.text("Date", startX + 30, y, { width: 80 });
+    doc.text("Item", startX + 110, y, { width: 170 });
+    doc.text("Qty", startX + 280, y, { width: 50, align: "right" });
+    doc.text("Rate", startX + 330, y, { width: 80, align: "right" });
+    doc.text("Total", startX + 410, y, { width: 100, align: "right" });
 
     doc.moveDown(0.5);
     doc.font("Helvetica");
@@ -433,11 +434,12 @@ router.get("/sales/report/pdf", async (req, res) => {
         doc.fontSize(10).font("Helvetica-Bold");
 
         let yHeader = doc.y;
-        doc.text("Sl", startX, yHeader, { width: 30 });
-        doc.text("Item", startX + 30, yHeader, { width: 200 });
-        doc.text("Qty", startX + 230, yHeader, { width: 50, align: "right" });
-        doc.text("Rate", startX + 280, yHeader, { width: 80, align: "right" });
-        doc.text("Total", startX + 360, yHeader, { width: 100, align: "right" });
+        doc.text("Sl", startX, y, { width: 30 });
+        doc.text("Date", startX + 30, y, { width: 80 });
+        doc.text("Item", startX + 110, y, { width: 170 });
+        doc.text("Qty", startX + 280, y, { width: 50, align: "right" });
+        doc.text("Rate", startX + 330, y, { width: 80, align: "right" });
+        doc.text("Total", startX + 410, y, { width: 100, align: "right" });
 
         doc.moveDown(0.5);
         doc.font("Helvetica");
@@ -451,11 +453,13 @@ router.get("/sales/report/pdf", async (req, res) => {
         align: "left",
       });
 
+      const saleDate = new Date(r.created_at).toLocaleDateString("en-IN");
       doc.text(i + 1, startX, y, { width: 30 });
-      doc.text(r.item_name || "", startX + 30, y, { width: 200 });
-      doc.text(r.quantity, startX + 230, y, { width: 50, align: "right" });
-      doc.text(Number(r.selling_price).toFixed(2), startX + 280, y, { width: 80, align: "right" });
-      doc.text(Number(r.total_price).toFixed(2), startX + 360, y, { width: 100, align: "right" });
+      doc.text(saleDate, startX + 30, y, { width: 80 });
+      doc.text(r.item_name || "", startX + 110, y, { width: 170 });
+      doc.text(r.quantity, startX + 280, y, { width: 50, align: "right" });
+      doc.text(Number(r.selling_price).toFixed(2), startX + 330, y, { width: 80, align: "right" });
+      doc.text(Number(r.total_price).toFixed(2), startX + 410, y, { width: 100, align: "right" });
 
       // 👉 move y based on tallest content
       doc.y = y + Math.max(itemHeight, 18) + 6;
@@ -516,6 +520,7 @@ router.get("/sales/report/excel", async (req, res) => {
     // 1️⃣ Column headers FIRST
     sheet.columns = [
       { header: "Sl No", key: "sl", width: 8 },
+      { header: "Date", key: "date", width: 15 },
       { header: "Item Name", key: "item", width: 30 },
       { header: "Quantity", key: "qty", width: 12 },
       { header: "Rate", key: "rate", width: 12 },
@@ -550,8 +555,11 @@ router.get("/sales/report/excel", async (req, res) => {
     let grandTotal = 0;
 
     result.rows.forEach((r, i) => {
+
+      const saleDate = new Date(r.created_at).toLocaleDateString("en-IN");
       const row = sheet.addRow({
         sl: i + 1,
+        date: saleDate,
         item: r.item_name,
         qty: r.quantity,
         rate: Number(r.selling_price),
