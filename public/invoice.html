@@ -1156,7 +1156,7 @@
             }
 
 
-            
+
 
             // show all invoices
             function renderAllInvoices(rows) {
@@ -1166,95 +1166,65 @@
                     return;
                 }
 
-                let isMobile = window.innerWidth < 768;
-
-                // ================= MOBILE CARD VIEW =================
-                if (isMobile) {
-
-                    let html = `<div style="display:flex; flex-direction:column; gap:10px;">`;
-
-                    rows.forEach(r => {
-                        html += `
-                <div style="
-                    background:#ffffff;
-                    border-radius:10px;
-                    padding:12px;
-                    box-shadow:0 4px 12px rgba(0,0,0,0.05);
-                    font-size:0.9rem;
-                ">
-                    <div style="font-weight:600; margin-bottom:4px;">
-                        ${new Date(r.date).toLocaleDateString('en-IN')}
-                    </div>
-
-                    <div style="color:#2563eb; font-weight:600; margin-bottom:4px; cursor:pointer;">
-                        ${r.invoice_no}
-                    </div>
-
-                    <div>Customer: ${r.customer_name || '-'}</div>
-                    <div>Contact: ${r.contact || '-'}</div>
-
-                    <div style="
-                        margin-top:6px;
-                        font-weight:700;
-                        text-align:right;
-                        color:#2563eb;
-                    ">
-                        ₹ ${Number(r.total_amount).toFixed(2)}
-                    </div>
-                </div>
-            `;
-                    });
-
-                    html += `</div>`;
-
-                    searchResult.innerHTML = html;
-                    return;
-                }
-
-                // ================= DESKTOP TABLE VIEW =================
-
                 let html = `
-    <div style="width:100%; overflow-x:auto;">
-    <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
-        <thead>
-            <tr style="background:#f1f5f9;">
-                <th style="padding:8px; border:1px solid #ddd;">Date</th>
-                <th style="padding:8px; border:1px solid #ddd;">Invoice No</th>
-                <th style="padding:8px; border:1px solid #ddd;">Customer</th>
-                <th style="padding:8px; border:1px solid #ddd;">Contact</th>
-                <th style="padding:8px; border:1px solid #ddd; text-align:right;">Total</th>
-            </tr>
-        </thead>
-        <tbody>
+        <div style="
+            display:grid;
+            grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));
+            gap:14px;
+            width:100%;
+        ">
     `;
 
                 rows.forEach(r => {
+
                     html += `
-        <tr>
-            <td style="padding:6px; border:1px solid #eee;">
-                ${new Date(r.date).toLocaleDateString('en-IN')}
-            </td>
-            <td style="padding:6px; border:1px solid #eee; color:#2563eb; cursor:pointer;">
-                ${r.invoice_no}
-            </td>
-            <td style="padding:6px; border:1px solid #eee;">
-                ${r.customer_name || '-'}
-            </td>
-            <td style="padding:6px; border:1px solid #eee;">
-                ${r.contact || '-'}
-            </td>
-            <td style="padding:6px; border:1px solid #eee; text-align:right;">
-                ${Number(r.total_amount).toFixed(2)}
-            </td>
-        </tr>
+            <div style="
+                background:#ffffff;
+                border-radius:12px;
+                padding:14px;
+                box-shadow:0 6px 18px rgba(0,0,0,0.06);
+                transition:transform 0.15s ease, box-shadow 0.15s ease;
+                font-size:0.9rem;
+            "
+            onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 10px 24px rgba(0,0,0,0.1)';"
+            onmouseout="this.style.transform='none'; this.style.boxShadow='0 6px 18px rgba(0,0,0,0.06)';"
+            >
+
+                <div style="
+                    display:flex;
+                    justify-content:space-between;
+                    margin-bottom:6px;
+                    font-weight:600;
+                ">
+                    <span>${new Date(r.date).toLocaleDateString('en-IN')}</span>
+                    <span style="color:#2563eb;">
+                        ₹ ${Number(r.total_amount).toFixed(2)}
+                    </span>
+                </div>
+
+                <div style="
+                    font-weight:700;
+                    color:#2563eb;
+                    margin-bottom:6px;
+                    cursor:pointer;
+                    word-break:break-word;
+                ">
+                    ${r.invoice_no}
+                </div>
+
+                <div style="margin-bottom:4px;">
+                    <strong>Customer:</strong> ${r.customer_name || '-'}
+                </div>
+
+                <div>
+                    <strong>Contact:</strong> ${r.contact || '-'}
+                </div>
+
+            </div>
         `;
                 });
 
-                html += `
-        </tbody>
-    </table>
-    </div>
-    `;
+                html += `</div>`;
 
                 searchResult.innerHTML = html;
             }
