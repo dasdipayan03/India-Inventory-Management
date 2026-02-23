@@ -179,6 +179,32 @@ router.get('/invoices/numbers', authMiddleware, async (req, res) => {
     res.json(rows.map(r => r.invoice_no));
 });
 
+/* ---------------------- GET: All Invoices List ---------------------- */
+router.get('/invoices', authMiddleware, async (req, res) => {
+    try {
+        const { rows } = await pool.query(
+            `
+            SELECT 
+                date,
+                invoice_no,
+                customer_name,
+                address,
+                total_amount
+            FROM invoices
+            WHERE user_id = $1
+            ORDER BY date DESC, id DESC
+            `,
+            [req.user.id]
+        );
+
+        res.json({ success: true, invoices: rows });
+
+    } catch (err) {
+        console.error('All invoices fetch error:', err);
+        res.status(500).json({ success: false });
+    }
+});
+
 
 /* ---------------------- GET: Invoice Details ---------------------- */
 router.get('/invoices/:invoiceNo', authMiddleware, async (req, res) => {
@@ -239,7 +265,7 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
 
         doc.pipe(res);
 
-        
+
 
         /* ================= HEADER ================= */
 
