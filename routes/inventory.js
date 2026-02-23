@@ -433,13 +433,14 @@ router.get("/sales/report/pdf", async (req, res) => {
         doc.addPage();
         doc.fontSize(10).font("Helvetica-Bold");
 
-        let yHeader = doc.y;
-        doc.text("Sl", startX, y, { width: 30 });
-        doc.text("Date", startX + 30, y, { width: 80 });
-        doc.text("Item", startX + 110, y, { width: 170 });
-        doc.text("Qty", startX + 280, y, { width: 50, align: "right" });
-        doc.text("Rate", startX + 330, y, { width: 80, align: "right" });
-        doc.text("Total", startX + 410, y, { width: 100, align: "right" });
+        const yHeader = doc.y;
+
+        doc.text("Sl", startX, yHeader, { width: 30 });
+        doc.text("Date", startX + 30, yHeader, { width: 80 });
+        doc.text("Item", startX + 110, yHeader, { width: 170 });
+        doc.text("Qty", startX + 280, yHeader, { width: 50, align: "right" });
+        doc.text("Rate", startX + 330, yHeader, { width: 80, align: "right" });
+        doc.text("Total", startX + 410, yHeader, { width: 100, align: "right" });
 
         doc.moveDown(0.5);
         doc.font("Helvetica");
