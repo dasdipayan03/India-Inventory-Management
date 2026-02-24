@@ -482,24 +482,24 @@ async function submitDebt() {
 
 /* ================= ANALYTICS SUMMARY STOCK, TOTAL SALE, MONTHLY SALE CHART ================= */
 
-async function loadAnalytics() {
-  const token = localStorage.getItem("token");
+// async function loadAnalytics() {
+//   const token = localStorage.getItem("token");
 
-  const res = await fetch("/api/analytics/summary", {
-    headers: {
-      Authorization: "Bearer " + token
-    }
-  });
+//   const res = await fetch("/api/analytics/summary", {
+//     headers: {
+//       Authorization: "Bearer " + token
+//     }
+//   });
 
-  if (res.status === 401) {
-    localStorage.removeItem("token");
-    window.location.href = "login.html";
-    return;
-  }
+//   if (res.status === 401) {
+//     localStorage.removeItem("token");
+//     window.location.href = "login.html";
+//     return;
+//   }
 
-  const data = await res.json();
-  renderAnalyticsChart(data);
-}
+//   const data = await res.json();
+//   renderAnalyticsChart(data);
+// }
 
 // function renderAnalyticsChart(data) {
 //   const ctx = document.getElementById("analyticsChart");
