@@ -498,98 +498,6 @@
                 font-size: 0.8rem
             }
         }
-
-        /* ================= POS GRID LAYOUT ================= */
-
-        .invoice-layout {
-            margin-top: 15px;
-        }
-
-        .invoice-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 24px;
-            align-items: start;
-        }
-
-        /* LEFT SIDE */
-        .invoice-left {
-            background: #ffffff;
-        }
-
-        /* RIGHT BILL PANEL */
-        .invoice-right {
-            position: sticky;
-            top: 20px;
-        }
-
-        .invoice-right .totals {
-            background: #f8fafc;
-            padding: 18px;
-            border-radius: 12px;
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
-        }
-
-        .invoice-right .totals div {
-            display: flex;
-            justify-content: space-between;
-            font-weight: 600;
-        }
-
-        .invoice-right .totals .grand {
-            font-size: 1.2rem;
-            color: var(--primary);
-            border-top: 1px solid #e5e7eb;
-            padding-top: 10px;
-            margin-top: 6px;
-        }
-
-        .invoice-right .actions {
-            margin-top: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .invoice-right .actions .btn {
-            padding: 14px;
-            font-weight: 600;
-            font-size: 1rem;
-        }
-
-        /* TABLE IMPROVEMENT */
-        .items-table table {
-            min-width: 950px;
-        }
-
-        .items-table th {
-            background: #f1f5f9;
-            font-weight: 600;
-        }
-
-        .items-table tbody tr:hover {
-            background: #f9fafb;
-        }
-
-        .base-cell,
-        .gst-cell,
-        .total-cell {
-            text-align: right;
-            font-variant-numeric: tabular-nums;
-        }
-
-        /* ================= MOBILE AUTO STACK ================= */
-
-        @media (max-width: 992px) {
-            .invoice-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .invoice-right {
-                position: static;
-            }
-        }
     </style>
 </head>
 
@@ -625,54 +533,41 @@
                     </div>
                 </div>
 
-                <div class="card-body invoice-layout">
+                <div class="card-body">
                     <div class="form-row">
                         <input id="custName" placeholder="Customer name" />
                         <input id="custContact" placeholder="Contact number" />
                     </div>
                     <div class="form-row"><textarea id="custAddress" placeholder="Customer address"></textarea></div>
 
-                    <div class="invoice-grid">
+                    <div class="items-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Item Name</th>
+                                    <th>Qty</th>
+                                    <th>Rate</th>
+                                    <th>Base</th>
+                                    <th>GST</th>
+                                    <th>Total</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemsTbody"></tbody>
+                        </table>
+                        <button id="addItemBtn" class="btn small">+ Add Item</button>
+                    </div>
 
-                        <!-- LEFT SIDE -->
-                        <div class="invoice-left">
-                            <div class="items-table">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Item Name</th>
-                                            <th>Qty</th>
-                                            <th>Rate</th>
-                                            <th>Base</th>
-                                            <th>GST</th>
-                                            <th>Total</th>
-                                            <th></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="itemsTbody"></tbody>
-                                </table>
-                                <button id="addItemBtn" class="btn small">+ Add Item</button>
-                            </div>
-                        </div>
+                    <div class="totals">
+                        <div>Subtotal: <span id="subtotal">0.00</span></div>
+                        <div>GST (18%): <span id="gstAmount">0.00</span></div>
+                        <div class="grand">Total: <span id="grandTotal">0.00</span></div>
+                    </div>
 
-                        <!-- RIGHT SIDE BILL PANEL -->
-                        <div class="invoice-right">
-                            <div class="totals">
-                                <div>Subtotal: <span id="subtotal">0.00</span></div>
-                                <div>GST (18%): <span id="gstAmount">0.00</span></div>
-                                <div class="grand">Total: <span id="grandTotal">0.00</span></div>
-                            </div>
-
-                            <div class="actions">
-                                <button id="saveInvoiceBtn" class="btn primary">
-                                    <i class="fa fa-file-invoice"></i> Submit Invoice
-                                </button>
-                                <button id="clearBtn" class="btn danger">
-                                    <i class="fa fa-trash"></i> Clear
-                                </button>
-                            </div>
-                        </div>
-
+                    <div class="actions">
+                        <button id="saveInvoiceBtn" class="btn primary"><i class="fa fa-file-invoice">
+                            </i> Submit Invoice</button>
+                        <button id="clearBtn" class="btn danger"><i class="fa fa-trash"></i> Clear</button>
                     </div>
                 </div>
             </section>
