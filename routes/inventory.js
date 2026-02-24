@@ -737,7 +737,7 @@ router.use((err, req, res, next) => {
 //   }
 // });
 
-// ----------------- MONTHLY SALES TREND -----------------
+// ----------------- PREMIUM BUSINESS GROWTH -----------------
 router.get("/sales/monthly-trend", async (req, res) => {
   try {
     const user_id = getUserId(req);

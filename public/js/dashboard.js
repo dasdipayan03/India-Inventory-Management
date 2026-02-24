@@ -567,7 +567,10 @@ async function loadAnalytics() {
 //     }
 //   });
 // }
-// ----------------- BUSINESS GROWTH LINE GRAPH -----------------
+
+
+// ----------------- PREMIUM BUSINESS GROWTH -----------------
+
 async function loadBusinessTrend() {
   try {
     const res = await fetch(`${apiBase}/sales/monthly-trend`, {
@@ -584,6 +587,7 @@ async function loadBusinessTrend() {
     const values = data.map(d => Number(d.total_sales));
 
     renderBusinessTrend(labels, values);
+    updateGrowthBadge(values);
 
   } catch (err) {
     console.error("Trend load error:", err);
@@ -591,11 +595,15 @@ async function loadBusinessTrend() {
 }
 
 function renderBusinessTrend(labels, values) {
-  const ctx = document.getElementById("businessTrendChart");
+  const ctx = document.getElementById("businessTrendChart").getContext("2d");
 
   if (window.businessTrendInstance) {
     window.businessTrendInstance.destroy();
   }
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, 350);
+  gradient.addColorStop(0, "rgba(37, 99, 235, 0.4)");
+  gradient.addColorStop(1, "rgba(37, 99, 235, 0.05)");
 
   window.businessTrendInstance = new Chart(ctx, {
     type: "line",
@@ -604,23 +612,71 @@ function renderBusinessTrend(labels, values) {
       datasets: [{
         label: "Monthly Sales",
         data: values,
-        tension: 0.3,
-        fill: true
+        tension: 0.4,
+        borderWidth: 3,
+        fill: true,
+        backgroundColor: gradient,
+        pointRadius: 4,
+        pointHoverRadius: 6
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      animation: {
+        duration: 1200,
+        easing: "easeOutQuart"
+      },
       plugins: {
-        legend: { display: false }
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              return " ₹ " + context.parsed.y.toLocaleString();
+            }
+          }
+        }
       },
       scales: {
+        x: {
+          grid: { display: false }
+        },
         y: {
-          beginAtZero: true
+          beginAtZero: true,
+          ticks: {
+            callback: function (value) {
+              return "₹" + value.toLocaleString();
+            }
+          }
         }
       }
     }
   });
+}
+
+function updateGrowthBadge(values) {
+  const badge = document.getElementById("growthBadge");
+  if (!values || values.length < 2) {
+    badge.innerHTML = "";
+    return;
+  }
+
+  const last = values[values.length - 1];
+  const prev = values[values.length - 2];
+
+  if (prev === 0) {
+    badge.innerHTML = "";
+    return;
+  }
+
+  const growth = ((last - prev) / prev) * 100;
+  const formatted = Math.abs(growth).toFixed(1);
+
+  if (growth >= 0) {
+    badge.innerHTML = `<span style="color:#16a34a;">▲ ${formatted}% Growth</span>`;
+  } else {
+    badge.innerHTML = `<span style="color:#dc2626;">▼ ${formatted}% Drop</span>`;
+  }
 }
 
 
