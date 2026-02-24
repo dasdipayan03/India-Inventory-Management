@@ -498,6 +498,78 @@
                 font-size: 0.8rem
             }
         }
+
+        @media (max-width: 600px) {
+
+            .items-table table,
+            .items-table thead,
+            .items-table tbody,
+            .items-table th,
+            .items-table td,
+            .items-table tr {
+                display: block;
+                width: 100%;
+            }
+
+            .items-table thead {
+                display: none;
+            }
+
+            .items-table tr {
+                background: #f9fafb;
+                margin-bottom: 14px;
+                padding: 10px;
+                border-radius: 10px;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            }
+
+            .items-table td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 6px 0;
+                border: none;
+            }
+
+            .items-table td::before {
+                font-weight: 600;
+                font-size: 0.75rem;
+                color: #6b7280;
+            }
+
+            .items-table td:nth-child(1)::before {
+                content: "Item";
+            }
+
+            .items-table td:nth-child(2)::before {
+                content: "Qty";
+            }
+
+            .items-table td:nth-child(3)::before {
+                content: "Rate";
+            }
+
+            .items-table td:nth-child(4)::before {
+                content: "Base";
+            }
+
+            .items-table td:nth-child(5)::before {
+                content: "GST";
+            }
+
+            .items-table td:nth-child(6)::before {
+                content: "Total";
+            }
+
+            .items-table td:nth-child(7)::before {
+                content: "";
+            }
+
+            .items-table input {
+                width: 60%;
+            }
+
+        }
     </style>
 </head>
 
