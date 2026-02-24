@@ -188,7 +188,7 @@ async function addStock() {
     if (!res.ok) throw new Error(data.error || "Add failed");
     alert(data.message || "Added");
     await loadItemNames();
-    await loadAnalytics();
+    // await loadAnalytics();
     [
       "manualNewItem",
       "newItemSearch",
