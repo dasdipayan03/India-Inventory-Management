@@ -284,18 +284,12 @@
         .items-table {
             width: 100%;
             overflow-x: auto;
-            overflow: visible;
-            margin-bottom: 200px;
+            margin-bottom: 10px;
         }
 
         /* === ITEM DROPDOWN: EXTEND UP TO AMOUNT COLUMN === */
         .items-table td.item-cell {
             position: relative;
-        }
-
-        .items-table td.item-cell .dropdown-list {
-            left: 0;
-            width: calc(100% + 250px);
         }
 
         .invoice-preview {
@@ -567,6 +561,33 @@
 
             .items-table input {
                 width: 60%;
+            }
+
+        }
+
+        @media (max-width: 600px) {
+
+            .dropdown-wrap {
+                position: relative;
+            }
+
+            .dropdown-wrap .dropdown-list {
+                position: relative;
+                width: 100%;
+                margin-top: 6px;
+                max-height: 180px;
+                border-radius: 8px;
+                box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+                z-index: 10;
+            }
+
+        }
+
+        @media (max-width: 600px) {
+
+            .dropdown-item {
+                padding: 12px;
+                font-size: 0.85rem;
             }
 
         }
