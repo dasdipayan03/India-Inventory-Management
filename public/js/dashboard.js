@@ -188,7 +188,6 @@ async function addStock() {
     if (!res.ok) throw new Error(data.error || "Add failed");
     alert(data.message || "Added");
     await loadItemNames();
-    // await loadAnalytics();
     [
       "manualNewItem",
       "newItemSearch",
@@ -480,93 +479,6 @@ async function submitDebt() {
 /* ---------------------- Debts End --------------------- */
 
 
-/* ================= ANALYTICS SUMMARY STOCK, TOTAL SALE, MONTHLY SALE CHART ================= */
-
-// async function loadAnalytics() {
-//   const token = localStorage.getItem("token");
-
-//   const res = await fetch("/api/analytics/summary", {
-//     headers: {
-//       Authorization: "Bearer " + token
-//     }
-//   });
-
-//   if (res.status === 401) {
-//     localStorage.removeItem("token");
-//     window.location.href = "login.html";
-//     return;
-//   }
-
-//   const data = await res.json();
-//   renderAnalyticsChart(data);
-// }
-
-// function renderAnalyticsChart(data) {
-//   const ctx = document.getElementById("analyticsChart");
-
-//   if (window.analyticsChartInstance) {
-//     window.analyticsChartInstance.destroy();
-//   }
-
-//   window.analyticsChartInstance = new Chart(ctx, {
-//     type: "bar",
-//     data: {
-//       labels: ["Total Stock", "Total Sales", "Monthly Sales"],
-//       datasets: [{
-//         data: [
-//           Number(data.total_stock),
-//           Number(data.total_sales),
-//           Number(data.monthly_sales)
-//         ],
-//         backgroundColor: [
-//           "rgba(37, 99, 235, 0.85)",
-//           "rgba(22, 163, 74, 0.85)",
-//           "rgba(245, 158, 11, 0.85)"
-//         ],
-//         borderRadius: 0,          // ❌ no round
-//         borderSkipped: false,
-//         barPercentage: 0.5,       // 👈 thin
-//         categoryPercentage: 0.4   // 👈 spacing
-//       }]
-//     },
-//     options: {
-//       responsive: true,
-//       maintainAspectRatio: false,
-//       animation: {
-//         duration: 1000,
-//         easing: "easeOutQuart"
-//       },
-//       plugins: {
-//         legend: { display: false },
-//         tooltip: {
-//           backgroundColor: "#111827",
-//           padding: 10,
-//           callbacks: {
-//             label: function (context) {
-//               return "₹ " + context.parsed.y.toLocaleString("en-IN");
-//             }
-//           }
-//         }
-//       },
-//       scales: {
-//         x: {
-//           grid: { display: false }
-//         },
-//         y: {
-//           beginAtZero: true,
-//           grid: {
-//             color: "rgba(0, 0, 0, 0.15)"
-//           },
-//           ticks: {
-//             callback: function (value) {
-//               return "₹ " + value.toLocaleString("en-IN");
-//             }
-//           }
-//         }
-//       }
-//     }
-//   });
-// }
 
 
 // ----------------- SALES + PROFIT DUAL LINE -----------------
@@ -695,12 +607,12 @@ function initYearFilter() {
     loadBusinessTrend(select.value);
   });
 }
+// ----------------- SALES + PROFIT DUAL LINE end -----------------
 
 
 
 
-
-
+//-------------------- last 13 monts sale chart ------------------
 let last12Chart;
 async function loadLast12MonthsChart() {
   try {
@@ -754,6 +666,7 @@ async function loadLast12MonthsChart() {
     console.error("Chart error:", err);
   }
 }
+//-------------------- last 13 monts sale chart end ------------------
 
 
 
@@ -887,7 +800,6 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
 
   await loadItemNames();
-  // await loadAnalytics();
   initYearFilter();
   await loadBusinessTrend();
   await loadLast12MonthsChart();
