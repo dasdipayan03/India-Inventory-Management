@@ -295,8 +295,7 @@
 
         .items-table td.item-cell .dropdown-list {
             left: 0;
-            width: calc(100% + 260px);
-            /* Qty + Rate + Amount approx */
+            width: calc(100% + 420px);
         }
 
         .invoice-preview {
@@ -548,7 +547,9 @@
                                     <th>Item Name</th>
                                     <th>Qty</th>
                                     <th>Rate</th>
-                                    <th>Amount</th>
+                                    <th>Base</th>
+                                    <th>GST</th>
+                                    <th>Total</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -575,7 +576,8 @@
                 <h3>Search Invoice</h3>
                 <div class="search-row">
                     <div class="dropdown-wrap search-input-wrap">
-                        <input id="searchInvoiceInput" placeholder="Invoice No or Date (YYYYMMDD) for details of a Invoice" />
+                        <input id="searchInvoiceInput"
+                            placeholder="Invoice No or Date (YYYYMMDD) for details of a Invoice" />
                     </div>
 
                     <div class="search-actions">
@@ -910,17 +912,19 @@
             function addItemRow(item = { description: '', quantity: 1, rate: 0 }) {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-    <td class="item-cell">
-        <div class="dropdown-wrap">
-            <input class="item-input" placeholder="Search item">
-            <div class="dropdown-list"></div>
-        </div>
-    </td>
-    <td><input type="number" step="0.001" min="0" value="${item.quantity}"></td>
-    <td><input type="number" step="0.01" min="0" value="${item.rate}"></td>
-    <td>0.00</td>
-    <td><button class="btn small">❌</button></td>
-    `;
+                        <td class="item-cell">
+                            <div class="dropdown-wrap">
+                                <input class="item-input" placeholder="Search item">
+                                <div class="dropdown-list"></div>
+                            </div>
+                        </td>
+                        <td><input type="number" step="0.001" min="0" value="${item.quantity}"></td>
+                        <td><input type="number" step="0.01" min="0" value="${item.rate}"></td>
+                        <td class="base-cell">0.00</td>
+                        <td class="gst-cell">0.00</td>
+                        <td class="total-cell">0.00</td>
+                        <td><button class="btn small">❌</button></td>
+                    `;
 
                 itemsTbody.appendChild(tr);
 
@@ -928,8 +932,10 @@
                 const dropdown = tr.querySelector('.dropdown-list');
                 const qtyInput = tr.children[1].querySelector('input');
                 const rateInput = tr.children[2].querySelector('input');
-                const amountCell = tr.children[3];
-                const removeBtn = tr.children[4].querySelector('button');
+                const baseCell = tr.querySelector('.base-cell');
+                const gstCell = tr.querySelector('.gst-cell');
+                const totalCell = tr.querySelector('.total-cell');
+                const removeBtn = tr.children[6].querySelector('button');
 
                 // ✅ Sale page style dropdown (ONLY THIS)
                 itemInput.addEventListener('input', () => {
@@ -977,10 +983,17 @@
                 });
 
                 function recalcRow() {
-                    const amt =
-                        (parseFloat(qtyInput.value || 0) *
-                            parseFloat(rateInput.value || 0)).toFixed(2);
-                    amountCell.textContent = amt;
+                    const qty = parseFloat(qtyInput.value || 0);
+                    const rate = parseFloat(rateInput.value || 0);
+
+                    const base = +(qty * rate).toFixed(2);
+                    const gst = +(base * userGstRate / 100).toFixed(2);
+                    const total = +(base + gst).toFixed(2);
+
+                    baseCell.textContent = base.toFixed(2);
+                    gstCell.textContent = gst.toFixed(2);
+                    totalCell.textContent = total.toFixed(2);
+
                     recalcTotals();
                 }
 
@@ -1000,7 +1013,7 @@
             function recalcTotals() {
                 let sub = 0;
                 itemsTbody.querySelectorAll('tr').forEach(r => {
-                    sub += parseFloat(r.children[3].textContent) || 0;
+                    sub += parseFloat(r.querySelector('.base-cell')?.textContent) || 0;
                 });
 
                 const gst = (sub * (userGstRate / 100)).toFixed(2);
