@@ -29,7 +29,7 @@
 
         .container {
             width: 100%;
-            max-width: 500px;
+            max-width: 900px;
             margin: 18px auto;
             padding: 12px;
         }
@@ -231,12 +231,13 @@
         .items-table th,
         .items-table td {
             padding: 8px 6px;
-            border-bottom: 1px solid #eef2f7;
+            /* border-bottom: 1px solid #eef2f7; */
             text-align: left;
         }
 
         .items-table input {
             width: 100%;
+            margin-left: 4px;
             padding: 6px;
             border-radius: 6px;
             border: 1px solid #e5e7eb;
@@ -919,7 +920,7 @@
                 tr.innerHTML = `
                         <td class="item-cell">
                             <div class="dropdown-wrap">
-                                <input class="item-input" placeholder="Search item">
+                                <input class="item-input" placeholder="Search">
                                 <div class="dropdown-list"></div>
                             </div>
                         </td>
