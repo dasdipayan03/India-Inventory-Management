@@ -7,495 +7,199 @@
     <title>Sale Entry & Generate Invoice</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <style>
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-        }
-
         :root {
-            --bg: #f7f8fa;
-            --card: #fff;
-            --muted: #6b7280;
+            --bg: #f4f6fb;
+            --card: #ffffff;
             --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --radius: 14px;
         }
 
         body {
+            margin: 0;
             font-family: Inter, system-ui, Arial;
             background: var(--bg);
-            margin: 0;
             color: #111827;
         }
 
+        /* ===== Layout ===== */
         .container {
-            max-width: 980px;
-            margin: 18px auto;
-            padding: 12px;
+            max-width: 1100px;
+            margin: auto;
+            padding: 16px;
         }
 
+        /* ===== Header ===== */
         .topbar {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            gap: 8px;
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+            padding: 20px;
+            border-radius: var(--radius);
+            color: #fff;
+            margin-bottom: 20px;
         }
 
         .topbar h2 {
             margin: 0;
-            font-size: 1.25rem;
-            flex: 1 1 100%;
-            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
         }
 
-        .gst-box {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-        }
-
-        .gst-box details {
-            width: 100%;
-            background: #fff;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 8px;
-        }
-
-        .gst-box summary {
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .gst-box input {
-            padding: 8px 10px;
-            border-radius: 6px;
-            border: 1px solid #e5e7eb;
-            flex: 1 1 100%;
-            min-width: 120px;
-        }
-
-        .btn {
-            padding: 8px 12px;
-            border-radius: 6px;
-            border: 1px solid #d1d5db;
-            background: #fff;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-
-        .btn.small {
-            padding: 6px 8px;
-            font-size: 0.8rem;
-        }
-
-        .btn.primary {
-            background: var(--primary);
-            color: #fff;
-            border: 0;
-        }
-
+        /* ===== Cards ===== */
         .card {
             background: var(--card);
-            border-radius: 10px;
-            padding: 12px;
-            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+            border-radius: var(--radius);
+            padding: 18px;
+            margin-bottom: 18px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+            transition: 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        .card-title {
+            font-weight: 600;
             margin-bottom: 14px;
+            font-size: 1rem;
         }
 
-        .card-header {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            margin-bottom: 10px;
+        /* ===== Inputs ===== */
+        input,
+        textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 0.9rem;
+            transition: 0.2s;
         }
 
-        .card-left,
-        .card-right {
-            flex: 1 1 45%;
-        }
-
-        .card-left label,
-        .card-right label {
-            font-size: 0.8rem;
-            color: var(--muted);
-        }
-
-        #invoiceNo {
-            font-weight: 700;
-            margin-top: 4px;
-        }
-
-        #invoiceDate {
-            color: var(--muted);
-            margin-top: 4px;
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
         }
 
         .form-row {
             display: flex;
+            gap: 12px;
             flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
         }
 
-        .form-row input,
-        textarea {
-            flex: 1 1 100%;
-            padding: 8px 10px;
-            border-radius: 6px;
-            border: 1px solid #e5e7eb;
+        .form-row>* {
+            flex: 1;
         }
 
-        textarea {
-            min-height: 60px;
-            resize: vertical;
+        /* ===== Table ===== */
+        .items-table {
+            overflow-x: auto;
         }
 
         .items-table table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
         }
 
-        .items-table th,
-        .items-table td {
-            padding: 8px 6px;
-            border-bottom: 1px solid #eef2f7;
+        .items-table th {
             text-align: left;
-        }
-
-        .items-table input {
-            width: 100%;
-            padding: 6px;
-            border-radius: 6px;
-            border: 1px solid #e5e7eb;
-        }
-
-        .totals {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            align-items: flex-end;
-            margin-top: 6px;
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-
-        .totals .grand {
-            font-size: 1rem;
-            color: var(--primary);
-        }
-
-        .actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 10px;
-        }
-
-        .actions .btn {
-            flex: 1 1 48%;
-            text-align: center;
-        }
-
-        .search-card h3 {
-            margin-bottom: 8px;
-        }
-
-        .search-card .search-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .search-card input {
-            flex: 1 1 100%;
-            padding: 8px;
-            border-radius: 6px;
-            border: 1px solid #e5e7eb;
-        }
-
-        .search-card .btn {
-            flex: 1 1 45%;
-        }
-
-        .search-result {
-            margin-top: 8px;
-            padding: 8px;
-            border-radius: 6px;
-            background: #ffffff;
-            min-height: 230px;
-            color: #111827;
-            font-size: 0.9rem;
-        }
-
-        .back-link {
-            margin-top: 10px;
-            text-align: center;
-        }
-
-        .back-link a {
-            color: var(--primary);
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .item-cell {
-            position: relative;
-        }
-
-        .dropdown-wrap {
-            position: relative;
-            width: 100%;
-        }
-
-        .dropdown-wrap .dropdown-list {
-            position: absolute;
-            top: calc(100% + 4px);
-            left: 0;
-            width: 100%;
-            background: #fff;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            max-height: 220px;
-            overflow-y: auto;
-            z-index: 500;
-        }
-
-        .dropdown-item {
-            padding: 10px 12px;
-            white-space: normal;
-            line-height: 1.3;
-            font-size: 0.9rem;
-            cursor: pointer;
-        }
-
-        .dropdown-item:hover {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
             background: #f1f5f9;
+            padding: 10px;
         }
 
-        .items-table {
-            width: 100%;
-            overflow-x: auto;
-            overflow: visible;
-            margin-bottom: 200px;
+        .items-table td {
+            padding: 10px;
+            border-bottom: 1px solid #f1f5f9;
         }
 
-        /* === ITEM DROPDOWN: EXTEND UP TO AMOUNT COLUMN === */
-        .items-table td.item-cell {
-            position: relative;
+        .items-table tbody tr:hover {
+            background: #f9fafb;
         }
 
-        .items-table td.item-cell .dropdown-list {
-            left: 0;
-            width: calc(100% + 250px);
+        /* ===== Totals ===== */
+        .summary-box {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 12px;
         }
 
-        .invoice-preview {
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
             font-size: 0.9rem;
         }
 
-        .invoice-head {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            margin-bottom: 6px;
-        }
-
-        .invoice-customer {
-            margin-bottom: 8px;
-            color: #555;
-        }
-
-        .invoice-item {
-            padding: 8px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .item-name {
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-
-        .item-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.85rem;
-        }
-
-        .invoice-totals {
-            margin-top: 8px;
-            text-align: right;
-        }
-
-        .invoice-totals .grand {
+        .summary-grand {
+            font-size: 1.2rem;
             font-weight: 700;
-            font-size: 1rem;
+            color: var(--primary);
+        }
+
+        /* ===== Buttons ===== */
+        .btn {
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: 0.2s ease;
+        }
+
+        .btn.primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+        }
+
+        .btn.primary:hover {
+            transform: translateY(-1px);
         }
 
         .btn.danger {
             background: #fee2e2;
-            /* halka red */
             color: #991b1b;
-            /* deep red text */
-            border: 1px solid #fecaca;
         }
 
-        .btn.danger:hover {
-            background: #fecaca;
+        .btn.info {
+            background: #e0f2fe;
+            color: #075985;
         }
 
-        .btn.danger:active {
-            background: #fca5a5;
-        }
-
-        .search-actions {
+        /* ===== Actions ===== */
+        .actions {
             display: flex;
-            gap: 8px;
-            width: 100%;
+            gap: 12px;
+            margin-top: 12px;
         }
 
-        /* ---------- SEARCH LAYOUT ---------- */
-
-        /* Default = mobile */
-        .search-row {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .search-input-wrap {
-            width: 100%;
-            position: relative;
-        }
-
-        .search-actions {
-            display: flex;
-            gap: 8px;
-            width: 100%;
-        }
-
-        .search-actions .btn {
+        .actions .btn {
             flex: 1;
         }
 
+        /* ===== Search Section ===== */
         .search-card {
-            overflow: hidden;
-            min-height: 240px;
+            background: #f8fafc;
         }
 
-        .search-input-wrap input {
-            width: 100%;
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid #e5e7eb;
-            font-size: 0.9rem;
-        }
-
-
-        /* Desktop only */
-        @media (min-width: 768px) {
-            .search-row {
-                flex-direction: row;
-                align-items: flex-start;
+        /* ===== Mobile ===== */
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
             }
 
-            .search-actions {
-                width: auto;
-            }
-
-            .search-actions .btn {
-                flex: unset;
-            }
-        }
-
-        /* ---------- LIGHT BLUE BUTTON (SEARCH / DOWNLOAD) ---------- */
-        .btn.info {
-            background: #e0f2fe;
-            /* light blue */
-            color: #075985;
-            /* deep blue text */
-            border: 1px solid #bae6fd;
-        }
-
-        .btn.info:hover {
-            background: #bae6fd;
-        }
-
-        .btn.info:active {
-            background: #7dd3fc;
-        }
-
-
-        .back-link {
-            margin-top: 14px;
-            text-align: center;
-        }
-
-        .back-btn {
-            display: inline-block;
-            padding: 10px 16px;
-            border-radius: 8px;
-            background: #2563eb;
-            color: #fff !important;
-            /* 🔥 THIS LINE FIXES IT */
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: background 0.2s ease, transform 0.1s ease;
-        }
-
-        .back-btn:hover {
-            background: #1e40af;
-            color: #fff;
-        }
-
-        .back-btn:active {
-            color: #fff;
-        }
-
-
-        @media (max-width: 600px) {
-            .back-link {
-                position: fixed;
-                bottom: 12px;
-                left: 0;
-                right: 0;
-                z-index: 999;
-            }
-        }
-
-
-
-
-
-        @media (max-width: 600px) {
-            .container {
-                padding: 8px
+            .actions {
+                flex-direction: column;
             }
 
             .topbar h2 {
-                font-size: 1.1rem
-            }
-
-            .card {
-                padding: 10px
-            }
-
-            .actions .btn {
-                flex: 1 1 100%
-            }
-
-            .items-table th,
-            .items-table td {
-                font-size: 0.8rem
+                font-size: 1.2rem;
             }
         }
     </style>
@@ -522,6 +226,7 @@
 
         <main>
             <section class="card invoice-card">
+                <div class="card-title">Invoice Information</div>
                 <div class="card-header">
                     <div class="card-left">
                         <label>Invoice No:</label>
@@ -534,12 +239,14 @@
                 </div>
 
                 <div class="card-body">
+                    <div class="card-title">Customer Details</div>
                     <div class="form-row">
                         <input id="custName" placeholder="Customer name" />
                         <input id="custContact" placeholder="Contact number" />
                     </div>
                     <div class="form-row"><textarea id="custAddress" placeholder="Customer address"></textarea></div>
 
+                    <div class="card-title">Items</div>
                     <div class="items-table">
                         <table>
                             <thead>
@@ -558,10 +265,21 @@
                         <button id="addItemBtn" class="btn small">+ Add Item</button>
                     </div>
 
-                    <div class="totals">
-                        <div>Subtotal: <span id="subtotal">0.00</span></div>
-                        <div>GST (18%): <span id="gstAmount">0.00</span></div>
-                        <div class="grand">Total: <span id="grandTotal">0.00</span></div>
+                    <div class="summary-box">
+                        <div class="summary-row">
+                            <span>Subtotal</span>
+                            <span id="subtotal">0.00</span>
+                        </div>
+
+                        <div class="summary-row">
+                            <span>GST (<span id="gstRateLabel">18</span>%)</span>
+                            <span id="gstAmount">0.00</span>
+                        </div>
+
+                        <div class="summary-row summary-grand">
+                            <span>Total</span>
+                            <span id="grandTotal">0.00</span>
+                        </div>
                     </div>
 
                     <div class="actions">
@@ -845,7 +563,10 @@
                             document.getElementById('gstRateInput').value = userGstRate;
                         }
                         // Update GST label text to match user's saved rate
-                        const gstLabelDiv = document.querySelector('.totals div:nth-child(2)');
+                        const gstRateLabel = document.getElementById("gstRateLabel");
+                        if (gstRateLabel) {
+                            gstRateLabel.textContent = userGstRate;
+                        }
                         if (gstLabelDiv) {
                             gstLabelDiv.innerHTML = `GST (${userGstRate}%): <span id="gstAmount">${gstAmountEl.textContent}</span>`;
                         }
