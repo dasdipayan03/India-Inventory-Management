@@ -182,10 +182,7 @@
 
         .items-table table,
         .items-table thead,
-        .items-table tbody,
-        .items-table th,
-        .items-table td,
-        .items-table tr {
+        .items-table tbody {
             display: block;
             width: 100%;
         }
@@ -209,6 +206,42 @@
             padding: 6px 0;
             border: none;
             font-size: 0.8rem;
+        }
+
+        /* Qty + Rate same row */
+        .items-table tr {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 12px;
+        }
+
+        /* Item full width */
+        .items-table td:nth-child(1) {
+            grid-column: 1 / 3;
+        }
+
+        /* Qty left */
+        .items-table td:nth-child(2) {
+            grid-column: 1 / 2;
+        }
+
+        /* Rate right */
+        .items-table td:nth-child(3) {
+            grid-column: 2 / 3;
+        }
+
+        /* Base, GST, Total full width */
+        .items-table td:nth-child(4),
+        .items-table td:nth-child(5),
+        .items-table td:nth-child(6) {
+            grid-column: 1 / 3;
+        }
+
+        /* Remove button right aligned full width */
+        .items-table td:last-child {
+            grid-column: 1 / 3;
+            display: flex;
+            justify-content: flex-end;
         }
 
         .items-table td::before {
