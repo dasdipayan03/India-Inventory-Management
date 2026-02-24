@@ -451,16 +451,23 @@
           <canvas id="businessTrendChart"></canvas>
         </div>
       </div> -->
-      <div class="analytics-card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <div class="analytics-title">
-            📈 Groth graph
-          </div>
-          <div id="growthBadge" style="font-weight:600;font-size:14px;"></div>
+      <div class="card shadow-sm p-3 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5 class="mb-0">
+            <i class="fas fa-chart-line text-primary"></i>
+            Growth Overview
+          </h5>
+
+          <select id="yearFilter" class="form-select form-select-sm" style="width:120px;">
+            <option value="all">All</option>
+          </select>
         </div>
+
         <div class="chart-box">
           <canvas id="businessTrendChart"></canvas>
         </div>
+
+        <div id="growthBadge" class="mt-2 fw-semibold"></div>
       </div>
 
       <div class="card p-3 mt-4">

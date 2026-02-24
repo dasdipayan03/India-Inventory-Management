@@ -737,22 +737,34 @@ router.use((err, req, res, next) => {
 //   }
 // });
 
-// ----------------- PREMIUM BUSINESS GROWTH -----------------
+// ----------------- MONTHLY SALES + PROFIT TREND -----------------
 router.get("/sales/monthly-trend", async (req, res) => {
   try {
     const user_id = getUserId(req);
+    const { year } = req.query;
+
+    let yearFilter = "";
+    let params = [user_id];
+
+    if (year && year !== "all") {
+      params.push(year);
+      yearFilter = "AND EXTRACT(YEAR FROM s.created_at) = $2";
+    }
 
     const result = await pool.query(
       `
       SELECT 
-        TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') AS month,
-        SUM(total_price) AS total_sales
-      FROM sales
-      WHERE user_id = $1
-      GROUP BY DATE_TRUNC('month', created_at)
-      ORDER BY DATE_TRUNC('month', created_at) ASC
+        TO_CHAR(DATE_TRUNC('month', s.created_at), 'YYYY-MM') AS month,
+        SUM(s.total_price) AS total_sales,
+        SUM((s.quantity * i.selling_rate) - (s.quantity * i.buying_rate)) AS total_profit
+      FROM sales s
+      JOIN items i ON s.item_id = i.id
+      WHERE s.user_id = $1
+      ${yearFilter}
+      GROUP BY DATE_TRUNC('month', s.created_at)
+      ORDER BY DATE_TRUNC('month', s.created_at)
       `,
-      [user_id]
+      params
     );
 
     res.json(result.rows);

@@ -569,11 +569,11 @@ async function loadAnalytics() {
 // }
 
 
-// ----------------- PREMIUM BUSINESS GROWTH -----------------
+// ----------------- SALES + PROFIT DUAL LINE -----------------
 
-async function loadBusinessTrend() {
+async function loadBusinessTrend(year = "all") {
   try {
-    const res = await fetch(`${apiBase}/sales/monthly-trend`, {
+    const res = await fetch(`${apiBase}/sales/monthly-trend?year=${year}`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
@@ -584,69 +584,68 @@ async function loadBusinessTrend() {
     const data = await res.json();
 
     const labels = data.map(d => d.month);
-    const values = data.map(d => Number(d.total_sales));
+    const sales = data.map(d => Number(d.total_sales));
+    const profit = data.map(d => Number(d.total_profit));
 
-    renderBusinessTrend(labels, values);
-    updateGrowthBadge(values);
+    renderBusinessTrend(labels, sales, profit);
+    updateGrowthBadge(sales);
 
   } catch (err) {
-    console.error("Trend load error:", err);
+    console.error(err);
   }
 }
 
-function renderBusinessTrend(labels, values) {
+function renderBusinessTrend(labels, sales, profit) {
   const ctx = document.getElementById("businessTrendChart").getContext("2d");
 
   if (window.businessTrendInstance) {
     window.businessTrendInstance.destroy();
   }
 
-  const gradient = ctx.createLinearGradient(0, 0, 0, 350);
-  gradient.addColorStop(0, "rgba(37, 99, 235, 0.4)");
-  gradient.addColorStop(1, "rgba(37, 99, 235, 0.05)");
-
   window.businessTrendInstance = new Chart(ctx, {
     type: "line",
     data: {
       labels: labels,
-      datasets: [{
-        label: "Monthly Sales",
-        data: values,
-        tension: 0.4,
-        borderWidth: 3,
-        fill: true,
-        backgroundColor: gradient,
-        pointRadius: 4,
-        pointHoverRadius: 6
-      }]
+      datasets: [
+        {
+          label: "Sales",
+          data: sales,
+          tension: 0.3,
+          borderWidth: 3
+        },
+        {
+          label: "Profit",
+          data: profit,
+          tension: 0.3,
+          borderWidth: 3
+        }
+      ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       animation: {
-        duration: 1200,
-        easing: "easeOutQuart"
+        duration: 1000
       },
       plugins: {
-        legend: { display: false },
+        legend: {
+          display: true,
+          position: "top"
+        },
         tooltip: {
           callbacks: {
             label: function (context) {
-              return " ₹ " + context.parsed.y.toLocaleString();
+              return context.dataset.label + ": ₹" +
+                context.parsed.y.toLocaleString();
             }
           }
         }
       },
       scales: {
-        x: {
-          grid: { display: false }
-        },
         y: {
           beginAtZero: true,
           ticks: {
-            callback: function (value) {
-              return "₹" + value.toLocaleString();
-            }
+            callback: value => "₹" + value.toLocaleString()
           }
         }
       }
@@ -656,6 +655,7 @@ function renderBusinessTrend(labels, values) {
 
 function updateGrowthBadge(values) {
   const badge = document.getElementById("growthBadge");
+
   if (!values || values.length < 2) {
     badge.innerHTML = "";
     return;
@@ -664,26 +664,44 @@ function updateGrowthBadge(values) {
   const last = values[values.length - 1];
   const prev = values[values.length - 2];
 
-  if (prev === 0) {
-    badge.innerHTML = "";
-    return;
-  }
+  if (prev === 0) return;
 
   const growth = ((last - prev) / prev) * 100;
   const formatted = Math.abs(growth).toFixed(1);
 
   if (growth >= 0) {
-    badge.innerHTML = `<span style="color:#16a34a;">▲ ${formatted}% Growth</span>`;
+    badge.innerHTML =
+      `<span class="text-success">▲ ${formatted}% Growth (Sales)</span>`;
   } else {
-    badge.innerHTML = `<span style="color:#dc2626;">▼ ${formatted}% Drop</span>`;
+    badge.innerHTML =
+      `<span class="text-danger">▼ ${formatted}% Drop (Sales)</span>`;
   }
+}
+
+// ----------------- YEAR FILTER INIT -----------------
+
+function initYearFilter() {
+  const select = document.getElementById("yearFilter");
+  const currentYear = new Date().getFullYear();
+
+  for (let y = currentYear; y >= currentYear - 5; y--) {
+    const option = document.createElement("option");
+    option.value = y;
+    option.textContent = y;
+    select.appendChild(option);
+  }
+
+  select.addEventListener("change", () => {
+    loadBusinessTrend(select.value);
+  });
 }
 
 
 
 
-let last12Chart;
 
+
+let last12Chart;
 async function loadLast12MonthsChart() {
   try {
     const res = await fetch(`${apiBase}/sales/last-13-months`, {
@@ -870,6 +888,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   await loadItemNames();
   // await loadAnalytics();
+  initYearFilter();
   await loadBusinessTrend();
   await loadLast12MonthsChart();
 });
