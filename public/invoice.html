@@ -110,9 +110,12 @@
 
         .card-header {
             display: flex;
-            flex-wrap: wrap;
             justify-content: space-between;
-            margin-bottom: 10px;
+            align-items: center;
+            background: #f1f5f9;
+            padding: 14px 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
         }
 
         .card-left,
@@ -129,11 +132,24 @@
         #invoiceNo {
             font-weight: 700;
             margin-top: 4px;
+            font-size: 1.05rem;
+            color: #1e3a8a;
+        }
+
+        .invoice-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            background: #dbeafe;
+            color: #1e40af;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.85rem;
         }
 
         #invoiceDate {
-            color: var(--muted);
             margin-top: 4px;
+            font-size: 0.9rem;
+            color: #475569;
         }
 
         .form-row {
@@ -531,7 +547,7 @@
                 <div class="card-header">
                     <div class="card-left">
                         <label>Invoice No:</label>
-                        <div id="invoiceNo">--</div>
+                        <div id="invoiceNo" class="invoice-badge">--</div>
                     </div>
                     <div class="card-right">
                         <label>Date:</label>
