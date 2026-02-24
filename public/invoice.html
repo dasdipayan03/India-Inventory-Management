@@ -321,8 +321,12 @@
         }
 
         .back-link {
-            margin-top: 10px;
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
             text-align: center;
+            z-index: 999;
         }
 
         .back-link a {
@@ -506,10 +510,10 @@
             border-radius: 8px;
             background: #2563eb;
             color: #fff !important;
-            /* 🔥 THIS LINE FIXES IT */
             text-decoration: none;
             font-weight: 600;
             font-size: 0.9rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
             transition: background 0.2s ease, transform 0.1s ease;
         }
 
