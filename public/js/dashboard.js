@@ -501,73 +501,127 @@ async function loadAnalytics() {
   renderAnalyticsChart(data);
 }
 
-function renderAnalyticsChart(data) {
-  const ctx = document.getElementById("analyticsChart");
+// function renderAnalyticsChart(data) {
+//   const ctx = document.getElementById("analyticsChart");
 
-  if (window.analyticsChartInstance) {
-    window.analyticsChartInstance.destroy();
+//   if (window.analyticsChartInstance) {
+//     window.analyticsChartInstance.destroy();
+//   }
+
+//   window.analyticsChartInstance = new Chart(ctx, {
+//     type: "bar",
+//     data: {
+//       labels: ["Total Stock", "Total Sales", "Monthly Sales"],
+//       datasets: [{
+//         data: [
+//           Number(data.total_stock),
+//           Number(data.total_sales),
+//           Number(data.monthly_sales)
+//         ],
+//         backgroundColor: [
+//           "rgba(37, 99, 235, 0.85)",
+//           "rgba(22, 163, 74, 0.85)",
+//           "rgba(245, 158, 11, 0.85)"
+//         ],
+//         borderRadius: 0,          // ❌ no round
+//         borderSkipped: false,
+//         barPercentage: 0.5,       // 👈 thin
+//         categoryPercentage: 0.4   // 👈 spacing
+//       }]
+//     },
+//     options: {
+//       responsive: true,
+//       maintainAspectRatio: false,
+//       animation: {
+//         duration: 1000,
+//         easing: "easeOutQuart"
+//       },
+//       plugins: {
+//         legend: { display: false },
+//         tooltip: {
+//           backgroundColor: "#111827",
+//           padding: 10,
+//           callbacks: {
+//             label: function (context) {
+//               return "₹ " + context.parsed.y.toLocaleString("en-IN");
+//             }
+//           }
+//         }
+//       },
+//       scales: {
+//         x: {
+//           grid: { display: false }
+//         },
+//         y: {
+//           beginAtZero: true,
+//           grid: {
+//             color: "rgba(0, 0, 0, 0.15)"
+//           },
+//           ticks: {
+//             callback: function (value) {
+//               return "₹ " + value.toLocaleString("en-IN");
+//             }
+//           }
+//         }
+//       }
+//     }
+//   });
+// }
+// ----------------- BUSINESS GROWTH LINE GRAPH -----------------
+async function loadBusinessTrend() {
+  try {
+    const res = await fetch(`${apiBase}/sales/monthly-trend`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+
+    if (!res.ok) throw new Error("Failed to load trend");
+
+    const data = await res.json();
+
+    const labels = data.map(d => d.month);
+    const values = data.map(d => Number(d.total_sales));
+
+    renderBusinessTrend(labels, values);
+
+  } catch (err) {
+    console.error("Trend load error:", err);
+  }
+}
+
+function renderBusinessTrend(labels, values) {
+  const ctx = document.getElementById("businessTrendChart");
+
+  if (window.businessTrendInstance) {
+    window.businessTrendInstance.destroy();
   }
 
-  window.analyticsChartInstance = new Chart(ctx, {
-    type: "bar",
+  window.businessTrendInstance = new Chart(ctx, {
+    type: "line",
     data: {
-      labels: ["Total Stock", "Total Sales", "Monthly Sales"],
+      labels: labels,
       datasets: [{
-        data: [
-          Number(data.total_stock),
-          Number(data.total_sales),
-          Number(data.monthly_sales)
-        ],
-        backgroundColor: [
-          "rgba(37, 99, 235, 0.85)",
-          "rgba(22, 163, 74, 0.85)",
-          "rgba(245, 158, 11, 0.85)"
-        ],
-        borderRadius: 0,          // ❌ no round
-        borderSkipped: false,
-        barPercentage: 0.5,       // 👈 thin
-        categoryPercentage: 0.4   // 👈 spacing
+        label: "Monthly Sales",
+        data: values,
+        tension: 0.3,
+        fill: true
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      animation: {
-        duration: 1000,
-        easing: "easeOutQuart"
-      },
       plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: "#111827",
-          padding: 10,
-          callbacks: {
-            label: function (context) {
-              return "₹ " + context.parsed.y.toLocaleString("en-IN");
-            }
-          }
-        }
+        legend: { display: false }
       },
       scales: {
-        x: {
-          grid: { display: false }
-        },
         y: {
-          beginAtZero: true,
-          grid: {
-            color: "rgba(0, 0, 0, 0.15)"
-          },
-          ticks: {
-            callback: function (value) {
-              return "₹ " + value.toLocaleString("en-IN");
-            }
-          }
+          beginAtZero: true
         }
       }
     }
   });
 }
-
 
 
 
@@ -759,7 +813,8 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
 
   await loadItemNames();
-  await loadAnalytics();
+  // await loadAnalytics();
+  await loadBusinessTrend();
   await loadLast12MonthsChart();
 });
 

@@ -696,46 +696,76 @@ router.use((err, req, res, next) => {
 
 
 // ===================== ANALYTICS SUMMARY STOCK, TOTAL SALE, MONTHLY SALE CHART =====================
-router.get("/analytics/summary", authMiddleware, async (req, res) => {
+// router.get("/analytics/summary", authMiddleware, async (req, res) => {
+//   try {
+//     const userId = getUserId(req);
+
+//     // Total Stock Value
+//     const stockResult = await pool.query(
+//       `SELECT COALESCE(SUM(quantity * selling_rate), 0) AS total_stock
+//        FROM items
+//        WHERE user_id = $1`,
+//       [userId]
+//     );
+
+//     // Total Sales Value
+//     const totalSalesResult = await pool.query(
+//       `SELECT COALESCE(SUM(total_price), 0) AS total_sales
+//        FROM sales
+//        WHERE user_id = $1`,
+//       [userId]
+//     );
+
+//     // Monthly Sales Value
+//     const monthlySalesResult = await pool.query(
+//       `SELECT COALESCE(SUM(total_price), 0) AS monthly_sales
+//        FROM sales
+//        WHERE user_id = $1
+//        AND DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE)`,
+//       [userId]
+//     );
+
+//     res.json({
+//       total_stock: stockResult.rows[0].total_stock,
+//       total_sales: totalSalesResult.rows[0].total_sales,
+//       monthly_sales: monthlySalesResult.rows[0].monthly_sales,
+//     });
+
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: "Failed to load analytics" });
+//   }
+// });
+
+// ----------------- MONTHLY SALES TREND -----------------
+router.get("/sales/monthly-trend", async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const user_id = getUserId(req);
 
-    // Total Stock Value
-    const stockResult = await pool.query(
-      `SELECT COALESCE(SUM(quantity * selling_rate), 0) AS total_stock
-       FROM items
-       WHERE user_id = $1`,
-      [userId]
+    const result = await pool.query(
+      `
+      SELECT 
+        TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') AS month,
+        SUM(total_price) AS total_sales
+      FROM sales
+      WHERE user_id = $1
+      GROUP BY DATE_TRUNC('month', created_at)
+      ORDER BY DATE_TRUNC('month', created_at) ASC
+      `,
+      [user_id]
     );
 
-    // Total Sales Value
-    const totalSalesResult = await pool.query(
-      `SELECT COALESCE(SUM(total_price), 0) AS total_sales
-       FROM sales
-       WHERE user_id = $1`,
-      [userId]
-    );
-
-    // Monthly Sales Value
-    const monthlySalesResult = await pool.query(
-      `SELECT COALESCE(SUM(total_price), 0) AS monthly_sales
-       FROM sales
-       WHERE user_id = $1
-       AND DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE)`,
-      [userId]
-    );
-
-    res.json({
-      total_stock: stockResult.rows[0].total_stock,
-      total_sales: totalSalesResult.rows[0].total_sales,
-      monthly_sales: monthlySalesResult.rows[0].monthly_sales,
-    });
+    res.json(result.rows);
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to load analytics" });
+    console.error("Monthly trend error:", err);
+    res.status(500).json({ error: "Server error" });
   }
 });
+
+
+
+
 
 
 // ----------------- LAST 13 MONTH SALES CHART -----------------
