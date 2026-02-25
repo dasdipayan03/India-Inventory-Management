@@ -314,12 +314,12 @@ router.get("/items/report/pdf", async (req, res) => {
 
       // 👉 Dynamic height based on item name
       const itemHeight = doc.heightOfString(r.item_name || "", {
-        width: 200,
+        width: 150,
         align: "left",
       });
 
       doc.text(i + 1, startX, y, { width: 30 });
-      doc.text(r.item_name || "", startX + 30, y, { width: 200 });
+      doc.text(r.item_name || "", startX + 30, y, { width: 150 });
       doc.text(Number(r.available_qty).toFixed(2), startX + 180, y, { width: 60, align: "right" });
       doc.text(Number(r.buying_rate).toFixed(2), startX + 240, y, { width: 70, align: "right" });
       doc.text(Number(r.selling_rate).toFixed(2), startX + 310, y, { width: 70, align: "right" });
