@@ -158,10 +158,7 @@ async function loadItemNames() {
 
 /* ---------------------- Add Stock --------------------- */
 async function addStock() {
-  const item =
-    (document.getElementById("manualNewItem").value ||
-      document.getElementById("newItemSearch").value ||
-      "").trim();
+  const item = document.getElementById("newItemSearch").value.trim();
   const quantity = parseFloat(document.getElementById("newQuantity").value);
   const buying_rate = parseFloat(document.getElementById("buyingRate").value);
   const selling_rate = parseFloat(document.getElementById("sellingRate").value);
@@ -189,7 +186,6 @@ async function addStock() {
     alert(data.message || "Added");
     await loadItemNames();
     [
-      "manualNewItem",
       "newItemSearch",
       "newQuantity",
       "buyingRate",
@@ -769,9 +765,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     window.location.href = "invoice.html";
   });
 
-  setupFilterInput("newItemSearch", "newItemDropdownList", (val) => {
-    document.getElementById("manualNewItem").value = "";
-  });
+  setupFilterInput("newItemSearch", "newItemDropdownList");
 
   // Item Report search dropdown
   setupFilterInput("itemReportSearch", "itemReportDropdown", () => { }
