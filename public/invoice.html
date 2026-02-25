@@ -694,6 +694,29 @@
     </div>
 
 
+    <!-- ===== SAVE CONFIRMATION MODAL ===== -->
+    <div id="saveConfirmModal" style="display:none; position:fixed; inset:0; z-index:3000;">
+        <div style="position:absolute; inset:0; background:rgba(0,0,0,0.45);"></div>
+        <div style="
+                position:relative;
+                max-width:350px;
+                margin:25vh auto;
+                background:#fff;
+                border-radius:12px;
+                padding:18px;
+                text-align:center;
+                box-shadow:0 20px 40px rgba(0,0,0,0.2);
+            ">
+            <h3>Confirm Invoice</h3>
+            <p>You want to submit this invoice?</p>
+            <div style="display:flex; gap:12px; margin-top:16px;">
+                <button id="confirmSaveYes" class="btn primary" style="flex:1;">Yes</button>
+                <button id="confirmSaveNo" class="btn danger" style="flex:1;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+
     <script>
 
         function safeInvoiceDate(d) {
@@ -1125,7 +1148,70 @@
 
 
             // ✅ Save Invoice + Silent PDF Download
-            saveInvoiceBtn.onclick = async () => {
+            // saveInvoiceBtn.onclick = async () => {
+            //     const data = {
+            //         customer_name: custName.value.trim(),
+            //         contact: custContact.value.trim(),
+            //         address: custAddress.value.trim(),
+            //         gst_no: gstInput.value.trim() || null,
+            //         items: []
+            //     };
+            //     itemsTbody.querySelectorAll('tr').forEach(r => {
+            //         const d = r.children[0].querySelector('input').value.trim(),
+            //             q = parseFloat(r.children[1].querySelector('input').value) || 0,
+            //             p = parseFloat(r.children[2].querySelector('input').value) || 0;
+            //         if (d || q > 0 || p > 0) data.items.push({ description: d, quantity: q, rate: p });
+            //     });
+            //     if (!data.items.length) return alert('Add at least one item');
+            //     const res = await authFetch(API_PREFIX + '/invoices', {
+            //         method: 'POST', headers: authHeaders(), body:
+            //             JSON.stringify(data)
+            //     });
+            //     const j = await res.json();
+            //     if (j.success) {
+
+            //         showDownloadModal(j.invoice_no);
+
+            //         // ✅ Clear form and refresh next invoice number
+            //         custName.value = custContact.value = custAddress.value = '';
+            //         itemsTbody.innerHTML = '';
+            //         addItemRow();
+            //         recalcTotals();
+
+            //         try {
+            //             const r = await authFetch(API_PREFIX + '/invoices/new', { headers: authHeaders() });
+            //             const next = await r.json();
+            //             if (next.success) {
+            //                 invoiceNoEl.textContent = next.invoice_no;
+            //                 invoiceDateEl.textContent = safeInvoiceDate(next.date || new Date());
+            //             }
+            //         } catch (e) {
+            //             console.warn('Error fetching next invoice number', e);
+            //         }
+            //     } else {
+            //         alert('Error saving invoice');
+            //     }
+            // };
+
+            const saveConfirmModal = document.getElementById('saveConfirmModal');
+            const confirmSaveYes = document.getElementById('confirmSaveYes');
+            const confirmSaveNo = document.getElementById('confirmSaveNo');
+
+            // Show modal instead of direct save
+            saveInvoiceBtn.onclick = () => {
+                saveConfirmModal.style.display = 'block';
+            };
+
+            // Cancel button
+            confirmSaveNo.onclick = () => {
+                saveConfirmModal.style.display = 'none';
+            };
+
+            // YES button = actual save logic
+            confirmSaveYes.onclick = async () => {
+
+                saveConfirmModal.style.display = 'none';
+
                 const data = {
                     customer_name: custName.value.trim(),
                     contact: custContact.value.trim(),
@@ -1133,23 +1219,30 @@
                     gst_no: gstInput.value.trim() || null,
                     items: []
                 };
+
                 itemsTbody.querySelectorAll('tr').forEach(r => {
                     const d = r.children[0].querySelector('input').value.trim(),
                         q = parseFloat(r.children[1].querySelector('input').value) || 0,
                         p = parseFloat(r.children[2].querySelector('input').value) || 0;
-                    if (d || q > 0 || p > 0) data.items.push({ description: d, quantity: q, rate: p });
+
+                    if (d || q > 0 || p > 0)
+                        data.items.push({ description: d, quantity: q, rate: p });
                 });
+
                 if (!data.items.length) return alert('Add at least one item');
+
                 const res = await authFetch(API_PREFIX + '/invoices', {
-                    method: 'POST', headers: authHeaders(), body:
-                        JSON.stringify(data)
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify(data)
                 });
+
                 const j = await res.json();
+
                 if (j.success) {
 
                     showDownloadModal(j.invoice_no);
 
-                    // ✅ Clear form and refresh next invoice number
                     custName.value = custContact.value = custAddress.value = '';
                     itemsTbody.innerHTML = '';
                     addItemRow();
@@ -1162,13 +1255,13 @@
                             invoiceNoEl.textContent = next.invoice_no;
                             invoiceDateEl.textContent = safeInvoiceDate(next.date || new Date());
                         }
-                    } catch (e) {
-                        console.warn('Error fetching next invoice number', e);
-                    }
+                    } catch (e) { }
+
                 } else {
                     alert('Error saving invoice');
                 }
             };
+
 
             // ✅ Clear Button
             clearBtn.onclick = async () => {
