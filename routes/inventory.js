@@ -346,24 +346,28 @@ router.get("/items/report/pdf", async (req, res) => {
     doc.moveTo(40, doc.y).lineTo(555, doc.y).stroke();
     doc.moveDown(1);
 
+    const summaryStartX = 260;
+    const summaryWidth = 295;
+
     doc.font("Helvetica")
       .fontSize(11)
-      .text(`Total Items Value (Cost)      : ₹ ${totalCostValue.toFixed(2)}`,
-        300, doc.y, { width: 255, align: "right" });
+      .text(`Total Items Value (Cost) : Rs. ${totalCostValue.toFixed(2)}`,
+        summaryStartX, doc.y, { width: summaryWidth, align: "right" });
 
     doc.moveDown(0.5);
 
-    doc.text(`Total Selling Value           : ₹ ${totalSellingValue.toFixed(2)}`,
-      300, doc.y, { width: 255, align: "right" });
+    doc.text(`Total Selling Value      : Rs. ${totalSellingValue.toFixed(2)}`,
+      summaryStartX, doc.y, { width: summaryWidth, align: "right" });
 
     doc.moveDown(0.5);
 
     doc.font("Helvetica-Bold")
       .fillColor(profit >= 0 ? "green" : "red")
-      .text(`Estimated Profit              : ₹ ${profit.toFixed(2)}`,
-        300, doc.y, { width: 255, align: "right" });
+      .text(`Estimated Profit         : Rs. ${profit.toFixed(2)}`,
+        summaryStartX, doc.y, { width: summaryWidth, align: "right" });
 
     doc.fillColor("black");
+
     doc.moveDown(1);
     doc.moveTo(40, doc.y).lineTo(555, doc.y).stroke();
 
