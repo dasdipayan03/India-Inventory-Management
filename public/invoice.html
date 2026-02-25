@@ -1037,7 +1037,7 @@
                             if (r.ok) {
                                 const j = await r.json();
                                 rateInput.value = j.selling_rate || 0;
-                                recalcRow();
+                                recalcFromRate();
                             }
                         };
 
