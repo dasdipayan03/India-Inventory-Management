@@ -1080,10 +1080,12 @@
                     const qty = parseFloat(qtyInput.value || 0);
                     const rate = parseFloat(rateInput.value || 0);
 
-                    const base = qty * rate;
-                    const gst = base * userGstRate / 100;
-                    const total = base + gst;
+                    // ✅ better precision internally
+                    const base = +(qty * rate).toFixed(4);
+                    const gst = +(base * userGstRate / 100).toFixed(4);
+                    const total = +(base + gst).toFixed(4);
 
+                    // ✅ display only 2 decimal
                     baseCell.textContent = base.toFixed(2);
                     gstCell.textContent = gst.toFixed(2);
                     totalInput.value = total.toFixed(2);
@@ -1095,19 +1097,20 @@
                     const qty = parseFloat(qtyInput.value || 0);
                     const total = parseFloat(totalInput.value || 0);
 
-                    if (!qty) return;
+                    if (!qty || !total) return;
 
-                    const divisor = qty * (1 + userGstRate / 100);
-                    const newRate = total / divisor;
+                    // ✅ User total is FINAL
+                    const base = total / (1 + userGstRate / 100);
+                    const gst = total - base;
+                    const rate = base / qty;
 
-                    rateInput.value = newRate.toFixed(2);
-
-                    const base = qty * newRate;
-                    const gst = base * userGstRate / 100;
+                    // keep better internal precision
+                    rateInput.value = rate.toFixed(4);
 
                     baseCell.textContent = base.toFixed(2);
                     gstCell.textContent = gst.toFixed(2);
 
+                    // ❌ DO NOT recalc total again
                     recalcTotals();
                 }
 
