@@ -254,20 +254,45 @@ function renderItemReport(rows) {
 
   if (!rows || rows.length === 0) {
     tbody.innerHTML =
-      `<tr><td colspan="4" class="text-muted">No records found</td></tr>`;
+      `<tr><td colspan="5" class="text-muted">No records found</td></tr>`;
     return;
   }
+  let totalCostValue = 0;
+  let totalSellingValue = 0;
 
   rows.forEach((r, i) => {
+    const qty = Number(r.available_qty);
+    const buy = Number(r.buying_rate);
+    const sell = Number(r.selling_rate);
+    totalCostValue += qty * buy;
+    totalSellingValue += qty * sell;
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${escapeHtml(r.item_name)}</td>
       <td>${Number(r.available_qty).toFixed(2)}</td>
+      <td>${Number(r.buying_rate).toFixed(2)}</td>
       <td>${Number(r.selling_rate).toFixed(2)}</td>
       <td>${Number(r.sold_qty).toFixed(2)}</td>
     `;
     tbody.appendChild(tr);
   });
+
+  
+  const profit = totalSellingValue - totalCostValue;
+
+  const summaryHTML = `
+  <tr>
+    <td colspan="5" class="fw-bold bg-light text-end">
+      <div>Total Items Value (Cost) : ₹ ${totalCostValue.toFixed(2)}</div>
+      <div>Total Selling Value : ₹ ${totalSellingValue.toFixed(2)}</div>
+      <div class="${profit >= 0 ? 'text-success' : 'text-danger'}">
+        Estimated Profit : ₹ ${profit.toFixed(2)}
+      </div>
+    </td>
+  </tr>
+`;
+
+  tbody.insertAdjacentHTML("beforeend", summaryHTML);
 }
 
 

@@ -135,17 +135,18 @@ router.get("/items/report", async (req, res) => {
     const result = await pool.query(
       `
       SELECT
-        i.name AS item_name,
-        i.quantity AS available_qty,
-        i.selling_rate,
-        COALESCE(SUM(s.quantity), 0) AS sold_qty
+      i.name AS item_name,
+      i.quantity AS available_qty,
+      i.buying_rate,
+      i.selling_rate,
+      COALESCE(SUM(s.quantity), 0) AS sold_qty
       FROM items i
       LEFT JOIN sales s
         ON s.item_id = i.id
         AND s.user_id = $1
       WHERE i.user_id = $1
       ${nameFilter}
-      GROUP BY i.id, i.name, i.quantity, i.selling_rate
+      GROUP BY i.id, i.name, i.quantity, i.buying_rate, i.selling_rate
       ORDER BY i.name ASC
       `,
       params
