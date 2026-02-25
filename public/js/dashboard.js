@@ -219,6 +219,8 @@ if (buyingRateInput && sellingRateInput && profitPercentInput) {
   profitPercentInput.addEventListener("input", updateSellingRate);
 }
 
+
+
 //---------- stock view and download ----------------//
 async function loadItemReport() {
   const item = document
@@ -277,16 +279,16 @@ function renderItemReport(rows) {
     tbody.appendChild(tr);
   });
 
-  
+
   const profit = totalSellingValue - totalCostValue;
 
   const summaryHTML = `
   <tr>
     <td colspan="5" class="fw-bold bg-light text-end">
-      <div>Total Items Value (Cost) : ₹ ${totalCostValue.toFixed(2)}</div>
-      <div>Total Selling Value : ₹ ${totalSellingValue.toFixed(2)}</div>
+      <div>Total Items Value (Cost) : Rs. ${totalCostValue.toFixed(2)}</div>
+      <div>Total Selling Value : Rs. ${totalSellingValue.toFixed(2)}</div>
       <div class="${profit >= 0 ? 'text-success' : 'text-danger'}">
-        Estimated Profit : ₹ ${profit.toFixed(2)}
+        Estimated Profit : Rs. ${profit.toFixed(2)}
       </div>
     </td>
   </tr>
