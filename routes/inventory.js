@@ -283,13 +283,13 @@ router.get("/items/report/pdf", async (req, res) => {
 
       doc.fontSize(10).font("Helvetica-Bold");
       doc.text("SI", startX, y, { width: 30 });
-      doc.text("Item Name", startX + 30, y, { width: 230 });
-      doc.text("Available Qty", startX + 260, y, { width: 70, align: "right" });
-      doc.text("Buying Price", startX + 330, y, { width: 80, align: "right" });
-      doc.text("Selling Price", startX + 410, y, { width: 80, align: "right" });
-      doc.text("Sold Qty", startX + 490, y, { width: 65, align: "right" });
+      doc.text("Item Name", startX + 30, y, { width: 220 });
+      doc.text("Available Qty", startX + 250, y, { width: 70, align: "right" });
+      doc.text("Buying Price", startX + 320, y, { width: 80, align: "right" });
+      doc.text("Selling Price", startX + 400, y, { width: 80, align: "right" });
+      doc.text("Sold Qty", startX + 480, y, { width: 65, align: "right" });
       doc.moveDown(0.5);
-      doc.moveTo(40, doc.y).lineTo(555, doc.y).stroke();
+      doc.moveTo(40, doc.y).lineTo(545, doc.y).stroke();
       doc.moveDown(0.5);
       doc.font("Helvetica");
     }
@@ -325,11 +325,11 @@ router.get("/items/report/pdf", async (req, res) => {
       });
 
       doc.text(i + 1, startX, y, { width: 30 });
-      doc.text(r.item_name || "", startX + 30, y, { width: 230 });
-      doc.text(qty.toFixed(2), startX + 260, y, { width: 70, align: "right" });
-      doc.text(buy.toFixed(2), startX + 330, y, { width: 80, align: "right" });
-      doc.text(sell.toFixed(2), startX + 410, y, { width: 80, align: "right" });
-      doc.text(Number(r.sold_qty).toFixed(2), startX + 490, y, { width: 65, align: "right" });
+      doc.text(r.item_name || "", startX + 30, y, { width: 220 });
+      doc.text(qty.toFixed(2), startX + 250, y, { width: 70, align: "right" });
+      doc.text(buy.toFixed(2), startX + 320, y, { width: 80, align: "right" });
+      doc.text(sell.toFixed(2), startX + 400, y, { width: 80, align: "right" });
+      doc.text(Number(r.sold_qty).toFixed(2), startX + 480, y, { width: 65, align: "right" });
       // 👉 Move Y exactly like Sales PDF
       doc.y = y + Math.max(itemHeight, 18) + 6;
     });
@@ -338,7 +338,7 @@ router.get("/items/report/pdf", async (req, res) => {
 
     doc.moveDown(2);
 
-    doc.moveTo(40, doc.y).lineTo(555, doc.y).stroke();
+    doc.moveTo(40, doc.y).lineTo(545, doc.y).stroke();
     doc.moveDown(1);
 
     // block start position
