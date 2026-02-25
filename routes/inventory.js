@@ -240,17 +240,18 @@ router.get("/items/report/pdf", async (req, res) => {
     const result = await pool.query(
       `
       SELECT
-        i.name AS item_name,
-        i.quantity AS available_qty,
-        i.selling_rate,
-        COALESCE(SUM(s.quantity), 0) AS sold_qty
+      i.name AS item_name,
+      i.quantity AS available_qty,
+      i.buying_rate,
+      i.selling_rate,
+      COALESCE(SUM(s.quantity), 0) AS sold_qty
       FROM items i
       LEFT JOIN sales s
         ON s.item_id = i.id
         AND s.user_id = $1
       WHERE i.user_id = $1
       ${nameFilter}
-      GROUP BY i.id, i.name, i.quantity, i.selling_rate
+      GROUP BY i.id, i.name, i.quantity, i.buying_rate, i.selling_rate
       ORDER BY i.name ASC
       `,
       params
@@ -277,10 +278,11 @@ router.get("/items/report/pdf", async (req, res) => {
 
       doc.fontSize(10).font("Helvetica-Bold");
       doc.text("Sl", startX, y, { width: 30 });
-      doc.text("Item Name", startX + 30, y, { width: 200 });
-      doc.text("Available", startX + 230, y, { width: 80, align: "right" });
-      doc.text("Rate", startX + 310, y, { width: 80, align: "right" });
-      doc.text("Sold", startX + 390, y, { width: 80, align: "right" });
+      doc.text("Item Name", startX + 30, y, { width: 150 });
+      doc.text("Qty", startX + 180, y, { width: 60, align: "right" });
+      doc.text("Buy", startX + 240, y, { width: 70, align: "right" });
+      doc.text("Sell", startX + 310, y, { width: 70, align: "right" });
+      doc.text("Sold", startX + 380, y, { width: 70, align: "right" });
 
       doc.moveDown(0.5);
       doc.font("Helvetica");
@@ -291,6 +293,8 @@ router.get("/items/report/pdf", async (req, res) => {
 
     // ---- Rows ----
     const startX = 40;
+    let totalCostValue = 0;
+    let totalSellingValue = 0;
 
     result.rows.forEach((r, i) => {
 
@@ -299,6 +303,12 @@ router.get("/items/report/pdf", async (req, res) => {
         doc.addPage();
         drawStockTableHeader(doc);
       }
+      const qty = Number(r.available_qty);
+      const buy = Number(r.buying_rate);
+      const sell = Number(r.selling_rate);
+
+      totalCostValue += qty * buy;
+      totalSellingValue += qty * sell;
 
       const y = doc.y;
 
@@ -310,12 +320,28 @@ router.get("/items/report/pdf", async (req, res) => {
 
       doc.text(i + 1, startX, y, { width: 30 });
       doc.text(r.item_name || "", startX + 30, y, { width: 200 });
-      doc.text(Number(r.available_qty).toFixed(2), startX + 230, y, { width: 80, align: "right" });
-      doc.text(Number(r.selling_rate).toFixed(2), startX + 310, y, { width: 80, align: "right" });
-      doc.text(Number(r.sold_qty).toFixed(2), startX + 390, y, { width: 80, align: "right" });
+      doc.text(Number(r.available_qty).toFixed(2), startX + 180, y, { width: 60, align: "right" });
+      doc.text(Number(r.buying_rate).toFixed(2), startX + 240, y, { width: 70, align: "right" });
+      doc.text(Number(r.selling_rate).toFixed(2), startX + 310, y, { width: 70, align: "right" });
+      doc.text(Number(r.sold_qty).toFixed(2), startX + 380, y, { width: 70, align: "right" });
 
       // 👉 Move Y exactly like Sales PDF
       doc.y = y + Math.max(itemHeight, 18) + 6;
+    });
+
+    const profit = totalSellingValue - totalCostValue;
+
+    doc.moveDown(1);
+    doc.font("Helvetica-Bold");
+
+    doc.text(`Total Items Value (Cost): Rs. ${totalCostValue.toFixed(2)}`, {
+      align: "right"
+    });
+    doc.text(`Total Selling Value: Rs. ${totalSellingValue.toFixed(2)}`, {
+      align: "right"
+    });
+    doc.text(`Estimated Profit: Rs. ${profit.toFixed(2)}`, {
+      align: "right"
     });
 
     doc.end();
