@@ -195,6 +195,7 @@ async function addStock() {
       "buyingRate",
       "sellingRate"
     ].forEach(id => document.getElementById(id).value = "");
+    document.getElementById("profitPercent").value = 30;
   } catch (err) {
     console.error("Add stock error:", err);
     alert(err.message || "Server error");
@@ -205,16 +206,21 @@ async function addStock() {
 // --- Add Stock rate inputs ---
 const buyingRateInput = document.getElementById("buyingRate");
 const sellingRateInput = document.getElementById("sellingRate");
-// Auto calculate selling rate = buying + 30%
-if (buyingRateInput && sellingRateInput) {
-  buyingRateInput.addEventListener("input", () => {
-    const buyingRate = parseFloat(buyingRateInput.value);
+const profitPercentInput = document.getElementById("profitPercent");
 
-    if (!isNaN(buyingRate)) {
-      const autoSelling = buyingRate * 1.3;
-      sellingRateInput.value = autoSelling.toFixed(2);
-    }
-  });
+function updateSellingRate() {
+  const buyingRate = parseFloat(buyingRateInput.value);
+  const percent = parseFloat(profitPercentInput.value);
+
+  if (!isNaN(buyingRate) && !isNaN(percent)) {
+    const selling = buyingRate * (1 + percent / 100);
+    sellingRateInput.value = selling.toFixed(2);
+  }
+}
+
+if (buyingRateInput && sellingRateInput && profitPercentInput) {
+  buyingRateInput.addEventListener("input", updateSellingRate);
+  profitPercentInput.addEventListener("input", updateSellingRate);
 }
 
 //---------- stock view and download ----------------//
