@@ -505,6 +505,10 @@ async function submitDebt() {
     ["cdName", "cdNumber", "cdTotal", "cdCredit"].forEach(
       (id) => (document.getElementById(id).value = "")
     );
+    // 🔓 Re-enable name field after submit
+    const cdNameInput = document.getElementById("cdName");
+    cdNameInput.disabled = false;
+    cdNameInput.classList.remove("bg-light");
   } catch (err) {
     console.error("Submit debt error:", err);
     alert(err.message || "Server error");
