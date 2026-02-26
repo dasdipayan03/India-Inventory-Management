@@ -824,7 +824,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("excelBtn").addEventListener("click", downloadSalesExcel);
 
 
-  
+
   document.getElementById("submitDebtBtn").addEventListener("click", submitDebt);
   // 🔹 Existing customer dropdown while entering number
   const cdNumberInput = document.getElementById("cdNumber");
@@ -861,7 +861,12 @@ window.addEventListener("DOMContentLoaded", async () => {
     cdNumberDropdown.querySelectorAll(".dropdown-item").forEach(item => {
       item.addEventListener("click", () => {
         cdNumberInput.value = item.dataset.number;
-        cdNameInput.value = item.dataset.name; // 🔥 auto correct name
+        cdNameInput.value = item.dataset.name;
+
+        // 🔥 Disable name field (existing customer)
+        cdNameInput.disabled = true;
+        cdNameInput.classList.add("bg-light");
+
         cdNumberDropdown.style.display = "none";
       });
     });
