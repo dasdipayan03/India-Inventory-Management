@@ -710,6 +710,43 @@ router.get("/debts/:number", async (req, res) => {
   }
 });
 
+
+// ----------------- CUSTOMER AUTOSUGGEST -----------------
+router.get("/debts/customers", async (req, res) => {
+  try {
+    const user_id = getUserId(req);
+    const { q } = req.query;
+
+    let query = `
+      SELECT DISTINCT customer_name, customer_number
+      FROM debts
+      WHERE user_id = $1
+    `;
+    let params = [user_id];
+
+    if (q && q.trim()) {
+      query += `
+        AND (
+          customer_name ILIKE $2
+          OR customer_number ILIKE $2
+        )
+      `;
+      params.push(`%${q.trim()}%`);
+    }
+
+    query += ` ORDER BY customer_name ASC LIMIT 20`;
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+
+  } catch (err) {
+    console.error("Customer dropdown error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+
+
 // Summary dues
 router.get("/debts", async (req, res) => {
   try {

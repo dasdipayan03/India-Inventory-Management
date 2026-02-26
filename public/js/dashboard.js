@@ -706,6 +706,26 @@ async function loadLast12MonthsChart() {
 
 
 
+async function loadCustomerSuggestions(query) {
+  try {
+    const res = await fetch(
+      `${apiBase}/debts/customers?q=${encodeURIComponent(query)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
+
+    if (!res.ok) return [];
+    return await res.json();
+
+  } catch (err) {
+    console.error("Customer suggestion error:", err);
+    return [];
+  }
+}
+
 async function searchLedger() {
   const number = document.getElementById("cdSearchInput").value.trim();
   if (!/^\d{10}$/.test(number)) return alert("Invalid number");
@@ -798,6 +818,57 @@ window.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("submitDebtBtn").addEventListener("click", submitDebt);
   document.getElementById("searchLedgerBtn").addEventListener("click", searchLedger);
   document.getElementById("showAllDuesBtn").addEventListener("click", showAllDues);
+
+
+
+  // 🔹 Customer Search Dropdown Logic
+  const cdInput = document.getElementById("cdSearchInput");
+  const cdDropdown = document.getElementById("cdSearchDropdown");
+
+  cdInput.addEventListener("input", async () => {
+    const q = cdInput.value.trim();
+
+    if (!q) {
+      cdDropdown.style.display = "none";
+      return;
+    }
+
+    const customers = await loadCustomerSuggestions(q);
+
+    if (!customers.length) {
+      cdDropdown.style.display = "none";
+      return;
+    }
+
+    cdDropdown.innerHTML = customers
+      .map(c => `
+      <div class="dropdown-item" data-number="${c.customer_number}">
+        ${escapeHtml(c.customer_name)} - ${c.customer_number}
+      </div>
+    `)
+      .join("");
+
+    cdDropdown.style.display = "block";
+
+    cdDropdown.querySelectorAll(".dropdown-item").forEach(item => {
+      item.addEventListener("click", () => {
+        cdInput.value = item.dataset.number;
+        cdDropdown.style.display = "none";
+        searchLedger();
+      });
+    });
+  });
+
+  // Hide dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!cdInput.contains(e.target) &&
+      !cdDropdown.contains(e.target)) {
+      cdDropdown.style.display = "none";
+    }
+  });
+
+
+
   document.getElementById("invoiceBtn").addEventListener("click", () => {
     window.location.href = "invoice.html";
   });
@@ -876,7 +947,6 @@ function restrictToDigits(id) {
 
 // Apply to both fields
 restrictToDigits("cdNumber");
-restrictToDigits("cdSearchInput");
 
 
 
