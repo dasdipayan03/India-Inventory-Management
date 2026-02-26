@@ -822,7 +822,61 @@ window.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("loadSalesBtn").addEventListener("click", loadSalesReport);
   document.getElementById("pdfBtn").addEventListener("click", downloadSalesPDF);
   document.getElementById("excelBtn").addEventListener("click", downloadSalesExcel);
+
+
+  
   document.getElementById("submitDebtBtn").addEventListener("click", submitDebt);
+  // 🔹 Existing customer dropdown while entering number
+  const cdNumberInput = document.getElementById("cdNumber");
+  const cdNameInput = document.getElementById("cdName");
+  const cdNumberDropdown = document.getElementById("cdNumberDropdown");
+
+  cdNumberInput.addEventListener("input", async () => {
+    const q = cdNumberInput.value.trim();
+
+    if (!q) {
+      cdNumberDropdown.style.display = "none";
+      return;
+    }
+
+    const customers = await loadCustomerSuggestions(q);
+
+    if (!customers.length) {
+      cdNumberDropdown.style.display = "none";
+      return;
+    }
+
+    cdNumberDropdown.innerHTML = customers
+      .map(c => `
+      <div class="dropdown-item"
+           data-number="${c.customer_number}"
+           data-name="${escapeHtml(c.customer_name)}">
+        ${escapeHtml(c.customer_name)} - ${c.customer_number}
+      </div>
+    `)
+      .join("");
+
+    cdNumberDropdown.style.display = "block";
+
+    cdNumberDropdown.querySelectorAll(".dropdown-item").forEach(item => {
+      item.addEventListener("click", () => {
+        cdNumberInput.value = item.dataset.number;
+        cdNameInput.value = item.dataset.name; // 🔥 auto correct name
+        cdNumberDropdown.style.display = "none";
+      });
+    });
+  });
+
+  // Hide dropdown on outside click
+  document.addEventListener("click", (e) => {
+    if (!cdNumberInput.contains(e.target) &&
+      !cdNumberDropdown.contains(e.target)) {
+      cdNumberDropdown.style.display = "none";
+    }
+  });
+
+
+
   document.getElementById("searchLedgerBtn").addEventListener("click", searchLedger);
   document.getElementById("showAllDuesBtn").addEventListener("click", showAllDues);
 
