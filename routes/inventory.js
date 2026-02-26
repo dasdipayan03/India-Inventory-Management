@@ -686,29 +686,6 @@ router.post("/debts", async (req, res) => {
   }
 });
 
-// Full ledger
-router.get("/debts/:number", async (req, res) => {
-  try {
-    const user_id = getUserId(req);
-    const number = req.params.number;
-
-    if (!/^\d{10}$/.test(number))
-      return res.status(400).json({ error: "Customer number must be 10 digits" });
-
-    const result = await pool.query(
-      `SELECT id, customer_name, customer_number, total, credit, created_at
-       FROM debts
-       WHERE user_id=$1 AND customer_number=$2
-       ORDER BY created_at ASC`,
-      [user_id, number]
-    );
-
-    res.json(result.rows);
-  } catch (err) {
-    if (process.env.NODE_ENV !== "production") console.error("Error in GET /debts/:number:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
 
 
 // ----------------- CUSTOMER AUTOSUGGEST -----------------
@@ -741,6 +718,33 @@ router.get("/debts/customers", async (req, res) => {
 
   } catch (err) {
     console.error("Customer dropdown error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+
+
+
+// Full ledger
+router.get("/debts/:number", async (req, res) => {
+  try {
+    const user_id = getUserId(req);
+    const number = req.params.number;
+
+    if (!/^\d{10}$/.test(number))
+      return res.status(400).json({ error: "Customer number must be 10 digits" });
+
+    const result = await pool.query(
+      `SELECT id, customer_name, customer_number, total, credit, created_at
+       FROM debts
+       WHERE user_id=$1 AND customer_number=$2
+       ORDER BY created_at ASC`,
+      [user_id, number]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    if (process.env.NODE_ENV !== "production") console.error("Error in GET /debts/:number:", err);
     res.status(500).json({ error: "Server error" });
   }
 });

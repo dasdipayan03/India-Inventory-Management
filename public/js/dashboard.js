@@ -727,16 +727,23 @@ async function loadCustomerSuggestions(query) {
 }
 
 async function searchLedger() {
-  const number = document.getElementById("cdSearchInput").value.trim();
-  if (!/^\d{10}$/.test(number)) return alert("Invalid number");
-  try {
-    const res = await fetch(`${apiBase}/debts/${number}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    });
-    const data = await res.json();
-    renderLedgerTable(data, "ledger");
-  } catch (err) {
-    console.error("Search ledger error:", err);
+  const value = document.getElementById("cdSearchInput").value.trim();
+
+  if (!value) return alert("Enter name or number");
+
+  // If exactly 10 digit number → search ledger
+  if (/^\d{10}$/.test(value)) {
+    try {
+      const res = await fetch(`${apiBase}/debts/${value}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      const data = await res.json();
+      renderLedgerTable(data, "ledger");
+    } catch (err) {
+      console.error("Search ledger error:", err);
+    }
+  } else {
+    alert("Please select a customer from dropdown");
   }
 }
 
