@@ -191,7 +191,6 @@ async function addStock() {
       "buyingRate",
       "sellingRate"
     ].forEach(id => document.getElementById(id).value = "");
-    document.getElementById("profitPercent").value = 30;
   } catch (err) {
     console.error("Add stock error:", err);
     alert(err.message || "Server error");
@@ -203,6 +202,12 @@ async function addStock() {
 const buyingRateInput = document.getElementById("buyingRate");
 const sellingRateInput = document.getElementById("sellingRate");
 const profitPercentInput = document.getElementById("profitPercent");
+// 🔹 Save profit percent when user changes it
+if (profitPercentInput) {
+  profitPercentInput.addEventListener("change", () => {
+    localStorage.setItem("defaultProfitPercent", profitPercentInput.value);
+  });
+}
 
 function updateSellingRate() {
   const buyingRate = parseFloat(buyingRateInput.value);
@@ -777,6 +782,11 @@ function renderLedgerTable(rows, mode = "summary") {
 /* ---------------------- Init --------------------- */
 window.addEventListener("DOMContentLoaded", async () => {
   await checkAuth();
+  // 🔹 Load saved profit percent from localStorage
+  const savedPercent = localStorage.getItem("defaultProfitPercent");
+  if (savedPercent) {
+    document.getElementById("profitPercent").value = savedPercent;
+  }
 
   setupSidebar();
   document.getElementById("addStockBtn").addEventListener("click", addStock);
