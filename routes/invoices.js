@@ -128,7 +128,10 @@ router.post('/invoices', authMiddleware, async (req, res) => {
                 throw new Error(`Item not found: ${it.description}`);
             }
             if (itemRow.rows[0].quantity < it.quantity) {
-                throw new Error(`Insufficient stock: ${it.description}`);
+                const available = itemRow.rows[0].quantity;
+                throw new Error(
+                    `Stock not sufficient for "${it.description}". Available: ${available}`
+                );
             }
 
             await client.query(`
@@ -159,7 +162,11 @@ router.post('/invoices', authMiddleware, async (req, res) => {
 
     } catch (err) {
         await client.query('ROLLBACK');
-        res.status(500).json({ success: false, message: err.message });
+        if (err.message.includes("Stock not sufficient")) {
+            res.status(400).json({ success: false, message: err.message });
+        } else {
+            res.status(500).json({ success: false, message: "Server error" });
+        }
     } finally {
         client.release();
     }
