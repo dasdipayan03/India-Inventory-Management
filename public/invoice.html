@@ -736,6 +736,24 @@
         </div>
     </div>
 
+    <!-- ===== COMMON POPUP MODAL ===== -->
+    <div id="commonPopup" style="display:none; position:fixed; inset:0; z-index:5000;">
+        <div id="popupOverlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.45);"></div>
+
+        <div id="popupBox" style="
+            position:relative;
+            max-width:350px;
+            margin:25vh auto;
+            background:#fff;
+            border-radius:12px;
+            padding:20px;
+            text-align:center;
+            box-shadow:0 20px 40px rgba(0,0,0,0.2);
+        ">
+            <h3 id="popupTitle" style="margin-bottom:8px;">Title</h3>
+            <p id="popupMessage" style="font-size:0.9rem;"></p>
+        </div>
+    </div>
 
     <script>
 
@@ -868,6 +886,48 @@
                 downloadModal.style.display = 'none';
             }
 
+            // ===== COMMON POPUP SYSTEM =====
+            const commonPopup = document.getElementById("commonPopup");
+            const popupOverlay = document.getElementById("popupOverlay");
+            const popupTitle = document.getElementById("popupTitle");
+            const popupMessage = document.getElementById("popupMessage");
+
+            let popupAutoTimer = null;
+
+            function showPopup(type, title, message) {
+
+                popupTitle.textContent = title;
+                popupMessage.textContent = message;
+
+                // Color by type
+                if (type === "success") {
+                    popupTitle.style.color = "#16a34a";
+                } else if (type === "error") {
+                    popupTitle.style.color = "#dc2626";
+                } else {
+                    popupTitle.style.color = "#2563eb";
+                }
+
+                commonPopup.style.display = "block";
+
+                // Auto close only for success
+                if (type === "success") {
+                    popupAutoTimer = setTimeout(() => {
+                        hidePopup();
+                    }, 2000);
+                }
+            }
+
+            function hidePopup() {
+                commonPopup.style.display = "none";
+                if (popupAutoTimer) {
+                    clearTimeout(popupAutoTimer);
+                    popupAutoTimer = null;
+                }
+            }
+
+            // Close when clicking outside box
+            popupOverlay.addEventListener("click", hidePopup);
 
 
             const shopName = document.getElementById('shopName');
