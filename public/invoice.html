@@ -1096,12 +1096,12 @@
                                 <div class="dropdown-list"></div>
                             </div>
                         </td>
-                        <td><input type="number" step="0.001" min="0" value="${item.quantity}"></td>
-                        <td><input type="number" step="0.01" min="0" value="${item.rate}"></td>
+                        <td><input type="number" step="0.001" value="${item.quantity}"></td>
+                        <td><input type="number" step="0.01" value="${item.rate}"></td>
                         <td class="base-cell">0.00</td>
                         <td class="gst-cell">0.00</td>
                         <td style="position:relative;">
-                            <input type="number" step="0.01" min="0" class="total-input" value="0">
+                            <input type="number" step="0.01" class="total-input" value="0">
                             <div class="available-stock"
                                 style="
                                     position:absolute;
@@ -1338,7 +1338,7 @@
                     const q = parseFloat(r.children[1].querySelector('input').value) || 0;
                     const p = parseFloat(r.children[2].querySelector('input').value) || 0;
 
-                    if (d && q > 0 && p > 0) {
+                    if (d && q !== 0 && p !== 0) {
                         data.items.push({ description: d, quantity: q, rate: p });
                     }
                 });
