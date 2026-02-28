@@ -1016,7 +1016,10 @@
                         <td class="base-cell">0.00</td>
                         <td class="gst-cell">0.00</td>
                         <td>
-                        <input type="number" step="0.01" min="0" class="total-input" value="0"></td>
+                        <td>
+                        <input type="number" step="0.01" min="0" class="total-input" value="0">
+                        <div class="available-stock" style="font-size:0.75rem;color:#6b7280;margin-top:4px;"></div>
+                        </td>
                         <td><button class="btn small">❌</button></td>
                     `;
 
@@ -1029,6 +1032,8 @@
                 const baseCell = tr.querySelector('.base-cell');
                 const gstCell = tr.querySelector('.gst-cell');
                 const totalInput = tr.querySelector('.total-input');
+                const stockInfo = tr.querySelector('.available-stock');
+                let availableQty = 0;
                 const removeBtn = tr.children[6].querySelector('button');
 
                 // ✅ Sale page style dropdown (ONLY THIS)
@@ -1065,7 +1070,13 @@
                             );
                             if (r.ok) {
                                 const j = await r.json();
+
                                 rateInput.value = j.selling_rate || 0;
+
+                                // 🔥 SHOW AVAILABLE STOCK UNDER TOTAL
+                                stockInfo.textContent = "Available stock: " + j.quantity;
+                                availableQty = parseFloat(j.quantity) || 0;
+
                                 recalcFromRate();
                             }
                         };
@@ -1114,7 +1125,17 @@
                     recalcTotals();
                 }
 
-                qtyInput.oninput = recalcFromRate;
+                qtyInput.oninput = () => {
+                    recalcFromRate();
+
+                    const qty = parseFloat(qtyInput.value || 0);
+
+                    if (availableQty && qty > availableQty) {
+                        qtyInput.style.border = "2px solid #dc2626";   // 🔴 red border
+                    } else {
+                        qtyInput.style.border = "";                   // reset
+                    }
+                };
                 rateInput.oninput = recalcFromRate;
                 totalInput.oninput = recalcFromTotal;
 
