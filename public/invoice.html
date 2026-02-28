@@ -1307,14 +1307,27 @@
                     items: []
                 };
 
-                itemsTbody.querySelectorAll('tr').forEach(r => {
-                    const d = r.children[0].querySelector('input').value.trim(),
-                        q = parseFloat(r.children[1].querySelector('input').value) || 0,
-                        p = parseFloat(r.children[2].querySelector('input').value) || 0;
+                let hasZeroQty = false;
 
-                    if (d || q > 0 || p > 0)
+                itemsTbody.querySelectorAll('tr').forEach(r => {
+                    const d = r.children[0].querySelector('input').value.trim();
+                    const q = parseFloat(r.children[1].querySelector('input').value) || 0;
+                    const p = parseFloat(r.children[2].querySelector('input').value) || 0;
+
+                    if (d && q === 0) {
+                        hasZeroQty = true;
+                        r.children[1].querySelector('input').style.backgroundColor = "#fee2e2";
+                    }
+
+                    if (d && q > 0 && p > 0) {
                         data.items.push({ description: d, quantity: q, rate: p });
+                    }
                 });
+
+                if (hasZeroQty) {
+                    showPopup("error", "Invalid Quantity", "Item quantity cannot be 0.");
+                    return;
+                }
 
                 if (!data.items.length) {
                     showPopup("error", "Missing Items", "Please add at least one item.");
