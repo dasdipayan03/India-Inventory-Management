@@ -786,7 +786,7 @@ function renderLedgerTable(rows, mode = "summary") {
     return;
   }
 
-  let html = "<table>";
+  let html = '<table class="table table-bordered table-sm text-center">';
   let totalOutstanding = 0;
 
   if (mode === "summary") {
@@ -830,8 +830,8 @@ function renderLedgerTable(rows, mode = "summary") {
 window.addEventListener("DOMContentLoaded", async () => {
   await checkAuth();
   // 🔹 Load saved profit percent from localStorage
-  const savedPercent = localStorage.getItem("defaultProfitPercent");
-  if (savedPercent) {
+  const savedPercent = parseFloat(localStorage.getItem("defaultProfitPercent"));
+  if (!isNaN(savedPercent)) {
     document.getElementById("profitPercent").value = savedPercent;
   }
 

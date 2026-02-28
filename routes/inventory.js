@@ -787,34 +787,35 @@ router.use((err, req, res, next) => {
 router.get("/sales/monthly-trend", async (req, res) => {
   try {
     const user_id = getUserId(req);
-    const { year } = req.query;
+    const yearParam = req.query.year;
 
     let yearFilter = "";
-    let params = [user_id];
 
-    if (year && year !== "all") {
-      params.push(year);
+    if (yearParam && yearParam !== "all") {
       yearFilter = "AND EXTRACT(YEAR FROM s.created_at) = $2";
     }
+
+    const params = yearParam && yearParam !== "all"
+      ? [user_id, yearParam]
+      : [user_id];
 
     const result = await pool.query(
       `
       SELECT 
-        TO_CHAR(DATE_TRUNC('month', s.created_at), 'YYYY-MM') AS month,
+        TO_CHAR(s.created_at, 'Mon') AS month,
         SUM(s.total_price) AS total_sales,
-        SUM((s.quantity * i.selling_rate) - (s.quantity * i.buying_rate)) AS total_profit
+        SUM((s.selling_price - i.buying_rate) * s.quantity) AS total_profit
       FROM sales s
-      JOIN items i ON s.item_id = i.id
+      JOIN items i ON i.id = s.item_id
       WHERE s.user_id = $1
       ${yearFilter}
-      GROUP BY DATE_TRUNC('month', s.created_at)
-      ORDER BY DATE_TRUNC('month', s.created_at)
+      GROUP BY month
+      ORDER BY MIN(s.created_at)
       `,
       params
     );
 
     res.json(result.rows);
-
   } catch (err) {
     console.error("Monthly trend error:", err);
     res.status(500).json({ error: "Server error" });
