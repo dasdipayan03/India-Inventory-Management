@@ -838,25 +838,6 @@
 
         const API_PREFIX = '/api';
         const token = localStorage.getItem('token');
-
-        // 🔒 GLOBAL 401 HANDLER WRAPPER
-        async function authFetch(url, options = {}) {
-            options.headers = options.headers || {};
-            options.headers["Authorization"] = "Bearer " + token;
-
-            const response = await fetch(url, options);
-
-            if (response.status === 401) {
-                localStorage.removeItem("token");
-                showPopup("error", "Session Expired", "Please login again.");
-                setTimeout(() => {
-                    window.location.href = "login.html";
-                }, 1500);
-                return;
-            }
-
-            return response;
-        }
         let userGstRate = 18; // Default fallback
         let itemNames = [];
         let invoiceNumbers = []; // 🔥 SEARCH DROPDOWN CACHE
@@ -864,6 +845,23 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (!token) {
                 window.location.href = "login.html";
+            }
+            // 🔒 GLOBAL 401 HANDLER WRAPPER
+            async function authFetch(url, options = {}) {
+                options.headers = options.headers || {};
+                options.headers["Authorization"] = "Bearer " + token;
+
+                const response = await fetch(url, options);
+
+                if (response.status === 401) {
+                    localStorage.removeItem("token");
+                    showPopup("error", "Session Expired", "Please login again.");
+                    setTimeout(() => {
+                        window.location.href = "login.html";
+                    }, 1500);
+                    return;
+                }
+                return response;
             }
 
 
@@ -1286,7 +1284,41 @@
 
             // Show modal instead of direct save
             saveInvoiceBtn.onclick = () => {
-                saveConfirmModal.style.display = 'block';
+
+                // 🔍 Pre-validation
+                let hasZeroQty = false;
+                let hasItem = false;
+
+                itemsTbody.querySelectorAll('tr').forEach(r => {
+                    const d = r.children[0].querySelector('input').value.trim();
+                    const q = parseFloat(r.children[1].querySelector('input').value) || 0;
+
+                    if (d) {
+                        hasItem = true;
+                        if (q === 0) {
+                            hasZeroQty = true;
+                            r.children[1].querySelector('input').style.backgroundColor = "#fee2e2";
+                        }
+                    }
+                });
+
+                if (!hasItem) {
+                    showPopup("error", "Missing Items", "Please add at least one item.");
+                    return;
+                }
+
+                if (hasZeroQty) {
+                    showPopup("error", "Invalid Quantity", "Item quantity cannot be 0.");
+                    return;
+                }
+
+                // 🔵 Show working before confirm
+                showPopup("working", "Ready to Submit", "Invoice looks good.");
+
+                setTimeout(() => {
+                    hidePopup();
+                    saveConfirmModal.style.display = 'block';
+                }, 800);
             };
 
             // Cancel button
@@ -1307,32 +1339,15 @@
                     items: []
                 };
 
-                let hasZeroQty = false;
-
                 itemsTbody.querySelectorAll('tr').forEach(r => {
                     const d = r.children[0].querySelector('input').value.trim();
                     const q = parseFloat(r.children[1].querySelector('input').value) || 0;
                     const p = parseFloat(r.children[2].querySelector('input').value) || 0;
 
-                    if (d && q === 0) {
-                        hasZeroQty = true;
-                        r.children[1].querySelector('input').style.backgroundColor = "#fee2e2";
-                    }
-
                     if (d && q > 0 && p > 0) {
                         data.items.push({ description: d, quantity: q, rate: p });
                     }
                 });
-
-                if (hasZeroQty) {
-                    showPopup("error", "Invalid Quantity", "Item quantity cannot be 0.");
-                    return;
-                }
-
-                if (!data.items.length) {
-                    showPopup("error", "Missing Items", "Please add at least one item.");
-                    return;
-                }
 
                 const res = await authFetch(API_PREFIX + '/invoices', {
                     method: 'POST',
