@@ -1015,10 +1015,17 @@
                         <td><input type="number" step="0.01" min="0" value="${item.rate}"></td>
                         <td class="base-cell">0.00</td>
                         <td class="gst-cell">0.00</td>
-                        <td>
-                        <td>
-                        <input type="number" step="0.01" min="0" class="total-input" value="0">
-                        <div class="available-stock" style="font-size:0.75rem;color:#6b7280;margin-top:4px;"></div>
+                        <td style="position:relative;">
+                            <input type="number" step="0.01" min="0" class="total-input" value="0">
+                            <div class="available-stock"
+                                style="
+                                    position:absolute;
+                                    left:0;
+                                    bottom:-16px;
+                                    font-size:0.72rem;
+                                    color:#6b7280;
+                                ">
+                            </div>
                         </td>
                         <td><button class="btn small">❌</button></td>
                     `;
@@ -1078,6 +1085,14 @@
                                 availableQty = parseFloat(j.quantity) || 0;
 
                                 recalcFromRate();
+
+                                // 🔥 Immediately validate current qty
+                                const currentQty = parseFloat(qtyInput.value || 0);
+                                if (availableQty && currentQty > availableQty) {
+                                    qtyInput.style.backgroundColor = "#fee2e2";
+                                } else {
+                                    qtyInput.style.backgroundColor = "";
+                                }
                             }
                         };
 
@@ -1131,9 +1146,9 @@
                     const qty = parseFloat(qtyInput.value || 0);
 
                     if (availableQty && qty > availableQty) {
-                        qtyInput.style.border = "2px solid #dc2626";   // 🔴 red border
+                        qtyInput.style.backgroundColor = "#fee2e2";   // light red
                     } else {
-                        qtyInput.style.border = "";                   // reset
+                        qtyInput.style.backgroundColor = "";
                     }
                 };
                 rateInput.oninput = recalcFromRate;
