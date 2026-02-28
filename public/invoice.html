@@ -748,7 +748,7 @@
             border-radius:12px;
             padding:20px;
             text-align:center;
-            box-shadow:0 20px 40px rgba(0,0,0,0.2);
+            box-shadow:0 20px 40px rgba(0,0,0,0.4);
         ">
             <h3 id="popupTitle" style="margin-bottom:8px;">Title</h3>
             <p id="popupMessage" style="font-size:0.9rem;"></p>
@@ -1354,7 +1354,11 @@
                 if (j.success) {
 
                     showPopup("success", "Success", "Invoice submitted successfully.");
-                    showDownloadModal(j.invoice_no);
+
+                    // ⏳ Wait until success popup auto closes
+                    setTimeout(() => {
+                        showDownloadModal(j.invoice_no);
+                    }, 2100); // 2 sec popup + small buffer
 
                     custName.value = custContact.value = custAddress.value = '';
                     itemsTbody.innerHTML = '';
