@@ -1283,24 +1283,45 @@
             const confirmSaveNo = document.getElementById('confirmSaveNo');
 
             // Show modal instead of direct save
-            saveInvoiceBtn.onclick = () => {
+            saveInvoiceBtn.onclick = async () => {
 
-                // 🔍 Pre-validation
-                let hasZeroQty = false;
                 let hasItem = false;
+                let hasZeroQty = false;
+                let stockError = false;
 
-                itemsTbody.querySelectorAll('tr').forEach(r => {
+                for (const r of itemsTbody.querySelectorAll('tr')) {
+
                     const d = r.children[0].querySelector('input').value.trim();
                     const q = parseFloat(r.children[1].querySelector('input').value) || 0;
 
-                    if (d) {
-                        hasItem = true;
-                        if (q === 0) {
-                            hasZeroQty = true;
-                            r.children[1].querySelector('input').style.backgroundColor = "#fee2e2";
+                    if (!d) continue;
+
+                    hasItem = true;
+
+                    if (q === 0) {
+                        hasZeroQty = true;
+                        r.children[1].querySelector('input').style.backgroundColor = "#fee2e2";
+                        continue;
+                    }
+
+                    // 🔥 Stock Pre-Check from Backend
+                    if (q > 0) {
+                        const response = await fetch(
+                            API_PREFIX + '/items/info?name=' + encodeURIComponent(d),
+                            { headers: { Authorization: 'Bearer ' + token } }
+                        );
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            const available = parseFloat(data.quantity) || 0;
+
+                            if (q > available) {
+                                stockError = true;
+                                break;
+                            }
                         }
                     }
-                });
+                }
 
                 if (!hasItem) {
                     showPopup("error", "Missing Items", "Please add at least one item.");
@@ -1312,6 +1333,12 @@
                     return;
                 }
 
+                if (stockError) {
+                    showPopup("error", "Stock Error", "Faild !! Stock not sufficient");
+                    return;
+                }
+
+                // ✅ Only if all good
                 saveConfirmModal.style.display = 'block';
             };
 
