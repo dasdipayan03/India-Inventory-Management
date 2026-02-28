@@ -838,11 +838,6 @@
 
         const API_PREFIX = '/api';
         const token = localStorage.getItem('token');
-        // 🔒 AUTH CHECK ON PAGE LOAD
-        if (!token) {
-            alert("Session expired. Please login again.");
-            window.location.href = "login.html";
-        }
 
         // 🔒 GLOBAL 401 HANDLER WRAPPER
         async function authFetch(url, options = {}) {
@@ -853,8 +848,10 @@
 
             if (response.status === 401) {
                 localStorage.removeItem("token");
-                alert("Session expired. Please login again.");
-                window.location.href = "login.html";
+                showPopup("error", "Session Expired", "Please login again.");
+                setTimeout(() => {
+                    window.location.href = "login.html";
+                }, 1500);
                 return;
             }
 
@@ -1002,7 +999,13 @@
             }
 
             async function init() {
-                if (!token) { alert('Please log in first'); return; }
+                if (!token) {
+                    showPopup("error", "Session Expired", "Please login again.");
+                    setTimeout(() => {
+                        window.location.href = "login.html";
+                    }, 1500);
+                    return;
+                }
                 await loadItemNames();
                 await loadInvoiceNumbers();
                 try {
@@ -1054,7 +1057,11 @@
 
 
                 const j = await r.json();
-                alert(j.success ? 'Shop info saved!' : 'Error saving shop info');
+                if (j.success) {
+                    showPopup("success", "Saved", "Shop information saved successfully.");
+                } else {
+                    showPopup("error", "Error", "Failed to save shop information.");
+                }
                 if (j.success) {
                     userGstRate = parseFloat(document.getElementById('gstRateInput').value) || 18;
                     recalcTotals();
@@ -1272,51 +1279,6 @@
             }
 
 
-            // ✅ Save Invoice + Silent PDF Download
-            // saveInvoiceBtn.onclick = async () => {
-            //     const data = {
-            //         customer_name: custName.value.trim(),
-            //         contact: custContact.value.trim(),
-            //         address: custAddress.value.trim(),
-            //         gst_no: gstInput.value.trim() || null,
-            //         items: []
-            //     };
-            //     itemsTbody.querySelectorAll('tr').forEach(r => {
-            //         const d = r.children[0].querySelector('input').value.trim(),
-            //             q = parseFloat(r.children[1].querySelector('input').value) || 0,
-            //             p = parseFloat(r.children[2].querySelector('input').value) || 0;
-            //         if (d || q > 0 || p > 0) data.items.push({ description: d, quantity: q, rate: p });
-            //     });
-            //     if (!data.items.length) return alert('Add at least one item');
-            //     const res = await authFetch(API_PREFIX + '/invoices', {
-            //         method: 'POST', headers: authHeaders(), body:
-            //             JSON.stringify(data)
-            //     });
-            //     const j = await res.json();
-            //     if (j.success) {
-
-            //         showDownloadModal(j.invoice_no);
-
-            //         // ✅ Clear form and refresh next invoice number
-            //         custName.value = custContact.value = custAddress.value = '';
-            //         itemsTbody.innerHTML = '';
-            //         addItemRow();
-            //         recalcTotals();
-
-            //         try {
-            //             const r = await authFetch(API_PREFIX + '/invoices/new', { headers: authHeaders() });
-            //             const next = await r.json();
-            //             if (next.success) {
-            //                 invoiceNoEl.textContent = next.invoice_no;
-            //                 invoiceDateEl.textContent = safeInvoiceDate(next.date || new Date());
-            //             }
-            //         } catch (e) {
-            //             console.warn('Error fetching next invoice number', e);
-            //         }
-            //     } else {
-            //         alert('Error saving invoice');
-            //     }
-            // };
 
             const saveConfirmModal = document.getElementById('saveConfirmModal');
             const confirmSaveYes = document.getElementById('confirmSaveYes');
@@ -1354,7 +1316,10 @@
                         data.items.push({ description: d, quantity: q, rate: p });
                 });
 
-                if (!data.items.length) return alert('Add at least one item');
+                if (!data.items.length) {
+                    showPopup("error", "Missing Items", "Please add at least one item.");
+                    return;
+                }
 
                 const res = await authFetch(API_PREFIX + '/invoices', {
                     method: 'POST',
@@ -1366,6 +1331,7 @@
 
                 if (j.success) {
 
+                    showPopup("success", "Success", "Invoice submitted successfully.");
                     showDownloadModal(j.invoice_no);
 
                     custName.value = custContact.value = custAddress.value = '';
@@ -1383,7 +1349,7 @@
                     } catch (e) { }
 
                 } else {
-                    alert(j.message || 'Error saving invoice');
+                    showPopup("error", "Invoice Failed", j.message || "Error saving invoice");
                 }
             };
 
@@ -1417,7 +1383,10 @@
                     });
 
                     const j = await r.json();
-                    if (!j.success) return alert('Invoice not found');
+                    if (!j.success) {
+                        showPopup("error", "Not Found", "Invoice not found.");
+                        return;
+                    }
                     renderSearch(j.invoice);
                     return;
                 }
@@ -1428,7 +1397,10 @@
                 });
 
                 const j = await r.json();
-                if (!j.success) return alert('Failed to load invoices');
+                if (!j.success) {
+                    showPopup("error", "Load Failed", "Failed to load invoices.");
+                    return;
+                }
 
                 renderAllInvoices(j.invoices);
             };
@@ -1585,14 +1557,14 @@
                             const j = await r.json();
 
                             if (!j.success) {
-                                alert('Invoice not found');
+                                showPopup("error", "Not Found", "Invoice not found.");
                                 return;
                             }
 
                             renderSearch(j.invoice);
 
                         } catch (err) {
-                            alert('Failed to load invoice');
+                            showPopup("error", "Load Failed", "Failed to load invoice.");
                         }
 
                     });
@@ -1617,7 +1589,7 @@
                             downloadBlob(blob, `${invNo}.pdf`);
 
                         } catch (err) {
-                            alert('Failed to download invoice');
+                            showPopup("error", "Download Failed", "Failed to download invoice.");
                         }
                     });
                 });
@@ -1638,7 +1610,7 @@
                     const blob = await response.blob();
                     downloadBlob(blob, `${inv}.pdf`);
                 } catch (err) {
-                    alert('Failed to download PDF: ' + err.message);
+                    showPopup("error", "Download Failed", err.message);
                 }
             };
 
@@ -1657,7 +1629,7 @@
                     const blob = await response.blob();
                     downloadBlob(blob, `${pendingInvoiceNo}.pdf`);
                 } catch (err) {
-                    alert('Failed to download PDF: ' + err.message);
+                    showPopup("error", "Download Failed", err.message);
                 }
 
                 hideDownloadModal();
