@@ -130,7 +130,7 @@ router.post('/invoices', authMiddleware, async (req, res) => {
             if (itemRow.rows[0].quantity < it.quantity) {
                 const available = itemRow.rows[0].quantity;
                 throw new Error(
-                    `Stock not sufficient for "${it.description}". Available: ${available}`
+                    `Faild !! Stock not sufficient`
                 );
             }
 
