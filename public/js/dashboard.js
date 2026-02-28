@@ -225,7 +225,12 @@ function updateProfitPercent() {
 
   if (!isNaN(buyingRate) && !isNaN(sellingRate) && buyingRate > 0) {
     const percent = ((sellingRate - buyingRate) / buyingRate) * 100;
-    profitPercentInput.value = percent.toFixed(2);
+    const formatted = percent.toFixed(2);
+
+    profitPercentInput.value = formatted;
+
+    // 🔥 SAVE automatically
+    localStorage.setItem("defaultProfitPercent", formatted);
   }
 }
 
