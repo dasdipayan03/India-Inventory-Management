@@ -838,32 +838,32 @@
 
         const API_PREFIX = '/api';
         const token = localStorage.getItem('token');
+        // 🔒 GLOBAL 401 HANDLER WRAPPER
+        async function authFetch(url, options = {}) {
+            options.headers = options.headers || {};
+            options.headers["Authorization"] = "Bearer " + token;
+
+            const response = await fetch(url, options);
+
+            if (response.status === 401) {
+                localStorage.removeItem("token");
+                showPopup("error", "Session Expired", "Please login again.");
+                setTimeout(() => {
+                    window.location.href = "login.html";
+                }, 1500);
+                return;
+            }
+            return response;
+        }
+
+
         let userGstRate = 18; // Default fallback
         let itemNames = [];
         let invoiceNumbers = []; // 🔥 SEARCH DROPDOWN CACHE
-
         document.addEventListener('DOMContentLoaded', () => {
             if (!token) {
                 window.location.href = "login.html";
             }
-            // 🔒 GLOBAL 401 HANDLER WRAPPER
-            async function authFetch(url, options = {}) {
-                options.headers = options.headers || {};
-                options.headers["Authorization"] = "Bearer " + token;
-
-                const response = await fetch(url, options);
-
-                if (response.status === 401) {
-                    localStorage.removeItem("token");
-                    showPopup("error", "Session Expired", "Please login again.");
-                    setTimeout(() => {
-                        window.location.href = "login.html";
-                    }, 1500);
-                    return;
-                }
-                return response;
-            }
-
 
             const downloadModal = document.getElementById('downloadModal');
             const modalYes = document.getElementById('modalYes');
