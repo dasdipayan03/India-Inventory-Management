@@ -568,6 +568,25 @@
                 max-width: 1500px;
             }
         }
+
+        @keyframes stockBlink {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.2;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .stock-blink {
+            color: #dc2626 !important;
+            animation: stockBlink 0.8s infinite;
+        }
     </style>
 </head>
 
@@ -1090,8 +1109,10 @@
                                 const currentQty = parseFloat(qtyInput.value || 0);
                                 if (availableQty && currentQty > availableQty) {
                                     qtyInput.style.backgroundColor = "#fee2e2";
+                                    stockInfo.classList.add("stock-blink");
                                 } else {
                                     qtyInput.style.backgroundColor = "";
+                                    stockInfo.classList.remove("stock-blink");
                                 }
                             }
                         };
@@ -1146,9 +1167,13 @@
                     const qty = parseFloat(qtyInput.value || 0);
 
                     if (availableQty && qty > availableQty) {
-                        qtyInput.style.backgroundColor = "#fee2e2";   // light red
+                        qtyInput.style.backgroundColor = "#fee2e2";
+
+                        stockInfo.classList.add("stock-blink");
                     } else {
                         qtyInput.style.backgroundColor = "";
+
+                        stockInfo.classList.remove("stock-blink");
                     }
                 };
                 rateInput.oninput = recalcFromRate;
