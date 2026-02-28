@@ -219,9 +219,20 @@ function updateSellingRate() {
   }
 }
 
+function updateProfitPercent() {
+  const buyingRate = parseFloat(buyingRateInput.value);
+  const sellingRate = parseFloat(sellingRateInput.value);
+
+  if (!isNaN(buyingRate) && !isNaN(sellingRate) && buyingRate > 0) {
+    const percent = ((sellingRate - buyingRate) / buyingRate) * 100;
+    profitPercentInput.value = percent.toFixed(2);
+  }
+}
+
 if (buyingRateInput && sellingRateInput && profitPercentInput) {
   buyingRateInput.addEventListener("input", updateSellingRate);
   profitPercentInput.addEventListener("input", updateSellingRate);
+  sellingRateInput.addEventListener("input", updateProfitPercent);
 }
 
 
