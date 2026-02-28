@@ -1312,13 +1312,7 @@
                     return;
                 }
 
-                // 🔵 Show working before confirm
-                showPopup("working", "Ready to Submit", "Invoice looks good.");
-
-                setTimeout(() => {
-                    hidePopup();
-                    saveConfirmModal.style.display = 'block';
-                }, 800);
+                saveConfirmModal.style.display = 'block';
             };
 
             // Cancel button
