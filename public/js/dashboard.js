@@ -21,9 +21,7 @@ async function checkAuth() {
     const user = await res.json();
     localStorage.setItem("user", JSON.stringify(user));
     // document.getElementById("welcomeUser").innerText = `Welcome, ${user.name}`;
-    document.getElementById("welcomeUser").innerText = user.name
-      ? user.name.trim()
-      : "";
+    document.getElementById("welcomeUser").innerText = user.name ? user.name.trim() : "";
     document.body.style.visibility = "visible";
   } catch (err) {
     console.error("Auth fail:", err);
@@ -88,8 +86,8 @@ function renderDropdown(listEl, items, onSelect) {
     .map(
       (i) =>
         `<div class="dropdown-item" data-value="${escapeHtml(i)}">${escapeHtml(
-          i,
-        )}</div>`,
+          i
+        )}</div>`
     )
     .join("");
   listEl.style.display = "block";
@@ -97,7 +95,7 @@ function renderDropdown(listEl, items, onSelect) {
     el.addEventListener("click", () => {
       onSelect(el.dataset.value);
       listEl.style.display = "none";
-    }),
+    })
   );
 }
 
@@ -180,21 +178,25 @@ async function addStock() {
         name: item,
         quantity,
         buying_rate,
-        selling_rate,
+        selling_rate
       }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Add failed");
     alert(data.message || "Added");
     await loadItemNames();
-    ["newItemSearch", "newQuantity", "buyingRate", "sellingRate"].forEach(
-      (id) => (document.getElementById(id).value = ""),
-    );
+    [
+      "newItemSearch",
+      "newQuantity",
+      "buyingRate",
+      "sellingRate"
+    ].forEach(id => document.getElementById(id).value = "");
   } catch (err) {
     console.error("Add stock error:", err);
     alert(err.message || "Server error");
   }
 }
+
 
 // --- Add Stock rate inputs ---
 const buyingRateInput = document.getElementById("buyingRate");
@@ -238,9 +240,14 @@ if (buyingRateInput && sellingRateInput && profitPercentInput) {
   sellingRateInput.addEventListener("input", updateProfitPercent);
 }
 
+
+
 //---------- stock view and download ----------------//
 async function loadItemReport() {
-  const item = document.getElementById("itemReportSearch").value.trim();
+  const item = document
+    .getElementById("itemReportSearch")
+    .value
+    .trim();
 
   try {
     const url = item
@@ -258,6 +265,7 @@ async function loadItemReport() {
     const rows = await res.json();
     currentItemReportRows = rows; // 🔒 for PDF
     renderItemReport(rows);
+
   } catch (err) {
     console.error("Item report error:", err);
     alert("Could not load item report");
@@ -268,7 +276,8 @@ function renderItemReport(rows) {
   tbody.innerHTML = "";
 
   if (!rows || rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" class="text-muted">No records found</td></tr>`;
+    tbody.innerHTML =
+      `<tr><td colspan="5" class="text-muted">No records found</td></tr>`;
     return;
   }
   let totalCostValue = 0;
@@ -291,6 +300,7 @@ function renderItemReport(rows) {
     tbody.appendChild(tr);
   });
 
+
   const profit = totalSellingValue - totalCostValue;
 
   const summaryHTML = `
@@ -298,7 +308,7 @@ function renderItemReport(rows) {
     <td colspan="5" class="fw-bold bg-light text-end">
       <div>Total Items Value (Cost) : Rs. ${totalCostValue.toFixed(2)}</div>
       <div>Total Selling Value : Rs. ${totalSellingValue.toFixed(2)}</div>
-      <div class="${profit >= 0 ? "text-success" : "text-danger"}">
+      <div class="${profit >= 0 ? 'text-success' : 'text-danger'}">
         Estimated Profit : Rs. ${profit.toFixed(2)}
       </div>
     </td>
@@ -307,6 +317,7 @@ function renderItemReport(rows) {
 
   tbody.insertAdjacentHTML("beforeend", summaryHTML);
 }
+
 
 // ----------------- LOW STOCK LOAD & RENDER -----------------
 async function loadLowStock() {
@@ -321,6 +332,7 @@ async function loadLowStock() {
 
     const rows = await res.json();
     renderLowStock(rows);
+
   } catch (err) {
     console.error("Low stock load error:", err);
   }
@@ -341,7 +353,7 @@ function renderLowStock(rows) {
   card.style.display = "block";
   countEl.textContent = rows.length;
 
-  rows.forEach((r) => {
+  rows.forEach(r => {
     const tr = document.createElement("tr");
 
     const qty = Number(r.available_qty);
@@ -363,7 +375,7 @@ function renderLowStock(rows) {
       <td>${r.sold_30_days}</td>
       <td>${daysLeft.toFixed(2)} days</td>
       <td>
-      <span class="${r.status === "LOW" ? "badge bg-danger" : "badge bg-warning text-dark"}">
+      <span class="${r.status === 'LOW' ? 'badge bg-danger' : 'badge bg-warning text-dark'}">
         ${r.status}
       </span>
       </td>
@@ -372,6 +384,7 @@ function renderLowStock(rows) {
     tbody.appendChild(tr);
   });
 }
+
 
 /* ---------------------- sale report table --------------------- */
 async function loadSalesReport() {
@@ -383,21 +396,26 @@ async function loadSalesReport() {
   }
 
   try {
-    const res = await fetch(`${apiBase}/sales/report?from=${from}&to=${to}`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    });
+    const res = await fetch(
+      `${apiBase}/sales/report?from=${from}&to=${to}`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
 
     if (!res.ok) throw new Error("Failed to load report");
 
     const rows = await res.json();
     renderSalesReport(rows);
+
   } catch (err) {
     console.error("Load sales report error:", err);
     alert("Could not load sales report");
   }
 }
+
 
 function renderSalesReport(rows) {
   const tbody = document.getElementById("salesReportBody");
@@ -407,7 +425,8 @@ function renderSalesReport(rows) {
   let grandTotal = 0;
 
   if (!rows || rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" class="text-muted">No records found</td></tr>`;
+    tbody.innerHTML =
+      `<tr><td colspan="5" class="text-muted">No records found</td></tr>`;
     totalEl.textContent = "0.00";
     return;
   }
@@ -434,7 +453,10 @@ function renderSalesReport(rows) {
 }
 
 function downloadItemReportPDF() {
-  const item = document.getElementById("itemReportSearch").value.trim();
+  const item = document
+    .getElementById("itemReportSearch")
+    .value
+    .trim();
 
   const url = item
     ? `/api/items/report/pdf?name=${encodeURIComponent(item)}`
@@ -442,6 +464,7 @@ function downloadItemReportPDF() {
 
   window.location.href = url;
 }
+
 
 // ----------------- PDF REPORT --------------------------
 function downloadSalesPDF() {
@@ -456,6 +479,7 @@ function downloadSalesPDF() {
   window.location.href = `/api/sales/report/pdf?from=${from}&to=${to}`;
 }
 
+
 // -------------------- EXCELL REPORT ----------------------------
 function downloadSalesExcel() {
   const from = document.getElementById("fromDate").value;
@@ -468,6 +492,9 @@ function downloadSalesExcel() {
 
   window.location.href = `/api/sales/report/excel?from=${from}&to=${to}`;
 }
+
+
+
 
 /* ---------------------- Debts --------------------- */
 async function submitDebt() {
@@ -492,7 +519,7 @@ async function submitDebt() {
     if (!res.ok) throw new Error(data.error || "Debt save failed");
     alert(data.message || "Debt entry added");
     ["cdName", "cdNumber", "cdTotal", "cdCredit"].forEach(
-      (id) => (document.getElementById(id).value = ""),
+      (id) => (document.getElementById(id).value = "")
     );
     // 🔓 Re-enable name field after submit
     const cdNameInput = document.getElementById("cdName");
@@ -504,6 +531,9 @@ async function submitDebt() {
   }
 }
 /* ---------------------- Debts End --------------------- */
+
+
+
 
 // ----------------- SALES + PROFIT DUAL LINE -----------------
 
@@ -519,12 +549,13 @@ async function loadBusinessTrend(year = "all") {
 
     const data = await res.json();
 
-    const labels = data.map((d) => d.month);
-    const sales = data.map((d) => Number(d.total_sales));
-    const profit = data.map((d) => Number(d.total_profit));
+    const labels = data.map(d => d.month);
+    const sales = data.map(d => Number(d.total_sales));
+    const profit = data.map(d => Number(d.total_profit));
 
     renderBusinessTrend(labels, sales, profit);
     updateGrowthBadge(sales);
+
   } catch (err) {
     console.error(err);
   }
@@ -546,48 +577,45 @@ function renderBusinessTrend(labels, sales, profit) {
           label: "Sales",
           data: sales,
           tension: 0.3,
-          borderWidth: 3,
+          borderWidth: 3
         },
         {
           label: "Profit",
           data: profit,
           tension: 0.3,
-          borderWidth: 3,
-        },
-      ],
+          borderWidth: 3
+        }
+      ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       animation: {
-        duration: 1000,
+        duration: 1000
       },
       plugins: {
         legend: {
           display: true,
-          position: "top",
+          position: "top"
         },
         tooltip: {
           callbacks: {
             label: function (context) {
-              return (
-                context.dataset.label +
-                ": ₹" +
-                context.parsed.y.toLocaleString()
-              );
-            },
-          },
-        },
+              return context.dataset.label + ": ₹" +
+                context.parsed.y.toLocaleString();
+            }
+          }
+        }
       },
       scales: {
         y: {
           beginAtZero: true,
           ticks: {
-            callback: (value) => "₹" + value.toLocaleString(),
-          },
-        },
-      },
-    },
+            callback: value => "₹" + value.toLocaleString()
+          }
+        }
+      }
+    }
   });
 }
 
@@ -608,9 +636,11 @@ function updateGrowthBadge(values) {
   const formatted = Math.abs(growth).toFixed(1);
 
   if (growth >= 0) {
-    badge.innerHTML = `<span class="text-success">▲ ${formatted}% Growth (Sales)</span>`;
+    badge.innerHTML =
+      `<span class="text-success">▲ ${formatted}% Growth (Sales)</span>`;
   } else {
-    badge.innerHTML = `<span class="text-danger">▼ ${formatted}% Drop (Sales)</span>`;
+    badge.innerHTML =
+      `<span class="text-danger">▼ ${formatted}% Drop (Sales)</span>`;
   }
 }
 
@@ -633,6 +663,9 @@ function initYearFilter() {
 }
 // ----------------- SALES + PROFIT DUAL LINE end -----------------
 
+
+
+
 //-------------------- last 13 monts sale chart ------------------
 let last12Chart;
 async function loadLast12MonthsChart() {
@@ -647,8 +680,8 @@ async function loadLast12MonthsChart() {
 
     const rows = await res.json();
 
-    const labels = rows.map((r) => r.month);
-    const data = rows.map((r) => parseFloat(r.total_sales));
+    const labels = rows.map(r => r.month);
+    const data = rows.map(r => parseFloat(r.total_sales));
 
     const ctx = document.getElementById("last12MonthsChart");
 
@@ -662,33 +695,36 @@ async function loadLast12MonthsChart() {
       type: "bar",
       data: {
         labels: labels,
-        datasets: [
-          {
-            label: "Monthly Sales",
-            data: data,
-            backgroundColor: "rgba(245, 158, 11, 0.85)",
-            borderColor: "rgba(245, 158, 11, 0.85)",
-            borderWidth: 1,
-          },
-        ],
+        datasets: [{
+          label: "Monthly Sales",
+          data: data,
+          backgroundColor: "rgba(245, 158, 11, 0.85)",
+          borderColor: "rgba(245, 158, 11, 0.85)",
+          borderWidth: 1
+        }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         animation: false,
         plugins: {
-          legend: { display: false },
+          legend: { display: false }
         },
         scales: {
-          y: { beginAtZero: true },
-        },
-      },
+          y: { beginAtZero: true }
+        }
+      }
     });
+
   } catch (err) {
     console.error("Chart error:", err);
   }
 }
 //-------------------- last 13 monts sale chart end ------------------
+
+
+
+
 
 async function loadCustomerSuggestions(query) {
   try {
@@ -698,11 +734,12 @@ async function loadCustomerSuggestions(query) {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-      },
+      }
     );
 
     if (!res.ok) return [];
     return await res.json();
+
   } catch (err) {
     console.error("Customer suggestion error:", err);
     return [];
@@ -767,8 +804,7 @@ function renderLedgerTable(rows, mode = "summary") {
       </tr>`;
     });
   } else {
-    html +=
-      "<tr><th>Date</th><th>Total</th><th>Credit</th><th>Balance</th></tr>";
+    html += "<tr><th>Date</th><th>Total</th><th>Credit</th><th>Balance</th></tr>";
     let balance = 0;
     rows.forEach((r) => {
       balance += r.total - r.credit;
@@ -801,23 +837,15 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   setupSidebar();
   document.getElementById("addStockBtn").addEventListener("click", addStock);
-  document
-    .getElementById("loadItemReportBtn")
-    .addEventListener("click", loadItemReport);
-  document
-    .getElementById("itemReportPdfBtn")
-    .addEventListener("click", downloadItemReportPDF);
-  document
-    .getElementById("loadSalesBtn")
-    .addEventListener("click", loadSalesReport);
+  document.getElementById("loadItemReportBtn").addEventListener("click", loadItemReport);
+  document.getElementById("itemReportPdfBtn").addEventListener("click", downloadItemReportPDF);
+  document.getElementById("loadSalesBtn").addEventListener("click", loadSalesReport);
   document.getElementById("pdfBtn").addEventListener("click", downloadSalesPDF);
-  document
-    .getElementById("excelBtn")
-    .addEventListener("click", downloadSalesExcel);
+  document.getElementById("excelBtn").addEventListener("click", downloadSalesExcel);
 
-  document
-    .getElementById("submitDebtBtn")
-    .addEventListener("click", submitDebt);
+
+
+  document.getElementById("submitDebtBtn").addEventListener("click", submitDebt);
   // 🔹 Existing customer dropdown while entering number
   const cdNumberInput = document.getElementById("cdNumber");
   const cdNameInput = document.getElementById("cdName");
@@ -839,20 +867,18 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
 
     cdNumberDropdown.innerHTML = customers
-      .map(
-        (c) => `
+      .map(c => `
       <div class="dropdown-item"
            data-number="${c.customer_number}"
            data-name="${escapeHtml(c.customer_name)}">
         ${escapeHtml(c.customer_name)} - ${c.customer_number}
       </div>
-    `,
-      )
+    `)
       .join("");
 
     cdNumberDropdown.style.display = "block";
 
-    cdNumberDropdown.querySelectorAll(".dropdown-item").forEach((item) => {
+    cdNumberDropdown.querySelectorAll(".dropdown-item").forEach(item => {
       item.addEventListener("click", () => {
         cdNumberInput.value = item.dataset.number;
         cdNameInput.value = item.dataset.name;
@@ -868,20 +894,18 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   // Hide dropdown on outside click
   document.addEventListener("click", (e) => {
-    if (
-      !cdNumberInput.contains(e.target) &&
-      !cdNumberDropdown.contains(e.target)
-    ) {
+    if (!cdNumberInput.contains(e.target) &&
+      !cdNumberDropdown.contains(e.target)) {
       cdNumberDropdown.style.display = "none";
     }
   });
 
-  document
-    .getElementById("searchLedgerBtn")
-    .addEventListener("click", searchLedger);
-  document
-    .getElementById("showAllDuesBtn")
-    .addEventListener("click", showAllDues);
+
+
+  document.getElementById("searchLedgerBtn").addEventListener("click", searchLedger);
+  document.getElementById("showAllDuesBtn").addEventListener("click", showAllDues);
+
+
 
   // 🔹 Customer Search Dropdown Logic
   const cdInput = document.getElementById("cdSearchInput");
@@ -903,18 +927,16 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
 
     cdDropdown.innerHTML = customers
-      .map(
-        (c) => `
+      .map(c => `
       <div class="dropdown-item" data-number="${c.customer_number}">
         ${escapeHtml(c.customer_name)} - ${c.customer_number}
       </div>
-    `,
-      )
+    `)
       .join("");
 
     cdDropdown.style.display = "block";
 
-    cdDropdown.querySelectorAll(".dropdown-item").forEach((item) => {
+    cdDropdown.querySelectorAll(".dropdown-item").forEach(item => {
       item.addEventListener("click", () => {
         cdInput.value = item.dataset.number;
         cdDropdown.style.display = "none";
@@ -925,10 +947,13 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   // Hide dropdown when clicking outside
   document.addEventListener("click", (e) => {
-    if (!cdInput.contains(e.target) && !cdDropdown.contains(e.target)) {
+    if (!cdInput.contains(e.target) &&
+      !cdDropdown.contains(e.target)) {
       cdDropdown.style.display = "none";
     }
   });
+
+
 
   document.getElementById("invoiceBtn").addEventListener("click", () => {
     window.location.href = "invoice.html";
@@ -937,7 +962,11 @@ window.addEventListener("DOMContentLoaded", async () => {
   setupFilterInput("newItemSearch", "newItemDropdownList");
 
   // Item Report search dropdown
-  setupFilterInput("itemReportSearch", "itemReportDropdown", () => {});
+  setupFilterInput("itemReportSearch", "itemReportDropdown", () => { }
+  );
+
+
+
 
   //-------------- AFTER REFRESH ALWASE LOAD IN SAME PAGE ---------------------
   const lastSection = localStorage.getItem("activeSection");
@@ -954,7 +983,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     document.getElementById(lastSection).classList.add("active");
 
     const btn = document.querySelector(
-      `.sidebar button[data-section="${lastSection}"]`,
+      `.sidebar button[data-section="${lastSection}"]`
     );
     if (btn) btn.classList.add("active");
 
@@ -969,6 +998,9 @@ window.addEventListener("DOMContentLoaded", async () => {
   await loadBusinessTrend();
   await loadLast12MonthsChart();
 });
+
+
+
 
 // Allow only digits in number fields
 // function restrictToDigits(id) {
@@ -998,8 +1030,11 @@ function restrictToDigits(id) {
   });
 }
 
+
 // Apply to both fields
 restrictToDigits("cdNumber");
+
+
 
 setTimeout(() => {
   if (document.body.style.visibility === "hidden") {

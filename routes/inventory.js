@@ -9,7 +9,7 @@ const router = express.Router();
 // ===== STOCK ALERT CONFIG =====
 const STOCK_CONFIG = {
   CRITICAL_DAYS: 4,
-  WARNING_DAYS: 15,
+  WARNING_DAYS: 15
 };
 
 // ✅ Protect all routes
@@ -36,9 +36,10 @@ router.post("/items", async (req, res) => {
     const buyRate = parseFloat(buying_rate);
     const sellRate = parseFloat(selling_rate);
 
+
     const check = await pool.query(
       "SELECT * FROM items WHERE user_id=$1 AND LOWER(TRIM(name))=LOWER($2)",
-      [user_id, name.trim()],
+      [user_id, name.trim()]
     );
 
     if (check.rows.length > 0) {
@@ -56,7 +57,7 @@ router.post("/items", async (req, res) => {
           WHERE id = $4 AND user_id = $5
           RETURNING *
           `,
-        [newQty, buyRate, sellRate, existing.id, user_id],
+        [newQty, buyRate, sellRate, existing.id, user_id]
       );
 
       return res.json({ message: "Stock updated", item: result.rows[0] });
@@ -67,14 +68,13 @@ router.post("/items", async (req, res) => {
       VALUES ($1,$2,$3,$4,$5)
       RETURNING *
       `,
-        [user_id, name.trim(), qty, buyRate, sellRate],
+        [user_id, name.trim(), qty, buyRate, sellRate]
       );
 
       return res.json({ message: "New item added", item: result.rows[0] });
     }
   } catch (err) {
-    if (process.env.NODE_ENV !== "production")
-      console.error("Error in POST /items:", err);
+    if (process.env.NODE_ENV !== "production") console.error("Error in POST /items:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -85,12 +85,11 @@ router.get("/items/names", async (req, res) => {
     const user_id = getUserId(req);
     const result = await pool.query(
       "SELECT name FROM items WHERE user_id=$1 ORDER BY name ASC",
-      [user_id],
+      [user_id]
     );
-    res.json(result.rows.map((r) => r.name));
+    res.json(result.rows.map(r => r.name));
   } catch (err) {
-    if (process.env.NODE_ENV !== "production")
-      console.error("Error fetching item names:", err);
+    if (process.env.NODE_ENV !== "production") console.error("Error fetching item names:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -105,7 +104,7 @@ router.get("/items/info", async (req, res) => {
       `SELECT id, name, quantity, selling_rate
        FROM items
        WHERE user_id=$1 AND LOWER(TRIM(name))=LOWER($2)`,
-      [user_id, name.trim()],
+      [user_id, name.trim()]
     );
 
     if (!result.rows.length)
@@ -117,6 +116,7 @@ router.get("/items/info", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
 
 // ----------------- ITEM WISE STOCK & SALES REPORT (JSON) -----------------
 router.get("/items/report", async (req, res) => {
@@ -149,7 +149,7 @@ router.get("/items/report", async (req, res) => {
       GROUP BY i.id, i.name, i.quantity, i.buying_rate, i.selling_rate
       ORDER BY i.name ASC
       `,
-      params,
+      params
     );
 
     res.json(result.rows);
@@ -158,6 +158,8 @@ router.get("/items/report", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
+
 
 // ----------------- STOCK ALERTS (Days of Stock Model) -----------------
 router.get("/items/low-stock", async (req, res) => {
@@ -195,10 +197,10 @@ router.get("/items/low-stock", async (req, res) => {
         )
       ORDER BY days_left ASC
       `,
-      [user_id, STOCK_CONFIG.WARNING_DAYS],
+      [user_id, STOCK_CONFIG.WARNING_DAYS]
     );
 
-    const rowsWithStatus = result.rows.map((r) => {
+    const rowsWithStatus = result.rows.map(r => {
       let status = "";
 
       if (r.days_left <= STOCK_CONFIG.CRITICAL_DAYS) {
@@ -211,11 +213,15 @@ router.get("/items/low-stock", async (req, res) => {
     });
 
     res.json(rowsWithStatus);
+
   } catch (err) {
     console.error("Stock alert error FULL:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
+
+
+
 
 // ----------------- ITEM WISE STOCK & SALES REPORT (PDF) -----------------
 router.get("/items/report/pdf", async (req, res) => {
@@ -248,7 +254,7 @@ router.get("/items/report/pdf", async (req, res) => {
       GROUP BY i.id, i.name, i.quantity, i.buying_rate, i.selling_rate
       ORDER BY i.name ASC
       `,
-      params,
+      params
     );
 
     const doc = new PDFDocument({ size: "A4", margin: 40 });
@@ -256,14 +262,13 @@ router.get("/items/report/pdf", async (req, res) => {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=item_report.pdf`,
+      `attachment; filename=item_report.pdf`
     );
 
     doc.pipe(res);
 
     // ---- Header ----
-    doc
-      .font("Helvetica-Bold")
+    doc.font("Helvetica-Bold")
       .fontSize(20)
       .text("STOCK REPORT", 0, 40, { align: "center" });
 
@@ -298,6 +303,7 @@ router.get("/items/report/pdf", async (req, res) => {
     let totalSellingValue = 0;
 
     result.rows.forEach((r, i) => {
+
       // 🔒 Page overflow handling (same as Sales PDF)
       if (doc.y > 720) {
         doc.addPage();
@@ -322,14 +328,8 @@ router.get("/items/report/pdf", async (req, res) => {
       doc.text(r.item_name || "", startX + 30, y, { width: 190 });
       doc.text(qty.toFixed(2), startX + 220, y, { width: 70, align: "center" });
       doc.text(buy.toFixed(2), startX + 290, y, { width: 80, align: "center" });
-      doc.text(sell.toFixed(2), startX + 370, y, {
-        width: 80,
-        align: "center",
-      });
-      doc.text(Number(r.sold_qty).toFixed(2), startX + 450, y, {
-        width: 65,
-        align: "center",
-      });
+      doc.text(sell.toFixed(2), startX + 370, y, { width: 80, align: "center" });
+      doc.text(Number(r.sold_qty).toFixed(2), startX + 450, y, { width: 65, align: "center" });
       // 👉 Move Y exactly like Sales PDF
       doc.y = y + Math.max(itemHeight, 18) + 6;
     });
@@ -344,22 +344,16 @@ router.get("/items/report/pdf", async (req, res) => {
     // block start position
     const summaryX = 350;
 
-    doc.font("Helvetica").fontSize(11);
+    doc.font("Helvetica")
+      .fontSize(11);
 
-    doc.text(
-      `Total Items Value (Cost) : Rs. ${totalCostValue.toFixed(2)}`,
-      summaryX,
-    );
+    doc.text(`Total Items Value (Cost) : Rs. ${totalCostValue.toFixed(2)}`, summaryX);
     doc.moveDown(0.4);
 
-    doc.text(
-      `Total Selling Value      : Rs. ${totalSellingValue.toFixed(2)}`,
-      summaryX,
-    );
+    doc.text(`Total Selling Value      : Rs. ${totalSellingValue.toFixed(2)}`, summaryX);
     doc.moveDown(0.4);
 
-    doc
-      .font("Helvetica-Bold")
+    doc.font("Helvetica-Bold")
       .fillColor(profit >= 0 ? "green" : "red")
       .text(`Estimated Profit         : Rs. ${profit.toFixed(2)}`, summaryX);
 
@@ -374,6 +368,7 @@ router.get("/items/report/pdf", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
 
 // ----------------- SALES REPORT table (JSON PREVIEW) -----------------
 router.get("/sales/report", async (req, res) => {
@@ -398,7 +393,7 @@ router.get("/sales/report", async (req, res) => {
           AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date >= $2::date
           AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date <= $3::date
       ORDER BY s.created_at ASC`,
-      [user_id, from, to],
+      [user_id, from, to]
     );
 
     res.json(result.rows);
@@ -407,6 +402,9 @@ router.get("/sales/report", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
+
+
 
 // ----------------- SALES REPORT (PDF DOWNLOAD) -----------------
 router.get("/sales/report/pdf", async (req, res) => {
@@ -431,7 +429,7 @@ router.get("/sales/report/pdf", async (req, res) => {
           AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date >= $2::date
           AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date <= $3::date
       ORDER BY s.created_at ASC`,
-      [user_id, from, to],
+      [user_id, from, to]
     );
 
     const doc = new PDFDocument({ margin: 40, size: "A4" });
@@ -439,7 +437,7 @@ router.get("/sales/report/pdf", async (req, res) => {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=sales_report_${from}_to_${to}.pdf`,
+      `attachment; filename=sales_report_${from}_to_${to}.pdf`
     );
 
     doc.pipe(res);
@@ -448,7 +446,9 @@ router.get("/sales/report/pdf", async (req, res) => {
     doc.fontSize(16).text("Sales Report", { align: "center" });
     doc.moveDown(0.5);
 
-    doc.fontSize(10).text(`From: ${from}    To: ${to}`, { align: "center" });
+    doc
+      .fontSize(10)
+      .text(`From: ${from}    To: ${to}`, { align: "center" });
 
     doc.moveDown(1);
 
@@ -472,6 +472,7 @@ router.get("/sales/report/pdf", async (req, res) => {
     let grandTotal = 0;
 
     result.rows.forEach((r, i) => {
+
       // 🔒 Page overflow protection
       if (doc.y > 720) {
         doc.addPage();
@@ -484,10 +485,7 @@ router.get("/sales/report/pdf", async (req, res) => {
         doc.text("Item", startX + 110, yHeader, { width: 170 });
         doc.text("Qty", startX + 280, yHeader, { width: 50, align: "right" });
         doc.text("Rate", startX + 330, yHeader, { width: 80, align: "right" });
-        doc.text("Total", startX + 410, yHeader, {
-          width: 100,
-          align: "right",
-        });
+        doc.text("Total", startX + 410, yHeader, { width: 100, align: "right" });
 
         doc.moveDown(0.5);
         doc.font("Helvetica");
@@ -506,14 +504,8 @@ router.get("/sales/report/pdf", async (req, res) => {
       doc.text(saleDate, startX + 30, y, { width: 80 });
       doc.text(r.item_name || "", startX + 110, y, { width: 170 });
       doc.text(r.quantity, startX + 280, y, { width: 50, align: "right" });
-      doc.text(Number(r.selling_price).toFixed(2), startX + 330, y, {
-        width: 80,
-        align: "right",
-      });
-      doc.text(Number(r.total_price).toFixed(2), startX + 410, y, {
-        width: 100,
-        align: "right",
-      });
+      doc.text(Number(r.selling_price).toFixed(2), startX + 330, y, { width: 80, align: "right" });
+      doc.text(Number(r.total_price).toFixed(2), startX + 410, y, { width: 100, align: "right" });
 
       // 👉 move y based on tallest content
       doc.y = y + Math.max(itemHeight, 18) + 6;
@@ -528,12 +520,19 @@ router.get("/sales/report/pdf", async (req, res) => {
       align: "right",
     });
 
+
+
     doc.end();
   } catch (err) {
     console.error("Sales PDF error:", err.message);
     res.status(500).json({ error: "Server error" });
   }
 });
+
+
+
+
+
 
 // ----------------- SALES REPORT (EXCEL DOWNLOAD) -----------------
 router.get("/sales/report/excel", async (req, res) => {
@@ -558,7 +557,7 @@ router.get("/sales/report/excel", async (req, res) => {
           AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date >= $2::date
           AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date <= $3::date
       ORDER BY s.created_at ASC`,
-      [user_id, from, to],
+      [user_id, from, to]
     );
 
     const workbook = new ExcelJS.Workbook();
@@ -578,7 +577,7 @@ router.get("/sales/report/excel", async (req, res) => {
     const headerRow = sheet.getRow(1);
     headerRow.font = { bold: true };
     headerRow.alignment = { horizontal: "center" };
-    headerRow.eachCell((cell) => {
+    headerRow.eachCell(cell => {
       cell.border = {
         top: { style: "thin" },
         bottom: { style: "thin" },
@@ -602,6 +601,7 @@ router.get("/sales/report/excel", async (req, res) => {
     let grandTotal = 0;
 
     result.rows.forEach((r, i) => {
+
       const saleDate = new Date(r.created_at).toLocaleDateString("en-IN");
       const row = sheet.addRow({
         sl: i + 1,
@@ -612,7 +612,7 @@ router.get("/sales/report/excel", async (req, res) => {
         total: Number(r.total_price),
       });
 
-      row.eachCell((cell) => {
+      row.eachCell(cell => {
         cell.border = {
           top: { style: "thin" },
           bottom: { style: "thin" },
@@ -643,20 +643,25 @@ router.get("/sales/report/excel", async (req, res) => {
     // ----------------- Response -----------------
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     );
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=sales_report_${from}_to_${to}.xlsx`,
+      `attachment; filename=sales_report_${from}_to_${to}.xlsx`
     );
 
     await workbook.xlsx.write(res);
     res.end();
+
   } catch (err) {
     console.error("Sales Excel error:", err.message);
     res.status(500).json({ error: "Server error" });
   }
 });
+
+
+
+
 
 // ------------------- CUSTOMER DEBTS -------------------
 
@@ -666,26 +671,22 @@ router.post("/debts", async (req, res) => {
     const { customer_name, customer_number, total = 0, credit = 0 } = req.body;
 
     if (!customer_name || !/^\d{10}$/.test(customer_number))
-      return res
-        .status(400)
-        .json({ error: "Valid name and 10-digit number required" });
+      return res.status(400).json({ error: "Valid name and 10-digit number required" });
 
     const result = await pool.query(
       `INSERT INTO debts (user_id, customer_name, customer_number, total, credit)
        VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-      [user_id, customer_name, customer_number, total, credit],
+      [user_id, customer_name, customer_number, total, credit]
     );
 
-    res.json({
-      message: "Debt entry added successfully",
-      debt: result.rows[0],
-    });
+    res.json({ message: "Debt entry added successfully", debt: result.rows[0] });
   } catch (err) {
-    if (process.env.NODE_ENV !== "production")
-      console.error("Error in POST /debts:", err);
+    if (process.env.NODE_ENV !== "production") console.error("Error in POST /debts:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
+
+
 
 // ----------------- CUSTOMER AUTOSUGGEST -----------------
 router.get("/debts/customers", async (req, res) => {
@@ -714,11 +715,15 @@ router.get("/debts/customers", async (req, res) => {
 
     const result = await pool.query(query, params);
     res.json(result.rows);
+
   } catch (err) {
     console.error("Customer dropdown error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
+
+
+
 
 // Full ledger
 router.get("/debts/:number", async (req, res) => {
@@ -727,25 +732,24 @@ router.get("/debts/:number", async (req, res) => {
     const number = req.params.number;
 
     if (!/^\d{10}$/.test(number))
-      return res
-        .status(400)
-        .json({ error: "Customer number must be 10 digits" });
+      return res.status(400).json({ error: "Customer number must be 10 digits" });
 
     const result = await pool.query(
       `SELECT id, customer_name, customer_number, total, credit, created_at
        FROM debts
        WHERE user_id=$1 AND customer_number=$2
        ORDER BY created_at ASC`,
-      [user_id, number],
+      [user_id, number]
     );
 
     res.json(result.rows);
   } catch (err) {
-    if (process.env.NODE_ENV !== "production")
-      console.error("Error in GET /debts/:number:", err);
+    if (process.env.NODE_ENV !== "production") console.error("Error in GET /debts/:number:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
+
+
 
 // Summary dues
 router.get("/debts", async (req, res) => {
@@ -760,13 +764,12 @@ router.get("/debts", async (req, res) => {
        WHERE user_id=$1
        GROUP BY customer_name, customer_number
        ORDER BY customer_name ASC`,
-      [user_id],
+      [user_id]
     );
 
     res.json(result.rows);
   } catch (err) {
-    if (process.env.NODE_ENV !== "production")
-      console.error("Error in GET /debts:", err);
+    if (process.env.NODE_ENV !== "production") console.error("Error in GET /debts:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -776,6 +779,9 @@ router.use((err, req, res, next) => {
   console.error("Unhandled route error:", err.message);
   res.status(500).json({ error: "Unexpected server error" });
 });
+
+
+
 
 // ----------------- MONTHLY SALES + PROFIT TREND -----------------
 router.get("/sales/monthly-trend", async (req, res) => {
@@ -789,8 +795,9 @@ router.get("/sales/monthly-trend", async (req, res) => {
       yearFilter = "AND EXTRACT(YEAR FROM s.created_at) = $2";
     }
 
-    const params =
-      yearParam && yearParam !== "all" ? [user_id, yearParam] : [user_id];
+    const params = yearParam && yearParam !== "all"
+      ? [user_id, yearParam]
+      : [user_id];
 
     const result = await pool.query(
       `
@@ -805,7 +812,7 @@ router.get("/sales/monthly-trend", async (req, res) => {
       GROUP BY month
       ORDER BY MIN(s.created_at)
       `,
-      params,
+      params
     );
 
     res.json(result.rows);
@@ -815,6 +822,11 @@ router.get("/sales/monthly-trend", async (req, res) => {
   }
 });
 // ----------------- MONTHLY SALES + PROFIT TREND end -----------------
+
+
+
+
+
 
 // ----------------- LAST 13 MONTH SALES CHART -----------------
 router.get("/sales/last-13-months", async (req, res) => {
@@ -837,7 +849,7 @@ router.get("/sales/last-13-months", async (req, res) => {
       GROUP BY m.month_start
       ORDER BY m.month_start ASC
       `,
-      [user_id],
+      [user_id]
     );
 
     res.json(result.rows);
