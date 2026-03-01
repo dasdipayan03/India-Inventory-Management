@@ -1,32 +1,92 @@
-// db.js
+/**
+ * =========================================================
+ * FILE: db.js
+ * MODULE: PostgreSQL Database Connection
+ *
+ * PURPOSE:
+ *  - Create and manage a global PostgreSQL connection pool
+ *  - Ensure environment variables are configured properly
+ *  - Maintain stable database connectivity
+ *  - Export pool for use across the application
+ *
+ * NOTE:
+ *  This file runs once when the server starts.
+ * =========================================================
+ */
 const { Pool } = require("pg");
 
+// =========================================================
+// 🔐 ENVIRONMENT VARIABLE CHECK
+// Ensures DATABASE_URL exists before server starts.
+// Without this, database connection is impossible.
+// =========================================================
 if (!process.env.DATABASE_URL) {
   console.error("❌ DATABASE_URL is not defined");
-  process.exit(1);
+  process.exit(1); // Stop server immediately
 }
 
-// Create a global connection pool
+
+// =========================================================
+// 🗄️ CREATE POSTGRESQL CONNECTION POOL
+//
+// Instead of creating a new DB connection for every request,
+// we create a pool (connection manager).
+//
+// Why Pool?
+//  - Reuses connections
+//  - Improves performance
+//  - Prevents DB overload
+// =========================================================
 const pool = new Pool({
+
+  // Database connection string from .env
   connectionString: process.env.DATABASE_URL,
+
+  // 🔒 SSL Configuration (Required for cloud DB like Render)
   ssl: {
     require: true,
     rejectUnauthorized: false,
   },
-  max: 10,                 // ✅ LIMIT MAX CONNECTIONS (Safe)
-  idleTimeoutMillis: 30000 // ✅ Close idle connections after 30s
+
+  // ⚙️ Pool Configuration
+  // Maximum number of active DB connections at a time
+  // Prevents too many simultaneous connections
+  max: 10,
+
+  // If a connection stays idle for 30 seconds,
+  // it will be automatically closed
+  idleTimeoutMillis: 30000
 });
 
+
+// =========================================================
+// ⚠️ GLOBAL ERROR LISTENER
+//
+// Listens for unexpected DB errors.
+// Important for catching background connection issues.
+// =========================================================
 pool.on("error", (err) => {
   console.error("⚠️ Unexpected PostgreSQL error:", err);
-  // Don’t exit here — allow auto-reconnect
+  // We DO NOT exit the process here.
+  // Let PostgreSQL auto-reconnect.
 });
 
 
-// Test DB connection once at startup
+// =========================================================
+// 🚀 INITIAL CONNECTION TEST
+//
+// Runs once when server starts.
+// Helps confirm DB is connected properly.
+// =========================================================
 pool.query("SELECT 1")
   .then(() => console.log("✅ PostgreSQL connected"))
   .catch(err => console.error("❌ PostgreSQL connection error:", err));
-  
-// Export pool for use in queries
+
+
+// =========================================================
+// 📦 EXPORT DATABASE POOL
+//
+// Any file that needs DB access will:
+// const pool = require('./db');
+// =========================================================
 module.exports = pool;
