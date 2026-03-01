@@ -1,32 +1,77 @@
-// server.js
-const rateLimit = require("express-rate-limit");
+/**
+ * =========================================================
+ * FILE: server.js
+ * ENTRY POINT: Application Bootstrap File
+ *
+ * PURPOSE:
+ *  - Initialize Express app
+ *  - Configure global middleware
+ *  - Register API routes
+ *  - Serve frontend
+ *  - Handle errors
+ *  - Start HTTP server
+ *  - Handle graceful shutdown
+ * =========================================================
+ */
+
+// =========================================================
+// 📦 CORE DEPENDENCIES
+// =========================================================
 const express = require("express");
-const cors = require("cors");
 const path = require("path");
-const helmet = require("helmet");
-const compression = require("compression");
-const cookieParser = require("cookie-parser"); // ✅ ADD
+
+// =========================================================
+// 🔐 SECURITY & PERFORMANCE MIDDLEWARE
+// =========================================================
+const helmet = require("helmet"); // Security headers
+const cors = require("cors"); // Cross-origin access
+const rateLimit = require("express-rate-limit"); // Rate limiting
+const compression = require("compression"); // Gzip compression
+const cookieParser = require("cookie-parser"); // Cookie parsing
+
+// =========================================================
+// 🗄 DATABASE
+// =========================================================
 const pool = require("./db");
 
+// =========================================================
+// 🚀 CREATE EXPRESS APP
+// =========================================================
 const app = express();
+
+// Required for deployment platforms like Railway / Render
 app.set("trust proxy", 1);
 
-// -------------------- MIDDLEWARE --------------------
-app.use(cors({
-  origin: true,
-  credentials: true, // ✅ cookie allow
-}));
-app.use(express.json());
-app.use(cookieParser());
-app.use(compression());
+// =========================================================
+// 🌐 GLOBAL MIDDLEWARE CONFIGURATION
+// =========================================================
+
+/**
+ * Enable CORS
+ * Allows frontend to send cookies & requests
+ */
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+  }),
+);
+app.use(express.json()); // Parse incoming JSON requests
+app.use(cookieParser()); // Parse cookies from client
+app.use(compression()); // Compress responses for better performance
+
+// Rate Limiter
+// Max 200 requests per 15 minutes per IP
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200, // 15 min e 200 request
+  max: 200,
 });
 app.use(limiter);
 
-
-// ✅ Helmet: allow CDN + inline scripts for Bootstrap, FontAwesome
+// =========================================================
+// 🛡 CONTENT SECURITY POLICY (Helmet)
+// Allows required CDN for Bootstrap & FontAwesome
+// =========================================================
 app.use(
   helmet.contentSecurityPolicy({
     useDefaults: true,
@@ -36,37 +81,41 @@ app.use(
         "'self'",
         "'unsafe-inline'",
         "https://cdnjs.cloudflare.com",
-        "https://cdn.jsdelivr.net"
+        "https://cdn.jsdelivr.net",
       ],
       "style-src": [
         "'self'",
         "'unsafe-inline'",
         "https://cdnjs.cloudflare.com",
-        "https://cdn.jsdelivr.net"
+        "https://cdn.jsdelivr.net",
       ],
       "img-src": ["'self'", "data:", "https://cdn.jsdelivr.net"],
       "font-src": [
         "'self'",
         "https://cdnjs.cloudflare.com",
-        "https://cdn.jsdelivr.net"
+        "https://cdn.jsdelivr.net",
       ],
       "connect-src": [
         "'self'",
         "https://cdn.jsdelivr.net",
-        "https://cdnjs.cloudflare.com"
+        "https://cdnjs.cloudflare.com",
       ],
     },
-  })
+  }),
 );
 
-// -------------------- ROUTES --------------------
+// =========================================================
+// 📡 API ROUTES REGISTRATION
+// =========================================================
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api", require("./routes/inventory"));
-app.use("/api", require("./routes/invoices")); // ✅ invoice routes
+app.use("/api", require("./routes/invoices"));
 
-// -------------------- DEBUG ROUTES --------------------
+// =========================================================
+// 🛠 DEBUG ROUTES (Only in Development Mode)
+// =========================================================
 if (process.env.NODE_ENV !== "production") {
-
+  // Check environment variables
   app.get("/debug-env", (req, res) => {
     res.json({
       NODE_ENV: process.env.NODE_ENV || "not set",
@@ -78,6 +127,7 @@ if (process.env.NODE_ENV !== "production") {
     });
   });
 
+  // Test database connectivity
   app.get("/debug-db", async (req, res) => {
     try {
       const result = await pool.query("SELECT NOW()");
@@ -86,18 +136,23 @@ if (process.env.NODE_ENV !== "production") {
       res.status(500).json({ status: "❌ DB Error", message: err.message });
     }
   });
-
 }
 
-// -------------------- FRONTEND --------------------
+// =========================================================
+// 🌍 FRONTEND STATIC FILE SERVING
+// =========================================================
 app.use(express.static(path.join(__dirname, "public")));
 
-// ✅ Default route: login page
+//Default route → login page
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-// ✅ Fallback (non-API → login.html, API → JSON 404)
+/**
+ * Fallback Route
+ * - If API → return JSON 404
+ * - Else → return login page
+ */
 app.use((req, res) => {
   if (req.path.startsWith("/api")) {
     return res.status(404).json({ error: "API route not found" });
@@ -105,27 +160,35 @@ app.use((req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-// -------------------- GLOBAL ERROR HANDLER --------------------
+// =========================================================
+// 🔥 GLOBAL ERROR HANDLER
+// Catches unhandled errors from anywhere in app
+// =========================================================
 app.use((err, req, res, next) => {
   console.error("🔥 Global Error:", err);
 
   res.status(err.status || 500).json({
     error: "Internal Server Error",
-    message: process.env.NODE_ENV === "development"
-      ? err.message
-      : "Something went wrong"
+    message:
+      process.env.NODE_ENV === "development"
+        ? err.message
+        : "Something went wrong",
   });
 });
 
-
-// -------------------- START SERVER --------------------
+// =========================================================
+// 🚀 START SERVER
+// =========================================================
 const PORT = process.env.PORT || 8080;
 
 const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
 
-// Graceful shutdown (Railway container stop)
+// =========================================================
+// 🛑 GRACEFUL SHUTDOWN
+// Handles container shutdown safely
+// =========================================================
 process.on("SIGTERM", async () => {
   console.log("🛑 SIGTERM received. Closing server...");
 
@@ -139,6 +202,9 @@ process.on("SIGTERM", async () => {
   });
 });
 
+// =========================================================
+// ⚠ GLOBAL PROCESS ERROR HANDLERS
+// =========================================================
 process.on("unhandledRejection", (err) => {
   console.error("Unhandled Rejection:", err);
 });
@@ -146,8 +212,3 @@ process.on("unhandledRejection", (err) => {
 process.on("uncaughtException", (err) => {
   console.error("Uncaught Exception:", err);
 });
-
-// optional Loader.io verification
-// app.get('/loaderio-xxxx.txt', (req, res) => {
-//   res.type('text/plain').send('loaderio-xxxx');
-// });

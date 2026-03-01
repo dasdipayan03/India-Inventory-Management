@@ -25,7 +25,6 @@ if (!process.env.DATABASE_URL) {
   process.exit(1); // Stop server immediately
 }
 
-
 // =========================================================
 // 🗄️ CREATE POSTGRESQL CONNECTION POOL
 //
@@ -38,7 +37,6 @@ if (!process.env.DATABASE_URL) {
 //  - Prevents DB overload
 // =========================================================
 const pool = new Pool({
-
   // Database connection string from .env
   connectionString: process.env.DATABASE_URL,
 
@@ -55,9 +53,8 @@ const pool = new Pool({
 
   // If a connection stays idle for 30 seconds,
   // it will be automatically closed
-  idleTimeoutMillis: 30000
+  idleTimeoutMillis: 30000,
 });
-
 
 // =========================================================
 // ⚠️ GLOBAL ERROR LISTENER
@@ -71,17 +68,16 @@ pool.on("error", (err) => {
   // Let PostgreSQL auto-reconnect.
 });
 
-
 // =========================================================
 // 🚀 INITIAL CONNECTION TEST
 //
 // Runs once when server starts.
 // Helps confirm DB is connected properly.
 // =========================================================
-pool.query("SELECT 1")
+pool
+  .query("SELECT 1")
   .then(() => console.log("✅ PostgreSQL connected"))
-  .catch(err => console.error("❌ PostgreSQL connection error:", err));
-
+  .catch((err) => console.error("❌ PostgreSQL connection error:", err));
 
 // =========================================================
 // 📦 EXPORT DATABASE POOL

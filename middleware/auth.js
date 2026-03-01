@@ -10,8 +10,6 @@
  */
 const jwt = require("jsonwebtoken");
 
-
-
 // =========================================================
 // 🔐 ENVIRONMENT CONFIGURATION CHECK
 // Ensures JWT_SECRET exists before server starts
@@ -31,7 +29,6 @@ if (!process.env.JWT_SECRET) {
 // =========================================================
 function authMiddleware(req, res, next) {
   try {
-
     // 1️⃣ Extract Token
     let token = null;
 
