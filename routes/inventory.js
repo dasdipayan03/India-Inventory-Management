@@ -18,32 +18,35 @@ router.use(authMiddleware);
 // ------------------------------- ADD ITEMS ---------------------------------------
 
 // Add or update stock item
+
+// Define POST API endpoint: /items
 router.post("/items", async (req, res) => {
   try {
-    const user_id = getUserId(req);
-    const { name, quantity, buying_rate, selling_rate } = req.body;
-
+    const user_id = getUserId(req); // Extract logged-in user's ID from JWT token
+    const { name, quantity, buying_rate, selling_rate } = req.body; // Get data sent from client
+    // Validate required fields
     if (
-      !name ||
-      quantity == null ||
-      buying_rate == null ||
-      selling_rate == null
+      !name || // Item name must exist
+      quantity == null || // Quantity must be provided
+      buying_rate == null || // Buying rate must be provided
+      selling_rate == null // Selling rate must be provided
     ) {
-      return res.status(400).json({ error: "Missing fields" });
+      return res.status(400).json({ error: "Missing fields" }); // Return 400 if validation fails
     }
 
-    const qty = parseFloat(quantity);
-    const buyRate = parseFloat(buying_rate);
-    const sellRate = parseFloat(selling_rate);
-
+    const qty = parseFloat(quantity); // Convert quantity to number
+    const buyRate = parseFloat(buying_rate); // Convert buying_rate to number
+    const sellRate = parseFloat(selling_rate); // Convert selling_rate to number
+    // Check if the item already exists for this user
     const check = await pool.query(
       "SELECT * FROM items WHERE user_id=$1 AND LOWER(TRIM(name))=LOWER($2)",
-      [user_id, name.trim()],
+      [user_id, name.trim()], // Parameterized query to prevent SQL injection
     );
 
+    // If item already exists
     if (check.rows.length > 0) {
-      const existing = check.rows[0];
-      const newQty = parseFloat(existing.quantity) + qty;
+      const existing = check.rows[0]; // Get existing item data
+      const newQty = parseFloat(existing.quantity) + qty; // Add new quantity to existing quantity
 
       const result = await pool.query(
         `
