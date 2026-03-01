@@ -1,4 +1,8 @@
-// routes/inventory.js
+// =========================================================
+// FILE: routes/inventory.js
+// MODULE: Inventory + Sales + Reports + Debts + Analytics
+// =========================================================
+
 const express = require("express");
 const pool = require("../db");
 const PDFDocument = require("pdfkit");
@@ -6,18 +10,190 @@ const ExcelJS = require("exceljs");
 const { authMiddleware, getUserId } = require("../middleware/auth");
 
 const router = express.Router();
-// ===== STOCK ALERT CONFIG =====
+
+// =========================================================
+// ⚙️ CONFIGURATION
+// =========================================================
 const STOCK_CONFIG = {
   CRITICAL_DAYS: 4,
-  WARNING_DAYS: 15
+  WARNING_DAYS: 15,
 };
 
-// ✅ Protect all routes
+// Protect all routes
 router.use(authMiddleware);
 
-// ------------------------------- ADD ITEMS ---------------------------------------
+// =========================================================
+// 🧠 HELPER FUNCTIONS
+// =========================================================
 
-// Add or update stock item
+// ---------- ITEM REPORT QUERY ----------
+function buildItemReportQuery(user_id, name) {
+  let params = [user_id];
+  let nameFilter = "";
+
+  if (name && name.trim()) {
+    params.push(name.trim());
+    nameFilter = "AND LOWER(TRIM(i.name)) = LOWER($2)";
+  }
+
+  const query = `
+    SELECT
+      i.name AS item_name,
+      i.quantity AS available_qty,
+      i.buying_rate,
+      i.selling_rate,
+      COALESCE(SUM(s.quantity), 0) AS sold_qty
+    FROM items i
+    LEFT JOIN sales s
+      ON s.item_id = i.id
+      AND s.user_id = $1
+    WHERE i.user_id = $1
+    ${nameFilter}
+    GROUP BY i.id, i.name, i.quantity, i.buying_rate, i.selling_rate
+    ORDER BY i.name ASC
+  `;
+
+  return { query, params };
+}
+
+// ---------- SALES REPORT QUERY ----------
+async function fetchSalesReport(user_id, from, to) {
+  return pool.query(
+    `SELECT
+        s.created_at,
+        i.name AS item_name,
+        s.quantity,
+        s.selling_price,
+        s.total_price
+     FROM sales s
+     JOIN items i ON i.id = s.item_id
+     WHERE s.user_id = $1
+       AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date >= $2::date
+       AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date <= $3::date
+     ORDER BY s.created_at ASC`,
+    [user_id, from, to],
+  );
+}
+
+// ---------- STOCK PDF ----------
+function generateStockPDF(res, rows) {
+  const doc = new PDFDocument({ size: "A4", margin: 40 });
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", "attachment; filename=item_report.pdf");
+
+  doc.pipe(res);
+  doc.fontSize(18).text("STOCK REPORT", { align: "center" });
+  doc.moveDown();
+
+  let totalCost = 0;
+  let totalValue = 0;
+
+  rows.forEach((r, i) => {
+    const qty = Number(r.available_qty);
+    const buy = Number(r.buying_rate);
+    const sell = Number(r.selling_rate);
+
+    totalCost += qty * buy;
+    totalValue += qty * sell;
+
+    doc.text(
+      `${i + 1}. ${r.item_name} | Qty: ${qty} | Buy: ${buy} | Sell: ${sell} | Sold: ${r.sold_qty}`,
+    );
+  });
+
+  doc.moveDown();
+  doc.text(`Total Cost: Rs. ${totalCost.toFixed(2)}`);
+  doc.text(`Total Value: Rs. ${totalValue.toFixed(2)}`);
+  doc.text(`Estimated Profit: Rs. ${(totalValue - totalCost).toFixed(2)}`);
+
+  doc.end();
+}
+
+// ---------- SALES PDF ----------
+function generateSalesPDF(res, rows, from, to) {
+  const doc = new PDFDocument({ size: "A4", margin: 40 });
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename=sales_${from}_to_${to}.pdf`,
+  );
+
+  doc.pipe(res);
+
+  doc.fontSize(16).text("Sales Report", { align: "center" });
+  doc.moveDown();
+  doc.text(`From: ${from}   To: ${to}`, { align: "center" });
+  doc.moveDown();
+
+  let grandTotal = 0;
+
+  rows.forEach((r, i) => {
+    const total = Number(r.total_price);
+    grandTotal += total;
+
+    doc.text(
+      `${i + 1}. ${new Date(r.created_at).toLocaleDateString("en-IN")} | ${r.item_name} | Qty: ${r.quantity} | Rate: ${r.selling_price} | Total: ${total}`,
+    );
+  });
+
+  doc.moveDown();
+  doc.text(`Grand Total: Rs. ${grandTotal.toFixed(2)}`);
+  doc.end();
+}
+
+// ---------- SALES EXCEL ----------
+async function generateSalesExcel(res, rows, from, to) {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("Sales Report");
+
+  sheet.columns = [
+    { header: "Sl", key: "sl", width: 8 },
+    { header: "Date", key: "date", width: 15 },
+    { header: "Item", key: "item", width: 30 },
+    { header: "Qty", key: "qty", width: 10 },
+    { header: "Rate", key: "rate", width: 12 },
+    { header: "Total", key: "total", width: 15 },
+  ];
+
+  let grandTotal = 0;
+
+  rows.forEach((r, i) => {
+    const total = Number(r.total_price);
+    grandTotal += total;
+
+    sheet.addRow({
+      sl: i + 1,
+      date: new Date(r.created_at).toLocaleDateString("en-IN"),
+      item: r.item_name,
+      qty: r.quantity,
+      rate: r.selling_price,
+      total: total,
+    });
+  });
+
+  sheet.addRow({});
+  sheet.addRow({ item: "Grand Total", total: grandTotal });
+
+  res.setHeader(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  );
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename=sales_${from}_to_${to}.xlsx`,
+  );
+
+  await workbook.xlsx.write(res);
+  res.end();
+}
+
+// =========================================================
+// 📦 INVENTORY ROUTES
+// =========================================================
+
+// Add / Update Item
 router.post("/items", async (req, res) => {
   try {
     const user_id = getUserId(req);
@@ -28,140 +204,124 @@ router.post("/items", async (req, res) => {
       quantity == null ||
       buying_rate == null ||
       selling_rate == null
-    ) {
+    )
       return res.status(400).json({ error: "Missing fields" });
-    }
 
     const qty = parseFloat(quantity);
     const buyRate = parseFloat(buying_rate);
     const sellRate = parseFloat(selling_rate);
 
-
     const check = await pool.query(
       "SELECT * FROM items WHERE user_id=$1 AND LOWER(TRIM(name))=LOWER($2)",
-      [user_id, name.trim()]
+      [user_id, name.trim()],
     );
 
     if (check.rows.length > 0) {
       const existing = check.rows[0];
       const newQty = parseFloat(existing.quantity) + qty;
 
-      const result = await pool.query(
-        `
-          UPDATE items
-          SET
-            quantity = $1,
-            buying_rate = $2,
-            selling_rate = $3,
-            updated_at = NOW()
-          WHERE id = $4 AND user_id = $5
-          RETURNING *
-          `,
-        [newQty, buyRate, sellRate, existing.id, user_id]
+      const updated = await pool.query(
+        `UPDATE items
+         SET quantity=$1, buying_rate=$2, selling_rate=$3, updated_at=NOW()
+         WHERE id=$4 AND user_id=$5
+         RETURNING *`,
+        [newQty, buyRate, sellRate, existing.id, user_id],
       );
 
-      return res.json({ message: "Stock updated", item: result.rows[0] });
-    } else {
-      const result = await pool.query(
-        `
-      INSERT INTO items (user_id, name, quantity, buying_rate, selling_rate)
-      VALUES ($1,$2,$3,$4,$5)
-      RETURNING *
-      `,
-        [user_id, name.trim(), qty, buyRate, sellRate]
-      );
-
-      return res.json({ message: "New item added", item: result.rows[0] });
+      return res.json({ message: "Stock updated", item: updated.rows[0] });
     }
+
+    const inserted = await pool.query(
+      `INSERT INTO items (user_id,name,quantity,buying_rate,selling_rate)
+       VALUES ($1,$2,$3,$4,$5)
+       RETURNING *`,
+      [user_id, name.trim(), qty, buyRate, sellRate],
+    );
+
+    res.json({ message: "New item added", item: inserted.rows[0] });
   } catch (err) {
-    if (process.env.NODE_ENV !== "production") console.error("Error in POST /items:", err);
+    console.error("POST /items error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// Auto-suggest item names
+// Item Names
 router.get("/items/names", async (req, res) => {
   try {
     const user_id = getUserId(req);
     const result = await pool.query(
       "SELECT name FROM items WHERE user_id=$1 ORDER BY name ASC",
-      [user_id]
+      [user_id],
     );
-    res.json(result.rows.map(r => r.name));
+    res.json(result.rows.map((r) => r.name));
   } catch (err) {
-    if (process.env.NODE_ENV !== "production") console.error("Error fetching item names:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
+// Item Info
 router.get("/items/info", async (req, res) => {
   try {
     const user_id = getUserId(req);
     const name = req.query.name;
+
     if (!name) return res.status(400).json({ error: "Missing item name" });
 
     const result = await pool.query(
       `SELECT id, name, quantity, selling_rate
        FROM items
        WHERE user_id=$1 AND LOWER(TRIM(name))=LOWER($2)`,
-      [user_id, name.trim()]
+      [user_id, name.trim()],
     );
 
     if (!result.rows.length)
       return res.status(404).json({ error: "Item not found" });
 
     res.json(result.rows[0]);
-  } catch (err) {
-    console.error("Item info error:", err);
+  } catch {
     res.status(500).json({ error: "Server error" });
   }
 });
 
-
-// ----------------- ITEM WISE STOCK & SALES REPORT (JSON) -----------------
+// =========================================================
+// 📊 ITEM REPORT (JSON)
+// =========================================================
 router.get("/items/report", async (req, res) => {
   try {
     const user_id = getUserId(req);
     const { name } = req.query;
 
-    let params = [user_id];
-    let nameFilter = "";
-
-    if (name && name.trim()) {
-      params.push(name.trim());
-      nameFilter = "AND LOWER(TRIM(i.name)) = LOWER($2)";
-    }
-
-    const result = await pool.query(
-      `
-      SELECT
-      i.name AS item_name,
-      i.quantity AS available_qty,
-      i.buying_rate,
-      i.selling_rate,
-      COALESCE(SUM(s.quantity), 0) AS sold_qty
-      FROM items i
-      LEFT JOIN sales s
-        ON s.item_id = i.id
-        AND s.user_id = $1
-      WHERE i.user_id = $1
-      ${nameFilter}
-      GROUP BY i.id, i.name, i.quantity, i.buying_rate, i.selling_rate
-      ORDER BY i.name ASC
-      `,
-      params
-    );
+    const { query, params } = buildItemReportQuery(user_id, name);
+    const result = await pool.query(query, params);
 
     res.json(result.rows);
   } catch (err) {
-    console.error("Item report error:", err.message);
+    console.error("GET /items/report error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
+// =========================================================
+// 📊 ITEM REPORT (PDF)
+// =========================================================
+router.get("/items/report/pdf", async (req, res) => {
+  try {
+    const user_id = getUserId(req);
+    const { name } = req.query;
 
+    const { query, params } = buildItemReportQuery(user_id, name);
+    const result = await pool.query(query, params);
 
-// ----------------- STOCK ALERTS (Days of Stock Model) -----------------
+    generateStockPDF(res, result.rows);
+  } catch (err) {
+    console.error("GET /items/report/pdf error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// =========================================================
+// ⚠️ LOW STOCK ALERT
+// =========================================================
 router.get("/items/low-stock", async (req, res) => {
   try {
     const user_id = getUserId(req);
@@ -169,9 +329,7 @@ router.get("/items/low-stock", async (req, res) => {
     const result = await pool.query(
       `
       WITH sales_30 AS (
-        SELECT 
-          item_id,
-          SUM(quantity) AS sold_30_days
+        SELECT item_id, SUM(quantity) AS sold_30_days
         FROM sales
         WHERE user_id = $1
           AND created_at >= NOW() - INTERVAL '30 days'
@@ -188,507 +346,115 @@ router.get("/items/low-stock", async (req, res) => {
           END
         , 2) AS days_left
       FROM items i
-      LEFT JOIN sales_30 s 
-        ON s.item_id = i.id
+      LEFT JOIN sales_30 s ON s.item_id = i.id
       WHERE i.user_id = $1
-        AND COALESCE(s.sold_30_days, 0) > 0
-        AND (
-          (i.quantity / NULLIF((s.sold_30_days / 30.0),0)) <= $2
-        )
       ORDER BY days_left ASC
       `,
-      [user_id, STOCK_CONFIG.WARNING_DAYS]
+      [user_id],
     );
 
-    const rowsWithStatus = result.rows.map(r => {
-      let status = "";
+    const rowsWithStatus = result.rows.map((r) => {
+      let status = "OK";
 
-      if (r.days_left <= STOCK_CONFIG.CRITICAL_DAYS) {
-        status = "LOW";
-      } else if (r.days_left <= STOCK_CONFIG.WARNING_DAYS) {
-        status = "MEDIUM";
-      }
+      if (r.days_left <= STOCK_CONFIG.CRITICAL_DAYS) status = "LOW";
+      else if (r.days_left <= STOCK_CONFIG.WARNING_DAYS) status = "MEDIUM";
 
       return { ...r, status };
     });
 
     res.json(rowsWithStatus);
-
   } catch (err) {
-    console.error("Stock alert error FULL:", err);
+    console.error("Low stock error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-
-
-
-// ----------------- ITEM WISE STOCK & SALES REPORT (PDF) -----------------
-router.get("/items/report/pdf", async (req, res) => {
-  try {
-    const user_id = getUserId(req);
-    const { name } = req.query;
-
-    let params = [user_id];
-    let nameFilter = "";
-
-    if (name && name.trim()) {
-      params.push(name.trim());
-      nameFilter = "AND LOWER(TRIM(i.name)) = LOWER($2)";
-    }
-
-    const result = await pool.query(
-      `
-      SELECT
-      i.name AS item_name,
-      i.quantity AS available_qty,
-      i.buying_rate,
-      i.selling_rate,
-      COALESCE(SUM(s.quantity), 0) AS sold_qty
-      FROM items i
-      LEFT JOIN sales s
-        ON s.item_id = i.id
-        AND s.user_id = $1
-      WHERE i.user_id = $1
-      ${nameFilter}
-      GROUP BY i.id, i.name, i.quantity, i.buying_rate, i.selling_rate
-      ORDER BY i.name ASC
-      `,
-      params
-    );
-
-    const doc = new PDFDocument({ size: "A4", margin: 40 });
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=item_report.pdf`
-    );
-
-    doc.pipe(res);
-
-    // ---- Header ----
-    doc.font("Helvetica-Bold")
-      .fontSize(20)
-      .text("STOCK REPORT", 0, 40, { align: "center" });
-
-    doc.moveDown(0.5);
-    doc.moveTo(40, 75).lineTo(555, 75).stroke();
-    doc.moveDown(1);
-
-    // ---- Table Header ----
-    function drawStockTableHeader(doc) {
-      const startX = 40;
-      const y = doc.y;
-
-      doc.fontSize(10).font("Helvetica-Bold");
-      doc.text("SI", startX, y, { width: 30 });
-      doc.text("Item Name", startX + 30, y, { width: 190 });
-      doc.text("Available Qty", startX + 220, y, { width: 70, align: "right" });
-      doc.text("Buying Price", startX + 290, y, { width: 80, align: "right" });
-      doc.text("Selling Price", startX + 370, y, { width: 80, align: "right" });
-      doc.text("Sold Qty", startX + 450, y, { width: 65, align: "right" });
-      doc.moveDown(0.5);
-      doc.moveTo(40, doc.y).lineTo(555, doc.y).stroke();
-      doc.moveDown(0.5);
-      doc.font("Helvetica");
-    }
-
-    // ✅ draw table header for first page
-    drawStockTableHeader(doc);
-
-    // ---- Rows ----
-    const startX = 40;
-    let totalCostValue = 0;
-    let totalSellingValue = 0;
-
-    result.rows.forEach((r, i) => {
-
-      // 🔒 Page overflow handling (same as Sales PDF)
-      if (doc.y > 720) {
-        doc.addPage();
-        drawStockTableHeader(doc);
-      }
-      const qty = Number(r.available_qty);
-      const buy = Number(r.buying_rate);
-      const sell = Number(r.selling_rate);
-
-      totalCostValue += qty * buy;
-      totalSellingValue += qty * sell;
-
-      const y = doc.y;
-
-      // 👉 Dynamic height based on item name
-      const itemHeight = doc.heightOfString(r.item_name || "", {
-        width: 150,
-        align: "left",
-      });
-
-      doc.text(i + 1, startX, y, { width: 30 });
-      doc.text(r.item_name || "", startX + 30, y, { width: 190 });
-      doc.text(qty.toFixed(2), startX + 220, y, { width: 70, align: "center" });
-      doc.text(buy.toFixed(2), startX + 290, y, { width: 80, align: "center" });
-      doc.text(sell.toFixed(2), startX + 370, y, { width: 80, align: "center" });
-      doc.text(Number(r.sold_qty).toFixed(2), startX + 450, y, { width: 65, align: "center" });
-      // 👉 Move Y exactly like Sales PDF
-      doc.y = y + Math.max(itemHeight, 18) + 6;
-    });
-
-    const profit = totalSellingValue - totalCostValue;
-
-    doc.moveDown(2);
-
-    doc.moveTo(40, doc.y).lineTo(555, doc.y).stroke();
-    doc.moveDown(1);
-
-    // block start position
-    const summaryX = 350;
-
-    doc.font("Helvetica")
-      .fontSize(11);
-
-    doc.text(`Total Items Value (Cost) : Rs. ${totalCostValue.toFixed(2)}`, summaryX);
-    doc.moveDown(0.4);
-
-    doc.text(`Total Selling Value      : Rs. ${totalSellingValue.toFixed(2)}`, summaryX);
-    doc.moveDown(0.4);
-
-    doc.font("Helvetica-Bold")
-      .fillColor(profit >= 0 ? "green" : "red")
-      .text(`Estimated Profit         : Rs. ${profit.toFixed(2)}`, summaryX);
-
-    doc.fillColor("black");
-
-    doc.moveDown(1);
-    doc.moveTo(40, doc.y).lineTo(555, doc.y).stroke();
-
-    doc.end();
-  } catch (err) {
-    console.error("Item report PDF error:", err.message);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-
-// ----------------- SALES REPORT table (JSON PREVIEW) -----------------
+// =========================================================
+// 📈 SALES REPORT (JSON)
+// =========================================================
 router.get("/sales/report", async (req, res) => {
   try {
     const user_id = getUserId(req);
     const { from, to } = req.query;
 
-    if (!from || !to) {
+    if (!from || !to)
       return res.status(400).json({ error: "Missing date range" });
-    }
 
-    const result = await pool.query(
-      `SELECT
-        s.created_at,
-        i.name AS item_name,
-        s.quantity,
-        s.selling_price,
-        s.total_price
-       FROM sales s
-       JOIN items i ON i.id = s.item_id
-        WHERE s.user_id = $1
-          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date >= $2::date
-          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date <= $3::date
-      ORDER BY s.created_at ASC`,
-      [user_id, from, to]
-    );
-
+    const result = await fetchSalesReport(user_id, from, to);
     res.json(result.rows);
   } catch (err) {
-    console.error("Sales report JSON error:", err.message);
+    console.error("Sales JSON error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-
-
-
-// ----------------- SALES REPORT (PDF DOWNLOAD) -----------------
+// =========================================================
+// 📈 SALES REPORT (PDF)
+// =========================================================
 router.get("/sales/report/pdf", async (req, res) => {
   try {
     const user_id = getUserId(req);
     const { from, to } = req.query;
 
-    if (!from || !to) {
+    if (!from || !to)
       return res.status(400).json({ error: "Missing date range" });
-    }
 
-    const result = await pool.query(
-      `SELECT
-        s.created_at,
-        i.name AS item_name,
-        s.quantity,
-        s.selling_price,
-        s.total_price
-       FROM sales s
-       JOIN items i ON i.id = s.item_id
-        WHERE s.user_id = $1
-          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date >= $2::date
-          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date <= $3::date
-      ORDER BY s.created_at ASC`,
-      [user_id, from, to]
-    );
-
-    const doc = new PDFDocument({ margin: 40, size: "A4" });
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=sales_report_${from}_to_${to}.pdf`
-    );
-
-    doc.pipe(res);
-
-    // ---- Header ----
-    doc.fontSize(16).text("Sales Report", { align: "center" });
-    doc.moveDown(0.5);
-
-    doc
-      .fontSize(10)
-      .text(`From: ${from}    To: ${to}`, { align: "center" });
-
-    doc.moveDown(1);
-
-    // ---- Table Header ----
-    const startX = 40;
-    let y = doc.y;
-
-    doc.fontSize(10).font("Helvetica-Bold");
-    doc.text("Sl", startX, y, { width: 30 });
-    doc.text("Date", startX + 30, y, { width: 80 });
-    doc.text("Item", startX + 110, y, { width: 170 });
-    doc.text("Qty", startX + 280, y, { width: 50, align: "right" });
-    doc.text("Rate", startX + 330, y, { width: 80, align: "right" });
-    doc.text("Total", startX + 410, y, { width: 100, align: "right" });
-
-    doc.moveDown(0.5);
-    doc.font("Helvetica");
-
-    // ---- Rows ----
-    // ---- Rows ----
-    let grandTotal = 0;
-
-    result.rows.forEach((r, i) => {
-
-      // 🔒 Page overflow protection
-      if (doc.y > 720) {
-        doc.addPage();
-        doc.fontSize(10).font("Helvetica-Bold");
-
-        const yHeader = doc.y;
-
-        doc.text("Sl", startX, yHeader, { width: 30 });
-        doc.text("Date", startX + 30, yHeader, { width: 80 });
-        doc.text("Item", startX + 110, yHeader, { width: 170 });
-        doc.text("Qty", startX + 280, yHeader, { width: 50, align: "right" });
-        doc.text("Rate", startX + 330, yHeader, { width: 80, align: "right" });
-        doc.text("Total", startX + 410, yHeader, { width: 100, align: "right" });
-
-        doc.moveDown(0.5);
-        doc.font("Helvetica");
-      }
-
-      const y = doc.y;
-
-      // 👉 calculate dynamic height for item name
-      const itemHeight = doc.heightOfString(r.item_name || "", {
-        width: 200,
-        align: "left",
-      });
-
-      const saleDate = new Date(r.created_at).toLocaleDateString("en-IN");
-      doc.text(i + 1, startX, y, { width: 30 });
-      doc.text(saleDate, startX + 30, y, { width: 80 });
-      doc.text(r.item_name || "", startX + 110, y, { width: 170 });
-      doc.text(r.quantity, startX + 280, y, { width: 50, align: "right" });
-      doc.text(Number(r.selling_price).toFixed(2), startX + 330, y, { width: 80, align: "right" });
-      doc.text(Number(r.total_price).toFixed(2), startX + 410, y, { width: 100, align: "right" });
-
-      // 👉 move y based on tallest content
-      doc.y = y + Math.max(itemHeight, 18) + 6;
-
-      grandTotal += Number(r.total_price);
-    });
-
-    // ---- Footer Total ----
-    doc.moveDown(1);
-    doc.font("Helvetica-Bold");
-    doc.text(`Grand Total: Rs. ${grandTotal.toFixed(2)}`, {
-      align: "right",
-    });
-
-
-
-    doc.end();
+    const result = await fetchSalesReport(user_id, from, to);
+    generateSalesPDF(res, result.rows, from, to);
   } catch (err) {
-    console.error("Sales PDF error:", err.message);
+    console.error("Sales PDF error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-
-
-
-
-
-// ----------------- SALES REPORT (EXCEL DOWNLOAD) -----------------
+// =========================================================
+// 📈 SALES REPORT (EXCEL)
+// =========================================================
 router.get("/sales/report/excel", async (req, res) => {
   try {
     const user_id = getUserId(req);
     const { from, to } = req.query;
 
-    if (!from || !to) {
+    if (!from || !to)
       return res.status(400).json({ error: "Missing date range" });
-    }
 
-    const result = await pool.query(
-      `SELECT
-        s.created_at,
-        i.name AS item_name,
-        s.quantity,
-        s.selling_price,
-        s.total_price
-       FROM sales s
-       JOIN items i ON i.id = s.item_id
-        WHERE s.user_id = $1
-          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date >= $2::date
-          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date <= $3::date
-      ORDER BY s.created_at ASC`,
-      [user_id, from, to]
-    );
-
-    const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet("Sales Report");
-
-    // 1️⃣ Column headers FIRST
-    sheet.columns = [
-      { header: "Sl No", key: "sl", width: 8 },
-      { header: "Date", key: "date", width: 15 },
-      { header: "Item Name", key: "item", width: 30 },
-      { header: "Quantity", key: "qty", width: 12 },
-      { header: "Rate", key: "rate", width: 12 },
-      { header: "Amount", key: "total", width: 14 },
-    ];
-
-    // style header row (row-1)
-    const headerRow = sheet.getRow(1);
-    headerRow.font = { bold: true };
-    headerRow.alignment = { horizontal: "center" };
-    headerRow.eachCell(cell => {
-      cell.border = {
-        top: { style: "thin" },
-        bottom: { style: "thin" },
-        left: { style: "thin" },
-        right: { style: "thin" },
-      };
-    });
-
-    // 2️⃣ Insert title rows ABOVE data (not splice)
-    sheet.insertRow(1, []);
-    sheet.insertRow(1, [`Sales Report`]);
-    sheet.mergeCells("A1:F1");
-    sheet.getCell("A1").font = { size: 16, bold: true };
-    sheet.getCell("A1").alignment = { horizontal: "center" };
-
-    sheet.insertRow(2, [`From: ${from}   To: ${to}`]);
-    sheet.mergeCells("A2:F2");
-    sheet.getCell("A2").alignment = { horizontal: "center" };
-
-    // 3️⃣ Data rows
-    let grandTotal = 0;
-
-    result.rows.forEach((r, i) => {
-
-      const saleDate = new Date(r.created_at).toLocaleDateString("en-IN");
-      const row = sheet.addRow({
-        sl: i + 1,
-        date: saleDate,
-        item: r.item_name,
-        qty: r.quantity,
-        rate: Number(r.selling_price),
-        total: Number(r.total_price),
-      });
-
-      row.eachCell(cell => {
-        cell.border = {
-          top: { style: "thin" },
-          bottom: { style: "thin" },
-          left: { style: "thin" },
-          right: { style: "thin" },
-        };
-      });
-
-      row.getCell(4).numFmt = "#,##0.00";
-      row.getCell(5).numFmt = "#,##0.00";
-      row.getCell(6).numFmt = "#,##0.00";
-
-      grandTotal += Number(r.total_price);
-    });
-
-    // ----------------- Grand Total -----------------
-    sheet.addRow([]);
-
-    const totalRow = sheet.addRow({
-      item: "Grand Total (Rs.)",
-      total: grandTotal,
-    });
-
-    totalRow.font = { bold: true };
-    totalRow.getCell("F").numFmt = "#,##0.00";
-    totalRow.alignment = { horizontal: "right" };
-
-    // ----------------- Response -----------------
-    res.setHeader(
-      "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    );
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=sales_report_${from}_to_${to}.xlsx`
-    );
-
-    await workbook.xlsx.write(res);
-    res.end();
-
+    const result = await fetchSalesReport(user_id, from, to);
+    await generateSalesExcel(res, result.rows, from, to);
   } catch (err) {
-    console.error("Sales Excel error:", err.message);
+    console.error("Sales Excel error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
+// =========================================================
+// 💳 CUSTOMER DEBTS
+// =========================================================
 
-
-
-
-// ------------------- CUSTOMER DEBTS -------------------
-
+// Add debt
 router.post("/debts", async (req, res) => {
   try {
     const user_id = getUserId(req);
     const { customer_name, customer_number, total = 0, credit = 0 } = req.body;
 
     if (!customer_name || !/^\d{10}$/.test(customer_number))
-      return res.status(400).json({ error: "Valid name and 10-digit number required" });
+      return res
+        .status(400)
+        .json({ error: "Valid name & 10-digit number required" });
 
     const result = await pool.query(
       `INSERT INTO debts (user_id, customer_name, customer_number, total, credit)
        VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-      [user_id, customer_name, customer_number, total, credit]
+      [user_id, customer_name, customer_number, total, credit],
     );
 
-    res.json({ message: "Debt entry added successfully", debt: result.rows[0] });
+    res.json({ message: "Debt added", debt: result.rows[0] });
   } catch (err) {
-    if (process.env.NODE_ENV !== "production") console.error("Error in POST /debts:", err);
+    console.error("POST /debts error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-
-
-// ----------------- CUSTOMER AUTOSUGGEST -----------------
+// Customer autosuggest
 router.get("/debts/customers", async (req, res) => {
   try {
     const user_id = getUserId(req);
@@ -702,12 +468,7 @@ router.get("/debts/customers", async (req, res) => {
     let params = [user_id];
 
     if (q && q.trim()) {
-      query += `
-        AND (
-          customer_name ILIKE $2
-          OR customer_number ILIKE $2
-        )
-      `;
+      query += ` AND (customer_name ILIKE $2 OR customer_number ILIKE $2)`;
       params.push(`%${q.trim()}%`);
     }
 
@@ -715,15 +476,10 @@ router.get("/debts/customers", async (req, res) => {
 
     const result = await pool.query(query, params);
     res.json(result.rows);
-
   } catch (err) {
-    console.error("Customer dropdown error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
-
-
-
 
 // Full ledger
 router.get("/debts/:number", async (req, res) => {
@@ -732,29 +488,26 @@ router.get("/debts/:number", async (req, res) => {
     const number = req.params.number;
 
     if (!/^\d{10}$/.test(number))
-      return res.status(400).json({ error: "Customer number must be 10 digits" });
+      return res.status(400).json({ error: "Invalid number" });
 
     const result = await pool.query(
-      `SELECT id, customer_name, customer_number, total, credit, created_at
-       FROM debts
+      `SELECT * FROM debts
        WHERE user_id=$1 AND customer_number=$2
        ORDER BY created_at ASC`,
-      [user_id, number]
+      [user_id, number],
     );
 
     res.json(result.rows);
-  } catch (err) {
-    if (process.env.NODE_ENV !== "production") console.error("Error in GET /debts/:number:", err);
+  } catch {
     res.status(500).json({ error: "Server error" });
   }
 });
 
-
-
-// Summary dues
+// Debt summary
 router.get("/debts", async (req, res) => {
   try {
     const user_id = getUserId(req);
+
     const result = await pool.query(
       `SELECT customer_name, customer_number,
               SUM(total) AS total,
@@ -764,40 +517,32 @@ router.get("/debts", async (req, res) => {
        WHERE user_id=$1
        GROUP BY customer_name, customer_number
        ORDER BY customer_name ASC`,
-      [user_id]
+      [user_id],
     );
 
     res.json(result.rows);
-  } catch (err) {
-    if (process.env.NODE_ENV !== "production") console.error("Error in GET /debts:", err);
+  } catch {
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// Global error handler
-router.use((err, req, res, next) => {
-  console.error("Unhandled route error:", err.message);
-  res.status(500).json({ error: "Unexpected server error" });
-});
+// =========================================================
+// 📊 ANALYTICS
+// =========================================================
 
-
-
-
-// ----------------- MONTHLY SALES + PROFIT TREND -----------------
+// Monthly Trend
 router.get("/sales/monthly-trend", async (req, res) => {
   try {
     const user_id = getUserId(req);
-    const yearParam = req.query.year;
+    const year = req.query.year;
 
     let yearFilter = "";
+    let params = [user_id];
 
-    if (yearParam && yearParam !== "all") {
+    if (year && year !== "all") {
       yearFilter = "AND EXTRACT(YEAR FROM s.created_at) = $2";
+      params.push(year);
     }
-
-    const params = yearParam && yearParam !== "all"
-      ? [user_id, yearParam]
-      : [user_id];
 
     const result = await pool.query(
       `
@@ -812,23 +557,16 @@ router.get("/sales/monthly-trend", async (req, res) => {
       GROUP BY month
       ORDER BY MIN(s.created_at)
       `,
-      params
+      params,
     );
 
     res.json(result.rows);
-  } catch (err) {
-    console.error("Monthly trend error:", err);
+  } catch {
     res.status(500).json({ error: "Server error" });
   }
 });
-// ----------------- MONTHLY SALES + PROFIT TREND end -----------------
 
-
-
-
-
-
-// ----------------- LAST 13 MONTH SALES CHART -----------------
+// Last 13 months chart
 router.get("/sales/last-13-months", async (req, res) => {
   try {
     const user_id = getUserId(req);
@@ -836,8 +574,8 @@ router.get("/sales/last-13-months", async (req, res) => {
     const result = await pool.query(
       `
       WITH months AS (
-        SELECT DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '12 months' 
-               + (INTERVAL '1 month' * generate_series(0,12)) AS month_start
+        SELECT DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '12 months'
+        + (INTERVAL '1 month' * generate_series(0,12)) AS month_start
       )
       SELECT 
         TO_CHAR(m.month_start, 'Mon YYYY') AS month,
@@ -849,15 +587,21 @@ router.get("/sales/last-13-months", async (req, res) => {
       GROUP BY m.month_start
       ORDER BY m.month_start ASC
       `,
-      [user_id]
+      [user_id],
     );
 
     res.json(result.rows);
-  } catch (err) {
-    console.error("Last 13 months chart error:", err.message);
+  } catch {
     res.status(500).json({ error: "Server error" });
   }
 });
-// ----------------- LAST 13 MONTH SALES CHART end -----------------
+
+// =========================================================
+// GLOBAL ROUTE ERROR HANDLER
+// =========================================================
+router.use((err, req, res, next) => {
+  console.error("Route error:", err);
+  res.status(500).json({ error: "Unexpected server error" });
+});
 
 module.exports = router;
