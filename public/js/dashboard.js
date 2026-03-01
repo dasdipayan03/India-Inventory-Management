@@ -238,7 +238,7 @@ if (buyingRateInput && sellingRateInput && profitPercentInput) {
   sellingRateInput.addEventListener("input", updateProfitPercent);
 }
 
-//---------- STOCK VIEW AND DOWNLOAD ----------------//
+//---------- stock view and download ----------------//
 async function loadItemReport() {
   const item = document.getElementById("itemReportSearch").value.trim();
 
@@ -373,7 +373,7 @@ function renderLowStock(rows) {
   });
 }
 
-/* ---------------------- SALE REPORT'S TABLE --------------------- */
+/* ---------------------- sale report table --------------------- */
 async function loadSalesReport() {
   const from = document.getElementById("fromDate").value;
   const to = document.getElementById("toDate").value;
@@ -398,7 +398,7 @@ async function loadSalesReport() {
     alert("Could not load sales report");
   }
 }
-//------------------------ SALE REPORT TABLE ROW ------------------------------
+
 function renderSalesReport(rows) {
   const tbody = document.getElementById("salesReportBody");
   const totalEl = document.getElementById("salesGrandTotal");
@@ -443,7 +443,7 @@ function downloadItemReportPDF() {
   window.location.href = url;
 }
 
-// --------------------------- SALE REPORT PDF DOWNLOAD ------------------------------------
+// ----------------- PDF REPORT --------------------------
 function downloadSalesPDF() {
   const from = document.getElementById("fromDate").value;
   const to = document.getElementById("toDate").value;
@@ -456,7 +456,7 @@ function downloadSalesPDF() {
   window.location.href = `/api/sales/report/pdf?from=${from}&to=${to}`;
 }
 
-// --------------------------- SALE REPORT EXCELL DOWNLOAD --------------------------------------
+// -------------------- EXCELL REPORT ----------------------------
 function downloadSalesExcel() {
   const from = document.getElementById("fromDate").value;
   const to = document.getElementById("toDate").value;
@@ -469,7 +469,7 @@ function downloadSalesExcel() {
   window.location.href = `/api/sales/report/excel?from=${from}&to=${to}`;
 }
 
-// ------------------------- CUSTOMER DEBS -----------------------------
+/* ---------------------- Debts --------------------- */
 async function submitDebt() {
   const entry = {
     customer_name: document.getElementById("cdName").value.trim(),
@@ -505,7 +505,7 @@ async function submitDebt() {
 }
 /* ---------------------- Debts End --------------------- */
 
-// ----------------- SALES + PROFIT GRAPH DUAL LINE -----------------
+// ----------------- SALES + PROFIT DUAL LINE -----------------
 
 async function loadBusinessTrend(year = "all") {
   try {
@@ -590,7 +590,7 @@ function renderBusinessTrend(labels, sales, profit) {
     },
   });
 }
-// ------------- HOW MUCH GROTH PERCENTAGE OF SALE -----------------
+
 function updateGrowthBadge(values) {
   const badge = document.getElementById("growthBadge");
 
@@ -613,7 +613,9 @@ function updateGrowthBadge(values) {
     badge.innerHTML = `<span class="text-danger">▼ ${formatted}% Drop (Sales)</span>`;
   }
 }
-// ----------------- YEAR FILTER FOR GRAPH -----------------
+
+// ----------------- YEAR FILTER INIT -----------------
+
 function initYearFilter() {
   const select = document.getElementById("yearFilter");
   const currentYear = new Date().getFullYear();
@@ -629,8 +631,9 @@ function initYearFilter() {
     loadBusinessTrend(select.value);
   });
 }
+// ----------------- SALES + PROFIT DUAL LINE end -----------------
 
-//-------------------- LAST 13 MONTS SALE CHART BAR ------------------
+//-------------------- last 13 monts sale chart ------------------
 let last12Chart;
 async function loadLast12MonthsChart() {
   try {
@@ -685,8 +688,8 @@ async function loadLast12MonthsChart() {
     console.error("Chart error:", err);
   }
 }
+//-------------------- last 13 monts sale chart end ------------------
 
-//------------------ CUSTOMER DROPDOEN IN DEBS CONTACT NUMBER ---------------------
 async function loadCustomerSuggestions(query) {
   try {
     const res = await fetch(
@@ -787,53 +790,16 @@ function renderLedgerTable(rows, mode = "summary") {
   ledgerDiv.innerHTML = html;
 }
 
-/* =========================================================
-   🚀 APPLICATION INITIALIZATION BLOCK
-   =========================================================
-   This block runs once the HTML DOM is fully loaded.
-   It is responsible for:
-
-   1️⃣ Checking authentication
-   2️⃣ Restoring saved UI state (profit %, active section)
-   3️⃣ Binding all button click events
-   4️⃣ Initializing dropdown auto-suggestions
-   5️⃣ Loading initial reports & charts
-   6️⃣ Ensuring page state persists after refresh
-
-   ========================================================= */
+/* ---------------------- Init --------------------- */
 window.addEventListener("DOMContentLoaded", async () => {
-  /* -------------------------------------------------------
-     🔐 STEP 1: AUTHENTICATION CHECK
-     -------------------------------------------------------
-     Ensure user is logged in before loading anything.
-     If not authenticated → redirect handled inside checkAuth()
-  ------------------------------------------------------- */
   await checkAuth();
-
-  /* -------------------------------------------------------
-     💾 STEP 2: RESTORE SAVED PROFIT PERCENTAGE
-     -------------------------------------------------------
-     Load previously saved default profit percentage
-     from localStorage and set it into the input field.
-  ------------------------------------------------------- */
+  // 🔹 Load saved profit percent from localStorage
   const savedPercent = parseFloat(localStorage.getItem("defaultProfitPercent"));
   if (!isNaN(savedPercent)) {
     document.getElementById("profitPercent").value = savedPercent;
   }
 
-  /* -------------------------------------------------------
-     📌 STEP 3: SIDEBAR INITIALIZATION
-     -------------------------------------------------------
-     Setup sidebar navigation (section switching logic).
-  ------------------------------------------------------- */
   setupSidebar();
-
-  /* -------------------------------------------------------
-     🔘 STEP 4: BUTTON EVENT BINDINGS
-     -------------------------------------------------------
-     Connect UI buttons to their respective functions.
-     This prevents inline JS in HTML (clean architecture).
-  ------------------------------------------------------- */
   document.getElementById("addStockBtn").addEventListener("click", addStock);
   document
     .getElementById("loadItemReportBtn")
@@ -852,29 +818,26 @@ window.addEventListener("DOMContentLoaded", async () => {
   document
     .getElementById("submitDebtBtn")
     .addEventListener("click", submitDebt);
-
-  /* =======================================================
-     👤 STEP 5: CUSTOMER NUMBER AUTO-SUGGEST DROPDOWN
-     ======================================================= */
+  // 🔹 Existing customer dropdown while entering number
   const cdNumberInput = document.getElementById("cdNumber");
   const cdNameInput = document.getElementById("cdName");
   const cdNumberDropdown = document.getElementById("cdNumberDropdown");
-  // Trigger suggestions when user types customer number
+
   cdNumberInput.addEventListener("input", async () => {
     const q = cdNumberInput.value.trim();
-    // Hide dropdown if input empty
+
     if (!q) {
       cdNumberDropdown.style.display = "none";
       return;
     }
-    // Fetch matching customers from backend
+
     const customers = await loadCustomerSuggestions(q);
-    // Hide dropdown if no match
+
     if (!customers.length) {
       cdNumberDropdown.style.display = "none";
       return;
     }
-    // Populate dropdown list dynamically
+
     cdNumberDropdown.innerHTML = customers
       .map(
         (c) => `
@@ -888,13 +851,13 @@ window.addEventListener("DOMContentLoaded", async () => {
       .join("");
 
     cdNumberDropdown.style.display = "block";
-    // When user selects a suggestion
+
     cdNumberDropdown.querySelectorAll(".dropdown-item").forEach((item) => {
       item.addEventListener("click", () => {
-        // Fill input fields
         cdNumberInput.value = item.dataset.number;
         cdNameInput.value = item.dataset.name;
-        // Disable name editing (existing customer)
+
+        // 🔥 Disable name field (existing customer)
         cdNameInput.disabled = true;
         cdNameInput.classList.add("bg-light");
 
@@ -903,7 +866,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
-  // Hide dropdown when clicking outside
+  // Hide dropdown on outside click
   document.addEventListener("click", (e) => {
     if (
       !cdNumberInput.contains(e.target) &&
@@ -913,9 +876,6 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  /* =======================================================
-     🔎 STEP 6: LEDGER SEARCH & DUES BUTTONS
-     ======================================================= */
   document
     .getElementById("searchLedgerBtn")
     .addEventListener("click", searchLedger);
@@ -923,9 +883,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     .getElementById("showAllDuesBtn")
     .addEventListener("click", showAllDues);
 
-  /* =======================================================
-     🔍 STEP 7: CUSTOMER SEARCH DROPDOWN (LEDGER SECTION)
-     ======================================================= */
+  // 🔹 Customer Search Dropdown Logic
   const cdInput = document.getElementById("cdSearchInput");
   const cdDropdown = document.getElementById("cdSearchDropdown");
 
@@ -972,55 +930,60 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  /* =======================================================
-     🧾 STEP 8: INVOICE PAGE NAVIGATION
-     ======================================================= */
   document.getElementById("invoiceBtn").addEventListener("click", () => {
     window.location.href = "invoice.html";
   });
 
-  /* =======================================================
-     🔎 STEP 9: ITEM SEARCH FILTER SETUP
-     ======================================================= */
   setupFilterInput("newItemSearch", "newItemDropdownList");
+
+  // Item Report search dropdown
   setupFilterInput("itemReportSearch", "itemReportDropdown", () => {});
 
-  /* =======================================================
-     🔄 STEP 10: RESTORE LAST ACTIVE SECTION (AFTER REFRESH)
-     ======================================================= */
+  //-------------- AFTER REFRESH ALWASE LOAD IN SAME PAGE ---------------------
   const lastSection = localStorage.getItem("activeSection");
 
   if (lastSection && document.getElementById(lastSection)) {
-    // Hide all sections
     document
       .querySelectorAll(".form-section")
       .forEach((s) => s.classList.remove("active"));
-    // Remove active class from sidebar buttons
+
     document
       .querySelectorAll(".sidebar button")
       .forEach((b) => b.classList.remove("active"));
-    // Activate previous section
+
     document.getElementById(lastSection).classList.add("active");
-    // Activate matching sidebar button
+
     const btn = document.querySelector(
       `.sidebar button[data-section="${lastSection}"]`,
     );
     if (btn) btn.classList.add("active");
 
-    // If returning to item report → auto load low stock
+    // 🔴 LOW STOCK LOAD ON REFRESH
     if (lastSection === "itemReportSection") {
       loadLowStock();
     }
   }
 
-  /* =======================================================
-     📊 STEP 11: INITIAL DATA LOAD (ON PAGE START)
-     ======================================================= */
-  await loadItemNames(); // Load item names into dropdowns
-  initYearFilter(); // Setup year filter dropdown
-  await loadBusinessTrend(); // Monthly sales + profit chart
-  await loadLast12MonthsChart(); // Last 12 months sales chart
+  await loadItemNames();
+  initYearFilter();
+  await loadBusinessTrend();
+  await loadLast12MonthsChart();
 });
+
+// Allow only digits in number fields
+// function restrictToDigits(id) {
+//   const input = document.getElementById(id);
+
+//   // Prevent typing letters
+//   input.addEventListener("keypress", (e) => {
+//     if (!/[0-9]/.test(e.key)) e.preventDefault();
+//   });
+
+//   // Prevent pasting letters
+//   input.addEventListener("input", () => {
+//     input.value = input.value.replace(/[^0-9]/g, "").slice(0, 10);
+//   });
+// }
 
 function restrictToDigits(id) {
   const input = document.getElementById(id);
