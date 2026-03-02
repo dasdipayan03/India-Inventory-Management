@@ -287,6 +287,11 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
 
     const doc = new PDFDocument({ size: "A4", margin: 40, bufferPages: true });
 
+    let pageNumber = 0;
+    doc.on("pageAdded", () => {
+      pageNumber++;
+    });
+
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="${inv.invoice_no}.pdf"`,
@@ -477,23 +482,24 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
       align: "right",
     });
 
-    /* ================= invoice pdf FOOTER ================= */
-
-    doc.font("Helvetica").fontSize(9);
-    doc.text(
-      "This is a system generated invoice. No signature required.",
-      40,
-      pageHeight - 60,
-      { width: 520, align: "center" },
-    );
-
-    /* ================= PAGE NUMBER ================= */
-
-    const totalPages = doc.bufferedPageRange().count;
+    /* ================= PAGE NUMBER & FOOTER ================= */
+    const range = doc.bufferedPageRange();
+    const totalPages = range.count;
 
     for (let i = 0; i < totalPages; i++) {
       doc.switchToPage(i);
+
       doc.font("Helvetica").fontSize(9);
+
+      // Footer line
+      doc.text(
+        "This is a system generated invoice. No signature required.",
+        40,
+        pageHeight - 60,
+        { width: 520, align: "center" },
+      );
+
+      // Page number
       doc.text(
         `Page ${i + 1} / ${totalPages}`,
         pageWidth - 100,
