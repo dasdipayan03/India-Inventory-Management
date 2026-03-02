@@ -1,25 +1,25 @@
 // routes/invoices.js
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const PDFDocument = require('pdfkit');
-const pool = require('../db');
-const { authMiddleware } = require('../middleware/auth');
+const PDFDocument = require("pdfkit");
+const pool = require("../db");
+const { authMiddleware } = require("../middleware/auth");
 
 /* ---------------------- Helper: pad serial ---------------------- */
 function padSerial(n) {
-    return String(n).padStart(4, '0');
+  return String(n).padStart(4, "0");
 }
 
 /* ---------------------- Generate Invoice No ---------------------- */
 async function generateInvoiceNoWithClient(client, userId) {
-    const todayDate = new Date()
-        .toLocaleString('en-CA', { timeZone: 'Asia/Kolkata' })
-        .slice(0, 10);
+  const todayDate = new Date()
+    .toLocaleString("en-CA", { timeZone: "Asia/Kolkata" })
+    .slice(0, 10);
 
-    const dateKey = todayDate;
-    const datePart = todayDate.replace(/-/g, '');
+  const dateKey = todayDate;
+  const datePart = todayDate.replace(/-/g, "");
 
-    const q = `
+  const q = `
       INSERT INTO user_invoice_counter (user_id, date_key, next_no)
       VALUES ($1, $2, 2)
       ON CONFLICT (user_id, date_key)
@@ -27,170 +27,192 @@ async function generateInvoiceNoWithClient(client, userId) {
       RETURNING next_no;
     `;
 
-    const r = await client.query(q, [userId, dateKey]);
-    const assignedSerial = Number(r.rows[0].next_no) - 1;
-    const seqStr = padSerial(assignedSerial);
+  const r = await client.query(q, [userId, dateKey]);
+  const assignedSerial = Number(r.rows[0].next_no) - 1;
+  const seqStr = padSerial(assignedSerial);
 
-    return {
-        invoiceNo: `INV-${datePart}-${userId}-${seqStr}`,
-        dateKey
-    };
+  return {
+    invoiceNo: `INV-${datePart}-${userId}-${seqStr}`,
+    dateKey,
+  };
 }
 
 /* ---------------------- GET: Preview Next Invoice ---------------------- */
-router.get('/invoices/new', authMiddleware, async (req, res) => {
-    const userId = req.user.id;
-    const client = await pool.connect();
-    try {
-        const todayDate = new Date()
-            .toLocaleString('en-CA', { timeZone: 'Asia/Kolkata' })
-            .slice(0, 10);
+router.get("/invoices/new", authMiddleware, async (req, res) => {
+  const userId = req.user.id;
+  const client = await pool.connect();
+  try {
+    const todayDate = new Date()
+      .toLocaleString("en-CA", { timeZone: "Asia/Kolkata" })
+      .slice(0, 10);
 
-        const datePart = todayDate.replace(/-/g, '');
-        const q = `SELECT next_no FROM user_invoice_counter WHERE user_id=$1 AND date_key=$2`;
-        const r = await client.query(q, [userId, todayDate]);
-        const nextNo = r.rowCount ? r.rows[0].next_no : 1;
+    const datePart = todayDate.replace(/-/g, "");
+    const q = `SELECT next_no FROM user_invoice_counter WHERE user_id=$1 AND date_key=$2`;
+    const r = await client.query(q, [userId, todayDate]);
+    const nextNo = r.rowCount ? r.rows[0].next_no : 1;
 
-        res.json({
-            success: true,
-            invoice_no: `INV-${datePart}-${userId}-${padSerial(nextNo)}`,
-            date: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
-        });
-    } catch (err) {
-        res.status(500).json({ success: false });
-    } finally {
-        client.release();
-    }
+    res.json({
+      success: true,
+      invoice_no: `INV-${datePart}-${userId}-${padSerial(nextNo)}`,
+      date: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
+    });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  } finally {
+    client.release();
+  }
 });
 
 /* ---------------------- POST: SAVE INVOICE (FINAL LOGIC) ---------------------- */
-router.post('/invoices', authMiddleware, async (req, res) => {
-    const userId = req.user.id;
-    const { customer_name, contact, address, gst_no, items } = req.body;
+router.post("/invoices", authMiddleware, async (req, res) => {
+  const userId = req.user.id;
+  const { customer_name, contact, address, gst_no, items } = req.body;
 
-    if (!Array.isArray(items) || !items.length) {
-        return res.status(400).json({ success: false, message: 'No items' });
-    }
+  if (!Array.isArray(items) || !items.length) {
+    return res.status(400).json({ success: false, message: "No items" });
+  }
 
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
 
-        const { invoiceNo, dateKey } = await generateInvoiceNoWithClient(client, userId);
+    const { invoiceNo, dateKey } = await generateInvoiceNoWithClient(
+      client,
+      userId,
+    );
 
-        /* ---- calculate ---- */
-        let subtotal = 0;
-        const computed = items.map(i => {
-            const q = Number(i.quantity || 0);
-            const r = Number(i.rate || 0);
-            const a = +(q * r).toFixed(2);
-            subtotal += a;
-            return { description: i.description, quantity: q, rate: r, amount: a };
-        });
-        subtotal = +subtotal.toFixed(2);
+    /* ---- calculate ---- */
+    let subtotal = 0;
+    const computed = items.map((i) => {
+      const q = Number(i.quantity || 0);
+      const r = Number(i.rate || 0);
+      const a = +(q * r).toFixed(2);
+      subtotal += a;
+      return { description: i.description, quantity: q, rate: r, amount: a };
+    });
+    subtotal = +subtotal.toFixed(2);
 
-        const gstR = await client.query(`SELECT gst_rate FROM settings WHERE user_id=$1`, [userId]);
-        const gstRate = gstR.rows[0]?.gst_rate || 18;
-        const gst_amount = +(subtotal * gstRate / 100).toFixed(2);
-        const total_amount = +(subtotal + gst_amount).toFixed(2);
+    const gstR = await client.query(
+      `SELECT gst_rate FROM settings WHERE user_id=$1`,
+      [userId],
+    );
+    const gstRate = gstR.rows[0]?.gst_rate || 18;
+    const gst_amount = +((subtotal * gstRate) / 100).toFixed(2);
+    const total_amount = +(subtotal + gst_amount).toFixed(2);
 
-        /* ---- invoice ---- */
-        const inv = await client.query(`
+    /* ---- invoice ---- */
+    const inv = await client.query(
+      `
           INSERT INTO invoices
           (invoice_no,user_id,gst_no,customer_name,contact,address,
            subtotal,gst_amount,total_amount,date)
           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
           RETURNING id
-        `, [
-            invoiceNo, userId, gst_no || null,
-            customer_name || null, contact || null, address || null,
-            subtotal, gst_amount, total_amount, new Date()
-        ]);
+        `,
+      [
+        invoiceNo,
+        userId,
+        gst_no || null,
+        customer_name || null,
+        contact || null,
+        address || null,
+        subtotal,
+        gst_amount,
+        total_amount,
+        new Date(),
+      ],
+    );
 
-        const invoiceId = inv.rows[0].id;
+    const invoiceId = inv.rows[0].id;
 
-        /* ---- invoice_items + stock + sales ---- */
-        for (const it of computed) {
-
-            await client.query(`
+    /* ---- invoice_items + stock + sales ---- */
+    for (const it of computed) {
+      await client.query(
+        `
               INSERT INTO invoice_items
               (invoice_id,description,quantity,rate,amount)
               VALUES ($1,$2,$3,$4,$5)
-            `, [invoiceId, it.description, it.quantity, it.rate, it.amount]);
+            `,
+        [invoiceId, it.description, it.quantity, it.rate, it.amount],
+      );
 
-            const itemRow = await client.query(`
+      const itemRow = await client.query(
+        `
               SELECT id, quantity FROM items
               WHERE user_id=$1 AND LOWER(TRIM(name))=LOWER(TRIM($2))
               FOR UPDATE
-            `, [userId, it.description]);
+            `,
+        [userId, it.description],
+      );
 
-            if (!itemRow.rowCount) {
-                throw new Error(`Item not found: ${it.description}`);
-            }
-            if (itemRow.rows[0].quantity < it.quantity) {
-                const available = itemRow.rows[0].quantity;
-                throw new Error(
-                    `Faild !! Stock not sufficient`
-                );
-            }
+      if (!itemRow.rowCount) {
+        throw new Error(`Item not found: ${it.description}`);
+      }
+      if (itemRow.rows[0].quantity < it.quantity) {
+        const available = itemRow.rows[0].quantity;
+        throw new Error(`Faild !! Stock not sufficient`);
+      }
 
-            await client.query(`
+      await client.query(
+        `
               UPDATE items SET quantity = quantity - $1 WHERE id=$2
-            `, [it.quantity, itemRow.rows[0].id]);
+            `,
+        [it.quantity, itemRow.rows[0].id],
+      );
 
-            await client.query(`
+      await client.query(
+        `
                 INSERT INTO sales
                 (user_id, item_id, quantity, selling_price, total_price)
                 VALUES ($1, $2, $3, $4, $5)
-                `, [
-                userId,
-                itemRow.rows[0].id,
-                it.quantity,
-                it.rate,      // ✅ unit selling price
-                it.amount     // ✅ total price
-            ]);
-
-        }
-
-        await client.query('COMMIT');
-        res.json({
-            success: true,
-            invoice_no: invoiceNo,
-            date: new Date().toISOString()
-        });
-
-
-    } catch (err) {
-        await client.query('ROLLBACK');
-        if (err.message.includes("Stock not sufficient")) {
-            res.status(400).json({ success: false, message: err.message });
-        } else {
-            res.status(500).json({ success: false, message: "Server error" });
-        }
-    } finally {
-        client.release();
+                `,
+        [
+          userId,
+          itemRow.rows[0].id,
+          it.quantity,
+          it.rate, // ✅ unit selling price
+          it.amount, // ✅ total price
+        ],
+      );
     }
+
+    await client.query("COMMIT");
+    res.json({
+      success: true,
+      invoice_no: invoiceNo,
+      date: new Date().toISOString(),
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    if (err.message.includes("Stock not sufficient")) {
+      res.status(400).json({ success: false, message: err.message });
+    } else {
+      res.status(500).json({ success: false, message: "Server error" });
+    }
+  } finally {
+    client.release();
+  }
 });
 
 //---------- invoice search dropdown -----------//
-router.get('/invoices/numbers', authMiddleware, async (req, res) => {
-    const { rows } = await pool.query(
-        `SELECT invoice_no
+router.get("/invoices/numbers", authMiddleware, async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT invoice_no
          FROM invoices
          WHERE user_id = $1
          ORDER BY date DESC
          LIMIT 50`,
-        [req.user.id]
-    );
+    [req.user.id],
+  );
 
-    res.json(rows.map(r => r.invoice_no));
+  res.json(rows.map((r) => r.invoice_no));
 });
 
 /* ---------------------- GET: All Invoices List ---------------------- */
-router.get('/invoices', authMiddleware, async (req, res) => {
-    try {
-        const { rows } = await pool.query(
-            `
+router.get("/invoices", authMiddleware, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `
             SELECT 
                 date,
                 invoice_no,
@@ -201,39 +223,40 @@ router.get('/invoices', authMiddleware, async (req, res) => {
             WHERE user_id = $1
             ORDER BY date DESC, id DESC
             `,
-            [req.user.id]
-        );
+      [req.user.id],
+    );
 
-        res.json({ success: true, invoices: rows });
-
-    } catch (err) {
-        console.error('All invoices fetch error:', err);
-        res.status(500).json({ success: false });
-    }
+    res.json({ success: true, invoices: rows });
+  } catch (err) {
+    console.error("All invoices fetch error:", err);
+    res.status(500).json({ success: false });
+  }
 });
 
-
 /* ---------------------- GET: Invoice Details ---------------------- */
-router.get('/invoices/:invoiceNo', authMiddleware, async (req, res) => {
-    const { rows } = await pool.query(`
+router.get("/invoices/:invoiceNo", authMiddleware, async (req, res) => {
+  const { rows } = await pool.query(
+    `
       SELECT i.*, COALESCE(json_agg(ii.*)
       FILTER (WHERE ii.id IS NOT NULL),'[]') AS items
       FROM invoices i
       LEFT JOIN invoice_items ii ON ii.invoice_id=i.id
       WHERE i.user_id=$2 AND i.invoice_no=$1
       GROUP BY i.id
-    `, [req.params.invoiceNo, req.user.id]);
+    `,
+    [req.params.invoiceNo, req.user.id],
+  );
 
-    if (!rows[0]) return res.status(404).json({ success: false });
-    res.json({ success: true, invoice: rows[0] });
+  if (!rows[0]) return res.status(404).json({ success: false });
+  res.json({ success: true, invoice: rows[0] });
 });
 
-router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
-    const userId = req.user.id;
-    const invoiceNo = req.params.invoiceNo.replace(/['"%]+/g, '').trim();
+router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
+  const userId = req.user.id;
+  const invoiceNo = req.params.invoiceNo.replace(/['"%]+/g, "").trim();
 
-    try {
-        const q = `
+  try {
+    const q = `
           SELECT i.id, i.invoice_no, i.customer_name, i.contact, i.address, i.gst_no,
                  i.date, i.subtotal, i.gst_amount, i.total_amount,
                  COALESCE(json_agg(json_build_object(
@@ -248,166 +271,167 @@ router.get('/invoices/:invoiceNo/pdf', authMiddleware, async (req, res) => {
           GROUP BY i.id
           LIMIT 1;
         `;
-        const { rows } = await pool.query(q, [invoiceNo, userId]);
-        if (!rows[0]) return res.status(404).json({ success: false, message: 'Invoice not found' });
+    const { rows } = await pool.query(q, [invoiceNo, userId]);
+    if (!rows[0])
+      return res
+        .status(404)
+        .json({ success: false, message: "Invoice not found" });
 
-        const inv = rows[0];
+    const inv = rows[0];
 
-        const shopRes = await pool.query(
-            `SELECT shop_name, shop_address, gst_no FROM settings WHERE user_id=$1`,
-            [userId]
-        );
-        const shop = shopRes.rows[0] || {};
+    const shopRes = await pool.query(
+      `SELECT shop_name, shop_address, gst_no FROM settings WHERE user_id=$1`,
+      [userId],
+    );
+    const shop = shopRes.rows[0] || {};
 
-        const doc = new PDFDocument({ size: 'A4', margin: 40 });
+    const doc = new PDFDocument({ size: "A4", margin: 40 });
 
-        res.setHeader(
-            'Content-Disposition',
-            `attachment; filename="${inv.invoice_no}.pdf"`
-        );
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${inv.invoice_no}.pdf"`,
+    );
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
 
-        doc.pipe(res);
+    doc.pipe(res);
 
+    /* ================= HEADER ================= */
 
+    // Header background
+    // Header background (SAFE VERSION)
+    doc.save();
+    doc.rect(40, 30, 520, 70).fill("#f1f5f9");
+    doc.restore();
 
-        /* ================= HEADER ================= */
+    doc.fillColor("#000");
 
-        // Header background
-        // Header background (SAFE VERSION)
-        doc.save();
-        doc.rect(40, 30, 520, 70).fill('#f1f5f9');
-        doc.restore();
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(20)
+      .text(shop.shop_name || "India Inventory Management", 50, 45);
 
-        doc.fillColor('#000');
+    doc
+      .font("Helvetica")
+      .fontSize(10)
+      .text(shop.shop_address || "", 50, 70)
+      .text(`GSTIN: ${shop.gst_no || inv.gst_no || "N/A"}`, 50, 85);
 
-        doc.font('Helvetica-Bold').fontSize(20)
-            .text(shop.shop_name || 'India Inventory Management', 50, 45);
+    doc.font("Helvetica-Bold").fontSize(18).text("INVOICE", 430, 55);
 
-        doc.font('Helvetica').fontSize(10)
-            .text(shop.shop_address || '', 50, 70)
-            .text(`GSTIN: ${shop.gst_no || inv.gst_no || 'N/A'}`, 50, 85);
+    /* ================= INVOICE INFO ================= */
 
-        doc.font('Helvetica-Bold').fontSize(18)
-            .text('INVOICE', 430, 55);
+    let y = 130;
 
-        /* ================= INVOICE INFO ================= */
+    doc.font("Helvetica").fontSize(10);
 
-        let y = 130;
+    doc.text(`Invoice No: ${inv.invoice_no}`, 40, y);
+    doc.text(
+      `Date: ${new Date(inv.date).toLocaleString("en-IN", {
+        timeZone: "Asia/Kolkata",
+      })}`,
+      40,
+      y + 15,
+    );
 
-        doc.font('Helvetica').fontSize(10);
+    doc.text(`Customer: ${inv.customer_name || "-"}`, 320, y);
+    doc.text(`Contact: ${inv.contact || "-"}`, 320, y + 15);
+    doc.text(`Address: ${inv.address || "-"}`, 320, y + 30, { width: 220 });
 
-        doc.text(`Invoice No: ${inv.invoice_no}`, 40, y);
-        doc.text(
-            `Date: ${new Date(inv.date).toLocaleString('en-IN', {
-                timeZone: 'Asia/Kolkata'
-            })}`,
-            40,
-            y + 15
-        );
+    y += 80;
 
-        doc.text(`Customer: ${inv.customer_name || '-'}`, 320, y);
-        doc.text(`Contact: ${inv.contact || '-'}`, 320, y + 15);
-        doc.text(`Address: ${inv.address || '-'}`, 320, y + 30, { width: 220 });
+    /* ================= TABLE HEADER ================= */
 
-        y += 80;
+    doc.moveTo(40, y).lineTo(560, y).stroke();
+    y += 10;
 
-        /* ================= TABLE HEADER ================= */
+    doc.font("Helvetica-Bold");
+    doc.text("Item", 40, y);
+    doc.text("Qty", 280, y, { width: 50, align: "right" });
+    doc.text("Rate", 360, y, { width: 70, align: "right" });
+    doc.text("Amount", 460, y, { width: 80, align: "right" });
 
-        doc.moveTo(40, y).lineTo(560, y).stroke();
-        y += 10;
+    y += 15;
+    doc.moveTo(40, y).lineTo(560, y).stroke();
 
-        doc.font('Helvetica-Bold');
-        doc.text('Item', 40, y);
-        doc.text('Qty', 280, y, { width: 50, align: 'right' });
-        doc.text('Rate', 360, y, { width: 70, align: 'right' });
-        doc.text('Amount', 460, y, { width: 80, align: 'right' });
+    doc.font("Helvetica");
 
-        y += 15;
-        doc.moveTo(40, y).lineTo(560, y).stroke();
+    /* ================= TABLE ROWS ================= */
 
-        doc.font('Helvetica');
+    for (const it of inv.items) {
+      if (y > 720) {
+        // ⬅️ VERY IMPORTANT
+        doc.addPage();
+        y = 50;
+      }
 
-        /* ================= TABLE ROWS ================= */
+      y += 20;
 
-        for (const it of inv.items) {
-
-            if (y > 720) {          // ⬅️ VERY IMPORTANT
-                doc.addPage();
-                y = 50;
-            }
-
-            y += 20;
-
-            doc.text(it.description, 40, y, { width: 220 });
-            doc.text(it.quantity, 280, y, { width: 50, align: 'right' });
-            doc.text(Number(it.rate).toFixed(2), 360, y, { width: 70, align: 'right' });
-            doc.text(Number(it.amount).toFixed(2), 460, y, { width: 80, align: 'right' });
-        }
-
-
-
-        /* ================= TOTALS ================= */
-
-        y += 30;
-        if (y > 650) {
-            doc.addPage();
-            y = 50;
-        }
-
-        doc.font('Helvetica').fontSize(10);
-        doc.text(
-            `Subtotal: ${Number(inv.subtotal).toFixed(2)}`,
-            360,           // x position
-            y,
-            { width: 200, align: 'right' }
-        );
-
-        doc.text(
-            `GST: ${Number(inv.gst_amount).toFixed(2)}`,
-            360,
-            y + 15,
-            { width: 200, align: 'right' }
-        );
-
-        doc.font('Helvetica-Bold').fontSize(12);
-        doc.text(
-            `Total: ${Number(inv.total_amount).toFixed(2)}`,
-            360,
-            y + 35,
-            { width: 200, align: 'right' }
-        );
-
-
-        /* ================= invoice pdf FOOTER ================= */
-
-        doc.font('Helvetica').fontSize(9);
-        doc.text(
-            'This is a system generated invoice. No signature required.',
-            40,
-            780,
-            { width: 520, align: 'center' }
-        );
-
-        doc.end();
-
-
-    } catch (err) {
-        console.error('❌ PDF error:', err);
-        res.status(500).json({ success: false, message: 'PDF generation failed' });
+      doc.text(it.description, 40, y, { width: 220 });
+      doc.text(it.quantity, 280, y, { width: 50, align: "right" });
+      doc.text(Number(it.rate).toFixed(2), 360, y, {
+        width: 70,
+        align: "right",
+      });
+      doc.text(Number(it.amount).toFixed(2), 460, y, {
+        width: 80,
+        align: "right",
+      });
     }
+
+    /* ================= TOTALS ================= */
+
+    y += 30;
+    if (y > 650) {
+      doc.addPage();
+      y = 50;
+    }
+
+    doc.font("Helvetica").fontSize(10);
+    doc.text(
+      `Subtotal: ${Number(inv.subtotal).toFixed(2)}`,
+      360, // x position
+      y,
+      { width: 200, align: "right" },
+    );
+
+    doc.text(`GST: ${Number(inv.gst_amount).toFixed(2)}`, 360, y + 15, {
+      width: 200,
+      align: "right",
+    });
+
+    doc.font("Helvetica-Bold").fontSize(12);
+    doc.text(`Total: ${Number(inv.total_amount).toFixed(2)}`, 360, y + 35, {
+      width: 200,
+      align: "right",
+    });
+
+    /* ================= invoice pdf FOOTER ================= */
+
+    doc.font("Helvetica").fontSize(9);
+    doc.text(
+      "This is a system generated invoice. No signature required.",
+      40,
+      780,
+      { width: 520, align: "center" },
+    );
+
+    doc.end();
+  } catch (err) {
+    console.error("❌ PDF error:", err);
+    res.status(500).json({ success: false, message: "PDF generation failed" });
+  }
 });
 
-
 /* ---------------------- SHOP INFO save ---------------------- */
-router.post('/shop-info', authMiddleware, async (req, res) => {
-    const { shop_name, shop_address, gst_no, gst_rate } = req.body;
-    const userId = req.user.id;
+router.post("/shop-info", authMiddleware, async (req, res) => {
+  const { shop_name, shop_address, gst_no, gst_rate } = req.body;
+  const userId = req.user.id;
 
-    await pool.query(`
+  await pool.query(
+    `
       INSERT INTO settings (user_id,shop_name,shop_address,gst_no,gst_rate)
       VALUES ($1,$2,$3,$4,$5)
       ON CONFLICT (user_id)
@@ -416,19 +440,19 @@ router.post('/shop-info', authMiddleware, async (req, res) => {
         shop_address=EXCLUDED.shop_address,
         gst_no=EXCLUDED.gst_no,
         gst_rate=EXCLUDED.gst_rate
-    `, [userId, shop_name, shop_address, gst_no, gst_rate]);
+    `,
+    [userId, shop_name, shop_address, gst_no, gst_rate],
+  );
 
-    res.json({ success: true });
+  res.json({ success: true });
 });
 
-router.get('/shop-info', authMiddleware, async (req, res) => {
-    const { rows } = await pool.query(
-        `SELECT shop_name,shop_address,gst_no,gst_rate FROM settings WHERE user_id=$1`,
-        [req.user.id]
-    );
-    res.json({ success: true, settings: rows[0] || {} });
+router.get("/shop-info", authMiddleware, async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT shop_name,shop_address,gst_no,gst_rate FROM settings WHERE user_id=$1`,
+    [req.user.id],
+  );
+  res.json({ success: true, settings: rows[0] || {} });
 });
-
-
 
 module.exports = router;
