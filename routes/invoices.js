@@ -287,7 +287,6 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
     const shop = shopRes.rows[0] || {};
 
     const doc = new PDFDocument({ size: "A4", margin: 40, bufferPages: true });
-
     let pageNumber = 0;
     doc.on("pageAdded", () => {
       pageNumber++;
@@ -305,7 +304,6 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
     doc.pipe(res);
 
     /* ================= PAGE HELPERS ================= */
-
     const pageWidth = doc.page.width;
     const pageHeight = doc.page.height;
 
@@ -372,7 +370,6 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
     let y = drawTableHeader(210);
 
     /* ================= TABLE ROWS ================= */
-
     for (const it of inv.items) {
       if (y > pageHeight - 120) {
         doc.addPage();
@@ -396,7 +393,6 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
     }
 
     /* ================= TOTALS ================= */
-
     y += 30;
     if (y > pageHeight - 120) {
       doc.addPage();
@@ -424,7 +420,7 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
       align: "right",
     });
 
-    /* ---------------------- FOOTER AND PAGE NUMBER ---------------------- */
+    /* ================= FOOTER AND PAGE NUMBER ================= */
     const range = doc.bufferedPageRange();
     const totalPages = range.count;
 
