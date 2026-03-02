@@ -500,12 +500,10 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
       );
 
       // Page number
-      doc.text(
-        `Page ${i + 1} / ${totalPages}`,
-        pageWidth - 100,
-        pageHeight - 40,
-        { align: "right" },
-      );
+      doc.text(`Page ${i + 1} / ${totalPages}`, 40, pageHeight - 40, {
+        width: 520,
+        align: "right",
+      });
     }
 
     doc.end();
