@@ -721,7 +721,14 @@
     <!-- ===== Download Confirmation Modal ===== -->
     <div
       id="downloadModal"
-      style="display: none; position: fixed; inset: 0; z-index: 6000"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 6000;
+        align-items: center;
+        justify-content: center;
+      "
     >
       <div
         style="position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45)"
@@ -730,7 +737,6 @@
         style="
           position: relative;
           max-width: 320px;
-          margin: 25vh auto;
           background: #fff;
           border-radius: 10px;
           padding: 16px;
@@ -750,7 +756,14 @@
     <!-- ===== SAVE CONFIRMATION MODAL ===== -->
     <div
       id="saveConfirmModal"
-      style="display: none; position: fixed; inset: 0; z-index: 3000"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 3000;
+        align-items: center;
+        justify-content: center;
+      "
     >
       <div
         style="position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45)"
@@ -759,7 +772,6 @@
         style="
           position: relative;
           max-width: 350px;
-          margin: 25vh auto;
           background: #fff;
           border-radius: 12px;
           padding: 18px;
@@ -783,7 +795,14 @@
     <!-- ===== COMMON POPUP MODAL ===== -->
     <div
       id="commonPopup"
-      style="display: none; position: fixed; inset: 0; z-index: 5000"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 5000;
+        align-items: center;
+        justify-content: center;
+      "
     >
       <div
         id="popupOverlay"
@@ -795,7 +814,6 @@
         style="
           position: relative;
           max-width: 350px;
-          margin: 25vh auto;
           background: #fff;
           border-radius: 12px;
           padding: 20px;
@@ -918,7 +936,7 @@
 
         function showDownloadModal(invoiceNo) {
           pendingInvoiceNo = invoiceNo;
-          downloadModal.style.display = "block";
+          downloadModal.style.display = "flex";
         }
 
         function hideDownloadModal() {
@@ -947,7 +965,7 @@
             popupTitle.style.color = "#2563eb";
           }
 
-          commonPopup.style.display = "block";
+          commonPopup.style.display = "flex";
 
           // Auto close only for success
           if (type === "success") {
@@ -1399,7 +1417,7 @@
           }
 
           // ✅ Only if all good
-          saveConfirmModal.style.display = "block";
+          saveConfirmModal.style.display = "flex";
         };
 
         // Cancel button

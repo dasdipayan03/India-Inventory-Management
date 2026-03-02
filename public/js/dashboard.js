@@ -1097,7 +1097,7 @@ function showPopup(type, title, message) {
     popupTitle.style.color = "#dc2626"; // red
   }
 
-  commonPopup.style.display = "block";
+  commonPopup.style.display = "flex";
 
   // ✅ Success → Auto Close
   if (type === "success") {
