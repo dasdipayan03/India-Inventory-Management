@@ -446,7 +446,6 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
       });
     }
 
-    drawFooter();
     doc.end();
   } catch (err) {
     console.error("❌ PDF error:", err);
