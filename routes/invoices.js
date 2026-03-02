@@ -308,6 +308,25 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
     const pageWidth = doc.page.width;
     const pageHeight = doc.page.height;
 
+    /* ================= PAGE NUMBER & FOOTER ================= */
+    let pageCount = 1;
+
+    function drawFooter() {
+      doc.font("Helvetica").fontSize(9);
+
+      doc.text(
+        "This is a system generated invoice. No signature required.",
+        40,
+        doc.page.height - 60,
+        { width: 520, align: "center" },
+      );
+
+      doc.text(`Page ${pageCount}`, 40, doc.page.height - 40, {
+        width: 520,
+        align: "right",
+      });
+    }
+
     function drawHeader() {
       doc.save();
       doc.rect(40, 30, 520, 70).fill("#f1f5f9");
@@ -486,27 +505,7 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
       align: "right",
     });
 
-    /* ================= PAGE NUMBER & FOOTER ================= */
-    let pageCount = 1;
-
-    function drawFooter() {
-      doc.font("Helvetica").fontSize(9);
-
-      doc.text(
-        "This is a system generated invoice. No signature required.",
-        40,
-        doc.page.height - 60,
-        { width: 520, align: "center" },
-      );
-
-      doc.text(`Page ${pageCount}`, 40, doc.page.height - 40, {
-        width: 520,
-        align: "right",
-      });
-    }
-
     drawFooter();
-
     doc.end();
   } catch (err) {
     console.error("❌ PDF error:", err);
