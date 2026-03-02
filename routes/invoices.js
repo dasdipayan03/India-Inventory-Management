@@ -285,12 +285,31 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
     );
     const shop = shopRes.rows[0] || {};
 
-    const doc = new PDFDocument({ size: "A4", margin: 40, bufferPages: true });
+    const doc = new PDFDocument({ size: "A4", margin: 40 });
 
-    let pageNumber = 0;
-    doc.on("pageAdded", () => {
-      pageNumber++;
-    });
+    let pageCount = 0;
+
+    function addFooter() {
+      pageCount++;
+
+      doc.font("Helvetica").fontSize(9);
+
+      doc.text(
+        "This is a system generated invoice. No signature required.",
+        40,
+        doc.page.height - 60,
+        { width: 520, align: "center" },
+      );
+
+      doc.text(
+        `Page ${pageCount}`,
+        doc.page.width - 100,
+        doc.page.height - 40,
+        { align: "right" },
+      );
+    }
+
+    doc.on("pageAdded", addFooter);
 
     res.setHeader(
       "Content-Disposition",
@@ -369,6 +388,8 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
     drawHeader();
     drawInvoiceInfo(130);
     let y = drawTableHeader(210);
+    addFooter();
+
     // /* ================= HEADER ================= */
 
     // // Header background
@@ -481,32 +502,6 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
       width: 200,
       align: "right",
     });
-
-    /* ================= PAGE NUMBER & FOOTER ================= */
-    const range = doc.bufferedPageRange();
-    const totalPages = range.count;
-
-    for (let i = 0; i < totalPages; i++) {
-      doc.switchToPage(i);
-
-      doc.font("Helvetica").fontSize(9);
-
-      // Footer line
-      doc.text(
-        "This is a system generated invoice. No signature required.",
-        40,
-        pageHeight - 60,
-        { width: 520, align: "center" },
-      );
-
-      // Page number
-      doc.text(
-        `Page ${i + 1} / ${totalPages}`,
-        pageWidth - 100,
-        pageHeight - 40,
-        { align: "right" },
-      );
-    }
 
     doc.end();
   } catch (err) {
