@@ -436,11 +436,11 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
       doc.text(
         "This is a system generated invoice. No signature required.",
         40,
-        pageHeight - 70,
+        pageHeight - 80,
         { width: 520, align: "center" },
       );
 
-      doc.text(`${i + 1} / ${totalPages}`, 40, pageHeight - 50, {
+      doc.text(`Page- ${i + 1} / ${totalPages}`, 40, pageHeight - 60, {
         width: 520,
         align: "right",
       });
@@ -452,11 +452,6 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
     res.status(500).json({ success: false, message: "PDF generation failed" });
   }
 });
-
-//
-//
-//
-//
 
 /* ---------------------- SHOP INFO save ---------------------- */
 router.post("/shop-info", authMiddleware, async (req, res) => {
