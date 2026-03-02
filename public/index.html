@@ -1,518 +1,667 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>India Inventory Management</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    />
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>India Inventory Management</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
-
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: white;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-      overflow-x: hidden;
-      overflow-y: auto;
-      visibility: hidden;
-    }
-
-    .sidebar {
-      width: 180px;
-      position: fixed;
-      top: 0;
-      bottom: 0;
-      left: 0;
-      background: #2c3e50;
-      transform: translateX(-100%);
-      transition: transform .3s;
-      z-index: 1000;
-    }
-
-    .sidebar.sidebar--open {
-      transform: translateX(0);
-    }
-
-    .sidebar-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, .4);
-      z-index: 900;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity .3s;
-    }
-
-    .sidebar-overlay.visible {
-      opacity: 1;
-      visibility: visible;
-    }
-
-    #sidebarToggle {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      z-index: 1100;
-      background: transparent;
-      color: #2c3e50;
-      border: none;
-      padding: 10px 15px;
-      font-size: 24px;
-      cursor: pointer;
-    }
-
-    .sidebar h2 {
-      font-size: 1.3rem;
-      margin-bottom: 30px;
-      text-align: center;
-      color: white;
-      padding-top: 10px;
-    }
-
-    .sidebar button {
-      background: none;
-      border: none;
-      color: #fff;
-      text-align: left;
-      padding: 12px 20px;
-      margin-bottom: 10px;
-      border-radius: 8px;
-      transition: .3s;
-      font-size: 1rem;
-      width: 100%;
-    }
-
-    .sidebar button:hover,
-    .sidebar button.active {
-      background: #333;
-      color: #00b336;
-    }
-
-    .main {
-      flex: 1;
-      background: white;
-      padding: 30px;
-      margin-top: 50px;
-      padding-bottom: 100px;
-      /* extra space for footer */
-      box-sizing: border-box;
-    }
-
-    .form-section {
-      display: none;
-      background: white;
-      padding: 0;
-      border-radius: 10px;
-    }
-
-    .form-section.active {
-      display: block;
-    }
-
-    .dropdown-list {
-      position: absolute;
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      box-shadow: 0 6px 14px rgba(0, 0, 0, .15);
-      max-height: 220px;
-      overflow-y: auto;
-      width: 100%;
-      z-index: 2000;
-      display: none;
-      font-size: 15px;
-    }
-
-    .dropdown-item {
-      padding: 8px 10px;
-      cursor: pointer;
-    }
-
-    .dropdown-item:hover {
-      background: #f1f5f9;
-    }
-
-    table {
-      border-collapse: collapse;
-      width: 100%;
-    }
-
-    th,
-    td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      text-align: center;
-    }
-
-    tr:nth-child(even) {
-      background: #f2f2f2;
-    }
-
-    tr:hover {
-      background: #d9edf7;
-    }
-
-    .analytics-card {
-      background: #ffffff;
-      border-radius: 16px;
-      padding: 25px;
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-      transition: transform 0.2s ease;
-    }
-
-    .analytics-card:hover {
-      transform: translateY(-3px);
-    }
-
-    .analytics-title {
-      font-weight: 600;
-      font-size: 18px;
-      margin-bottom: 20px;
-      color: #1f2937;
-    }
-
-    .chart-box {
-      position: relative;
-      height: 350px;
-      /* 👈 Laptop height */
-      width: 100%;
-    }
-
-    @media (max-width: 768px) {
-      .chart-box {
-        height: 250px;
-        /* 👈 Mobile height */
+    <style>
+      body {
+        margin: 0;
+        font-family: "Segoe UI", sans-serif;
+        background: white;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        overflow-x: hidden;
+        overflow-y: auto;
+        visibility: hidden;
       }
-    }
 
-    /* 🔴 Critical */
-    #lowStockBody tr.critical-stock-row td {
-      background-color: #fee2e2 !important;
-      color: #991b1b !important;
-      font-weight: 600;
-    }
+      .sidebar {
+        width: 180px;
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        background: #2c3e50;
+        transform: translateX(-100%);
+        transition: transform 0.3s;
+        z-index: 1000;
+      }
 
-    /* 🟡 Warning */
-    #lowStockBody tr.warning-stock-row td {
-      background-color: #fef9c3 !important;
-      color: #92400e !important;
-      font-weight: 600;
-    }
+      .sidebar.sidebar--open {
+        transform: translateX(0);
+      }
 
-    @media (max-width: 576px) {
+      .sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 900;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s;
+      }
+
+      .sidebar-overlay.visible {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      #sidebarToggle {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        z-index: 1100;
+        background: transparent;
+        color: #2c3e50;
+        border: none;
+        padding: 10px 15px;
+        font-size: 24px;
+        cursor: pointer;
+      }
+
+      .sidebar h2 {
+        font-size: 1.3rem;
+        margin-bottom: 30px;
+        text-align: center;
+        color: white;
+        padding-top: 10px;
+      }
+
+      .sidebar button {
+        background: none;
+        border: none;
+        color: #fff;
+        text-align: left;
+        padding: 12px 20px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        transition: 0.3s;
+        font-size: 1rem;
+        width: 100%;
+      }
+
+      .sidebar button:hover,
+      .sidebar button.active {
+        background: #333;
+        color: #00b336;
+      }
+
       .main {
-        padding-left: 10px !important;
-        padding-right: 10px !important;
+        flex: 1;
+        background: white;
+        padding: 30px;
+        margin-top: 50px;
+        padding-bottom: 100px;
+        /* extra space for footer */
+        box-sizing: border-box;
       }
-    }
 
+      .form-section {
+        display: none;
+        background: white;
+        padding: 0;
+        border-radius: 10px;
+      }
 
-    /* ================= MOBILE SALES TABLE FIX ================= */
-    @media (max-width: 576px) {
+      .form-section.active {
+        display: block;
+      }
 
-      /* Table text & spacing smaller */
+      .dropdown-list {
+        position: absolute;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+        max-height: 220px;
+        overflow-y: auto;
+        width: 100%;
+        z-index: 2000;
+        display: none;
+        font-size: 15px;
+      }
+
+      .dropdown-item {
+        padding: 8px 10px;
+        cursor: pointer;
+      }
+
+      .dropdown-item:hover {
+        background: #f1f5f9;
+      }
+
       table {
-        font-size: 12px;
+        border-collapse: collapse;
+        width: 100%;
       }
 
       th,
       td {
-        padding: 4px 6px;
-        vertical-align: middle;
+        border: 1px solid #ccc;
+        padding: 8px;
+        text-align: center;
       }
 
-      /* Item name wrap properly */
-      td:nth-child(2),
-      th:nth-child(2) {
-        max-width: 130px;
-        white-space: normal;
-        word-break: break-word;
-        line-height: 1.2;
+      tr:nth-child(even) {
+        background: #f2f2f2;
       }
 
-      /* Smooth horizontal scroll */
-      .table-responsive {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-      }
-    }
-
-    /* ================= SALES REPORT CARD WIDTH FIX ================= */
-    @media (max-width: 576px) {
-
-      /* Reduce side padding of Sales Report card only */
-      #salesReportSection .card {
-        padding-left: 8px !important;
-        padding-right: 8px !important;
+      tr:hover {
+        background: #d9edf7;
       }
 
-      /* Stretch table to card edges */
-      #salesReportSection .table-responsive {
-        margin-left: -8px;
-        margin-right: -8px;
-      }
-    }
-
-    /* ================= ITEM / STOCK REPORT CARD WIDTH FIX ================= */
-    @media (max-width: 576px) {
-
-      #itemReportSection .card {
-        padding-left: 8px !important;
-        padding-right: 8px !important;
+      .analytics-card {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 25px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        transition: transform 0.2s ease;
       }
 
-      #itemReportSection .table-responsive {
-        margin-left: -8px;
-        margin-right: -8px;
+      .analytics-card:hover {
+        transform: translateY(-3px);
       }
-    }
-  </style>
-</head>
 
+      .analytics-title {
+        font-weight: 600;
+        font-size: 18px;
+        margin-bottom: 20px;
+        color: #1f2937;
+      }
 
-<body>
-  <button id="sidebarToggle">☰</button>
+      .chart-box {
+        position: relative;
+        height: 350px;
+        /* 👈 Laptop height */
+        width: 100%;
+      }
 
-  <div class="sidebar" id="sidebar">
-    <h2>Inventory</h2>
-    <button data-section="addStockSection" class="active"><i class="fas fa-plus-circle"></i> Add New Stock</button>
-    <button id="invoiceBtn" class="btn primary"><i class="fa-solid fa-file-invoice"></i> Sale & Invoice</button>
-    <button data-section="itemReportSection"><i class="fas fa-boxes"></i> Stock Report</button>
-    <button data-section="salesReportSection"><i class="fas fa-chart-line"></i> Sales Report</button>
-    <button data-section="customerDebtSection"><i class="fas fa-user-clock"></i> Customer's Due</button>
-    <button id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
-  </div>
+      @media (max-width: 768px) {
+        .chart-box {
+          height: 250px;
+          /* 👈 Mobile height */
+        }
+      }
 
-  <div id="sidebarOverlay" class="sidebar-overlay"></div>
+      /* 🔴 Critical */
+      #lowStockBody tr.critical-stock-row td {
+        background-color: #fee2e2 !important;
+        color: #991b1b !important;
+        font-weight: 600;
+      }
 
-  <div class="main">
-    <h5 style="text-align:center;">India Inventory Management</h5>
-    <h3 id="welcomeUser" style="font-weight:600;color:#2563eb;text-align:center;"></h3>
+      /* 🟡 Warning */
+      #lowStockBody tr.warning-stock-row td {
+        background-color: #fef9c3 !important;
+        color: #92400e !important;
+        font-weight: 600;
+      }
 
-    <!-- Add Stock Section -->
-    <div id="addStockSection" class="form-section active">
-      <div class="card shadow-sm p-3">
-        <h4 class="text-center mb-3"><i class="fas fa-plus-circle text-primary"></i> Add New Stock</h4>
-        <div class="mb-3">
-          <label class="form-label small">Search Existing Item For Add</label>
-          <div class="position-relative">
-            <input type="text" id="newItemSearch" class="form-control" placeholder="Search or Select Item"
-              autocomplete="off" />
-            <div id="newItemDropdownList" class="dropdown-list"></div>
+      @media (max-width: 576px) {
+        .main {
+          padding-left: 10px !important;
+          padding-right: 10px !important;
+        }
+      }
+
+      /* ================= MOBILE SALES TABLE FIX ================= */
+      @media (max-width: 576px) {
+        /* Table text & spacing smaller */
+        table {
+          font-size: 12px;
+        }
+
+        th,
+        td {
+          padding: 4px 6px;
+          vertical-align: middle;
+        }
+
+        /* Item name wrap properly */
+        td:nth-child(2),
+        th:nth-child(2) {
+          max-width: 130px;
+          white-space: normal;
+          word-break: break-word;
+          line-height: 1.2;
+        }
+
+        /* Smooth horizontal scroll */
+        .table-responsive {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+      }
+
+      /* ================= SALES REPORT CARD WIDTH FIX ================= */
+      @media (max-width: 576px) {
+        /* Reduce side padding of Sales Report card only */
+        #salesReportSection .card {
+          padding-left: 8px !important;
+          padding-right: 8px !important;
+        }
+
+        /* Stretch table to card edges */
+        #salesReportSection .table-responsive {
+          margin-left: -8px;
+          margin-right: -8px;
+        }
+      }
+
+      /* ================= ITEM / STOCK REPORT CARD WIDTH FIX ================= */
+      @media (max-width: 576px) {
+        #itemReportSection .card {
+          padding-left: 8px !important;
+          padding-right: 8px !important;
+        }
+
+        #itemReportSection .table-responsive {
+          margin-left: -8px;
+          margin-right: -8px;
+        }
+      }
+
+      @keyframes popupFadeIn {
+        from {
+          transform: translateY(-8px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <button id="sidebarToggle">☰</button>
+
+    <div class="sidebar" id="sidebar">
+      <h2>Inventory</h2>
+      <button data-section="addStockSection" class="active">
+        <i class="fas fa-plus-circle"></i> Add New Stock
+      </button>
+      <button id="invoiceBtn" class="btn primary">
+        <i class="fa-solid fa-file-invoice"></i> Sale & Invoice
+      </button>
+      <button data-section="itemReportSection">
+        <i class="fas fa-boxes"></i> Stock Report
+      </button>
+      <button data-section="salesReportSection">
+        <i class="fas fa-chart-line"></i> Sales Report
+      </button>
+      <button data-section="customerDebtSection">
+        <i class="fas fa-user-clock"></i> Customer's Due
+      </button>
+      <button id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    </div>
+
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <div class="main">
+      <h5 style="text-align: center">India Inventory Management</h5>
+      <h3
+        id="welcomeUser"
+        style="font-weight: 600; color: #2563eb; text-align: center"
+      ></h3>
+
+      <!-- Add Stock Section -->
+      <div id="addStockSection" class="form-section active">
+        <div class="card shadow-sm p-3">
+          <h4 class="text-center mb-3">
+            <i class="fas fa-plus-circle text-primary"></i> Add New Stock
+          </h4>
+          <div class="mb-3">
+            <label class="form-label small">Search Existing Item For Add</label>
+            <div class="position-relative">
+              <input
+                type="text"
+                id="newItemSearch"
+                class="form-control"
+                placeholder="Search or Select Item"
+                autocomplete="off"
+              />
+              <div id="newItemDropdownList" class="dropdown-list"></div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small">Quantity</label
+            ><input
+              type="number"
+              id="newQuantity"
+              class="form-control"
+              placeholder="Enter Quantity"
+            />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small">Buying Rate</label>
+            <input
+              type="number"
+              id="buyingRate"
+              class="form-control"
+              placeholder="Enter buying rate"
+              step="0.01"
+            />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small">Profit %</label>
+            <input
+              type="number"
+              id="profitPercent"
+              class="form-control"
+              value="30"
+              step="0.1"
+            />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small">Selling Rate</label>
+            <input
+              type="number"
+              id="sellingRate"
+              class="form-control"
+              placeholder=" Default: (Buying + Profit%) / Editable"
+              step="0.01"
+            />
+          </div>
+
+          <button class="btn btn-primary w-100 py-2" id="addStockBtn">
+            <i class="fas fa-plus-circle"></i> Add Stock
+          </button>
+        </div>
+      </div>
+
+      <!-- Item Wise Report -->
+      <div id="itemReportSection" class="form-section">
+        <div class="card shadow-sm p-3">
+          <h4 class="text-center mb-3">
+            <i class="fas fa-boxes text-success"></i>
+            Stock Report
+          </h4>
+          <!-- Item Search -->
+          <div class="mb-3 position-relative">
+            <label class="form-label small">Item Search / Direct Search</label>
+            <input
+              type="text"
+              id="itemReportSearch"
+              class="form-control"
+              placeholder="Search or select item"
+              autocomplete="off"
+            />
+            <div id="itemReportDropdown" class="dropdown-list"></div>
+          </div>
+          <!-- Buttons -->
+          <div class="d-flex gap-2 mb-3">
+            <button class="btn btn-primary flex-fill" id="loadItemReportBtn">
+              <i class="fas fa-search"></i> Search
+            </button>
+            <button class="btn btn-info flex-fill" id="itemReportPdfBtn">
+              <i class="fas fa-file-pdf"></i> Download PDF
+            </button>
+          </div>
+          <hr />
+          <!-- Table -->
+          <div class="table-responsive">
+            <table class="table table-bordered table-sm text-center">
+              <thead class="table-light">
+                <tr>
+                  <th>Item Name</th>
+                  <th>Available Qty</th>
+                  <th>Buying Rate</th>
+                  <th>Selling Rate</th>
+                  <th>Sold Qty</th>
+                </tr>
+              </thead>
+              <tbody id="itemReportBody">
+                <tr>
+                  <td colspan="5" class="text-muted">No data loaded</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
-        <div class="mb-3"><label class="form-label small">Quantity</label><input type="number" id="newQuantity"
-            class="form-control" placeholder="Enter Quantity" /></div>
-
-        <div class="mb-3">
-          <label class="form-label small">Buying Rate</label>
-          <input type="number" id="buyingRate" class="form-control" placeholder="Enter buying rate" step="0.01" />
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label small">Profit %</label>
-          <input type="number" id="profitPercent" class="form-control" value="30" step="0.1" />
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label small">Selling Rate</label>
-          <input type="number" id="sellingRate" class="form-control"
-            placeholder=" Default: (Buying + Profit%) / Editable" step="0.01" />
-        </div>
-
-        <button class="btn btn-primary w-100 py-2" id="addStockBtn"><i class="fas fa-plus-circle"></i> Add
-          Stock</button>
-      </div>
-    </div>
-
-    <!-- Item Wise Report -->
-    <div id="itemReportSection" class="form-section">
-      <div class="card shadow-sm p-3">
-        <h4 class="text-center mb-3">
-          <i class="fas fa-boxes text-success"></i>
-          Stock Report
-        </h4>
-        <!-- Item Search -->
-        <div class="mb-3 position-relative">
-          <label class="form-label small">Item Search / Direct Search</label>
-          <input type="text" id="itemReportSearch" class="form-control" placeholder="Search or select item"
-            autocomplete="off" />
-          <div id="itemReportDropdown" class="dropdown-list"></div>
-        </div>
-        <!-- Buttons -->
-        <div class="d-flex gap-2 mb-3">
-          <button class="btn btn-primary flex-fill" id="loadItemReportBtn"><i class="fas fa-search"></i> Search</button>
-          <button class="btn btn-info flex-fill" id="itemReportPdfBtn"><i class="fas fa-file-pdf"></i> Download
-            PDF</button>
-        </div>
-        <hr />
-        <!-- Table -->
-        <div class="table-responsive">
-          <table class="table table-bordered table-sm text-center">
-            <thead class="table-light">
-              <tr>
-                <th>Item Name</th>
-                <th>Available Qty</th>
-                <th>Buying Rate</th>
-                <th>Selling Rate</th>
-                <th>Sold Qty</th>
-              </tr>
-            </thead>
-            <tbody id="itemReportBody">
-              <tr>
-                <td colspan="5" class="text-muted">
-                  No data loaded
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- 🔴 LOW STOCK CARD -->
-      <div id="lowStockCard" class="card shadow-sm p-3 mb-4 mt-4" style="display:none;">
-        <h5 class="text-danger mb-3">
-          <i class="fas fa-exclamation-triangle"></i>
-          Stock Alert (<span id="lowStockCount">0</span>)
-        </h5>
-
-        <div class="table-responsive">
-          <table class="table table-bordered table-sm text-center">
-            <thead class="table-light">
-              <tr>
-                <th>Item Name</th>
-                <th>Available Qty</th>
-                <th>Sold (30d)</th>
-                <th>Days Left</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="lowStockBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-
-
-    <!-- Sales Report -->
-    <div id="salesReportSection" class="form-section">
-      <div class="card shadow-sm p-3">
-        <h4 class="text-center mb-3"><i class="fas fa-chart-line text-info"></i> Sales Report</h4>
-        <div class="row g-2 mb-3">
-          <div class="col-md-6"><input type="date" id="fromDate" class="form-control" placeholder="From Date"></div>
-          <div class="col-md-6"><input type="date" id="toDate" class="form-control" placeholder="To Date"></div>
-        </div>
-        <button class="btn btn-primary w-100 mb-3" id="loadSalesBtn">
-          <i class="fas fa-search"></i> Load Sales Report
-        </button>
-
-        <div class="d-flex flex-column flex-md-row gap-2">
-          <button class="btn btn-info flex-fill" id="pdfBtn">
-            <i class="fas fa-file-pdf"></i> Download PDF
-          </button>
-
-          <button class="btn btn-success flex-fill" id="excelBtn">
-            <i class="fas fa-file-excel"></i> Download Excel
-          </button>
-
-        </div>
-        <hr />
-
-        <div class="table-responsive mt-3">
-          <table class="table table-bordered table-sm text-center">
-            <thead class="table-light">
-              <tr>
-                <th>Date</th>
-                <th>Item</th>
-                <th>Qty</th>
-                <th>Unit Price</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody id="salesReportBody">
-              <tr>
-                <td colspan="5" class="text-muted">No data loaded</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="text-end fw-bold mt-2">
-          Total Sale: ₹ <span id="salesGrandTotal">0.00</span>
-        </div>
-
-      </div>
-
-
-      <div class="card shadow-sm p-3 mb-4 mt-4">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <h5 class="mb-0">
-            <i class="fas fa-chart-line text-primary"></i>
-            Growth Overview
+        <!-- 🔴 LOW STOCK CARD -->
+        <div
+          id="lowStockCard"
+          class="card shadow-sm p-3 mb-4 mt-4"
+          style="display: none"
+        >
+          <h5 class="text-danger mb-3">
+            <i class="fas fa-exclamation-triangle"></i>
+            Stock Alert (<span id="lowStockCount">0</span>)
           </h5>
 
-          <select id="yearFilter" class="form-select form-select-sm" style="width:120px;">
-            <option value="all">All</option>
-          </select>
-        </div>
-
-        <div class="chart-box">
-          <canvas id="businessTrendChart"></canvas>
-        </div>
-
-        <div id="growthBadge" class="mt-2 fw-semibold"></div>
-      </div>
-
-      <div class="card p-3 mt-4">
-        <h5 class="mb-3">Last 13 Months Sales</h5>
-        <div class="chart-box">
-          <canvas id="last12MonthsChart"></canvas>
+          <div class="table-responsive">
+            <table class="table table-bordered table-sm text-center">
+              <thead class="table-light">
+                <tr>
+                  <th>Item Name</th>
+                  <th>Available Qty</th>
+                  <th>Sold (30d)</th>
+                  <th>Days Left</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="lowStockBody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
+      <!-- Sales Report -->
+      <div id="salesReportSection" class="form-section">
+        <div class="card shadow-sm p-3">
+          <h4 class="text-center mb-3">
+            <i class="fas fa-chart-line text-info"></i> Sales Report
+          </h4>
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <input
+                type="date"
+                id="fromDate"
+                class="form-control"
+                placeholder="From Date"
+              />
+            </div>
+            <div class="col-md-6">
+              <input
+                type="date"
+                id="toDate"
+                class="form-control"
+                placeholder="To Date"
+              />
+            </div>
+          </div>
+          <button class="btn btn-primary w-100 mb-3" id="loadSalesBtn">
+            <i class="fas fa-search"></i> Load Sales Report
+          </button>
+
+          <div class="d-flex flex-column flex-md-row gap-2">
+            <button class="btn btn-info flex-fill" id="pdfBtn">
+              <i class="fas fa-file-pdf"></i> Download PDF
+            </button>
+
+            <button class="btn btn-success flex-fill" id="excelBtn">
+              <i class="fas fa-file-excel"></i> Download Excel
+            </button>
+          </div>
+          <hr />
+
+          <div class="table-responsive mt-3">
+            <table class="table table-bordered table-sm text-center">
+              <thead class="table-light">
+                <tr>
+                  <th>Date</th>
+                  <th>Item</th>
+                  <th>Qty</th>
+                  <th>Unit Price</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody id="salesReportBody">
+                <tr>
+                  <td colspan="5" class="text-muted">No data loaded</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="text-end fw-bold mt-2">
+            Total Sale: ₹ <span id="salesGrandTotal">0.00</span>
+          </div>
+        </div>
+
+        <div class="card shadow-sm p-3 mb-4 mt-4">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="mb-0">
+              <i class="fas fa-chart-line text-primary"></i>
+              Growth Overview
+            </h5>
+
+            <select
+              id="yearFilter"
+              class="form-select form-select-sm"
+              style="width: 120px"
+            >
+              <option value="all">All</option>
+            </select>
+          </div>
+
+          <div class="chart-box">
+            <canvas id="businessTrendChart"></canvas>
+          </div>
+
+          <div id="growthBadge" class="mt-2 fw-semibold"></div>
+        </div>
+
+        <div class="card p-3 mt-4">
+          <h5 class="mb-3">Last 13 Months Sales</h5>
+          <div class="chart-box">
+            <canvas id="last12MonthsChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Customer Dues -->
+      <div id="customerDebtSection" class="form-section">
+        <div class="card shadow-sm p-3 mb-4">
+          <h4 class="text-center mb-3">
+            <i class="fas fa-user-clock text-danger"></i> Add Customer's Due
+          </h4>
+          <input
+            id="cdName"
+            type="text"
+            class="form-control mb-2"
+            placeholder="Customer Name"
+          />
+          <div class="position-relative mb-2">
+            <input
+              id="cdNumber"
+              type="text"
+              maxlength="10"
+              class="form-control"
+              placeholder="10-digit Mobile Number"
+              autocomplete="off"
+            />
+            <div id="cdNumberDropdown" class="dropdown-list"></div>
+          </div>
+          <input
+            id="cdTotal"
+            type="number"
+            class="form-control mb-2"
+            placeholder="Amount"
+          />
+          <input
+            id="cdCredit"
+            type="number"
+            class="form-control mb-2"
+            placeholder="Credit Amount"
+          />
+          <button class="btn btn-danger w-100" id="submitDebtBtn">
+            <i class="fas fa-check-circle"></i> Submit
+          </button>
+        </div>
+        <div class="card shadow-sm p-3">
+          <h4 class="text-center mb-3">
+            <i class="fas fa-search text-success"></i> Search Customer's Due
+          </h4>
+          <div class="position-relative mb-3">
+            <input
+              id="cdSearchInput"
+              type="text"
+              class="form-control"
+              placeholder="Search customer by name or number"
+              autocomplete="off"
+            />
+            <div id="cdSearchDropdown" class="dropdown-list"></div>
+          </div>
+          <div class="d-flex gap-2 mb-3">
+            <button class="btn btn-success flex-fill" id="searchLedgerBtn">
+              <i class="fas fa-search"></i> Search
+            </button>
+            <button class="btn btn-secondary flex-fill" id="showAllDuesBtn">
+              <i class="fas fa-list"></i> All Customers
+            </button>
+          </div>
+          <div id="ledgerTable" class="table-responsive"></div>
+        </div>
+      </div>
     </div>
 
+    <!-- ===== COMMON POPUP MODAL ===== -->
+    <div
+      id="commonPopup"
+      style="display: none; position: fixed; inset: 0; z-index: 5000"
+    >
+      <!-- Overlay -->
+      <div
+        id="popupOverlay"
+        style="
+          position: absolute;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.4);
+          backdrop-filter: blur(2px);
+        "
+      ></div>
 
-    <!-- Customer Dues -->
-    <div id="customerDebtSection" class="form-section">
-      <div class="card shadow-sm p-3 mb-4">
-        <h4 class="text-center mb-3"><i class="fas fa-user-clock text-danger"></i> Add Customer's Due</h4>
-        <input id="cdName" type="text" class="form-control mb-2" placeholder="Customer Name" />
-        <div class="position-relative mb-2">
-          <input id="cdNumber" type="text" maxlength="10" class="form-control" placeholder="10-digit Mobile Number"
-            autocomplete="off" />
-          <div id="cdNumberDropdown" class="dropdown-list"></div>
-        </div>
-        <input id="cdTotal" type="number" class="form-control mb-2" placeholder="Amount" />
-        <input id="cdCredit" type="number" class="form-control mb-2" placeholder="Credit Amount" />
-        <button class="btn btn-danger w-100" id="submitDebtBtn"><i class="fas fa-check-circle"></i> Submit</button>
-      </div>
-      <div class="card shadow-sm p-3">
-        <h4 class="text-center mb-3"><i class="fas fa-search text-success"></i> Search Customer's Due</h4>
-        <div class="position-relative mb-3">
-          <input id="cdSearchInput" type="text" class="form-control" placeholder="Search customer by name or number"
-            autocomplete="off" />
-          <div id="cdSearchDropdown" class="dropdown-list"></div>
-        </div>
-        <div class="d-flex gap-2 mb-3">
-          <button class="btn btn-success flex-fill" id="searchLedgerBtn"><i class="fas fa-search"></i> Search</button>
-          <button class="btn btn-secondary flex-fill" id="showAllDuesBtn"><i class="fas fa-list"></i> All Customers</button>
-        </div>
-        <div id="ledgerTable" class="table-responsive"></div>
+      <!-- Popup Box -->
+      <div
+        id="popupBox"
+        style="
+          position: relative;
+          max-width: 380px;
+          margin: 12% auto;
+          background: #fff;
+          border-radius: 12px;
+          padding: 25px 20px;
+          text-align: center;
+          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+          animation: popupFadeIn 0.2s ease;
+        "
+      >
+        <h4 id="popupTitle" style="margin-bottom: 10px; font-weight: 600"></h4>
+        <p id="popupMessage" style="font-size: 14px; margin: 0"></p>
       </div>
     </div>
-  </div>
 
-  <!-- ✅ External JS -->
-  <script src="js/chart.min.js"></script>
-  <script src="js/dashboard.js"></script>
-
-</body>
-
+    <!-- ✅ External JS -->
+    <script src="js/chart.min.js"></script>
+    <script src="js/dashboard.js"></script>
+  </body>
 </html>

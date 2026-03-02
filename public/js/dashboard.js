@@ -1043,3 +1043,64 @@ setTimeout(() => {
     document.body.style.visibility = "visible";
   }
 }, 5000);
+
+/* =========================
+   🔔 COMMON POPUP SYSTEM
+   ========================= */
+
+const commonPopup = document.getElementById("commonPopup");
+const popupOverlay = document.getElementById("popupOverlay");
+const popupBox = document.getElementById("popupBox");
+const popupTitle = document.getElementById("popupTitle");
+const popupMessage = document.getElementById("popupMessage");
+
+let popupAutoTimer = null;
+
+function showPopup(type, title, message) {
+  if (!commonPopup) return;
+
+  // Clear previous timer if exists
+  if (popupAutoTimer) {
+    clearTimeout(popupAutoTimer);
+    popupAutoTimer = null;
+  }
+
+  popupTitle.textContent = title;
+  popupMessage.textContent = message;
+
+  // Reset colors
+  popupTitle.style.color = "";
+
+  if (type === "success") {
+    popupTitle.style.color = "#16a34a"; // green
+  } else if (type === "error") {
+    popupTitle.style.color = "#dc2626"; // red
+  }
+
+  commonPopup.style.display = "block";
+
+  // ✅ Success → Auto Close
+  if (type === "success") {
+    popupAutoTimer = setTimeout(() => {
+      hidePopup();
+    }, 2000);
+  }
+}
+
+function hidePopup() {
+  commonPopup.style.display = "none";
+}
+
+// ❌ Error → Close when clicking outside
+if (popupOverlay) {
+  popupOverlay.addEventListener("click", () => {
+    hidePopup();
+  });
+}
+
+// Prevent close when clicking inside box
+if (popupBox) {
+  popupBox.addEventListener("click", (e) => {
+    e.stopPropagation();
+  });
+}
