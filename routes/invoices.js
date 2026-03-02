@@ -312,19 +312,24 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
     let pageCount = 1;
 
     function drawFooter() {
+      doc.save();
+
       doc.font("Helvetica").fontSize(9);
 
       doc.text(
         "This is a system generated invoice. No signature required.",
         40,
-        doc.page.height - 60,
-        { width: 520, align: "center" },
+        pageHeight - 60,
+        { width: 520, align: "center", lineBreak: false },
       );
 
-      doc.text(`Page ${pageCount}`, 40, doc.page.height - 40, {
+      doc.text(`Page ${pageCount}`, 40, pageHeight - 40, {
         width: 520,
         align: "right",
+        lineBreak: false,
       });
+
+      doc.restore();
     }
 
     function drawHeader() {
@@ -452,6 +457,7 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
 
     for (const it of inv.items) {
       if (y > pageHeight - 100) {
+        doc.y = pageHeight - 100;
         drawFooter();
         pageCount++;
         doc.addPage();
