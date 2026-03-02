@@ -483,12 +483,17 @@ async function submitDebt() {
     total: parseFloat(document.getElementById("cdTotal").value) || 0,
     credit: parseFloat(document.getElementById("cdCredit").value) || 0,
   };
-  if (!entry.customer_name || !/^\d{10}$/.test(entry.customer_number))
+  if (!entry.customer_name) {
+    return showPopup("error", "Missing Name", "Customer name is required");
+  }
+
+  if (!/^\d{10}$/.test(entry.customer_number)) {
     return showPopup(
       "error",
       "Invalid Number",
       "Enter valid 10 digit mobile number",
     );
+  }
   try {
     const res = await fetch(`${apiBase}/debts`, {
       method: "POST",
