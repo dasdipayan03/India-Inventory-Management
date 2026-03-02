@@ -251,6 +251,7 @@ router.get("/invoices/:invoiceNo", authMiddleware, async (req, res) => {
   res.json({ success: true, invoice: rows[0] });
 });
 
+//==================INVOICE PAGE FORMATING =========================
 router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
   const userId = req.user.id;
   const invoiceNo = req.params.invoiceNo.replace(/['"%]+/g, "").trim();
@@ -285,7 +286,7 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
     );
     const shop = shopRes.rows[0] || {};
 
-    const doc = new PDFDocument({ size: "A4", margin: 40 });
+    const doc = new PDFDocument({ size: "A4", margin: 40, bufferPages: true });
 
     let pageNumber = 0;
     doc.on("pageAdded", () => {
@@ -307,30 +308,6 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
 
     const pageWidth = doc.page.width;
     const pageHeight = doc.page.height;
-
-    /* ================= PAGE NUMBER & FOOTER ================= */
-    let pageCount = 1;
-
-    function drawFooter() {
-      doc.save();
-
-      doc.font("Helvetica").fontSize(9);
-
-      doc.text(
-        "This is a system generated invoice. No signature required.",
-        40,
-        pageHeight - 80,
-        { width: 520, align: "center", lineBreak: false },
-      );
-
-      doc.text(`Page ${pageCount}`, 40, pageHeight - 60, {
-        width: 520,
-        align: "right",
-        lineBreak: false,
-      });
-
-      doc.restore();
-    }
 
     function drawHeader() {
       doc.save();
@@ -393,72 +370,11 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
     drawHeader();
     drawInvoiceInfo(130);
     let y = drawTableHeader(210);
-    // /* ================= HEADER ================= */
-
-    // // Header background
-    // // Header background (SAFE VERSION)
-    // doc.save();
-    // doc.rect(40, 30, 520, 70).fill("#f1f5f9");
-    // doc.restore();
-
-    // doc.fillColor("#000");
-
-    // doc
-    //   .font("Helvetica-Bold")
-    //   .fontSize(20)
-    //   .text(shop.shop_name || "India Inventory Management", 50, 45);
-
-    // doc
-    //   .font("Helvetica")
-    //   .fontSize(10)
-    //   .text(shop.shop_address || "", 50, 70)
-    //   .text(`GSTIN: ${shop.gst_no || inv.gst_no || "N/A"}`, 50, 85);
-
-    // doc.font("Helvetica-Bold").fontSize(18).text("INVOICE", 430, 55);
-
-    // /* ================= INVOICE INFO ================= */
-
-    // let y = 130;
-
-    // doc.font("Helvetica").fontSize(10);
-
-    // doc.text(`Invoice No: ${inv.invoice_no}`, 40, y);
-    // doc.text(
-    //   `Date: ${new Date(inv.date).toLocaleString("en-IN", {
-    //     timeZone: "Asia/Kolkata",
-    //   })}`,
-    //   40,
-    //   y + 15,
-    // );
-
-    // doc.text(`Customer: ${inv.customer_name || "-"}`, 320, y);
-    // doc.text(`Contact: ${inv.contact || "-"}`, 320, y + 15);
-    // doc.text(`Address: ${inv.address || "-"}`, 320, y + 30, { width: 220 });
-
-    // y += 80;
-
-    // /* ================= TABLE HEADER ================= */
-
-    // doc.moveTo(40, y).lineTo(560, y).stroke();
-    // y += 10;
-
-    // doc.font("Helvetica-Bold");
-    // doc.text("Item", 40, y);
-    // doc.text("Qty", 280, y, { width: 50, align: "right" });
-    // doc.text("Rate", 360, y, { width: 70, align: "right" });
-    // doc.text("Amount", 460, y, { width: 80, align: "right" });
-
-    // y += 15;
-    // doc.moveTo(40, y).lineTo(560, y).stroke();
-
-    // doc.font("Helvetica");
 
     /* ================= TABLE ROWS ================= */
 
     for (const it of inv.items) {
       if (y > pageHeight - 120) {
-        drawFooter();
-        pageCount++;
         doc.addPage();
         drawHeader();
         drawInvoiceInfo(130);
@@ -483,8 +399,6 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
 
     y += 30;
     if (y > pageHeight - 120) {
-      drawFooter();
-      pageCount++;
       doc.addPage();
       drawHeader();
       drawInvoiceInfo(130);
@@ -510,6 +424,28 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
       align: "right",
     });
 
+    /* ---------------------- FOOTER AND PAGE NUMBER ---------------------- */
+    const range = doc.bufferedPageRange();
+    const totalPages = range.count;
+
+    for (let i = 0; i < totalPages; i++) {
+      doc.switchToPage(i);
+
+      doc.font("Helvetica").fontSize(9);
+
+      doc.text(
+        "This is a system generated invoice. No signature required.",
+        40,
+        pageHeight - 70,
+        { width: 520, align: "center" },
+      );
+
+      doc.text(`${i + 1} / ${totalPages}`, 40, pageHeight - 50, {
+        width: 520,
+        align: "right",
+      });
+    }
+
     drawFooter();
     doc.end();
   } catch (err) {
@@ -517,6 +453,11 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
     res.status(500).json({ success: false, message: "PDF generation failed" });
   }
 });
+
+//
+//
+//
+//
 
 /* ---------------------- SHOP INFO save ---------------------- */
 router.post("/shop-info", authMiddleware, async (req, res) => {
