@@ -285,7 +285,7 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
     );
     const shop = shopRes.rows[0] || {};
 
-    const doc = new PDFDocument({ size: "A4", margin: 40, bufferPages: true });
+    const doc = new PDFDocument({ size: "A4", margin: 40 });
 
     let pageNumber = 0;
     doc.on("pageAdded", () => {
@@ -433,6 +433,8 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
 
     for (const it of inv.items) {
       if (y > pageHeight - 100) {
+        drawFooter();
+        pageCount++;
         doc.addPage();
         drawHeader();
         drawInvoiceInfo(130);
@@ -457,6 +459,8 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
 
     y += 30;
     if (y > pageHeight - 150) {
+      drawFooter();
+      pageCount++;
       doc.addPage();
       drawHeader();
       drawInvoiceInfo(130);
@@ -483,28 +487,25 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
     });
 
     /* ================= PAGE NUMBER & FOOTER ================= */
-    const range = doc.bufferedPageRange();
-    const totalPages = range.count;
+    let pageCount = 1;
 
-    for (let i = 0; i < totalPages; i++) {
-      doc.switchToPage(i);
-
+    function drawFooter() {
       doc.font("Helvetica").fontSize(9);
 
-      // Footer line
       doc.text(
         "This is a system generated invoice. No signature required.",
         40,
-        pageHeight - 60,
+        doc.page.height - 60,
         { width: 520, align: "center" },
       );
 
-      // Page number
-      doc.text(`Page ${i + 1} / ${totalPages}`, 40, pageHeight - 40, {
+      doc.text(`Page ${pageCount}`, 40, doc.page.height - 40, {
         width: 520,
         align: "right",
       });
     }
+
+    drawFooter();
 
     doc.end();
   } catch (err) {
