@@ -29,8 +29,10 @@ async function checkAuth() {
     console.error("Auth fail:", err);
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    alert("Session expired! Please log in again.");
-    location.href = "login.html";
+    showPopup("error", "Session Expired", "Please log in again.");
+    setTimeout(() => {
+      location.href = "login.html";
+    }, 1500);
   }
 }
 
@@ -153,7 +155,7 @@ async function loadItemNames() {
     if (!res.ok) throw new Error("Failed to fetch items");
     itemNames = await res.json();
   } catch (err) {
-    console.error("Error loading item names:", err);
+    showPopup("error", "Error", "Failed to load item names");
     itemNames = [];
   }
 }
@@ -166,7 +168,7 @@ async function addStock() {
   const selling_rate = parseFloat(document.getElementById("sellingRate").value);
 
   if (!item || isNaN(quantity) || isNaN(buying_rate) || isNaN(selling_rate)) {
-    return alert("Fill all fields correctly");
+    return showPopup("error", "Invalid Input", "Fill all fields correctly");
   }
 
   try {
@@ -185,14 +187,14 @@ async function addStock() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Add failed");
-    alert(data.message || "Added");
+    showPopup("success", "Success", data.message || "Stock added successfully");
     await loadItemNames();
     ["newItemSearch", "newQuantity", "buyingRate", "sellingRate"].forEach(
       (id) => (document.getElementById(id).value = ""),
     );
   } catch (err) {
     console.error("Add stock error:", err);
-    alert(err.message || "Server error");
+    showPopup("error", "Error", err.message || "Server error");
   }
 }
 
@@ -260,7 +262,7 @@ async function loadItemReport() {
     renderItemReport(rows);
   } catch (err) {
     console.error("Item report error:", err);
-    alert("Could not load item report");
+    showPopup("error", "Load Failed", "Could not load item report");
   }
 }
 function renderItemReport(rows) {
@@ -322,7 +324,7 @@ async function loadLowStock() {
     const rows = await res.json();
     renderLowStock(rows);
   } catch (err) {
-    console.error("Low stock load error:", err);
+    showPopup("error", "Error", "Failed to load stock alerts");
   }
 }
 
@@ -379,7 +381,7 @@ async function loadSalesReport() {
   const to = document.getElementById("toDate").value;
 
   if (!from || !to) {
-    return alert("Select both From and To date");
+    return showPopup("error", "Missing Date", "Select both From and To date");
   }
 
   try {
@@ -395,7 +397,7 @@ async function loadSalesReport() {
     renderSalesReport(rows);
   } catch (err) {
     console.error("Load sales report error:", err);
-    alert("Could not load sales report");
+    showPopup("error", "Load Failed", "Could not load sales report");
   }
 }
 //------------------------ SALE REPORT TABLE ROW ------------------------------
@@ -439,7 +441,11 @@ function downloadItemReportPDF() {
   const url = item
     ? `/api/items/report/pdf?name=${encodeURIComponent(item)}`
     : `/api/items/report/pdf`;
-
+  showPopup(
+    "success",
+    "Download Started",
+    "Stock report PDF is downloading...",
+  );
   window.location.href = url;
 }
 
@@ -449,10 +455,10 @@ function downloadSalesPDF() {
   const to = document.getElementById("toDate").value;
 
   if (!from || !to) {
-    alert("Please select date range");
+    showPopup("error", "Missing Date", "Please select date range");
     return;
   }
-
+  showPopup("success", "Download Started", "Sales PDF is downloading...");
   window.location.href = `/api/sales/report/pdf?from=${from}&to=${to}`;
 }
 
@@ -462,10 +468,10 @@ function downloadSalesExcel() {
   const to = document.getElementById("toDate").value;
 
   if (!from || !to) {
-    alert("Please select date range");
+    showPopup("error", "Missing Date", "Please select date range");
     return;
   }
-
+  showPopup("success", "Download Started", "Sales Excel is downloading...");
   window.location.href = `/api/sales/report/excel?from=${from}&to=${to}`;
 }
 
@@ -478,7 +484,11 @@ async function submitDebt() {
     credit: parseFloat(document.getElementById("cdCredit").value) || 0,
   };
   if (!entry.customer_name || !/^\d{10}$/.test(entry.customer_number))
-    return alert("Invalid number");
+    return showPopup(
+      "error",
+      "Invalid Number",
+      "Enter valid 10 digit mobile number",
+    );
   try {
     const res = await fetch(`${apiBase}/debts`, {
       method: "POST",
@@ -490,7 +500,7 @@ async function submitDebt() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Debt save failed");
-    alert(data.message || "Debt entry added");
+    showPopup("success", "Success", data.message || "Debt entry added");
     ["cdName", "cdNumber", "cdTotal", "cdCredit"].forEach(
       (id) => (document.getElementById(id).value = ""),
     );
@@ -500,7 +510,7 @@ async function submitDebt() {
     cdNameInput.classList.remove("bg-light");
   } catch (err) {
     console.error("Submit debt error:", err);
-    alert(err.message || "Server error");
+    showPopup("error", "Error", err.message || "Server error");
   }
 }
 /* ---------------------- Debts End --------------------- */
@@ -709,7 +719,8 @@ async function loadCustomerSuggestions(query) {
 async function searchLedger() {
   const value = document.getElementById("cdSearchInput").value.trim();
 
-  if (!value) return alert("Enter name or number");
+  if (!value)
+    return showPopup("error", "Missing Input", "Enter name or number");
 
   // If exactly 10 digit number → search ledger
   if (/^\d{10}$/.test(value)) {
@@ -723,7 +734,11 @@ async function searchLedger() {
       console.error("Search ledger error:", err);
     }
   } else {
-    alert("Please select a customer from dropdown");
+    showPopup(
+      "error",
+      "Invalid Selection",
+      "Please select a customer from dropdown",
+    );
   }
 }
 
