@@ -319,11 +319,11 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
       doc.text(
         "This is a system generated invoice. No signature required.",
         40,
-        pageHeight - 60,
+        pageHeight - 80,
         { width: 520, align: "center", lineBreak: false },
       );
 
-      doc.text(`Page ${pageCount}`, 40, pageHeight - 40, {
+      doc.text(`Page ${pageCount}`, 40, pageHeight - 60, {
         width: 520,
         align: "right",
         lineBreak: false,
@@ -456,8 +456,7 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
     /* ================= TABLE ROWS ================= */
 
     for (const it of inv.items) {
-      if (y > pageHeight - 100) {
-        doc.y = pageHeight - 100;
+      if (y > pageHeight - 120) {
         drawFooter();
         pageCount++;
         doc.addPage();
@@ -483,7 +482,7 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
     /* ================= TOTALS ================= */
 
     y += 30;
-    if (y > pageHeight - 150) {
+    if (y > pageHeight - 120) {
       drawFooter();
       pageCount++;
       doc.addPage();
