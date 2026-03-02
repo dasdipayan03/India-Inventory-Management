@@ -483,21 +483,19 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
     doc.text(
       "This is a system generated invoice. No signature required.",
       40,
-      780,
+      pageHeight - 60,
       { width: 520, align: "center" },
     );
 
     /* ================= PAGE NUMBER ================= */
 
-    const range = doc.bufferedPageRange(); // total pages
+    const totalPages = doc.bufferedPageRange().count;
 
-    for (let i = 0; i < range.count; i++) {
+    for (let i = 0; i < totalPages; i++) {
       doc.switchToPage(i);
-
       doc.font("Helvetica").fontSize(9);
-
       doc.text(
-        `Page ${i + 1} / ${range.count}`,
+        `Page ${i + 1} / ${totalPages}`,
         pageWidth - 100,
         pageHeight - 40,
         { align: "right" },
