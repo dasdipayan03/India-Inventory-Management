@@ -50,6 +50,8 @@
     }
 
     .auth-card {
+      max-width:420px;
+      margin:auto;
       background: #ffffff;
       border-radius: 14px;
       padding: 22px;
@@ -774,6 +776,15 @@
 
 <body>
   <div class="site" role="main">
+    <div style="grid-column:1/-1;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;padding:50px 20px;text-align:center;">
+  <h1 style="margin:0;font-size:34px;">Simple Inventory & Billing Software</h1>
+  <p style="margin-top:10px;font-size:16px;opacity:.9;">
+    Manage Stock, Sales, Reports & Customer Dues in One Secure Dashboard
+  </p>
+  <div style="margin-top:15px;font-size:13px;opacity:.8;">
+    🔒 Secure | ☁ Cloud Backup | 📊 Real-Time Reports
+  </div>
+</div>
     <!-- LEFT AUTH -->
     <div class="auth">
       <div class="brand">
@@ -785,9 +796,8 @@
       </div>
 
       <div class="auth-head">
-        <h2>Welcome</h2>
-        <div class="lead">Sign in / Log in</div>
-      </div>
+<h2>Welcome Back 👋</h2>
+<div class="lead">Manage your stock, sales & invoices in one secure dashboard</div>
 
       <div id="msg"></div>
 
@@ -803,6 +813,7 @@
             <i class="fa-solid fa-eye toggle-password" id="togglePassword"></i>
           </div>
           <button id="loginBtn" class="btn"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
+          <div style="margin-top:10px;text-align:center;font-size:13px;color:#64748b;">Start Free — No Credit Card Required</div>
           <div class="small-links">
             <a href="#" id="forgotLink">Forgot password?</a> |
             <a href="#" id="createAccountLink">Create an account</a>
@@ -810,6 +821,9 @@
         </div>
       </div>
 
+<div style="margin-top:15px;text-align:center;font-size:12px;color:#64748b;">
+🔒 Secure Login | ☁ Cloud Backup | 📊 Real-Time Reports
+</div>
       <!-- REGISTER -->
       <div class="form" id="register">
         <div class="input-group"><i class="fa-solid fa-shop"></i>
@@ -910,7 +924,9 @@
           </div>
         </div>
       </div>
-
+<div style="margin-top:20px;text-align:center;font-size:14px;color:#0ea5e9;font-weight:600;">
+  Free Plan Available • Upgrade Anytime
+</div>
 
 
 
@@ -1035,21 +1051,45 @@
 
 
       // Login
-      document.getElementById("loginBtn").addEventListener("click", async () => {
-        const email = loginEmail.value.trim(), password = loginPassword.value;
-        if (!email || !password) return showPopup("error", "All fields required!");
-        try {
-          const res = await fetch(apiBase + "/login", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password })
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || "Login failed");
-          localStorage.setItem("token", data.token);
-          localStorage.setItem("user", JSON.stringify(data.user));
-          showPopup("success", "✅ Login successful!", "index.html", 1200);
-        } catch (err) { showPopup("error", err.message); }
-      });
+document.getElementById("loginBtn").addEventListener("click", async () => {
+
+  const loginBtn = document.getElementById("loginBtn");
+
+  const email = loginEmail.value.trim();
+  const password = loginPassword.value;
+
+  if (!email || !password) {
+    return showPopup("error", "All fields required!");
+  }
+
+  // 🔥 Loader start
+  loginBtn.disabled = true;
+  loginBtn.innerHTML = "Logging in...";
+
+  try {
+    const res = await fetch(apiBase + "/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Login failed");
+
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
+
+    showPopup("success", "✅ Login successful!", "index.html", 1200);
+
+  } catch (err) {
+
+    // 🔄 Button restore if error
+    loginBtn.disabled = false;
+    loginBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Login';
+
+    showPopup("error", err.message);
+  }
+});
 
       // Forgot Password
       document.getElementById("forgotBtn").addEventListener("click", async () => {
