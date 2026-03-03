@@ -170,6 +170,13 @@ async function addStock() {
   if (!item || isNaN(quantity) || isNaN(buying_rate) || isNaN(selling_rate)) {
     return showPopup("error", "Invalid Input", "Fill all fields correctly");
   }
+  if (quantity < 0 || buying_rate < 0 || selling_rate < 0) {
+    return showPopup(
+      "error",
+      "Invalid Input",
+      "Negative Quantity are not allowed",
+    );
+  }
 
   try {
     const res = await fetch(`${apiBase}/items`, {

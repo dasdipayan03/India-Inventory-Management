@@ -37,6 +37,10 @@ router.post("/items", async (req, res) => {
     const qty = parseFloat(quantity); // Convert quantity to number
     const buyRate = parseFloat(buying_rate); // Convert buying_rate to number
     const sellRate = parseFloat(selling_rate); // Convert selling_rate to number
+    if (qty < 0 || buyRate < 0 || sellRate < 0) {
+      return res.status(400).json({ error: "Negative Quantity not allowed" });
+    }
+
     // Check if the item already exists for this user
     const check = await pool.query(
       "SELECT * FROM items WHERE user_id=$1 AND LOWER(TRIM(name))=LOWER($2)",
