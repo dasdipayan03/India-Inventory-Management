@@ -199,6 +199,12 @@ async function addStock() {
     ["newItemSearch", "newQuantity", "buyingRate", "sellingRate"].forEach(
       (id) => (document.getElementById(id).value = ""),
     );
+    // 🔹 hide previous buying rate
+    const rateBox = document.getElementById("previousBuyingRate");
+    if (rateBox) {
+      rateBox.style.display = "none";
+      rateBox.innerText = "";
+    }
   } catch (err) {
     console.error("Add stock error:", err);
     showPopup("error", "Error", err.message || "Server error");
