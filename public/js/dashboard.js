@@ -827,7 +827,7 @@ function renderLedgerTable(rows, mode = "summary") {
 
   if (mode === "summary") {
     html +=
-      "<tr><th>Date</th><th>Total</th><th>Credit</th><th>Balance</th><th>Remarks</th></tr>";
+      "<tr><th>Name</th><th>Number</th><th>Total</th><th>Credit</th><th>Balance</th></tr>";
     rows.forEach((r) => {
       const balance = parseFloat(r.balance) || 0;
       totalOutstanding += balance;
@@ -837,12 +837,11 @@ function renderLedgerTable(rows, mode = "summary") {
         <td>${r.total}</td>
         <td>${r.credit}</td>
         <td>${balance.toFixed(2)}</td>
-        <td>${escapeHtml(r.remark || "")}</td>
       </tr>`;
     });
   } else {
     html +=
-      "<tr><th>Date</th><th>Total</th><th>Credit</th><th>Balance</th></tr>";
+      "<tr><th>Date</th><th>Total</th><th>Credit</th><th>Balance</th><th>Remarks</th></tr>";
     let balance = 0;
     rows.forEach((r) => {
       balance += r.total - r.credit;
@@ -851,6 +850,7 @@ function renderLedgerTable(rows, mode = "summary") {
         <td>${r.total}</td>
         <td>${r.credit}</td>
         <td>${balance.toFixed(2)}</td>
+        <td>${escapeHtml(r.remark || "")}</td>
       </tr>`;
     });
     totalOutstanding = balance;
