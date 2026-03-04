@@ -38,8 +38,8 @@
         min-height: 100vh;
         border-radius: 0;
         overflow: hidden;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+        display: flex;
+        flex-direction: column;
         grid-template-rows: 1fr auto;
         background: #e3f2fb;
       }
@@ -193,6 +193,7 @@
 
       /* ---------- RIGHT PROMO ---------- */
       .promo {
+        order: -1;
         display: flex;
         flex-direction: column;
         gap: 18px;
