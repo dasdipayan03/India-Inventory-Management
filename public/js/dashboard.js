@@ -205,6 +205,47 @@ async function addStock() {
   }
 }
 
+//--------- PREVIOUS BUYNG RATE SHOW FUNCTION ----------------
+async function showPreviousBuyingRate(itemName) {
+  if (!itemName) return;
+
+  try {
+    const res = await fetch(
+      `/api/items/info?name=${encodeURIComponent(itemName)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      },
+    );
+
+    if (!res.ok) return;
+
+    const data = await res.json();
+
+    const rateBox = document.getElementById("previousBuyingRate");
+
+    if (data.buying_rate !== undefined) {
+      const rate = Number(data.buying_rate).toFixed(2);
+
+      rateBox.innerText = "Previous buying rate: ₹" + rate;
+      rateBox.style.display = "block";
+
+      // auto fill buying rate input
+      const buyingRateInput = document.getElementById("buyingRate");
+
+      if (buyingRateInput) {
+        buyingRateInput.value = rate;
+      }
+    } else {
+      // new item → hide previous rate
+      rateBox.style.display = "none";
+    }
+  } catch (err) {
+    console.error("Rate fetch error", err);
+  }
+}
+
 // --- Add Stock rate inputs ---
 const buyingRateInput = document.getElementById("buyingRate");
 const sellingRateInput = document.getElementById("sellingRate");
@@ -1009,7 +1050,9 @@ window.addEventListener("DOMContentLoaded", async () => {
   /* =======================================================
      🔎 STEP 9: ITEM SEARCH FILTER SETUP
      ======================================================= */
-  setupFilterInput("newItemSearch", "newItemDropdownList");
+  setupFilterInput("newItemSearch", "newItemDropdownList", (itemName) => {
+    showPreviousBuyingRate(itemName);
+  });
   setupFilterInput("itemReportSearch", "itemReportDropdown", () => {});
 
   /* =======================================================

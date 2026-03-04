@@ -109,7 +109,7 @@ router.get("/items/info", async (req, res) => {
     if (!name) return res.status(400).json({ error: "Missing item name" });
 
     const result = await pool.query(
-      `SELECT id, name, quantity, selling_rate
+      `SELECT id, name, quantity, buying_rate, selling_rate
        FROM items
        WHERE user_id=$1 AND LOWER(TRIM(name))=LOWER($2)`,
       [user_id, name.trim()],
