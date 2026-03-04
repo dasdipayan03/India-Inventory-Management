@@ -537,6 +537,7 @@ async function submitDebt() {
     customer_number: document.getElementById("cdNumber").value.trim(),
     total: parseFloat(document.getElementById("cdTotal").value) || 0,
     credit: parseFloat(document.getElementById("cdCredit").value) || 0,
+    remark: document.getElementById("cdRemark").value.trim(),
   };
   if (!entry.customer_name) {
     return showPopup("error", "Missing Name", "Customer name is required");
@@ -561,7 +562,7 @@ async function submitDebt() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Debt save failed");
     showPopup("success", "Success", data.message || "Debt entry added");
-    ["cdName", "cdNumber", "cdTotal", "cdCredit"].forEach(
+    ["cdName", "cdNumber", "cdTotal", "cdCredit", "cdRemark"].forEach(
       (id) => (document.getElementById(id).value = ""),
     );
     // 🔓 Re-enable name field after submit
@@ -826,7 +827,7 @@ function renderLedgerTable(rows, mode = "summary") {
 
   if (mode === "summary") {
     html +=
-      "<tr><th>Name</th><th>Number</th><th>Total</th><th>Credit</th><th>Balance</th></tr>";
+      "<tr><th>Date</th><th>Total</th><th>Credit</th><th>Balance</th><th>Remarks</th></tr>";
     rows.forEach((r) => {
       const balance = parseFloat(r.balance) || 0;
       totalOutstanding += balance;
@@ -836,6 +837,7 @@ function renderLedgerTable(rows, mode = "summary") {
         <td>${r.total}</td>
         <td>${r.credit}</td>
         <td>${balance.toFixed(2)}</td>
+        <td>${escapeHtml(r.remark || "")}</td>
       </tr>`;
     });
   } else {

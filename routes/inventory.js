@@ -670,7 +670,13 @@ router.get("/sales/report/excel", async (req, res) => {
 router.post("/debts", async (req, res) => {
   try {
     const user_id = getUserId(req);
-    const { customer_name, customer_number, total = 0, credit = 0 } = req.body;
+    const {
+      customer_name,
+      customer_number,
+      total = 0,
+      credit = 0,
+      remark,
+    } = req.body;
 
     if (!customer_name || !/^\d{10}$/.test(customer_number))
       return res
@@ -678,9 +684,9 @@ router.post("/debts", async (req, res) => {
         .json({ error: "Valid name and 10-digit number required" });
 
     const result = await pool.query(
-      `INSERT INTO debts (user_id, customer_name, customer_number, total, credit)
-       VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-      [user_id, customer_name, customer_number, total, credit],
+      `INSERT INTO debts (user_id, customer_name, customer_number, total, credit, remark)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+      [user_id, customer_name, customer_number, total, credit, remark],
     );
 
     res.json({
