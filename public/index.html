@@ -285,13 +285,26 @@
 
       /* ================= LEDGER TABLE MOBILE WIDTH FIX ================= */
 
-      /* DEBT TABLE'S REMARKS COL'S CONTENT LINE BREAK */
-      td:last-child {
+      /* Only ledger remarks column wrap */
+      #ledgerTable td:last-child {
         max-width: 200px;
         word-break: break-word;
       }
 
-      .text-end {
+      /* prevent number columns from breaking */
+      #ledgerTable td:nth-child(1),
+      #ledgerTable td:nth-child(2),
+      #ledgerTable td:nth-child(3),
+      #ledgerTable td:nth-child(4),
+      #ledgerTable th:nth-child(1),
+      #ledgerTable th:nth-child(2),
+      #ledgerTable th:nth-child(3),
+      #ledgerTable th:nth-child(4) {
+        white-space: nowrap;
+      }
+
+      /* balance text alignment */
+      #ledgerTable .text-end {
         padding-right: 6px;
       }
 
