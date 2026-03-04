@@ -187,11 +187,6 @@
         width: 100%;
       }
 
-      td:last-child {
-        max-width: 200px;
-        word-break: break-word;
-      }
-
       @media (max-width: 768px) {
         .chart-box {
           height: 250px;
@@ -285,6 +280,26 @@
         to {
           transform: translateY(0);
           opacity: 1;
+        }
+      }
+
+      /* ================= LEDGER TABLE MOBILE WIDTH FIX ================= */
+
+      /* DEBT TABLE'S REMARKS COL'S CONTENT LINE BREAK */
+      td:last-child {
+        max-width: 200px;
+        word-break: break-word;
+      }
+
+      @media (max-width: 576px) {
+        #customerDebtSection .card {
+          padding-left: 8px !important;
+          padding-right: 8px !important;
+        }
+
+        #ledgerTable {
+          margin-left: -8px;
+          margin-right: -8px;
         }
       }
     </style>
