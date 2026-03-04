@@ -745,7 +745,7 @@ router.get("/debts/:number", async (req, res) => {
         .json({ error: "Customer number must be 10 digits" });
 
     const result = await pool.query(
-      `SELECT id, customer_name, customer_number, total, credit, created_at
+      `SELECT id, customer_name, customer_number, total, credit, remark, created_at
        FROM debts
        WHERE user_id=$1 AND customer_number=$2
        ORDER BY created_at ASC`,
