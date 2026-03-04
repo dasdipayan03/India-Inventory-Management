@@ -236,6 +236,7 @@ async function showPreviousBuyingRate(itemName) {
 
       if (buyingRateInput) {
         buyingRateInput.value = rate;
+        updateSellingRate();
       }
     } else {
       // new item → hide previous rate
