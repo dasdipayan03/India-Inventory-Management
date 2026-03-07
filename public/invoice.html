@@ -853,18 +853,9 @@
         return dt.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
       }
 
-      function downloadBlob(blob, filename) {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.style.display = "none";
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        // mobile & multiple download safe
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      function downloadInvoice(invNo) {
+        const url = `${API_PREFIX}/invoices/${encodeURIComponent(invNo)}/pdf?token=${token}`;
+        window.open(url, "_blank");
       }
 
       async function loadItemNames() {
@@ -1723,7 +1714,7 @@
 
                 if (!response.ok) throw new Error("Download failed");
 
-                const blob = await response.blob();
+                downloadInvoice(invNo);
                 downloadBlob(blob, `${invNo}.pdf`);
               } catch (err) {
                 showPopup(
@@ -1748,7 +1739,7 @@
               },
             );
             if (!response.ok) throw new Error("Download failed");
-            const blob = await response.blob();
+            downloadInvoice(invNo);
             downloadBlob(blob, `${inv}.pdf`);
           } catch (err) {
             showPopup("error", "Download Failed", err.message);
@@ -1765,7 +1756,7 @@
             );
             if (!response.ok) throw new Error("Download failed");
 
-            const blob = await response.blob();
+            downloadInvoice(invNo);
             downloadBlob(blob, `${pendingInvoiceNo}.pdf`);
           } catch (err) {
             showPopup("error", "Download Failed", err.message);

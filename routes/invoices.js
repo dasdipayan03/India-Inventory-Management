@@ -252,12 +252,25 @@ router.get("/invoices/:invoiceNo", authMiddleware, async (req, res) => {
 });
 
 //==================INVOICE PAGE FORMATING =========================
-router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
-  const userId = req.user.id;
-  const invoiceNo = req.params.invoiceNo.replace(/['"%]+/g, "").trim();
+router.get(
+  "/invoices/:invoiceNo/pdf",
 
-  try {
-    const q = `
+  // 🔹 Token from URL support
+  (req, res, next) => {
+    if (req.query.token) {
+      req.headers.authorization = "Bearer " + req.query.token;
+    }
+    next();
+  },
+
+  authMiddleware,
+
+  async (req, res) => {
+    const userId = req.user.id;
+    const invoiceNo = req.params.invoiceNo.replace(/['"%]+/g, "").trim();
+
+    try {
+      const q = `
           SELECT i.id, i.invoice_no, i.customer_name, i.contact, i.address, i.gst_no,
                  i.date, i.subtotal, i.gst_amount, i.total_amount,
                  COALESCE(json_agg(json_build_object(
@@ -272,105 +285,132 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
           GROUP BY i.id
           LIMIT 1;
         `;
-    const { rows } = await pool.query(q, [invoiceNo, userId]);
-    if (!rows[0])
-      return res
-        .status(404)
-        .json({ success: false, message: "Invoice not found" });
+      const { rows } = await pool.query(q, [invoiceNo, userId]);
+      if (!rows[0])
+        return res
+          .status(404)
+          .json({ success: false, message: "Invoice not found" });
 
-    const inv = rows[0];
+      const inv = rows[0];
 
-    const shopRes = await pool.query(
-      `SELECT shop_name, shop_address, gst_no FROM settings WHERE user_id=$1`,
-      [userId],
-    );
-    const shop = shopRes.rows[0] || {};
-
-    const doc = new PDFDocument({ size: "A4", margin: 40, bufferPages: true });
-    let pageNumber = 0;
-    doc.on("pageAdded", () => {
-      pageNumber++;
-    });
-
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${inv.invoice_no}.pdf"`,
-    );
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-    res.setHeader("Pragma", "no-cache");
-    res.setHeader("Expires", "0");
-
-    doc.pipe(res);
-
-    /* ================= PAGE HELPERS ================= */
-    const pageWidth = doc.page.width;
-    const pageHeight = doc.page.height;
-
-    function drawHeader() {
-      doc.save();
-      doc.rect(40, 30, 520, 70).fill("#f1f5f9");
-      doc.restore();
-
-      doc.fillColor("#000");
-
-      doc
-        .font("Helvetica-Bold")
-        .fontSize(20)
-        .text(shop.shop_name || "India Inventory Management", 50, 45);
-
-      doc
-        .font("Helvetica")
-        .fontSize(10)
-        .text(shop.shop_address || "", 50, 70)
-        .text(`GSTIN: ${shop.gst_no || inv.gst_no || "N/A"}`, 50, 85);
-
-      doc.font("Helvetica-Bold").fontSize(18).text("INVOICE", 430, 55);
-    }
-
-    function drawInvoiceInfo(startY) {
-      doc.font("Helvetica").fontSize(10);
-
-      doc.text(`Invoice No: ${inv.invoice_no}`, 40, startY);
-      doc.text(
-        `Date: ${new Date(inv.date).toLocaleString("en-IN", {
-          timeZone: "Asia/Kolkata",
-        })}`,
-        40,
-        startY + 15,
+      const shopRes = await pool.query(
+        `SELECT shop_name, shop_address, gst_no FROM settings WHERE user_id=$1`,
+        [userId],
       );
+      const shop = shopRes.rows[0] || {};
 
-      doc.text(`Customer: ${inv.customer_name || "-"}`, 320, startY);
-      doc.text(`Contact: ${inv.contact || "-"}`, 320, startY + 15);
-      doc.text(`Address: ${inv.address || "-"}`, 320, startY + 30, {
-        width: 220,
+      const doc = new PDFDocument({
+        size: "A4",
+        margin: 40,
+        bufferPages: true,
       });
-    }
+      let pageNumber = 0;
+      doc.on("pageAdded", () => {
+        pageNumber++;
+      });
 
-    function drawTableHeader(startY) {
-      doc.moveTo(40, startY).lineTo(560, startY).stroke();
-      startY += 10;
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${inv.invoice_no}.pdf"`,
+      );
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
 
-      doc.font("Helvetica-Bold");
-      doc.text("Item", 40, startY);
-      doc.text("Qty", 280, startY, { width: 50, align: "right" });
-      doc.text("Rate", 360, startY, { width: 70, align: "right" });
-      doc.text("Amount", 460, startY, { width: 80, align: "right" });
+      doc.pipe(res);
 
-      startY += 15;
-      doc.moveTo(40, startY).lineTo(560, startY).stroke();
+      /* ================= PAGE HELPERS ================= */
+      const pageWidth = doc.page.width;
+      const pageHeight = doc.page.height;
 
-      doc.font("Helvetica");
+      function drawHeader() {
+        doc.save();
+        doc.rect(40, 30, 520, 70).fill("#f1f5f9");
+        doc.restore();
 
-      return startY + 5;
-    }
+        doc.fillColor("#000");
 
-    drawHeader();
-    drawInvoiceInfo(130);
-    let y = drawTableHeader(210);
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(20)
+          .text(shop.shop_name || "India Inventory Management", 50, 45);
 
-    /* ================= TABLE ROWS ================= */
-    for (const it of inv.items) {
+        doc
+          .font("Helvetica")
+          .fontSize(10)
+          .text(shop.shop_address || "", 50, 70)
+          .text(`GSTIN: ${shop.gst_no || inv.gst_no || "N/A"}`, 50, 85);
+
+        doc.font("Helvetica-Bold").fontSize(18).text("INVOICE", 430, 55);
+      }
+
+      function drawInvoiceInfo(startY) {
+        doc.font("Helvetica").fontSize(10);
+
+        doc.text(`Invoice No: ${inv.invoice_no}`, 40, startY);
+        doc.text(
+          `Date: ${new Date(inv.date).toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+          })}`,
+          40,
+          startY + 15,
+        );
+
+        doc.text(`Customer: ${inv.customer_name || "-"}`, 320, startY);
+        doc.text(`Contact: ${inv.contact || "-"}`, 320, startY + 15);
+        doc.text(`Address: ${inv.address || "-"}`, 320, startY + 30, {
+          width: 220,
+        });
+      }
+
+      function drawTableHeader(startY) {
+        doc.moveTo(40, startY).lineTo(560, startY).stroke();
+        startY += 10;
+
+        doc.font("Helvetica-Bold");
+        doc.text("Item", 40, startY);
+        doc.text("Qty", 280, startY, { width: 50, align: "right" });
+        doc.text("Rate", 360, startY, { width: 70, align: "right" });
+        doc.text("Amount", 460, startY, { width: 80, align: "right" });
+
+        startY += 15;
+        doc.moveTo(40, startY).lineTo(560, startY).stroke();
+
+        doc.font("Helvetica");
+
+        return startY + 5;
+      }
+
+      drawHeader();
+      drawInvoiceInfo(130);
+      let y = drawTableHeader(210);
+
+      /* ================= TABLE ROWS ================= */
+      for (const it of inv.items) {
+        if (y > pageHeight - 120) {
+          doc.addPage();
+          drawHeader();
+          drawInvoiceInfo(130);
+          y = drawTableHeader(210);
+        }
+
+        y += 20;
+
+        doc.text(it.description, 40, y, { width: 220 });
+        doc.text(it.quantity, 280, y, { width: 50, align: "right" });
+        doc.text(Number(it.rate).toFixed(2), 360, y, {
+          width: 70,
+          align: "right",
+        });
+        doc.text(Number(it.amount).toFixed(2), 460, y, {
+          width: 80,
+          align: "right",
+        });
+      }
+
+      /* ================= TOTALS ================= */
+      y += 30;
       if (y > pageHeight - 120) {
         doc.addPage();
         drawHeader();
@@ -378,76 +418,56 @@ router.get("/invoices/:invoiceNo/pdf", authMiddleware, async (req, res) => {
         y = drawTableHeader(210);
       }
 
-      y += 20;
-
-      doc.text(it.description, 40, y, { width: 220 });
-      doc.text(it.quantity, 280, y, { width: 50, align: "right" });
-      doc.text(Number(it.rate).toFixed(2), 360, y, {
-        width: 70,
-        align: "right",
-      });
-      doc.text(Number(it.amount).toFixed(2), 460, y, {
-        width: 80,
-        align: "right",
-      });
-    }
-
-    /* ================= TOTALS ================= */
-    y += 30;
-    if (y > pageHeight - 120) {
-      doc.addPage();
-      drawHeader();
-      drawInvoiceInfo(130);
-      y = drawTableHeader(210);
-    }
-
-    doc.font("Helvetica").fontSize(10);
-    doc.text(
-      `Subtotal: ${Number(inv.subtotal).toFixed(2)}`,
-      360, // x position
-      y,
-      { width: 200, align: "right" },
-    );
-
-    doc.text(`GST: ${Number(inv.gst_amount).toFixed(2)}`, 360, y + 15, {
-      width: 200,
-      align: "right",
-    });
-
-    doc.font("Helvetica-Bold").fontSize(12);
-    doc.text(`Total: ${Number(inv.total_amount).toFixed(2)}`, 360, y + 35, {
-      width: 200,
-      align: "right",
-    });
-
-    /* ================= FOOTER AND PAGE NUMBER ================= */
-    const range = doc.bufferedPageRange();
-    const totalPages = range.count;
-
-    for (let i = 0; i < totalPages; i++) {
-      doc.switchToPage(i);
-
-      doc.font("Helvetica").fontSize(9);
-
+      doc.font("Helvetica").fontSize(10);
       doc.text(
-        "This is a system generated invoice. No signature required.",
-        40,
-        pageHeight - 80,
-        { width: 520, align: "center" },
+        `Subtotal: ${Number(inv.subtotal).toFixed(2)}`,
+        360, // x position
+        y,
+        { width: 200, align: "right" },
       );
 
-      doc.text(`Page- ${i + 1} / ${totalPages}`, 40, pageHeight - 60, {
-        width: 520,
+      doc.text(`GST: ${Number(inv.gst_amount).toFixed(2)}`, 360, y + 15, {
+        width: 200,
         align: "right",
       });
-    }
 
-    doc.end();
-  } catch (err) {
-    console.error("❌ PDF error:", err);
-    res.status(500).json({ success: false, message: "PDF generation failed" });
-  }
-});
+      doc.font("Helvetica-Bold").fontSize(12);
+      doc.text(`Total: ${Number(inv.total_amount).toFixed(2)}`, 360, y + 35, {
+        width: 200,
+        align: "right",
+      });
+
+      /* ================= FOOTER AND PAGE NUMBER ================= */
+      const range = doc.bufferedPageRange();
+      const totalPages = range.count;
+
+      for (let i = 0; i < totalPages; i++) {
+        doc.switchToPage(i);
+
+        doc.font("Helvetica").fontSize(9);
+
+        doc.text(
+          "This is a system generated invoice. No signature required.",
+          40,
+          pageHeight - 80,
+          { width: 520, align: "center" },
+        );
+
+        doc.text(`Page- ${i + 1} / ${totalPages}`, 40, pageHeight - 60, {
+          width: 520,
+          align: "right",
+        });
+      }
+
+      doc.end();
+    } catch (err) {
+      console.error("❌ PDF error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "PDF generation failed" });
+    }
+  },
+);
 
 /* ---------------------- SHOP INFO save ---------------------- */
 router.post("/shop-info", authMiddleware, async (req, res) => {
