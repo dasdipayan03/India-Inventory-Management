@@ -855,7 +855,13 @@
 
       function downloadInvoice(invNo) {
         const url = `${API_PREFIX}/invoices/${encodeURIComponent(invNo)}/pdf?token=${token}`;
-        window.open(url, "_blank");
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${invNo}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
       }
 
       async function loadItemNames() {
@@ -1701,21 +1707,15 @@
           });
           // download button click
           document.querySelectorAll(".invoice-download-btn").forEach((btn) => {
-            btn.addEventListener("click", async (e) => {
+            btn.addEventListener("click", (e) => {
               e.stopPropagation(); // prevent invoice click trigger
 
               const invNo = btn.getAttribute("data-inv");
 
               try {
-                const response = await fetch(
-                  `${API_PREFIX}/invoices/${encodeURIComponent(invNo)}/pdf`,
-                  { headers: { Authorization: "Bearer " + token } },
-                );
-
-                if (!response.ok) throw new Error("Download failed");
+                if (!invNo) throw new Error("Invalid invoice number");
 
                 downloadInvoice(invNo);
-                downloadBlob(blob, `${invNo}.pdf`);
               } catch (err) {
                 showPopup(
                   "error",
@@ -1728,38 +1728,43 @@
         }
 
         // ✅ Silent Search Download
-        searchDownloadBtn.onclick = async () => {
+        searchDownloadBtn.onclick = () => {
           const inv = searchInput.value.trim();
-          if (!inv) return;
-          try {
-            const response = await fetch(
-              `${API_PREFIX}/invoices/${encodeURIComponent(inv)}/pdf`,
-              {
-                headers: { Authorization: "Bearer " + token },
-              },
+
+          if (!inv) {
+            showPopup(
+              "error",
+              "Missing Invoice",
+              "Please enter an invoice number.",
             );
-            if (!response.ok) throw new Error("Download failed");
-            downloadInvoice(invNo);
-            downloadBlob(blob, `${inv}.pdf`);
+            return;
+          }
+
+          try {
+            downloadInvoice(inv);
           } catch (err) {
-            showPopup("error", "Download Failed", err.message);
+            showPopup(
+              "error",
+              "Download Failed",
+              "Failed to download invoice.",
+            );
           }
         };
 
-        modalYes.onclick = async () => {
-          if (!pendingInvoiceNo) return;
+        modalYes.onclick = () => {
+          if (!pendingInvoiceNo) {
+            showPopup("error", "Download Failed", "Invoice number not found.");
+            return;
+          }
 
           try {
-            const response = await fetch(
-              `${API_PREFIX}/invoices/${encodeURIComponent(pendingInvoiceNo)}/pdf`,
-              { headers: { Authorization: "Bearer " + token } },
-            );
-            if (!response.ok) throw new Error("Download failed");
-
-            downloadInvoice(invNo);
-            downloadBlob(blob, `${pendingInvoiceNo}.pdf`);
+            downloadInvoice(pendingInvoiceNo);
           } catch (err) {
-            showPopup("error", "Download Failed", err.message);
+            showPopup(
+              "error",
+              "Download Failed",
+              "Failed to download invoice.",
+            );
           }
 
           hideDownloadModal();
