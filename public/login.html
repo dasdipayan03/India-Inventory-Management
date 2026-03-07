@@ -721,6 +721,67 @@
         }
       }
 
+      /* Android Install Card */
+
+      .install-card {
+        margin-top: 14px;
+        background: #f8fafc;
+        border-radius: 10px;
+        padding: 12px;
+        border: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .install-card-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .install-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        background: #0ea5e9;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+      }
+
+      .install-text {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .install-text strong {
+        font-size: 13px;
+        color: #0f172a;
+      }
+
+      .install-text span {
+        font-size: 11px;
+        color: #64748b;
+      }
+
+      .install-app-btn {
+        background: #0ea5e9;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      .install-app-btn:hover {
+        background: #0284c7;
+      }
+
       /* ✨ Smart occasion system (improved full fit) */
       /* .slides:has(.poster-active) .slide {
             animation: none !important;
@@ -817,6 +878,23 @@
             <div class="small-links">
               <a href="#" id="forgotLink">Forgot password?</a> |
               <a href="#" id="createAccountLink">Create an account</a>
+            </div>
+            <!-- Android App Install Card -->
+            <div id="installCard" class="install-card">
+              <div class="install-card-left">
+                <div class="install-icon">
+                  <i class="fa-brands fa-android"></i>
+                </div>
+
+                <div class="install-text">
+                  <strong>Install Android App</strong>
+                  <span>Faster access to your inventory.</span>
+                </div>
+              </div>
+
+              <a href="/apk/india-inventory.apk" class="install-app-btn">
+                Install
+              </a>
             </div>
           </div>
 
@@ -1183,6 +1261,15 @@
             togglePassword.classList.toggle("fa-eye-slash");
             togglePassword.classList.toggle("active");
           });
+        }
+      });
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const card = document.getElementById("installCard");
+
+        // Show only Android devices
+        if (!/Android/i.test(navigator.userAgent)) {
+          card.style.display = "none";
         }
       });
 
