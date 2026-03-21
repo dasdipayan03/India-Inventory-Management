@@ -2252,13 +2252,59 @@
         };
       };
 
-      const downloadInvoice = (invoiceNo) => {
-        const a = document.createElement("a");
-        a.href = `${API_PREFIX}/invoices/${encodeURIComponent(invoiceNo)}/pdf?token=${token}&ts=${Date.now()}`;
-        a.download = `${invoiceNo}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+      const saveBlobDownload = async (response, fallbackName) => {
+        const disposition = response.headers.get("content-disposition") || "";
+        const match = disposition.match(/filename="?([^"]+)"?/i);
+        const filename = match?.[1] || fallbackName;
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+
+        link.href = blobUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        window.setTimeout(() => {
+          window.URL.revokeObjectURL(blobUrl);
+        }, 1500);
+      };
+
+      const downloadInvoice = async (invoiceNo) => {
+        const normalizedInvoiceNo = String(invoiceNo || "").trim();
+        if (!normalizedInvoiceNo) {
+          return;
+        }
+
+        try {
+          const response = await authFetch(
+            `${API_PREFIX}/invoices/${encodeURIComponent(normalizedInvoiceNo)}/pdf`,
+          );
+
+          if (!response.ok) {
+            let payload = {};
+            try {
+              payload = await response.json();
+            } catch (_error) {
+              payload = {};
+            }
+
+            throw new Error(
+              payload.error ||
+                payload.message ||
+                "Could not download the invoice PDF.",
+            );
+          }
+
+          await saveBlobDownload(response, `${normalizedInvoiceNo}.pdf`);
+        } catch (error) {
+          showPopup(
+            "error",
+            "Download failed",
+            error.message || "Could not download the invoice PDF.",
+          );
+        }
       };
 
       const clearStoredSession =
