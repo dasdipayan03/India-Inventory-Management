@@ -1193,16 +1193,128 @@
         text-align: center;
       }
 
-      .popup.success {
-        border-left: 6px solid var(--success);
+      .popup-shell {
+        position: fixed;
+        inset: 0;
+        z-index: 5000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 22px;
       }
 
-      .popup.error {
-        border-left: 6px solid var(--danger);
+      .popup-shell.active {
+        display: flex;
       }
 
-      .popup.info {
-        border-left: 6px solid var(--sky);
+      .popup-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(10, 18, 37, 0.45);
+        backdrop-filter: blur(6px);
+      }
+
+      .popup-box {
+        position: relative;
+        width: min(100%, 420px);
+        border-radius: 24px;
+        padding: 28px 24px;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: var(--shadow);
+        text-align: center;
+        animation: popup-in 0.22s ease;
+      }
+
+      .popup-close {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        width: 36px;
+        height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.12);
+        color: var(--muted);
+        cursor: pointer;
+        transition:
+          background-color 0.2s ease,
+          color 0.2s ease,
+          transform 0.2s ease;
+      }
+
+      .popup-close:hover {
+        background: rgba(14, 165, 233, 0.12);
+        color: var(--sky);
+        transform: translateY(-1px);
+      }
+
+      .popup-box.success {
+        border: 1px solid rgba(34, 197, 94, 0.18);
+      }
+
+      .popup-box.error {
+        border: 1px solid rgba(239, 68, 68, 0.18);
+      }
+
+      .popup-icon {
+        width: 58px;
+        height: 58px;
+        display: grid;
+        place-items: center;
+        margin: 0 auto 16px;
+        border-radius: 18px;
+        background: rgba(14, 165, 233, 0.1);
+        color: var(--sky);
+        font-size: 24px;
+      }
+
+      .popup-box.success .popup-icon {
+        background: rgba(34, 197, 94, 0.1);
+        color: var(--success);
+      }
+
+      .popup-box.error .popup-icon {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
+      }
+
+      #popupTitle {
+        margin: 0 0 10px;
+        color: var(--ink);
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+
+      #popupMessage {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.7;
+      }
+
+      .popup-close:focus-visible,
+      .btn:focus-visible,
+      .input:focus-visible,
+      select:focus-visible,
+      textarea:focus-visible {
+        outline: 3px solid rgba(14, 165, 233, 0.22);
+        outline-offset: 3px;
+      }
+
+      @keyframes popup-in {
+        from {
+          opacity: 0;
+          transform: translateY(18px) scale(0.96);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
       }
 
       @keyframes blink {
@@ -2067,11 +2179,29 @@
       </div>
     </div>
 
-    <div id="commonPopup" class="modal">
-      <div id="popupOverlay" class="modal-bg"></div>
-      <div id="popupBox" class="modal-box popup info">
-        <h3 id="popupTitle">Title</h3>
-        <p id="popupMessage" class="sub"></p>
+    <div
+      id="commonPopup"
+      class="popup-shell"
+      aria-hidden="true"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="popupTitle"
+    >
+      <div id="popupOverlay" class="popup-overlay"></div>
+      <div id="popupBox" class="popup-box">
+        <button
+          id="popupClose"
+          class="popup-close"
+          type="button"
+          aria-label="Close popup"
+        >
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="popup-icon" id="popupIcon">
+          <i class="fa-solid fa-circle-info"></i>
+        </div>
+        <h4 id="popupTitle"></h4>
+        <p id="popupMessage"></p>
       </div>
     </div>
     <script src="js/permission-contract.js"></script>
@@ -2271,40 +2401,58 @@
         }, 1500);
       };
 
-      const downloadInvoice = async (invoiceNo) => {
+      const downloadInvoice = async (invoiceNo, button = null) => {
         const normalizedInvoiceNo = String(invoiceNo || "").trim();
         if (!normalizedInvoiceNo) {
-          return;
+          return false;
         }
 
-        try {
-          const response = await authFetch(
-            `${API_PREFIX}/invoices/${encodeURIComponent(normalizedInvoiceNo)}/pdf`,
-          );
+        let didDownload = false;
 
-          if (!response.ok) {
-            let payload = {};
-            try {
-              payload = await response.json();
-            } catch (_error) {
-              payload = {};
+        await withButtonState(button, "Preparing PDF...", async () => {
+          try {
+            const response = await authFetch(
+              `${API_PREFIX}/invoices/${encodeURIComponent(normalizedInvoiceNo)}/pdf`,
+            );
+
+            if (!response) {
+              return;
             }
 
-            throw new Error(
-              payload.error ||
-                payload.message ||
-                "Could not download the invoice PDF.",
+            if (!response.ok) {
+              let payload = {};
+              try {
+                payload = await response.json();
+              } catch (_error) {
+                payload = {};
+              }
+
+              throw new Error(
+                payload.error ||
+                  payload.message ||
+                  "Could not download the invoice PDF.",
+              );
+            }
+
+            await saveBlobDownload(response, `${normalizedInvoiceNo}.pdf`);
+            didDownload = true;
+            showPopup(
+              "success",
+              "Download complete",
+              "The invoice PDF has been downloaded.",
+            );
+          } catch (error) {
+            console.error("Invoice PDF download failed:", error);
+            showPopup(
+              "error",
+              "Download failed",
+              error.message || "Could not download the invoice PDF.",
+              { autoClose: false },
             );
           }
+        });
 
-          await saveBlobDownload(response, `${normalizedInvoiceNo}.pdf`);
-        } catch (error) {
-          showPopup(
-            "error",
-            "Download failed",
-            error.message || "Could not download the invoice PDF.",
-          );
-        }
+        return didDownload;
       };
 
       const clearStoredSession =
@@ -2403,8 +2551,10 @@
           commonPopup: $("commonPopup"),
           popupOverlay: $("popupOverlay"),
           popupBox: $("popupBox"),
+          popupIcon: $("popupIcon"),
           popupTitle: $("popupTitle"),
           popupMessage: $("popupMessage"),
+          popupClose: $("popupClose"),
         };
 
         const shopProfileInputs = [
@@ -2653,11 +2803,33 @@
         const rows = () => Array.from(dom.itemsTbody.querySelectorAll("tr"));
 
         const setBusy = (button, busy, label) => {
-          if (!button.dataset.label) button.dataset.label = button.innerHTML;
+          if (!button) {
+            return;
+          }
+
+          if (!button.dataset.label) {
+            button.dataset.label = button.innerHTML;
+          }
+
           button.disabled = busy;
+          button.setAttribute("aria-busy", busy ? "true" : "false");
           button.innerHTML = busy
             ? `<i class="fa-solid fa-spinner fa-spin"></i> ${label}`
             : button.dataset.label;
+        };
+
+        const withButtonState = async (button, label, task) => {
+          if (!button) {
+            await task();
+            return;
+          }
+
+          setBusy(button, true, label);
+          try {
+            await task();
+          } finally {
+            setBusy(button, false);
+          }
         };
 
         const openModal = (el) => el.classList.add("open");
@@ -2670,20 +2842,41 @@
           dom.draftBadge.className = `mini draft-badge ${mode}`;
         };
 
-        const showPopup = (type, title, message) => {
+        const showPopup = (type, title, message, options = {}) => {
+          const iconMap = {
+            success: '<i class="fa-solid fa-circle-check"></i>',
+            error: '<i class="fa-solid fa-circle-xmark"></i>',
+            info: '<i class="fa-solid fa-circle-info"></i>',
+          };
+
+          if (popupTimer) {
+            clearTimeout(popupTimer);
+            popupTimer = null;
+          }
+
+          dom.popupBox.classList.remove("success", "error");
+          if (type === "success" || type === "error") {
+            dom.popupBox.classList.add(type);
+          }
+
+          dom.popupIcon.innerHTML = iconMap[type] || iconMap.info;
           dom.popupTitle.textContent = title;
           dom.popupMessage.textContent = message;
-          dom.popupBox.className = `modal-box popup ${type}`;
-          openModal(dom.commonPopup);
-          if (popupTimer) clearTimeout(popupTimer);
-          if (type === "success") {
-            popupTimer = setTimeout(() => closeModal(dom.commonPopup), 2200);
+          dom.commonPopup.classList.add("active");
+          dom.commonPopup.setAttribute("aria-hidden", "false");
+
+          if (options.autoClose !== false && type === "success") {
+            popupTimer = setTimeout(() => hidePopup(), options.delay || 2200);
           }
         };
 
         const hidePopup = () => {
-          closeModal(dom.commonPopup);
-          if (popupTimer) clearTimeout(popupTimer);
+          dom.commonPopup.classList.remove("active");
+          dom.commonPopup.setAttribute("aria-hidden", "true");
+          if (popupTimer) {
+            clearTimeout(popupTimer);
+            popupTimer = null;
+          }
         };
 
         const updateSearchStatus = (modeText, countText, hintText) => {
@@ -3587,7 +3780,7 @@
           dom.searchResult
             .querySelector(".detail-download")
             .addEventListener("click", (e) =>
-              downloadInvoice(e.currentTarget.dataset.inv),
+              downloadInvoice(e.currentTarget.dataset.inv, e.currentTarget),
             );
           dom.searchResult
             .querySelector(".detail-receive")
@@ -3626,7 +3819,7 @@
             .querySelectorAll(".invoice-download")
             .forEach((btn) =>
               btn.addEventListener("click", () =>
-                downloadInvoice(btn.dataset.inv),
+                downloadInvoice(btn.dataset.inv, btn),
               ),
             );
           dom.searchResult
@@ -4069,12 +4262,18 @@
         });
 
         dom.popupOverlay.addEventListener("click", hidePopup);
+        dom.popupClose.addEventListener("click", hidePopup);
+        dom.popupBox.addEventListener("click", (event) => {
+          event.stopPropagation();
+        });
         dom.modalNo.addEventListener("click", () => {
           pendingInvoiceNo = null;
           closeModal(dom.downloadModal);
         });
-        dom.modalYes.addEventListener("click", () => {
-          if (pendingInvoiceNo) downloadInvoice(pendingInvoiceNo);
+        dom.modalYes.addEventListener("click", async () => {
+          if (pendingInvoiceNo) {
+            await downloadInvoice(pendingInvoiceNo, dom.modalYes);
+          }
           pendingInvoiceNo = null;
           closeModal(dom.downloadModal);
         });
@@ -4177,7 +4376,7 @@
             );
             return;
           }
-          downloadInvoice(exact);
+          downloadInvoice(exact, dom.searchDownloadBtn);
         });
 
         document.addEventListener("click", (event) => {
