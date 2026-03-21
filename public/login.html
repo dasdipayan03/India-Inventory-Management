@@ -1,3 +1,4 @@
+<!-- login page -->
 <!doctype html>
 <html lang="en">
   <head>
@@ -1260,8 +1261,8 @@
             </ul>
 
             <p class="hero-note">
-              Owners sign in with business email or mobile number. Staff sign
-              in with username and only the pages assigned by the admin.
+              Owners sign in with business email or mobile number. Staff sign in
+              with username and only the pages assigned by the admin.
             </p>
           </div>
 
@@ -1527,8 +1528,8 @@
               </div>
               <span>Admin access</span>
               <strong
-                >Use email or mobile number and password to open the full business
-                workspace</strong
+                >Use email or mobile number and password to open the full
+                business workspace</strong
               >
               <p>
                 The owner account keeps reports, GST, due management, and staff
@@ -1658,12 +1659,17 @@
           <form class="form active" id="login" novalidate>
             <div class="form-title">
               <strong>Admin login</strong>
-              <span>Use your registered business email or mobile number and password.</span>
+              <span
+                >Use your registered business email or mobile number and
+                password.</span
+              >
             </div>
             <div class="form-status" id="loginStatus" aria-live="polite"></div>
 
             <div class="field">
-              <label class="field-label" for="loginEmail">Email or mobile number</label>
+              <label class="field-label" for="loginEmail"
+                >Email or mobile number</label
+              >
               <div class="input-shell">
                 <i class="fa-solid fa-envelope"></i>
                 <input
@@ -1681,7 +1687,8 @@
                 id="loginEmailHint"
                 data-default-message="Use the business email or 10-digit mobile number linked to your shop account."
               >
-                Use the business email or 10-digit mobile number linked to your shop account.
+                Use the business email or 10-digit mobile number linked to your
+                shop account.
               </p>
             </div>
 
@@ -1804,7 +1811,10 @@
           <form class="form" id="register" novalidate>
             <div class="form-title">
               <strong>Create account</strong>
-              <span>Register your shop with email and mobile number to start using the workspace.</span>
+              <span
+                >Register your shop with email and mobile number to start using
+                the workspace.</span
+              >
             </div>
             <div
               class="form-status"
@@ -1855,7 +1865,8 @@
                 id="regEmailHint"
                 data-default-message="This email can be used to sign in and will receive password reset links."
               >
-                This email can be used to sign in and will receive password reset links.
+                This email can be used to sign in and will receive password
+                reset links.
               </p>
             </div>
 
@@ -2414,7 +2425,8 @@
             );
             firstInvalidField = fields.loginEmail;
           } else {
-            fields.loginEmail.value = loginType === "mobile" ? mobileNumber : email;
+            fields.loginEmail.value =
+              loginType === "mobile" ? mobileNumber : email;
             setInputState(
               fields.loginEmail,
               "valid",
@@ -2804,8 +2816,8 @@
                 )
                   ? "This mobile number is already registered. Try logging in instead."
                   : /already registered/i.test(error.message)
-                  ? "This email is already registered. Try logging in instead."
-                  : error.message;
+                    ? "This email is already registered. Try logging in instead."
+                    : error.message;
                 setFormStatus("register", "error", message);
                 showPopup("error", message);
               }
@@ -2973,27 +2985,25 @@
           });
         });
 
-        [fields.regEmail, fields.forgotEmail].forEach(
-          (field) => {
-            field.addEventListener("blur", () => {
-              const value = field.value.trim();
-              if (!value) {
-                resetInputState(field);
-                return;
-              }
+        [fields.regEmail, fields.forgotEmail].forEach((field) => {
+          field.addEventListener("blur", () => {
+            const value = field.value.trim();
+            if (!value) {
+              resetInputState(field);
+              return;
+            }
 
-              if (emailPattern.test(value)) {
-                setInputState(field, "valid", "Email format looks good.");
-              } else {
-                setInputState(
-                  field,
-                  "invalid",
-                  "Please enter a valid email address.",
-                );
-              }
-            });
-          },
-        );
+            if (emailPattern.test(value)) {
+              setInputState(field, "valid", "Email format looks good.");
+            } else {
+              setInputState(
+                field,
+                "invalid",
+                "Please enter a valid email address.",
+              );
+            }
+          });
+        });
 
         fields.loginEmail.addEventListener("blur", () => {
           const rawValue = fields.loginEmail.value.trim();
@@ -3006,7 +3016,11 @@
           const mobileNumber = normalizeMobileNumber(rawValue);
           if (emailPattern.test(email)) {
             fields.loginEmail.value = email;
-            setInputState(fields.loginEmail, "valid", "Email format looks good.");
+            setInputState(
+              fields.loginEmail,
+              "valid",
+              "Email format looks good.",
+            );
             return;
           }
 
