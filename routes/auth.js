@@ -2,6 +2,7 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
+const rateLimit = require("express-rate-limit");
 const pool = require("../db");
 const {
   DEFAULT_STAFF_PERMISSIONS,
@@ -17,12 +18,78 @@ const {
 const router = express.Router();
 
 const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const RESET_TOKEN_BYTES = 32;
 const USERNAME_PATTERN = /^[a-zA-Z0-9._-]{3,30}$/;
 const MOBILE_NUMBER_PATTERN = /^\d{10}$/;
+const PUBLIC_BASE_URL = normalizeBaseUrl(process.env.BASE_URL);
 
 if (!process.env.JWT_SECRET) {
   console.error("JWT_SECRET not found in environment variables.");
   process.exit(1);
+}
+
+const loginAttemptLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: {
+    error: "Too many login attempts. Please wait 15 minutes and try again.",
+  },
+});
+
+const passwordResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error:
+      "Too many password reset attempts. Please wait a few minutes and try again.",
+  },
+});
+
+function normalizeBaseUrl(value) {
+  const rawValue = String(value || "").trim();
+  if (!rawValue) {
+    return "";
+  }
+
+  try {
+    return new URL(rawValue).toString().replace(/\/+$/, "");
+  } catch (_error) {
+    return "";
+  }
+}
+
+function resolvePublicBaseUrl(req) {
+  if (PUBLIC_BASE_URL) {
+    return PUBLIC_BASE_URL;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("BASE_URL must be configured in production");
+  }
+
+  return `${req.protocol}://${req.get("host")}`;
+}
+
+function getSessionCookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+  };
+}
+
+function hashResetToken(token) {
+  return crypto.createHash("sha256").update(String(token || "")).digest("hex");
+}
+
+function markSensitiveResponse(res) {
+  res.set("Cache-Control", "no-store");
 }
 
 function normalizeName(value) {
@@ -61,19 +128,13 @@ function signSession(payload) {
 
 function setSessionCookie(res, token) {
   res.cookie("token", token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    ...getSessionCookieOptions(),
     maxAge: SESSION_MAX_AGE_MS,
   });
 }
 
 function clearSessionCookie(res) {
-  res.clearCookie("token", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-  });
+  res.clearCookie("token", getSessionCookieOptions());
 }
 
 function buildAdminSession(user) {
@@ -225,7 +286,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
-router.post("/login", async (req, res) => {
+router.post("/login", loginAttemptLimiter, async (req, res) => {
   try {
     const identifier = String(
       req.body.identifier || req.body.email || "",
@@ -265,12 +326,12 @@ router.post("/login", async (req, res) => {
 
     const session = buildAdminSession(user);
     const token = signSession(session);
+    markSensitiveResponse(res);
     setSessionCookie(res, token);
 
     return res.json({
       message: "Login successful",
       user: toClientUser(session),
-      token,
     });
   } catch (err) {
     console.error("Login error:", err.message);
@@ -278,7 +339,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.post("/staff/login", async (req, res) => {
+router.post("/staff/login", loginAttemptLimiter, async (req, res) => {
   try {
     const username = normalizeUsername(req.body.username);
     const password = String(req.body.password || "");
@@ -299,12 +360,12 @@ router.post("/staff/login", async (req, res) => {
 
     const session = buildStaffSession(staff);
     const token = signSession(session);
+    markSensitiveResponse(res);
     setSessionCookie(res, token);
 
     return res.json({
       message: "Staff login successful",
       user: toClientUser(session),
-      token,
     });
   } catch (err) {
     console.error("Staff login error:", err.message);
@@ -313,11 +374,12 @@ router.post("/staff/login", async (req, res) => {
 });
 
 router.post("/logout", (req, res) => {
+  markSensitiveResponse(res);
   clearSessionCookie(res);
   return res.json({ message: "Logged out successfully" });
 });
 
-router.post("/forgot-password", async (req, res) => {
+router.post("/forgot-password", passwordResetLimiter, async (req, res) => {
   try {
     const email = normalizeEmail(req.body.email);
 
@@ -338,17 +400,17 @@ router.post("/forgot-password", async (req, res) => {
       return res.json(genericMessage);
     }
 
-    const reset_token = crypto.randomBytes(20).toString("hex");
+    const reset_token = crypto.randomBytes(RESET_TOKEN_BYTES).toString("hex");
+    const reset_token_hash = hashResetToken(reset_token);
     const expires = new Date(Date.now() + 1000 * 60 * 15);
 
     await pool.query(
       "UPDATE users SET reset_token=$1, reset_token_expires=$2 WHERE LOWER(email)=LOWER($3)",
-      [reset_token, expires, email],
+      [reset_token_hash, expires, email],
     );
 
-    const baseUrl =
-      process.env.BASE_URL || `${req.protocol}://${req.get("host")}`;
-    const resetLink = `${baseUrl}/reset.html?token=${reset_token}&email=${encodeURIComponent(email)}`;
+    const baseUrl = resolvePublicBaseUrl(req);
+    const resetLink = `${baseUrl}/reset.html#token=${encodeURIComponent(reset_token)}&email=${encodeURIComponent(email)}`;
 
     if (process.env.MAIL_RELAY_URL && process.env.MAIL_RELAY_KEY) {
       const relayResponse = await fetch(process.env.MAIL_RELAY_URL, {
@@ -386,7 +448,7 @@ router.post("/forgot-password", async (req, res) => {
   }
 });
 
-router.post("/reset-password", async (req, res) => {
+router.post("/reset-password", passwordResetLimiter, async (req, res) => {
   try {
     const email = normalizeEmail(req.body.email);
     const token = String(req.body.token || "");
@@ -402,13 +464,15 @@ router.post("/reset-password", async (req, res) => {
         .json({ error: "Password must be at least 6 characters" });
     }
 
+    const tokenHash = hashResetToken(token);
+
     const result = await pool.query(
       `
         SELECT id, reset_token_expires
         FROM users
         WHERE LOWER(email)=LOWER($1) AND reset_token=$2
       `,
-      [email, token],
+      [email, tokenHash],
     );
 
     if (result.rowCount === 0) {
@@ -630,6 +694,7 @@ router.delete("/staff/:staffId", authMiddleware, requireAdmin, async (req, res) 
 
 router.get("/me", authMiddleware, async (req, res) => {
   try {
+    markSensitiveResponse(res);
     if (req.user.role === "staff") {
       const result = await pool.query(
         `

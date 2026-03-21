@@ -1,6 +1,6 @@
 <!-- login page -->
 <!doctype html>
-<html lang="en">
+<html lang="en" data-csp-nonce="__CSP_NONCE__">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -17,7 +17,7 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/@fontsource-variable/sora@5.0.17/index.min.css"
     />
-    <style>
+    <style nonce="__CSP_NONCE__">
       :root {
         --navy: #122744;
         --navy-soft: #1d487a;
@@ -2048,13 +2048,8 @@
       </div>
     </div>
 
-    <script>
-      if (localStorage.getItem("token")) {
-        window.location.replace("index.html");
-      }
-    </script>
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
+    <script nonce="__CSP_NONCE__">
+      document.addEventListener("DOMContentLoaded", async () => {
         const apiBase = window.location.origin.includes("localhost")
           ? "http://localhost:4000/api/auth"
           : "/api/auth";
@@ -2371,6 +2366,7 @@
           try {
             response = await fetch(`${apiBase}${path}`, {
               method: "POST",
+              credentials: "include",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(payload),
             });
@@ -2393,6 +2389,30 @@
 
           return data;
         };
+
+        const checkExistingSession = async () => {
+          try {
+            const response = await fetch(`${apiBase}/me`, {
+              credentials: "include",
+              cache: "no-store",
+            });
+
+            if (!response.ok) {
+              localStorage.removeItem("token");
+              localStorage.removeItem("user");
+              return false;
+            }
+
+            window.location.replace("index.html");
+            return true;
+          } catch (_error) {
+            return false;
+          }
+        };
+
+        if (await checkExistingSession()) {
+          return;
+        }
 
         const validateLoginForm = () => {
           clearFormStatus("login");
@@ -2713,9 +2733,7 @@
             '<i class="fa-solid fa-spinner fa-spin"></i> Signing in...',
             async () => {
               try {
-                const data = await postJSON("/login", payload);
-                localStorage.setItem("token", data.token);
-                localStorage.setItem("user", JSON.stringify(data.user));
+                await postJSON("/login", payload);
                 setFormStatus(
                   "login",
                   "success",
@@ -2747,9 +2765,7 @@
             '<i class="fa-solid fa-spinner fa-spin"></i> Signing in...',
             async () => {
               try {
-                const data = await postJSON("/staff/login", payload);
-                localStorage.setItem("token", data.token);
-                localStorage.setItem("user", JSON.stringify(data.user));
+                await postJSON("/staff/login", payload);
                 setFormStatus(
                   "staffLogin",
                   "success",

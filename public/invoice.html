@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-csp-nonce="__CSP_NONCE__">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8,7 +8,7 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     />
-    <style>
+    <style nonce="__CSP_NONCE__">
       :root {
         --navy: #17315d;
         --sky: #0ea5e9;
@@ -170,6 +170,22 @@
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
+      }
+
+      .stack-top-14 {
+        margin-top: 14px;
+      }
+
+      .stack-top-16 {
+        margin-top: 16px;
+      }
+
+      .stack-top-18 {
+        margin-top: 18px;
+      }
+
+      .stack-bottom-16 {
+        margin-bottom: 16px;
       }
 
       .mini {
@@ -531,7 +547,6 @@
         left: 0;
         right: 0;
         z-index: 30;
-        display: none;
         max-height: 220px;
         overflow-y: auto;
         border-radius: 16px;
@@ -1608,7 +1623,7 @@
               Live GST refresh, autosave draft, and smarter invoice history
               search.
             </p>
-            <div class="mini-row" style="margin-top: 14px">
+            <div class="mini-row stack-top-14">
               <span class="mini" id="sessionRolePill">
                 <i class="fa-solid fa-user-shield"></i>
                 Syncing session
@@ -1733,7 +1748,7 @@
               </div>
             </div>
 
-            <div class="field" style="margin-top: 14px">
+            <div class="field stack-top-14">
               <label for="custAddress">Customer Address</label>
               <textarea
                 id="custAddress"
@@ -1772,7 +1787,7 @@
               </table>
             </div>
 
-            <div class="actions" style="margin-top: 16px">
+            <div class="actions stack-top-16">
               <button id="addItemBtn" class="btn soft" type="button">
                 <i class="fa-solid fa-plus"></i>
                 Add Item Row
@@ -1787,7 +1802,7 @@
             <h2>Invoice summary</h2>
             <p class="sub">Review totals and submit when ready.</p>
 
-            <div class="totals" style="margin-top: 16px">
+            <div class="totals stack-top-16">
               <div>
                 <span>Subtotal</span>
                 <strong id="subtotal">0.00</strong>
@@ -1851,7 +1866,7 @@
               </div>
             </div>
 
-            <div class="stats" style="margin-top: 14px">
+            <div class="stats stack-top-14">
               <div class="summary-item">
                 <span>Current Invoice</span>
                 <strong id="summaryInvoiceNo">--</strong>
@@ -1897,11 +1912,7 @@
           </summary>
 
           <div class="shop-body">
-            <p
-              id="shopProfileHelper"
-              class="helper"
-              style="margin-bottom: 16px"
-            >
+            <p id="shopProfileHelper" class="helper stack-bottom-16">
               Shop profile is used in invoice preview, GST calculation, and PDF
               output.
             </p>
@@ -1924,7 +1935,7 @@
               </div>
             </div>
 
-            <div class="field-grid" style="margin-top: 14px">
+            <div class="field-grid stack-top-14">
               <div class="field">
                 <label for="shopAddress">Shop Address</label>
                 <input
@@ -1946,7 +1957,7 @@
               </div>
             </div>
 
-            <div class="actions" style="margin-top: 16px">
+            <div class="actions stack-top-16">
               <button id="saveGstBtn" class="btn primary" type="button">
                 <i class="fa-regular fa-floppy-disk"></i>
                 Save Shop Profile
@@ -1996,7 +2007,7 @@
           </button>
         </div>
 
-        <div class="mini-row" style="margin-top: 14px">
+        <div class="mini-row stack-top-14">
           <!-- <div class="mini">
             <i class="fa-solid fa-filter"></i>
             <span id="searchHintText"
@@ -2030,7 +2041,7 @@
           The invoice is saved successfully. Do you want to download the PDF
           now?
         </p>
-        <div class="modal-actions" style="margin-top: 18px">
+        <div class="modal-actions stack-top-18">
           <button id="modalYes" class="btn primary" type="button">Yes</button>
           <button id="modalNo" class="btn ghost" type="button">No</button>
         </div>
@@ -2045,7 +2056,7 @@
           Stock will be reduced and the invoice will be added to your sales
           records after confirmation.
         </p>
-        <div class="modal-actions" style="margin-top: 18px">
+        <div class="modal-actions stack-top-18">
           <button id="confirmSaveYes" class="btn primary" type="button">
             Confirm
           </button>
@@ -2066,10 +2077,9 @@
     <script src="js/permission-contract.js"></script>
     <script src="js/app-core.js"></script>
     <script src="js/app-shell.js"></script>
-    <script>
+    <script nonce="__CSP_NONCE__">
       const appConfig = window.InventoryApp || {};
       const API_PREFIX = appConfig.apiBase || "/api";
-      const token = localStorage.getItem("token");
       const DRAFT_KEY = "invoice_page_draft_v4";
       const money = new Intl.NumberFormat("en-IN", {
         minimumFractionDigits: 2,
@@ -2259,9 +2269,12 @@
         });
 
       async function authFetch(url, options = {}) {
-        options.headers = options.headers || {};
-        options.headers.Authorization = "Bearer " + token;
-        const response = await fetch(url, options);
+        const headers = { ...(options.headers || {}) };
+        const response = await fetch(url, {
+          ...options,
+          credentials: "include",
+          headers,
+        });
         if (response.status === 401) {
           clearStoredSession();
           window.location.href = "login.html";
@@ -2271,12 +2284,6 @@
       }
 
       document.addEventListener("DOMContentLoaded", () => {
-        // Redirect to login when no session token is present.
-        if (!token) {
-          window.location.href = "login.html";
-          return;
-        }
-
         window.InventoryAppShell?.renderSidebar("invoice");
 
         const $ = (id) => document.getElementById(id);
@@ -2361,6 +2368,18 @@
           dom.gstRateInput,
         ].filter(Boolean);
 
+        const hideElement = (element) => {
+          if (element) {
+            element.hidden = true;
+          }
+        };
+
+        const showElement = (element) => {
+          if (element) {
+            element.hidden = false;
+          }
+        };
+
         const renderHeroShopName = (name = "") => {
           if (!dom.heroShopName) return;
           const value = String(name || "").trim();
@@ -2409,6 +2428,7 @@
 
         const invoiceDropdown = document.createElement("div");
         invoiceDropdown.className = "dropdown-list";
+        invoiceDropdown.hidden = true;
         dom.searchInvoiceInput
           .closest(".dropdown-wrap")
           .appendChild(invoiceDropdown);
@@ -2417,7 +2437,7 @@
         let itemNames = [];
         let invoiceNumbers = [];
         let invoiceSuggestions = [];
-        let sessionUser = JSON.parse(localStorage.getItem("user") || "{}");
+        let sessionUser = null;
         let pendingInvoiceNo = null;
         let popupTimer = null;
         let draftTimer = null;
@@ -2426,7 +2446,6 @@
         let invoiceSuggestionRequestId = 0;
 
         const authHeaders = () => ({
-          Authorization: "Bearer " + token,
           "Content-Type": "application/json",
         });
 
@@ -2531,15 +2550,12 @@
         };
 
         async function loadSession() {
-          const res = await authFetch(`${API_PREFIX}/auth/me`, {
-            headers: { Authorization: "Bearer " + token },
-          });
+          const res = await authFetch(`${API_PREFIX}/auth/me`);
           if (!res || !res.ok) {
             return null;
           }
 
           const user = await res.json();
-          localStorage.setItem("user", JSON.stringify(user));
           applySessionAccess(user);
 
           if (!canAccessInvoicePage()) {
@@ -2833,13 +2849,13 @@
 
         const hideDropdowns = () =>
           document.querySelectorAll(".dropdown-list").forEach((el) => {
-            el.style.display = "none";
+            hideElement(el);
           });
 
         const renderDropdown = (host, items, onSelect) => {
           if (!items.length) {
             host.innerHTML = "";
-            host.style.display = "none";
+            hideElement(host);
             return;
           }
           host.innerHTML = items
@@ -2847,12 +2863,12 @@
               (item) => `<div class="dropdown-item">${escapeHtml(item)}</div>`,
             )
             .join("");
-          host.style.display = "block";
+          showElement(host);
           host.querySelectorAll(".dropdown-item").forEach((node) => {
             node.addEventListener("pointerdown", (event) => {
               event.preventDefault();
               onSelect(node.textContent);
-              host.style.display = "none";
+              hideElement(host);
             });
           });
         };
@@ -2864,7 +2880,7 @@
         ) => {
           if (!suggestions.length) {
             host.innerHTML = "";
-            host.style.display = "none";
+            hideElement(host);
             return;
           }
 
@@ -2889,27 +2905,27 @@
             })
             .join("");
 
-          host.style.display = "block";
+          showElement(host);
 
           host.querySelectorAll(".dropdown-item--invoice").forEach((node) => {
             node.addEventListener("pointerdown", (event) => {
               event.preventDefault();
               onSelect(decodeURIComponent(node.dataset.invoiceNo || ""));
-              host.style.display = "none";
+              hideElement(host);
             });
           });
         };
 
         async function loadItemNames() {
           const res = await authFetch(API_PREFIX + "/items/names", {
-            headers: { Authorization: "Bearer " + token },
+            headers: authHeaders(),
           });
           itemNames = res && res.ok ? await res.json() : [];
         }
 
         async function loadInvoiceNumbers() {
           const res = await authFetch(API_PREFIX + "/invoices/numbers", {
-            headers: { Authorization: "Bearer " + token },
+            headers: authHeaders(),
           });
           invoiceNumbers = res && res.ok ? await res.json() : [];
 
@@ -2918,7 +2934,7 @@
           }
 
           const fallback = await authFetch(`${API_PREFIX}/invoices?limit=50`, {
-            headers: { Authorization: "Bearer " + token },
+            headers: authHeaders(),
           });
 
           if (!fallback || !fallback.ok) {
@@ -2937,7 +2953,7 @@
           const res = await authFetch(
             `${API_PREFIX}/invoices/suggestions?q=${encodeURIComponent(query)}&limit=10`,
             {
-              headers: { Authorization: "Bearer " + token },
+              headers: authHeaders(),
             },
           );
 
@@ -3059,7 +3075,7 @@
             <td data-label="Item">
               <div class="dropdown-wrap">
                 <input class="input item-input" placeholder="Search item" />
-                <div class="dropdown-list"></div>
+                <div class="dropdown-list" hidden></div>
               </div>
             </td>
             <td data-label="Qty">
@@ -3159,7 +3175,7 @@
           const loadItemInfo = async (name) => {
             const res = await authFetch(
               `${API_PREFIX}/items/info?name=${encodeURIComponent(name)}`,
-              { headers: { Authorization: "Bearer " + token } },
+              { headers: authHeaders() },
             );
             if (!res || !res.ok) {
               clearStock();
@@ -3179,7 +3195,7 @@
             clearStock();
             const q = itemInput.value.trim().toLowerCase();
             if (!q) {
-              dropdown.style.display = "none";
+              hideElement(dropdown);
               fromRate();
               queueDraft();
               return;
@@ -3201,7 +3217,7 @@
           });
 
           itemInput.addEventListener("blur", () =>
-            setTimeout(() => (dropdown.style.display = "none"), 120),
+            setTimeout(() => hideElement(dropdown), 120),
           );
           qtyInput.addEventListener("input", () => {
             fromRate();
@@ -3644,7 +3660,7 @@
           const res = await authFetch(
             `${API_PREFIX}/invoices/${encodeURIComponent(invoiceNo)}`,
             {
-              headers: { Authorization: "Bearer " + token },
+              headers: authHeaders(),
             },
           );
           if (!res || !res.ok) return false;
@@ -3742,7 +3758,7 @@
               ? `${API_PREFIX}/invoices?q=${encodeURIComponent(query)}`
               : `${API_PREFIX}/invoices`,
             {
-              headers: { Authorization: "Bearer " + token },
+              headers: authHeaders(),
             },
           );
           if (!res || !res.ok) {
@@ -3888,7 +3904,7 @@
 
             const res = await authFetch(
               `${API_PREFIX}/items/info?name=${encodeURIComponent(description)}`,
-              { headers: { Authorization: "Bearer " + token } },
+              { headers: authHeaders() },
             );
             if (!res) return false;
             if (!res.ok) {

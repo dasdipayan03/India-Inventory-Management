@@ -25,13 +25,13 @@ async function authMiddleware(req, res, next) {
   try {
     let token = null;
 
-    const header = req.headers.authorization;
-    if (header && header.startsWith("Bearer ")) {
-      token = header.split(" ")[1];
+    if (req.cookies && req.cookies.token) {
+      token = req.cookies.token;
     }
 
-    if (!token && req.cookies && req.cookies.token) {
-      token = req.cookies.token;
+    const header = req.headers.authorization;
+    if (!token && header && header.startsWith("Bearer ")) {
+      token = header.split(" ")[1];
     }
 
     if (!token) {

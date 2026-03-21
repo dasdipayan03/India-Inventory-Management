@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-csp-nonce="__CSP_NONCE__">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -12,7 +12,7 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/@fontsource/manrope@5.0.17/index.min.css"
     />
-    <style>
+    <style nonce="__CSP_NONCE__">
       :root {
         --navy: #122744;
         --navy-soft: #1d487a;
@@ -587,7 +587,7 @@
       </main>
     </div>
 
-    <script>
+    <script nonce="__CSP_NONCE__">
       const apiBase = "/api/auth";
       const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -645,11 +645,21 @@
           : '<i class="fa-solid fa-rotate-right"></i><span>Reset Password</span>';
       };
 
-      const params = new URLSearchParams(window.location.search);
-      fields.email.value = decodeURIComponent(params.get("email") || "")
-        .trim()
-        .toLowerCase();
-      fields.token.value = params.get("token") || "";
+      const searchParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(
+        window.location.hash.replace(/^#/, ""),
+      );
+      const emailFromUrl =
+        hashParams.get("email") || searchParams.get("email") || "";
+      const tokenFromUrl =
+        hashParams.get("token") || searchParams.get("token") || "";
+
+      fields.email.value = String(emailFromUrl).trim().toLowerCase();
+      fields.token.value = tokenFromUrl;
+
+      if (window.location.search || window.location.hash) {
+        window.history.replaceState(null, document.title, window.location.pathname);
+      }
 
       if (fields.token.value) {
         setStatus(

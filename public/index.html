@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-csp-nonce="__CSP_NONCE__">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,7 +12,7 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
     />
-    <style>
+    <style nonce="__CSP_NONCE__">
       :root {
         --ink-strong: #10213f;
         --ink-main: #27406b;
@@ -63,6 +63,9 @@
             transparent 26%
           ),
           linear-gradient(180deg, #eef6ff 0%, #f7fbff 38%, #f4f9ff 100%);
+      }
+
+      .dashboard-body.app-loading {
         visibility: hidden;
       }
 
@@ -253,6 +256,22 @@
         height: 72px;
         border-radius: 50%;
         background: var(--card-glow, rgba(14, 165, 233, 0.16));
+      }
+
+      .overview-card--sky {
+        --card-glow: rgba(14, 165, 233, 0.18);
+      }
+
+      .overview-card--teal {
+        --card-glow: rgba(20, 184, 166, 0.16);
+      }
+
+      .overview-card--amber {
+        --card-glow: rgba(245, 158, 11, 0.16);
+      }
+
+      .overview-card--blue {
+        --card-glow: rgba(59, 130, 246, 0.16);
       }
 
       .overview-card__label {
@@ -935,7 +954,6 @@
         left: 0;
         right: 0;
         z-index: 2200;
-        display: none;
         max-height: 240px;
         overflow-y: auto;
         border: 1px solid rgba(148, 163, 184, 0.2);
@@ -1178,6 +1196,22 @@
         background: var(--kpi-glow, rgba(14, 165, 233, 0.16));
       }
 
+      .report-kpi--sky {
+        --kpi-glow: rgba(14, 165, 233, 0.16);
+      }
+
+      .report-kpi--blue {
+        --kpi-glow: rgba(59, 130, 246, 0.16);
+      }
+
+      .report-kpi--teal {
+        --kpi-glow: rgba(20, 184, 166, 0.16);
+      }
+
+      .report-kpi--amber {
+        --kpi-glow: rgba(245, 158, 11, 0.16);
+      }
+
       .report-kpi__label {
         position: relative;
         z-index: 1;
@@ -1209,6 +1243,10 @@
         color: var(--ink-soft);
         font-size: 12px;
         line-height: 1.55;
+      }
+
+      .chart-filter-select {
+        width: 130px;
       }
 
       .mini-kpi-grid {
@@ -2357,7 +2395,7 @@
       }
     </style>
   </head>
-  <body class="dashboard-body">
+  <body class="dashboard-body app-loading">
     <main class="main">
       <div class="main-shell">
         <header class="hero-panel">
@@ -2390,10 +2428,7 @@
           class="overview-grid"
           aria-label="Dashboard Overview"
         >
-          <article
-            class="overview-card"
-            style="--card-glow: rgba(14, 165, 233, 0.18)"
-          >
+          <article class="overview-card overview-card--sky">
             <span class="overview-card__label">
               <i class="fa-solid fa-boxes-stacked"></i>
               Stock Items
@@ -2406,10 +2441,7 @@
             </small>
           </article>
 
-          <article
-            class="overview-card"
-            style="--card-glow: rgba(20, 184, 166, 0.16)"
-          >
+          <article class="overview-card overview-card--teal">
             <span class="overview-card__label">
               <i class="fa-solid fa-wallet"></i>
               Stock Value
@@ -2422,10 +2454,7 @@
             </small>
           </article>
 
-          <article
-            class="overview-card"
-            style="--card-glow: rgba(245, 158, 11, 0.16)"
-          >
+          <article class="overview-card overview-card--amber">
             <span class="overview-card__label">
               <i class="fa-solid fa-triangle-exclamation"></i>
               Low Stock
@@ -2436,10 +2465,7 @@
             </small>
           </article>
 
-          <article
-            class="overview-card"
-            style="--card-glow: rgba(59, 130, 246, 0.16)"
-          >
+          <article class="overview-card overview-card--blue">
             <span class="overview-card__label">
               <i class="fa-solid fa-hand-holding-dollar"></i>
               Due Balance
@@ -2452,10 +2478,7 @@
             </small>
           </article>
 
-          <article
-            class="overview-card"
-            style="--card-glow: rgba(20, 184, 166, 0.16)"
-          >
+          <article class="overview-card overview-card--teal">
             <span class="overview-card__label">
               <i class="fa-solid fa-truck-ramp-box"></i>
               Supplier Due
@@ -2512,7 +2535,11 @@
                       placeholder="Search or Select Item"
                       autocomplete="off"
                     />
-                    <div id="newItemDropdownList" class="dropdown-list"></div>
+                    <div
+                      id="newItemDropdownList"
+                      class="dropdown-list"
+                      hidden
+                    ></div>
                   </div>
                 </div>
 
@@ -2605,7 +2632,7 @@
                 <div class="info-card">
                   <span>Previous Buying Rate</span>
                   <strong>Recent reference</strong>
-                  <div id="previousBuyingRate"></div>
+                  <div id="previousBuyingRate" hidden></div>
                 </div>
               </div>
 
@@ -2650,7 +2677,7 @@
                     placeholder="Search or enter supplier name"
                     autocomplete="off"
                   />
-                  <div id="supplierDropdown" class="dropdown-list"></div>
+                  <div id="supplierDropdown" class="dropdown-list" hidden></div>
                 </div>
                 <div class="col-lg-6">
                   <label class="form-label small">Supplier Mobile</label>
@@ -2914,6 +2941,7 @@
                     <div
                       id="purchaseSearchDropdown"
                       class="dropdown-list"
+                      hidden
                     ></div>
                   </div>
                 </div>
@@ -3007,7 +3035,11 @@
                     placeholder="Search supplier by name or mobile"
                     autocomplete="off"
                   />
-                  <div id="supplierSearchDropdown" class="dropdown-list"></div>
+                  <div
+                    id="supplierSearchDropdown"
+                    class="dropdown-list"
+                    hidden
+                  ></div>
                 </div>
                 <div class="col-6 col-lg-2">
                   <button
@@ -3179,7 +3211,11 @@
                     placeholder="Search or select item"
                     autocomplete="off"
                   />
-                  <div id="itemReportDropdown" class="dropdown-list"></div>
+                  <div
+                    id="itemReportDropdown"
+                    class="dropdown-list"
+                    hidden
+                  ></div>
                 </div>
               </div>
               <div class="col-6 col-lg-2">
@@ -3531,8 +3567,7 @@
                 </div>
                 <select
                   id="yearFilter"
-                  class="form-select form-select-sm"
-                  style="width: 130px"
+                  class="form-select form-select-sm chart-filter-select"
                 >
                   <option value="all">All</option>
                 </select>
@@ -3664,10 +3699,7 @@
             </div>
 
             <div class="report-kpi-grid">
-              <article
-                class="report-kpi"
-                style="--kpi-glow: rgba(14, 165, 233, 0.16)"
-              >
+              <article class="report-kpi report-kpi--sky">
                 <span class="report-kpi__label">Invoices</span>
                 <strong class="report-kpi__value" id="gstInvoiceCount"
                   >0</strong
@@ -3676,10 +3708,7 @@
                   Invoices found in the selected date range.
                 </small>
               </article>
-              <article
-                class="report-kpi"
-                style="--kpi-glow: rgba(59, 130, 246, 0.16)"
-              >
+              <article class="report-kpi report-kpi--blue">
                 <span class="report-kpi__label">Taxable Value</span>
                 <strong class="report-kpi__value" id="gstTaxableTotal">
                   Rs. 0.00
@@ -3688,10 +3717,7 @@
                   Net sales value before GST is applied.
                 </small>
               </article>
-              <article
-                class="report-kpi"
-                style="--kpi-glow: rgba(20, 184, 166, 0.16)"
-              >
+              <article class="report-kpi report-kpi--teal">
                 <span class="report-kpi__label">GST Collected</span>
                 <strong class="report-kpi__value" id="gstCollectedTotal">
                   Rs. 0.00
@@ -3700,10 +3726,7 @@
                   Total GST amount recorded in the invoices.
                 </small>
               </article>
-              <article
-                class="report-kpi"
-                style="--kpi-glow: rgba(245, 158, 11, 0.16)"
-              >
+              <article class="report-kpi report-kpi--amber">
                 <span class="report-kpi__label">Invoice Total</span>
                 <strong class="report-kpi__value" id="gstReportGrandTotal">
                   Rs. 0.00
@@ -3975,7 +3998,7 @@
                     autocomplete="off"
                     inputmode="numeric"
                   />
-                  <div id="cdNumberDropdown" class="dropdown-list"></div>
+                  <div id="cdNumberDropdown" class="dropdown-list" hidden></div>
                 </div>
 
                 <div class="col-sm-6">
@@ -4045,7 +4068,7 @@
                   placeholder="Search customer by name or number"
                   autocomplete="off"
                 />
-                <div id="cdSearchDropdown" class="dropdown-list"></div>
+                <div id="cdSearchDropdown" class="dropdown-list" hidden></div>
               </div>
 
               <div class="row g-2 mb-3 due-search-actions">

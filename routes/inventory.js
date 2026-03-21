@@ -64,6 +64,21 @@ function safeFilePart(value) {
     .toLowerCase();
 }
 
+function sanitizeExcelCell(value) {
+  if (value == null) {
+    return "";
+  }
+
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  const normalized = value.replace(/^\uFEFF/, "");
+  return /^[\t\r ]*[=+\-@]/.test(normalized)
+    ? `'${normalized}`
+    : normalized;
+}
+
 function parseNonNegativeNumber(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
@@ -978,7 +993,7 @@ router.get("/sales/report/excel", requirePermission("sales_report"), async (req,
       color: { argb: "FFFFFFFF" },
     };
 
-    sheet.insertRow(2, [shopName]);
+    sheet.insertRow(2, [sanitizeExcelCell(shopName)]);
     sheet.mergeCells("A2:F2");
     sheet.getCell("A2").alignment = { horizontal: "center" };
     sheet.getCell("A2").font = {
@@ -1024,7 +1039,7 @@ router.get("/sales/report/excel", requirePermission("sales_report"), async (req,
       const row = sheet.addRow({
         sl: i + 1,
         date: saleDate,
-        item: r.item_name,
+        item: sanitizeExcelCell(r.item_name),
         qty: r.quantity,
         rate: Number(r.selling_price),
         total: Number(r.total_price),
@@ -1359,7 +1374,7 @@ router.get("/gst/report/excel", requirePermission("gst_report"), async (req, res
     };
     sheet.getCell("A1").alignment = { horizontal: "center" };
 
-    sheet.insertRow(2, [shopName]);
+    sheet.insertRow(2, [sanitizeExcelCell(shopName)]);
     sheet.mergeCells("A2:F2");
     sheet.getCell("A2").alignment = { horizontal: "center" };
     sheet.getCell("A2").font = {
@@ -1401,8 +1416,8 @@ router.get("/gst/report/excel", requirePermission("gst_report"), async (req, res
     rows.forEach((row, index) => {
       const excelRow = sheet.addRow({
         date: formatIstDate(row.created_at),
-        invoice: row.invoice_no,
-        customer: row.customer_name,
+        invoice: sanitizeExcelCell(row.invoice_no),
+        customer: sanitizeExcelCell(row.customer_name),
         taxable: Number(row.taxable_amount) || 0,
         gst: Number(row.gst_amount) || 0,
         total: Number(row.invoice_total) || 0,

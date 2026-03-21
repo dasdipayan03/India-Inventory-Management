@@ -18,7 +18,9 @@
 // 📦 CORE DEPENDENCIES
 // =========================================================
 const express = require("express");
+const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
 // =========================================================
 // 🔐 SECURITY & PERFORMANCE MIDDLEWARE
@@ -38,6 +40,8 @@ const pool = require("./db");
 // 🚀 CREATE EXPRESS APP
 // =========================================================
 const app = express();
+const publicDir = path.join(__dirname, "public");
+const htmlTemplateCache = new Map();
 
 // Required for deployment platforms like Railway / Render
 app.set("trust proxy", 1);
@@ -51,10 +55,23 @@ app.disable("x-powered-by");
  * Enable CORS
  * Allows frontend to send cookies & requests
  */
+function normalizeOrigin(value) {
+  const rawValue = String(value || "").trim();
+  if (!rawValue) {
+    return "";
+  }
+
+  try {
+    return new URL(rawValue).origin;
+  } catch (_error) {
+    return "";
+  }
+}
+
 function buildAllowedOrigins() {
   const explicitOrigins = String(process.env.CORS_ALLOWED_ORIGINS || "")
     .split(",")
-    .map((origin) => origin.trim())
+    .map((origin) => normalizeOrigin(origin))
     .filter(Boolean);
 
   if (explicitOrigins.length) {
@@ -74,23 +91,54 @@ function buildAllowedOrigins() {
     ];
   }
 
+  const baseOrigin = normalizeOrigin(process.env.BASE_URL);
+  if (baseOrigin) {
+    return [baseOrigin];
+  }
+
   return [];
 }
 
 const allowedOrigins = new Set(buildAllowedOrigins());
+const nonceDirective = (_req, res) => `'nonce-${res.locals.cspNonce}'`;
+
+function getHtmlTemplate(fileName) {
+  if (htmlTemplateCache.has(fileName)) {
+    return htmlTemplateCache.get(fileName);
+  }
+
+  const fullPath = path.join(publicDir, fileName);
+  const template = fs.readFileSync(fullPath, "utf8");
+  htmlTemplateCache.set(fileName, template);
+  return template;
+}
+
+function sendHtmlTemplate(res, fileName, statusCode = 200) {
+  const html = getHtmlTemplate(fileName).replace(
+    /__CSP_NONCE__/g,
+    res.locals.cspNonce || "",
+  );
+
+  res.status(statusCode).type("html").send(html);
+}
+
+app.use((req, res, next) => {
+  res.locals.cspNonce = crypto.randomBytes(16).toString("base64");
+  next();
+});
 
 app.use(
   cors({
     origin(origin, callback) {
-      if (!allowedOrigins.size) {
+      if (!origin) {
         return callback(null, true);
       }
 
-      if (!origin || allowedOrigins.has(origin)) {
+      if (allowedOrigins.has(origin)) {
         return callback(null, true);
       }
 
-      return callback(new Error("Origin not allowed by CORS"));
+      return callback(null, false);
     },
     credentials: true,
   }),
@@ -116,18 +164,24 @@ app.use(
     useDefaults: true,
     directives: {
       "default-src": ["'self'"],
+      "base-uri": ["'self'"],
+      "form-action": ["'self'"],
+      "frame-ancestors": ["'none'"],
+      "object-src": ["'none'"],
       "script-src": [
         "'self'",
-        "'unsafe-inline'",
+        nonceDirective,
         "https://cdnjs.cloudflare.com",
         "https://cdn.jsdelivr.net",
       ],
+      "script-src-attr": ["'none'"],
       "style-src": [
         "'self'",
-        "'unsafe-inline'",
+        nonceDirective,
         "https://cdnjs.cloudflare.com",
         "https://cdn.jsdelivr.net",
       ],
+      "style-src-attr": ["'none'"],
       "img-src": ["'self'", "data:", "https://cdn.jsdelivr.net"],
       "font-src": [
         "'self'",
@@ -142,6 +196,9 @@ app.use(
     },
   }),
 );
+app.use(helmet.frameguard({ action: "deny" }));
+app.use(helmet.noSniff());
+app.use(helmet.referrerPolicy({ policy: "same-origin" }));
 
 // =========================================================
 // 📡 API ROUTES REGISTRATION
@@ -161,7 +218,10 @@ app.get("/health", (req, res) => {
 // =========================================================
 // 🛠 DEBUG ROUTES (Only in Development Mode)
 // =========================================================
-if (process.env.NODE_ENV !== "production") {
+if (
+  process.env.NODE_ENV !== "production" &&
+  process.env.ENABLE_DEBUG_ROUTES === "true"
+) {
   // Check environment variables
   app.get("/debug-env", (req, res) => {
     res.json({
@@ -189,12 +249,27 @@ if (process.env.NODE_ENV !== "production") {
 // =========================================================
 // 🌍 FRONTEND STATIC FILE SERVING
 // =========================================================
-app.use(express.static(path.join(__dirname, "public")));
-
-//Default route → login page
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "login.html"));
+  sendHtmlTemplate(res, "login.html");
 });
+
+app.get("/login.html", (req, res) => {
+  sendHtmlTemplate(res, "login.html");
+});
+
+app.get("/index.html", (req, res) => {
+  sendHtmlTemplate(res, "index.html");
+});
+
+app.get("/invoice.html", (req, res) => {
+  sendHtmlTemplate(res, "invoice.html");
+});
+
+app.get("/reset.html", (req, res) => {
+  sendHtmlTemplate(res, "reset.html");
+});
+
+app.use(express.static(publicDir));
 
 /**
  * Fallback Route
@@ -205,7 +280,7 @@ app.use((req, res) => {
   if (req.path.startsWith("/api")) {
     return res.status(404).json({ error: "API route not found" });
   }
-  res.sendFile(path.join(__dirname, "public", "login.html"));
+  sendHtmlTemplate(res, "login.html");
 });
 
 // =========================================================

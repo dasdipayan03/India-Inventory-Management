@@ -41,7 +41,8 @@ const DEFAULT_STAFF_PERMISSIONS = appConfig.defaultStaffPermissions || [
 const STAFF_PERMISSION_KEYS =
   appConfig.staffPermissionKeys ||
   STAFF_PERMISSION_OPTIONS.map((option) => option.value);
-const INVOICE_PAGE_PERMISSION = appConfig.invoicePagePermission || "sale_invoice";
+const INVOICE_PAGE_PERMISSION =
+  appConfig.invoicePagePermission || "sale_invoice";
 
 const formatters = {
   whole: new Intl.NumberFormat("en-IN", {
@@ -66,13 +67,29 @@ const clearStoredSession =
     localStorage.removeItem("user");
   });
 
-function getToken() {
-  return localStorage.getItem("token") || "";
+function hideElement(element) {
+  if (element) {
+    element.hidden = true;
+  }
+}
+
+function showElement(element) {
+  if (element) {
+    element.hidden = false;
+  }
+}
+
+function markDashboardReady() {
+  document.body.classList.remove("app-loading");
 }
 
 function authHeaders(headers = {}) {
-  const token = getToken();
-  return token ? { ...headers, Authorization: `Bearer ${token}` } : headers;
+  return { ...headers };
+}
+
+function handleSessionExpiry() {
+  clearStoredSession();
+  window.location.replace("login.html");
 }
 
 function formatCount(value) {
@@ -178,7 +195,9 @@ function normalizeMobileNumber(value) {
 }
 
 function formatPaymentMode(value) {
-  const normalized = String(value || "").trim().toLowerCase();
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
 
   switch (normalized) {
     case "upi":
@@ -196,7 +215,9 @@ function formatPaymentMode(value) {
 }
 
 function getStatusChipMarkup(status) {
-  const normalized = String(status || "").trim().toLowerCase();
+  const normalized = String(status || "")
+    .trim()
+    .toLowerCase();
   const safeStatus = normalized || "paid";
   const labelMap = {
     paid: "Paid",
@@ -334,11 +355,17 @@ function cacheElements() {
     resetPurchaseBtn: document.getElementById("resetPurchaseBtn"),
     submitPurchaseBtn: document.getElementById("submitPurchaseBtn"),
     purchaseSubtotal: document.getElementById("purchaseSubtotal"),
-    purchaseAmountPaidDisplay: document.getElementById("purchaseAmountPaidDisplay"),
-    purchaseAmountDueDisplay: document.getElementById("purchaseAmountDueDisplay"),
+    purchaseAmountPaidDisplay: document.getElementById(
+      "purchaseAmountPaidDisplay",
+    ),
+    purchaseAmountDueDisplay: document.getElementById(
+      "purchaseAmountDueDisplay",
+    ),
     purchasePaymentStatus: document.getElementById("purchasePaymentStatus"),
     purchaseActiveRows: document.getElementById("purchaseActiveRows"),
-    purchaseSupplierSnapshot: document.getElementById("purchaseSupplierSnapshot"),
+    purchaseSupplierSnapshot: document.getElementById(
+      "purchaseSupplierSnapshot",
+    ),
     purchasePulseNote: document.getElementById("purchasePulseNote"),
     purchaseFromDate: document.getElementById("purchaseFromDate"),
     purchaseToDate: document.getElementById("purchaseToDate"),
@@ -348,12 +375,18 @@ function cacheElements() {
     purchaseReportBody: document.getElementById("purchaseReportBody"),
     purchaseHistoryView: document.getElementById("purchaseHistoryView"),
     supplierLedgerView: document.getElementById("supplierLedgerView"),
-    showPurchaseBillsViewBtn: document.getElementById("showPurchaseBillsViewBtn"),
-    showSupplierLedgerViewBtn: document.getElementById("showSupplierLedgerViewBtn"),
+    showPurchaseBillsViewBtn: document.getElementById(
+      "showPurchaseBillsViewBtn",
+    ),
+    showSupplierLedgerViewBtn: document.getElementById(
+      "showSupplierLedgerViewBtn",
+    ),
     supplierSearchInput: document.getElementById("supplierSearchInput"),
     supplierSearchDropdown: document.getElementById("supplierSearchDropdown"),
     searchSupplierLedgerBtn: document.getElementById("searchSupplierLedgerBtn"),
-    showAllSupplierSummaryBtn: document.getElementById("showAllSupplierSummaryBtn"),
+    showAllSupplierSummaryBtn: document.getElementById(
+      "showAllSupplierSummaryBtn",
+    ),
     supplierLedgerTable: document.getElementById("supplierLedgerTable"),
     purchaseDetailCard: document.getElementById("purchaseDetailCard"),
     purchaseDetailSummary: document.getElementById("purchaseDetailSummary"),
@@ -364,7 +397,9 @@ function cacheElements() {
     purchaseRepayAmount: document.getElementById("purchaseRepayAmount"),
     purchaseRepayMode: document.getElementById("purchaseRepayMode"),
     purchaseRepayNote: document.getElementById("purchaseRepayNote"),
-    submitPurchaseRepaymentBtn: document.getElementById("submitPurchaseRepaymentBtn"),
+    submitPurchaseRepaymentBtn: document.getElementById(
+      "submitPurchaseRepaymentBtn",
+    ),
     itemReportSearch: document.getElementById("itemReportSearch"),
     itemReportDropdown: document.getElementById("itemReportDropdown"),
     loadItemReportBtn: document.getElementById("loadItemReportBtn"),
@@ -437,12 +472,20 @@ function cacheElements() {
     expenseNote: document.getElementById("expenseNote"),
     submitExpenseBtn: document.getElementById("submitExpenseBtn"),
     expenseSummaryTotal: document.getElementById("expenseSummaryTotal"),
-    expenseSummaryEntryCount: document.getElementById("expenseSummaryEntryCount"),
+    expenseSummaryEntryCount: document.getElementById(
+      "expenseSummaryEntryCount",
+    ),
     expenseSummaryCategory: document.getElementById("expenseSummaryCategory"),
-    expenseSummaryCategoryNote: document.getElementById("expenseSummaryCategoryNote"),
-    expenseSummaryGrossProfit: document.getElementById("expenseSummaryGrossProfit"),
+    expenseSummaryCategoryNote: document.getElementById(
+      "expenseSummaryCategoryNote",
+    ),
+    expenseSummaryGrossProfit: document.getElementById(
+      "expenseSummaryGrossProfit",
+    ),
     expenseSummaryNetProfit: document.getElementById("expenseSummaryNetProfit"),
-    expenseSummaryNetProfitNote: document.getElementById("expenseSummaryNetProfitNote"),
+    expenseSummaryNetProfitNote: document.getElementById(
+      "expenseSummaryNetProfitNote",
+    ),
     expenseFromDate: document.getElementById("expenseFromDate"),
     expenseToDate: document.getElementById("expenseToDate"),
     expenseSearchInput: document.getElementById("expenseSearchInput"),
@@ -476,6 +519,7 @@ async function fetchJSON(path, options = {}) {
 
   const response = await fetch(`${apiBase}${path}`, {
     ...options,
+    credentials: "include",
     headers: authHeaders(headers),
   });
 
@@ -484,6 +528,15 @@ async function fetchJSON(path, options = {}) {
     payload = await response.json();
   } catch (error) {
     payload = {};
+  }
+
+  if (response.status === 401) {
+    const authError = new Error(
+      payload.error || payload.message || "Session expired",
+    );
+    authError.code = "SESSION_EXPIRED";
+    handleSessionExpiry();
+    throw authError;
   }
 
   if (!response.ok) {
@@ -495,15 +548,25 @@ async function fetchJSON(path, options = {}) {
 
 async function downloadAuthenticatedFile(path, fallbackName) {
   const response = await fetch(`${apiBase}${path}`, {
+    credentials: "include",
     headers: authHeaders(),
   });
 
-  if (!response.ok) {
-    let payload = {};
+  let payload = {};
+  if (!response.ok || response.status === 401) {
     try {
       payload = await response.json();
     } catch (error) {
       payload = {};
+    }
+
+    if (response.status === 401) {
+      const authError = new Error(
+        payload.error || payload.message || "Session expired",
+      );
+      authError.code = "SESSION_EXPIRED";
+      handleSessionExpiry();
+      throw authError;
     }
 
     throw new Error(payload.error || payload.message || "Download failed");
@@ -617,7 +680,7 @@ function setCustomerNameLocked(locked) {
 }
 
 function hidePreviousBuyingRate() {
-  dom.previousBuyingRate.style.display = "none";
+  hideElement(dom.previousBuyingRate);
   dom.previousBuyingRate.textContent = "";
 }
 
@@ -643,8 +706,7 @@ function updateProfitPreview() {
   dom.profitPreviewValue.textContent = `${formatNumber(percent || 0)}%`;
 
   if (buyingRate > 0 && sellingRate > 0) {
-    dom.profitPreviewNote.textContent =
-      `Buying ${formatCurrency(buyingRate)} suggests selling ${formatCurrency(sellingRate)}.`;
+    dom.profitPreviewNote.textContent = `Buying ${formatCurrency(buyingRate)} suggests selling ${formatCurrency(sellingRate)}.`;
     return;
   }
 
@@ -737,10 +799,7 @@ function queueProfitPercentSave(value = dom.profitPercent.value) {
   window.clearTimeout(state.profitSaveTimer);
   state.profitSaveTimer = null;
 
-  if (
-    normalized === null ||
-    normalized === state.lastSavedProfitPercent
-  ) {
+  if (normalized === null || normalized === state.lastSavedProfitPercent) {
     return;
   }
 
@@ -797,11 +856,15 @@ function updateHeroSummary(metrics = {}) {
   }
 
   if (lowStockCount > 0) {
-    bits.push(`${formatCount(lowStockCount)} item${lowStockCount === 1 ? "" : "s"} need stock attention`);
+    bits.push(
+      `${formatCount(lowStockCount)} item${lowStockCount === 1 ? "" : "s"} need stock attention`,
+    );
   }
 
   if (dueCustomerCount > 0) {
-    bits.push(`${formatCount(dueCustomerCount)} customer${dueCustomerCount === 1 ? "" : "s"} have pending dues`);
+    bits.push(
+      `${formatCount(dueCustomerCount)} customer${dueCustomerCount === 1 ? "" : "s"} have pending dues`,
+    );
   }
 
   dom.heroSubtitle.textContent = bits.length
@@ -865,7 +928,8 @@ function updateSectionMeta(button) {
   dom.sectionEyebrow.textContent = button.dataset.eyebrow || "Workspace";
   dom.sectionHeading.textContent = button.dataset.title || "Dashboard";
   dom.sectionLead.textContent =
-    button.dataset.description || "Manage inventory, reporting, and dues from one dashboard.";
+    button.dataset.description ||
+    "Manage inventory, reporting, and dues from one dashboard.";
   dom.sectionBadge.textContent = button.dataset.badge || "Live";
 }
 
@@ -905,12 +969,18 @@ function setActiveSection(sectionId) {
     loadLowStock({ silent: true });
   }
 
-  if (sectionId === "purchaseEntrySection" && canAccessPermission("purchase_entry")) {
+  if (
+    sectionId === "purchaseEntrySection" &&
+    canAccessPermission("purchase_entry")
+  ) {
     loadPurchaseReport({ silent: true });
     showAllSupplierSummary({ silent: true });
   }
 
-  if (sectionId === "salesReportSection" && canAccessPermission("sales_report")) {
+  if (
+    sectionId === "salesReportSection" &&
+    canAccessPermission("sales_report")
+  ) {
     initYearFilter();
     loadBusinessTrend(dom.yearFilter?.value || "all", { silent: true });
     loadLast13MonthsChart({ silent: true });
@@ -921,7 +991,10 @@ function setActiveSection(sectionId) {
     loadStaffAccounts({ silent: true });
   }
 
-  if (sectionId === "expenseTrackingSection" && canAccessPermission("expense_tracking")) {
+  if (
+    sectionId === "expenseTrackingSection" &&
+    canAccessPermission("expense_tracking")
+  ) {
     loadExpenseReport({ silent: true });
   }
 
@@ -932,7 +1005,7 @@ function setActiveSection(sectionId) {
 
 function renderDropdown(listEl, items, onSelect) {
   if (!items.length) {
-    listEl.style.display = "none";
+    hideElement(listEl);
     listEl.innerHTML = "";
     return;
   }
@@ -950,11 +1023,11 @@ function renderDropdown(listEl, items, onSelect) {
     })
     .join("");
 
-  listEl.style.display = "block";
+  showElement(listEl);
   listEl.querySelectorAll(".dropdown-item").forEach((entry) => {
     entry.addEventListener("click", () => {
       onSelect(decodeURIComponent(entry.dataset.value));
-      listEl.style.display = "none";
+      hideElement(listEl);
     });
   });
 }
@@ -981,27 +1054,21 @@ function setupFilterInput(input, listEl, onSelect) {
 
   document.addEventListener("click", (event) => {
     if (!input.contains(event.target) && !listEl.contains(event.target)) {
-      listEl.style.display = "none";
+      hideElement(listEl);
     }
   });
 }
 
 async function checkAuth() {
-  const token = getToken();
-  if (!token) {
-    window.location.replace("login.html");
-    return null;
-  }
-
   try {
-    const user = await fetchJSON("/auth/me");
-    localStorage.setItem("user", JSON.stringify(user));
-    document.body.style.visibility = "visible";
-    return user;
+    return await fetchJSON("/auth/me");
   } catch (error) {
+    if (error?.code === "SESSION_EXPIRED") {
+      return null;
+    }
+
     console.error("Auth check failed:", error);
     clearStoredSession();
-    document.body.style.visibility = "visible";
     showPopup("error", "Session expired", "Please log in again to continue.", {
       autoClose: false,
     });
@@ -1009,6 +1076,8 @@ async function checkAuth() {
       window.location.replace("login.html");
     }, 1500);
     return null;
+  } finally {
+    markDashboardReady();
   }
 }
 
@@ -1047,9 +1116,8 @@ async function showPreviousBuyingRate(itemName) {
       return;
     }
 
-    dom.previousBuyingRate.textContent =
-      `Previous buying rate: ${formatCurrency(previousRate)}`;
-    dom.previousBuyingRate.style.display = "block";
+    dom.previousBuyingRate.textContent = `Previous buying rate: ${formatCurrency(previousRate)}`;
+    showElement(dom.previousBuyingRate);
     dom.buyingRate.value = previousRate.toFixed(2);
     updateSellingRate();
   } catch (error) {
@@ -1109,8 +1177,7 @@ async function loadDashboardOverview(options = {}) {
 
     if (dom.statNetProfit) {
       dom.statNetProfit.textContent = formatCurrency(netProfit);
-      dom.statNetProfitNote.textContent =
-        `Tracked expenses: ${formatCurrency(totalExpense)}. Net profit updates as expenses are added.`;
+      dom.statNetProfitNote.textContent = `Tracked expenses: ${formatCurrency(totalExpense)}. Net profit updates as expenses are added.`;
       dom.statNetProfit.classList.toggle("text-danger", netProfit < 0);
       dom.statNetProfit.classList.toggle("text-success", netProfit >= 0);
     }
@@ -1145,9 +1212,14 @@ async function addStock() {
   }
 
   if (!Number.isFinite(quantity) || quantity <= 0) {
-    showPopup("error", "Invalid quantity", "Quantity must be greater than zero.", {
-      autoClose: false,
-    });
+    showPopup(
+      "error",
+      "Invalid quantity",
+      "Quantity must be greater than zero.",
+      {
+        autoClose: false,
+      },
+    );
     return;
   }
 
@@ -1191,9 +1263,11 @@ async function addStock() {
         data.message || "Inventory entry has been updated successfully.",
       );
 
-      ["newItemSearch", "newQuantity", "buyingRate", "sellingRate"].forEach((id) => {
-        document.getElementById(id).value = "";
-      });
+      ["newItemSearch", "newQuantity", "buyingRate", "sellingRate"].forEach(
+        (id) => {
+          document.getElementById(id).value = "";
+        },
+      );
 
       hidePreviousBuyingRate();
       updateProfitPreview();
@@ -1203,7 +1277,11 @@ async function addStock() {
         loadDashboardOverview({ silent: true }),
       ]);
 
-      if (document.getElementById("itemReportSection").classList.contains("active")) {
+      if (
+        document
+          .getElementById("itemReportSection")
+          .classList.contains("active")
+      ) {
         await Promise.allSettled([
           loadItemReport({ silent: true }),
           loadLowStock({ silent: true }),
@@ -1281,7 +1359,9 @@ function syncPurchaseAmountPaidAutofill(subtotal) {
 
   const normalizedSubtotal = Number(subtotal) || 0;
   const autoValue = normalizedSubtotal > 0 ? normalizedSubtotal.toFixed(2) : "";
-  const currentValue = normalizePurchasePaidFieldValue(dom.purchaseAmountPaid.value);
+  const currentValue = normalizePurchasePaidFieldValue(
+    dom.purchaseAmountPaid.value,
+  );
   const previousAutoValue = normalizePurchasePaidFieldValue(
     dom.purchaseAmountPaid.dataset.autoValue,
   );
@@ -1351,8 +1431,9 @@ function updatePurchaseSummary() {
   const subtotal = rows.reduce((sum, row) => {
     return (
       sum +
-      (Number(row.querySelector(".purchase-line-total")?.dataset.value || "0") ||
-        0)
+      (Number(
+        row.querySelector(".purchase-line-total")?.dataset.value || "0",
+      ) || 0)
     );
   }, 0);
 
@@ -1363,23 +1444,28 @@ function updatePurchaseSummary() {
   const payment = getPurchasePaymentSnapshot(subtotal);
 
   dom.purchaseSubtotal.textContent = formatCurrency(payment.subtotal);
-  dom.purchaseAmountPaidDisplay.textContent = formatCurrency(payment.amountPaid);
+  dom.purchaseAmountPaidDisplay.textContent = formatCurrency(
+    payment.amountPaid,
+  );
   dom.purchaseAmountDueDisplay.textContent = formatCurrency(payment.amountDue);
   dom.purchaseActiveRows.textContent = formatCount(activeRows);
-  dom.purchasePaymentStatus.innerHTML = getStatusChipMarkup(payment.paymentStatus);
+  dom.purchasePaymentStatus.innerHTML = getStatusChipMarkup(
+    payment.paymentStatus,
+  );
 
   if (!payment.subtotal) {
     dom.purchasePulseNote.textContent =
       "Add purchase rows to see subtotal, paid amount, and supplier due.";
-  } else if (payment.paymentStatus === "due" && payment.paymentMode === "credit") {
+  } else if (
+    payment.paymentStatus === "due" &&
+    payment.paymentMode === "credit"
+  ) {
     dom.purchasePulseNote.textContent =
       "Credit mode with blank paid amount keeps the full bill pending for later repayment.";
   } else if (payment.paymentStatus === "partial") {
-    dom.purchasePulseNote.textContent =
-      `${formatCurrency(payment.amountDue)} remains payable to this supplier.`;
+    dom.purchasePulseNote.textContent = `${formatCurrency(payment.amountDue)} remains payable to this supplier.`;
   } else if (payment.paymentStatus === "due") {
-    dom.purchasePulseNote.textContent =
-      `No amount is recorded as paid yet. ${formatCurrency(payment.amountDue)} stays in supplier due.`;
+    dom.purchasePulseNote.textContent = `No amount is recorded as paid yet. ${formatCurrency(payment.amountDue)} stays in supplier due.`;
   } else if (dom.purchaseAmountPaid?.dataset.manual !== "true") {
     dom.purchasePulseNote.textContent =
       "Amount paid auto-fills from the item total, but you can still edit it any time.";
@@ -1419,9 +1505,9 @@ function addPurchaseItemRow(item = {}) {
         <label>Item</label>
         <div class="position-relative">
           <input class="form-control purchase-item-input" placeholder="Search existing or type new item name" autocomplete="off" />
-          <div class="dropdown-list purchase-item-dropdown"></div>
+          <div class="dropdown-list purchase-item-dropdown" hidden></div>
         </div>
-        <div class="purchase-previous-rate"></div>
+        <div class="purchase-previous-rate" hidden></div>
       </div>
       <div class="purchase-line-field">
         <label>Qty</label>
@@ -1485,12 +1571,12 @@ function addPurchaseItemRow(item = {}) {
 
     if (!Number.isFinite(buyRate) || buyRate < 0) {
       previousRateNote.textContent = "";
-      previousRateNote.style.display = "none";
+      hideElement(previousRateNote);
       return;
     }
 
     previousRateNote.textContent = `Previous buying rate: ${formatCurrency(buyRate)}`;
-    previousRateNote.style.display = "block";
+    showElement(previousRateNote);
   };
 
   const hidePreviousRate = () => {
@@ -1499,20 +1585,27 @@ function addPurchaseItemRow(item = {}) {
     }
 
     previousRateNote.textContent = "";
-    previousRateNote.style.display = "none";
+    hideElement(previousRateNote);
   };
 
   const resolveExactItemName = (value) =>
     state.itemNames.find(
       (itemName) =>
-        itemName.trim().toLowerCase() === String(value || "").trim().toLowerCase(),
+        itemName.trim().toLowerCase() ===
+        String(value || "")
+          .trim()
+          .toLowerCase(),
     ) || null;
 
   const syncProfitFromSell = () => {
     const buyRate = Number(buyInput.value);
     const sellRate = Number(sellInput.value);
 
-    if (!Number.isFinite(buyRate) || buyRate <= 0 || !Number.isFinite(sellRate)) {
+    if (
+      !Number.isFinite(buyRate) ||
+      buyRate <= 0 ||
+      !Number.isFinite(sellRate)
+    ) {
       return;
     }
 
@@ -1557,7 +1650,9 @@ function addPurchaseItemRow(item = {}) {
 
   const loadExistingItemInfo = async (name) => {
     try {
-      const itemInfo = await fetchJSON(`/items/info?name=${encodeURIComponent(name)}`);
+      const itemInfo = await fetchJSON(
+        `/items/info?name=${encodeURIComponent(name)}`,
+      );
       const previousRate = Number(itemInfo.buying_rate);
 
       if (Number.isFinite(previousRate) && previousRate >= 0) {
@@ -1581,7 +1676,7 @@ function addPurchaseItemRow(item = {}) {
     hidePreviousRate();
 
     if (!query) {
-      dropdown.style.display = "none";
+      hideElement(dropdown);
       return;
     }
 
@@ -1592,7 +1687,7 @@ function addPurchaseItemRow(item = {}) {
         .slice(0, 20),
       async (value) => {
         itemInput.value = value;
-        dropdown.style.display = "none";
+        hideElement(dropdown);
         await loadExistingItemInfo(value);
       },
     );
@@ -1600,7 +1695,7 @@ function addPurchaseItemRow(item = {}) {
 
   itemInput.addEventListener("blur", () => {
     window.setTimeout(() => {
-      dropdown.style.display = "none";
+      hideElement(dropdown);
     }, 120);
 
     const exactMatch = resolveExactItemName(itemInput.value);
@@ -1649,7 +1744,9 @@ function addPurchaseItemRow(item = {}) {
 
   sellInput.addEventListener("input", () => {
     syncProfitFromSell();
-    row.dataset.manualProfit = sellInput.value.trim() ? "true" : row.dataset.manualProfit;
+    row.dataset.manualProfit = sellInput.value.trim()
+      ? "true"
+      : row.dataset.manualProfit;
     const sharedProfit = applySharedProfitPercent(profitInput.value);
     if (sharedProfit !== null) {
       refreshPurchaseAutoRates({
@@ -1735,7 +1832,7 @@ function renderSupplierDropdown(listEl, suppliers, onSelect) {
   }
 
   if (!suppliers.length) {
-    listEl.style.display = "none";
+    hideElement(listEl);
     listEl.innerHTML = "";
     return;
   }
@@ -1757,7 +1854,7 @@ function renderSupplierDropdown(listEl, suppliers, onSelect) {
     )
     .join("");
 
-  listEl.style.display = "block";
+  showElement(listEl);
   listEl.querySelectorAll(".dropdown-item").forEach((entry) => {
     entry.addEventListener("click", () => {
       onSelect({
@@ -1766,7 +1863,7 @@ function renderSupplierDropdown(listEl, suppliers, onSelect) {
         mobile_number: decodeURIComponent(entry.dataset.mobile),
         address: decodeURIComponent(entry.dataset.address),
       });
-      listEl.style.display = "none";
+      hideElement(listEl);
     });
   });
 }
@@ -1803,7 +1900,7 @@ function renderPurchaseSearchDropdown(rows, onSelect) {
   }
 
   if (!rows.length) {
-    dom.purchaseSearchDropdown.style.display = "none";
+    hideElement(dom.purchaseSearchDropdown);
     dom.purchaseSearchDropdown.innerHTML = "";
     return;
   }
@@ -1829,7 +1926,7 @@ function renderPurchaseSearchDropdown(rows, onSelect) {
     })
     .join("");
 
-  dom.purchaseSearchDropdown.style.display = "block";
+  showElement(dom.purchaseSearchDropdown);
   dom.purchaseSearchDropdown
     .querySelectorAll(".dropdown-item")
     .forEach((entry) => {
@@ -1838,7 +1935,7 @@ function renderPurchaseSearchDropdown(rows, onSelect) {
           purchaseId: Number(entry.dataset.purchaseId || "0"),
           value: decodeURIComponent(entry.dataset.value || ""),
         });
-        dom.purchaseSearchDropdown.style.display = "none";
+        hideElement(dom.purchaseSearchDropdown);
       });
     });
 }
@@ -1906,11 +2003,13 @@ function renderPurchaseReport(rows) {
     dom.purchaseReportBody.appendChild(tr);
   });
 
-  dom.purchaseReportBody.querySelectorAll("[data-purchase-id]").forEach((row) => {
-    row.addEventListener("click", () => {
-      openPurchaseDetail(Number(row.dataset.purchaseId));
+  dom.purchaseReportBody
+    .querySelectorAll("[data-purchase-id]")
+    .forEach((row) => {
+      row.addEventListener("click", () => {
+        openPurchaseDetail(Number(row.dataset.purchaseId));
+      });
     });
-  });
 }
 
 async function loadPurchaseReport(options = {}) {
@@ -1924,7 +2023,9 @@ async function loadPurchaseReport(options = {}) {
 
   const task = async () => {
     const data = await fetchJSON(query);
-    state.currentPurchaseRows = Array.isArray(data.purchases) ? data.purchases : [];
+    state.currentPurchaseRows = Array.isArray(data.purchases)
+      ? data.purchases
+      : [];
     renderPurchaseReport(state.currentPurchaseRows);
   };
 
@@ -2005,18 +2106,20 @@ function renderSupplierLedgerSummary(rows) {
     </table>
   `;
 
-  dom.supplierLedgerTable.querySelectorAll("[data-supplier-id]").forEach((row) => {
-    row.addEventListener("click", () => {
-      const supplierId = Number(row.dataset.supplierId || "0");
-      if (supplierId > 0) {
-        dom.supplierSearchInput.value = decodeURIComponent(
-          row.dataset.supplierName || "",
-        );
-        dom.supplierSearchInput.dataset.supplierId = String(supplierId);
-        searchSupplierLedger({ supplierId });
-      }
+  dom.supplierLedgerTable
+    .querySelectorAll("[data-supplier-id]")
+    .forEach((row) => {
+      row.addEventListener("click", () => {
+        const supplierId = Number(row.dataset.supplierId || "0");
+        if (supplierId > 0) {
+          dom.supplierSearchInput.value = decodeURIComponent(
+            row.dataset.supplierName || "",
+          );
+          dom.supplierSearchInput.dataset.supplierId = String(supplierId);
+          searchSupplierLedger({ supplierId });
+        }
+      });
     });
-  });
 }
 
 function renderSupplierLedgerDetail(supplier, rows) {
@@ -2085,11 +2188,13 @@ function renderSupplierLedgerDetail(supplier, rows) {
     </table>
   `;
 
-  dom.supplierLedgerTable.querySelectorAll("[data-purchase-id]").forEach((row) => {
-    row.addEventListener("click", () => {
-      openPurchaseDetail(Number(row.dataset.purchaseId));
+  dom.supplierLedgerTable
+    .querySelectorAll("[data-purchase-id]")
+    .forEach((row) => {
+      row.addEventListener("click", () => {
+        openPurchaseDetail(Number(row.dataset.purchaseId));
+      });
     });
-  });
 }
 
 function renderPurchaseDetailEmpty(message) {
@@ -2237,7 +2342,9 @@ async function openPurchaseDetail(purchaseId, options = {}) {
   }
 
   const task = async () => {
-    const data = await fetchJSON(`/purchases/${encodeURIComponent(purchaseId)}`);
+    const data = await fetchJSON(
+      `/purchases/${encodeURIComponent(purchaseId)}`,
+    );
     renderPurchaseDetail(data.purchase || {});
     if (options.scroll !== false && dom.purchaseDetailCard) {
       dom.purchaseDetailCard.scrollIntoView({
@@ -2252,7 +2359,9 @@ async function openPurchaseDetail(purchaseId, options = {}) {
       await task();
     } catch (error) {
       console.error("Purchase detail load failed:", error);
-      renderPurchaseDetailEmpty("Could not load this purchase detail right now.");
+      renderPurchaseDetailEmpty(
+        "Could not load this purchase detail right now.",
+      );
     }
     return;
   }
@@ -2355,7 +2464,9 @@ async function submitPurchaseRepayment() {
 async function searchSupplierLedger(options = {}) {
   setPurchaseWorkspaceView("supplier");
 
-  const supplierId = Number(options.supplierId || dom.supplierSearchInput.dataset.supplierId || 0);
+  const supplierId = Number(
+    options.supplierId || dom.supplierSearchInput.dataset.supplierId || 0,
+  );
 
   if (!supplierId) {
     if (!options.silent) {
@@ -2371,7 +2482,10 @@ async function searchSupplierLedger(options = {}) {
 
   const task = async () => {
     const data = await fetchJSON(`/suppliers/${supplierId}/ledger`);
-    renderSupplierLedgerDetail(data.supplier || {}, Array.isArray(data.ledger) ? data.ledger : []);
+    renderSupplierLedgerDetail(
+      data.supplier || {},
+      Array.isArray(data.ledger) ? data.ledger : [],
+    );
   };
 
   if (options.silent) {
@@ -2412,7 +2526,9 @@ async function showAllSupplierSummary(options = {}) {
 
   const task = async () => {
     const data = await fetchJSON(path);
-    renderSupplierLedgerSummary(Array.isArray(data.suppliers) ? data.suppliers : []);
+    renderSupplierLedgerSummary(
+      Array.isArray(data.suppliers) ? data.suppliers : [],
+    );
   };
 
   if (options.silent) {
@@ -2455,11 +2571,23 @@ async function submitPurchase() {
     .map((row) => ({
       item_name: row.querySelector(".purchase-item-input")?.value.trim() || "",
       quantity: Number(row.querySelector(".purchase-qty-input")?.value || "0"),
-      profit_percent: Number(row.querySelector(".purchase-profit-input")?.value || "0"),
-      buying_rate: Number(row.querySelector(".purchase-buy-input")?.value || "0"),
-      selling_rate: Number(row.querySelector(".purchase-sell-input")?.value || "0"),
+      profit_percent: Number(
+        row.querySelector(".purchase-profit-input")?.value || "0",
+      ),
+      buying_rate: Number(
+        row.querySelector(".purchase-buy-input")?.value || "0",
+      ),
+      selling_rate: Number(
+        row.querySelector(".purchase-sell-input")?.value || "0",
+      ),
     }))
-    .filter((item) => item.item_name || item.quantity || item.buying_rate || item.selling_rate);
+    .filter(
+      (item) =>
+        item.item_name ||
+        item.quantity ||
+        item.buying_rate ||
+        item.selling_rate,
+    );
 
   if (!supplierName) {
     showPopup("error", "Missing supplier", "Supplier name is required.", {
@@ -2602,7 +2730,8 @@ function renderExpenseReport(data = {}) {
 
   dom.expenseSummaryTotal.textContent = formatCurrency(totalExpense);
   dom.expenseSummaryEntryCount.textContent = `${formatCount(summary.entry_count || 0)} expense entr${Number(summary.entry_count || 0) === 1 ? "y" : "ies"} in the selected range.`;
-  dom.expenseSummaryCategory.textContent = summary.top_category || "No expenses";
+  dom.expenseSummaryCategory.textContent =
+    summary.top_category || "No expenses";
   dom.expenseSummaryCategoryNote.textContent =
     summary.top_category && summary.top_category !== "No expenses"
       ? `${formatCurrency(Number(summary.top_category_total) || 0)} spent in the highest category.`
@@ -2626,7 +2755,9 @@ async function loadExpenseReport(options = {}) {
 
   const task = async () => {
     const data = await fetchJSON(query);
-    state.currentExpenseRows = Array.isArray(data.expenses) ? data.expenses : [];
+    state.currentExpenseRows = Array.isArray(data.expenses)
+      ? data.expenses
+      : [];
     renderExpenseReport(data);
   };
 
@@ -2841,8 +2972,7 @@ function updateLowStockOverview(rows) {
 
   const urgentRow = rows[0];
   const daysLeft = Number(urgentRow.days_left);
-  dom.statLowStockNote.textContent =
-    `${urgentRow.item_name} is most urgent${Number.isFinite(daysLeft) ? ` with about ${formatNumber(daysLeft)} day(s) left` : ""}.`;
+  dom.statLowStockNote.textContent = `${urgentRow.item_name} is most urgent${Number.isFinite(daysLeft) ? ` with about ${formatNumber(daysLeft)} day(s) left` : ""}.`;
 
   updateHeroSummary({
     itemCount: parseFormattedNumber(dom.statCatalogCount.textContent),
@@ -3007,7 +3137,9 @@ async function loadLowStock(options = {}) {
   const reorderLoaded = reorderResult.status === "fulfilled";
 
   if (lowStockLoaded) {
-    state.lowStockRows = Array.isArray(lowStockResult.value) ? lowStockResult.value : [];
+    state.lowStockRows = Array.isArray(lowStockResult.value)
+      ? lowStockResult.value
+      : [];
     renderLowStock(state.lowStockRows);
     updateLowStockOverview(state.lowStockRows);
   } else {
@@ -3018,7 +3150,9 @@ async function loadLowStock(options = {}) {
   }
 
   if (reorderLoaded) {
-    state.reorderRows = Array.isArray(reorderResult.value) ? reorderResult.value : [];
+    state.reorderRows = Array.isArray(reorderResult.value)
+      ? reorderResult.value
+      : [];
     renderReorderPlanner(state.reorderRows);
   } else {
     console.error("Reorder planner load failed:", reorderResult.reason);
@@ -3088,8 +3222,7 @@ function renderSalesNetProfitSummary(summary = {}, meta = {}) {
   dom.salesNetProfitValue.textContent = formatCurrency(netProfit);
   dom.salesNetProfitValue.classList.toggle("text-danger", netProfit < 0);
   dom.salesNetProfitValue.classList.toggle("text-success", netProfit >= 0);
-  dom.salesNetProfitNote.textContent =
-    `${formatInputDate(fromDate)} to ${formatInputDate(toDate)} | Gross ${formatCurrency(grossProfit)} | Expenses ${formatCurrency(totalExpense)}`;
+  dom.salesNetProfitNote.textContent = `${formatInputDate(fromDate)} to ${formatInputDate(toDate)} | Gross ${formatCurrency(grossProfit)} | Expenses ${formatCurrency(totalExpense)}`;
 }
 
 function renderSalesNetProfitFallback(message) {
@@ -3289,7 +3422,8 @@ function buildGstInsights(rows) {
     left.bucket.localeCompare(right.bucket),
   );
   const rateRows = Array.from(rateMap.values()).sort(
-    (left, right) => left.rate - right.rate || right.taxableTotal - left.taxableTotal,
+    (left, right) =>
+      left.rate - right.rate || right.taxableTotal - left.taxableTotal,
   );
   const invoiceCount = rows.length;
   const averageGst = invoiceCount ? gstTotal / invoiceCount : 0;
@@ -3320,8 +3454,11 @@ function buildGstInsights(rows) {
 
 function renderGstAdvancedSummary(insights) {
   dom.gstFilingPeriod.textContent = `${formatInputDate(dom.gstFromDate.value)} - ${formatInputDate(dom.gstToDate.value)}`;
-  dom.gstTopCollectionMonth.textContent = insights.topCollectionMonth?.label || "-";
-  dom.gstZeroRatedInvoices.textContent = formatCount(insights.zeroRatedInvoices);
+  dom.gstTopCollectionMonth.textContent =
+    insights.topCollectionMonth?.label || "-";
+  dom.gstZeroRatedInvoices.textContent = formatCount(
+    insights.zeroRatedInvoices,
+  );
   dom.gstDominantRate.textContent = insights.dominantRate
     ? formatPercent(insights.dominantRate.rate)
     : "0.00%";
@@ -3398,8 +3535,12 @@ function renderGstReport(rows) {
   dom.gstTaxableTotal.textContent = formatCurrency(insights.taxableTotal);
   dom.gstCollectedTotal.textContent = formatCurrency(insights.gstTotal);
   dom.gstReportGrandTotal.textContent = formatCurrency(insights.grandTotal);
-  dom.gstAveragePerInvoice.textContent = formatters.money.format(insights.averageGst);
-  dom.gstEffectiveRate.textContent = formatPercent(Math.abs(insights.effectiveRate));
+  dom.gstAveragePerInvoice.textContent = formatters.money.format(
+    insights.averageGst,
+  );
+  dom.gstEffectiveRate.textContent = formatPercent(
+    Math.abs(insights.effectiveRate),
+  );
   renderGstAdvancedSummary(insights);
 }
 
@@ -3501,7 +3642,10 @@ async function downloadItemReportPDF() {
     '<i class="fa-solid fa-spinner fa-spin"></i> Preparing PDF...',
     async () => {
       try {
-        await downloadAuthenticatedFile(`/items/report/pdf${query}`, fallbackName);
+        await downloadAuthenticatedFile(
+          `/items/report/pdf${query}`,
+          fallbackName,
+        );
         showPopup(
           "success",
           "Download complete",
@@ -3729,9 +3873,11 @@ async function submitDebt() {
           data.message || "Customer due entry added successfully.",
         );
 
-        ["cdName", "cdNumber", "cdTotal", "cdCredit", "cdRemark"].forEach((id) => {
-          document.getElementById(id).value = "";
-        });
+        ["cdName", "cdNumber", "cdTotal", "cdCredit", "cdRemark"].forEach(
+          (id) => {
+            document.getElementById(id).value = "";
+          },
+        );
 
         setCustomerNameLocked(false);
         await loadDashboardOverview({ silent: true });
@@ -3740,7 +3886,10 @@ async function submitDebt() {
           await showAllDues({ silent: true });
         }
 
-        if (state.ledgerMode === "ledger" && state.currentLedgerNumber === customerNumber) {
+        if (
+          state.ledgerMode === "ledger" &&
+          state.currentLedgerNumber === customerNumber
+        ) {
           await searchLedger({ value: customerNumber, silent: true });
         }
       } catch (error) {
@@ -4007,7 +4156,9 @@ function renderLast13MonthsChart(labels, values) {
 
 async function loadCustomerSuggestions(query) {
   try {
-    const rows = await fetchJSON(`/debts/customers?q=${encodeURIComponent(query)}`);
+    const rows = await fetchJSON(
+      `/debts/customers?q=${encodeURIComponent(query)}`,
+    );
     return Array.isArray(rows) ? rows : [];
   } catch (error) {
     console.error("Customer suggestions failed:", error);
@@ -4017,7 +4168,7 @@ async function loadCustomerSuggestions(query) {
 
 function renderCustomerDropdown(listEl, customers, onSelect) {
   if (!customers.length) {
-    listEl.style.display = "none";
+    hideElement(listEl);
     listEl.innerHTML = "";
     return;
   }
@@ -4039,7 +4190,7 @@ function renderCustomerDropdown(listEl, customers, onSelect) {
     })
     .join("");
 
-  listEl.style.display = "block";
+  showElement(listEl);
 
   listEl.querySelectorAll(".dropdown-item").forEach((item) => {
     item.addEventListener("click", () => {
@@ -4047,7 +4198,7 @@ function renderCustomerDropdown(listEl, customers, onSelect) {
         name: decodeURIComponent(item.dataset.name),
         number: decodeURIComponent(item.dataset.number),
       });
-      listEl.style.display = "none";
+      hideElement(listEl);
     });
   });
 }
@@ -4640,7 +4791,9 @@ async function loadStaffAccounts(options = {}) {
 }
 
 async function createStaffAccount() {
-  const name = String(dom.staffName?.value || "").replace(/\s+/g, " ").trim();
+  const name = String(dom.staffName?.value || "")
+    .replace(/\s+/g, " ")
+    .trim();
   const username = normalizeStaffUsername(dom.staffUsername?.value);
   const password = String(dom.staffPassword?.value || "");
   const permissions = readStaffPermissionSelection(dom.staffPermissionGrid);
@@ -4849,7 +5002,7 @@ function bindPurchaseEvents() {
 
     const query = dom.supplierName.value.trim();
     if (!query) {
-      dom.supplierDropdown.style.display = "none";
+      hideElement(dom.supplierDropdown);
       return;
     }
 
@@ -4867,7 +5020,7 @@ function bindPurchaseEvents() {
       !dom.supplierName.contains(event.target) &&
       !dom.supplierDropdown.contains(event.target)
     ) {
-      dom.supplierDropdown.style.display = "none";
+      hideElement(dom.supplierDropdown);
     }
   });
 
@@ -4880,18 +5033,24 @@ function bindPurchaseEvents() {
     dom.purchaseAmountPaid.dataset.editing = "true";
   });
   dom.purchaseAmountPaid.addEventListener("input", () => {
-    const rawValue = normalizePurchasePaidFieldValue(dom.purchaseAmountPaid.value);
+    const rawValue = normalizePurchasePaidFieldValue(
+      dom.purchaseAmountPaid.value,
+    );
     const autoValue = normalizePurchasePaidFieldValue(
       dom.purchaseAmountPaid.dataset.autoValue,
     );
     dom.purchaseAmountPaid.dataset.manual =
-      rawValue === "" || (rawValue && rawValue !== autoValue) ? "true" : "false";
+      rawValue === "" || (rawValue && rawValue !== autoValue)
+        ? "true"
+        : "false";
     updatePurchaseSummary();
   });
   dom.purchaseAmountPaid.addEventListener("blur", () => {
     dom.purchaseAmountPaid.dataset.editing = "false";
 
-    const rawValue = normalizePurchasePaidFieldValue(dom.purchaseAmountPaid.value);
+    const rawValue = normalizePurchasePaidFieldValue(
+      dom.purchaseAmountPaid.value,
+    );
     const autoValue = normalizePurchasePaidFieldValue(
       dom.purchaseAmountPaid.dataset.autoValue,
     );
@@ -4960,7 +5119,7 @@ function bindPurchaseEvents() {
   dom.purchaseSearchInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      dom.purchaseSearchDropdown.style.display = "none";
+      hideElement(dom.purchaseSearchDropdown);
       setPurchaseWorkspaceView("bills");
       loadPurchaseReport();
     }
@@ -4971,7 +5130,7 @@ function bindPurchaseEvents() {
       !dom.purchaseSearchInput.contains(event.target) &&
       !dom.purchaseSearchDropdown.contains(event.target)
     ) {
-      dom.purchaseSearchDropdown.style.display = "none";
+      hideElement(dom.purchaseSearchDropdown);
     }
   });
 
@@ -4982,7 +5141,10 @@ function bindPurchaseEvents() {
   dom.addPurchaseItemBtn.addEventListener("click", () => addPurchaseItemRow());
   dom.resetPurchaseBtn.addEventListener("click", resetPurchaseForm);
   dom.submitPurchaseBtn.addEventListener("click", submitPurchase);
-  dom.submitPurchaseRepaymentBtn?.addEventListener("click", submitPurchaseRepayment);
+  dom.submitPurchaseRepaymentBtn?.addEventListener(
+    "click",
+    submitPurchaseRepayment,
+  );
 
   dom.supplierSearchInput.addEventListener("input", async () => {
     setPurchaseWorkspaceView("supplier");
@@ -4990,16 +5152,20 @@ function bindPurchaseEvents() {
     const query = dom.supplierSearchInput.value.trim();
 
     if (!query) {
-      dom.supplierSearchDropdown.style.display = "none";
+      hideElement(dom.supplierSearchDropdown);
       return;
     }
 
     const suppliers = await loadSupplierSuggestions(query);
-    renderSupplierDropdown(dom.supplierSearchDropdown, suppliers, (supplier) => {
-      dom.supplierSearchInput.value = supplier.name || "";
-      dom.supplierSearchInput.dataset.supplierId = String(supplier.id || "");
-      searchSupplierLedger({ supplierId: supplier.id });
-    });
+    renderSupplierDropdown(
+      dom.supplierSearchDropdown,
+      suppliers,
+      (supplier) => {
+        dom.supplierSearchInput.value = supplier.name || "";
+        dom.supplierSearchInput.dataset.supplierId = String(supplier.id || "");
+        searchSupplierLedger({ supplierId: supplier.id });
+      },
+    );
   });
 
   dom.supplierSearchInput.addEventListener("keydown", (event) => {
@@ -5015,7 +5181,7 @@ function bindPurchaseEvents() {
       !dom.supplierSearchInput.contains(event.target) &&
       !dom.supplierSearchDropdown.contains(event.target)
     ) {
-      dom.supplierSearchDropdown.style.display = "none";
+      hideElement(dom.supplierSearchDropdown);
     }
   });
 
@@ -5102,16 +5268,20 @@ function bindCustomerDueEvents() {
     setCustomerNameLocked(false);
 
     if (!query) {
-      dom.cdNumberDropdown.style.display = "none";
+      hideElement(dom.cdNumberDropdown);
       return;
     }
 
     const customers = await loadCustomerSuggestions(query);
-    renderCustomerDropdown(dom.cdNumberDropdown, customers, ({ name, number }) => {
-      dom.cdName.value = name;
-      dom.cdNumber.value = number;
-      setCustomerNameLocked(true);
-    });
+    renderCustomerDropdown(
+      dom.cdNumberDropdown,
+      customers,
+      ({ name, number }) => {
+        dom.cdName.value = name;
+        dom.cdNumber.value = number;
+        setCustomerNameLocked(true);
+      },
+    );
   });
 
   document.addEventListener("click", (event) => {
@@ -5119,7 +5289,7 @@ function bindCustomerDueEvents() {
       !dom.cdNumber.contains(event.target) &&
       !dom.cdNumberDropdown.contains(event.target)
     ) {
-      dom.cdNumberDropdown.style.display = "none";
+      hideElement(dom.cdNumberDropdown);
     }
   });
 
@@ -5129,7 +5299,7 @@ function bindCustomerDueEvents() {
     const query = dom.cdSearchInput.value.trim();
 
     if (!query) {
-      dom.cdSearchDropdown.style.display = "none";
+      hideElement(dom.cdSearchDropdown);
       return;
     }
 
@@ -5152,7 +5322,7 @@ function bindCustomerDueEvents() {
       !dom.cdSearchInput.contains(event.target) &&
       !dom.cdSearchDropdown.contains(event.target)
     ) {
-      dom.cdSearchDropdown.style.display = "none";
+      hideElement(dom.cdSearchDropdown);
     }
   });
 
@@ -5294,7 +5464,14 @@ window.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  if (canAccessPermission("add_stock", "purchase_entry", "sale_invoice", "stock_report")) {
+  if (
+    canAccessPermission(
+      "add_stock",
+      "purchase_entry",
+      "sale_invoice",
+      "stock_report",
+    )
+  ) {
     await loadItemNames({ silent: true });
   }
 
@@ -5325,7 +5502,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 });
 
 window.setTimeout(() => {
-  if (document.body.style.visibility === "hidden") {
-    document.body.style.visibility = "visible";
+  if (document.body.classList.contains("app-loading")) {
+    markDashboardReady();
   }
 }, 5000);

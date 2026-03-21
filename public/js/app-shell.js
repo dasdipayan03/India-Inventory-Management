@@ -7,6 +7,7 @@
     app.copyrightText ||
     "Copyright 2026 India Inventory Management - All rights reserved.";
   const brandDescription = String(app.sidebarBrandDescription || "").trim();
+  const cspNonce = doc?.documentElement?.dataset?.cspNonce || "";
   const isMobileLayout =
     app.isMobileLayout ||
     (() => global.matchMedia("(max-width: 991px)").matches);
@@ -30,14 +31,15 @@
   let activeController = null;
 
   const sidebarStyles = `
+    html.body-scroll-lock-root,
     body.body-scroll-lock {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
       overflow: hidden;
       overscroll-behavior: none;
       overscroll-behavior-y: none;
+    }
+
+    body.body-scroll-lock {
+      height: 100vh;
     }
 
     #sidebarToggle {
@@ -260,6 +262,9 @@
 
     const style = doc.createElement("style");
     style.id = styleId;
+    if (cspNonce) {
+      style.setAttribute("nonce", cspNonce);
+    }
     style.textContent = sidebarStyles;
     doc.head.appendChild(style);
   }
@@ -445,6 +450,8 @@
     const elements = getElements();
     const cleanups = [];
     let sidebarScrollY = 0;
+    const root = doc.documentElement;
+    const lockRootClass = "body-scroll-lock-root";
 
     const listen = (target, eventName, handler, options) => {
       if (!target || typeof target.addEventListener !== "function") {
@@ -457,14 +464,17 @@
       );
     };
 
+    const isSidebarTarget = (target) =>
+      target instanceof Element && Boolean(target.closest(".sidebar"));
+
     const unlockBodyScroll = () => {
       if (!doc.body.classList.contains("body-scroll-lock")) {
         return;
       }
 
       const scrollY = sidebarScrollY || 0;
+      root?.classList.remove(lockRootClass);
       doc.body.classList.remove("body-scroll-lock");
-      doc.body.style.top = "";
       global.scrollTo(0, scrollY);
       sidebarScrollY = 0;
     };
@@ -478,8 +488,8 @@
       }
 
       sidebarScrollY = global.scrollY || global.pageYOffset || 0;
+      root?.classList.add(lockRootClass);
       doc.body.classList.add("body-scroll-lock");
-      doc.body.style.top = `-${sidebarScrollY}px`;
     };
 
     const controller = {
@@ -574,8 +584,26 @@
       }
     };
 
+    const handleLockedScroll = (event) => {
+      if (!controller.isOpen() || !isMobileLayout()) {
+        return;
+      }
+
+      if (isSidebarTarget(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+    };
+
     listen(elements.sidebarToggle, "click", controller.toggle);
     listen(elements.sidebarOverlay, "click", controller.close);
+    listen(doc, "wheel", handleLockedScroll, {
+      passive: false,
+    });
+    listen(doc, "touchmove", handleLockedScroll, {
+      passive: false,
+    });
     listen(elements.sidebar, "touchstart", handleSidebarTouchStart, {
       passive: true,
     });
