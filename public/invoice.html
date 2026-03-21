@@ -2401,60 +2401,6 @@
         }, 1500);
       };
 
-      const downloadInvoice = async (invoiceNo, button = null) => {
-        const normalizedInvoiceNo = String(invoiceNo || "").trim();
-        if (!normalizedInvoiceNo) {
-          return false;
-        }
-
-        let didDownload = false;
-
-        await withButtonState(button, "Preparing PDF...", async () => {
-          try {
-            const response = await authFetch(
-              `${API_PREFIX}/invoices/${encodeURIComponent(normalizedInvoiceNo)}/pdf`,
-            );
-
-            if (!response) {
-              return;
-            }
-
-            if (!response.ok) {
-              let payload = {};
-              try {
-                payload = await response.json();
-              } catch (_error) {
-                payload = {};
-              }
-
-              throw new Error(
-                payload.error ||
-                  payload.message ||
-                  "Could not download the invoice PDF.",
-              );
-            }
-
-            await saveBlobDownload(response, `${normalizedInvoiceNo}.pdf`);
-            didDownload = true;
-            showPopup(
-              "success",
-              "Download complete",
-              "The invoice PDF has been downloaded.",
-            );
-          } catch (error) {
-            console.error("Invoice PDF download failed:", error);
-            showPopup(
-              "error",
-              "Download failed",
-              error.message || "Could not download the invoice PDF.",
-              { autoClose: false },
-            );
-          }
-        });
-
-        return didDownload;
-      };
-
       const clearStoredSession =
         appConfig.clearStoredSession ||
         (() => {
@@ -2877,6 +2823,60 @@
             clearTimeout(popupTimer);
             popupTimer = null;
           }
+        };
+
+        const downloadInvoice = async (invoiceNo, button = null) => {
+          const normalizedInvoiceNo = String(invoiceNo || "").trim();
+          if (!normalizedInvoiceNo) {
+            return false;
+          }
+
+          let didDownload = false;
+
+          await withButtonState(button, "Preparing PDF...", async () => {
+            try {
+              const response = await authFetch(
+                `${API_PREFIX}/invoices/${encodeURIComponent(normalizedInvoiceNo)}/pdf`,
+              );
+
+              if (!response) {
+                return;
+              }
+
+              if (!response.ok) {
+                let payload = {};
+                try {
+                  payload = await response.json();
+                } catch (_error) {
+                  payload = {};
+                }
+
+                throw new Error(
+                  payload.error ||
+                    payload.message ||
+                    "Could not download the invoice PDF.",
+                );
+              }
+
+              await saveBlobDownload(response, `${normalizedInvoiceNo}.pdf`);
+              didDownload = true;
+              showPopup(
+                "success",
+                "Download complete",
+                "The invoice PDF has been downloaded.",
+              );
+            } catch (error) {
+              console.error("Invoice PDF download failed:", error);
+              showPopup(
+                "error",
+                "Download failed",
+                error.message || "Could not download the invoice PDF.",
+                { autoClose: false },
+              );
+            }
+          });
+
+          return didDownload;
         };
 
         const updateSearchStatus = (modeText, countText, hintText) => {
