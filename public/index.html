@@ -1,0 +1,4489 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>India Inventory Management</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    />
+    <style>
+      :root {
+        --ink-strong: #10213f;
+        --ink-main: #27406b;
+        --ink-soft: #5f7496;
+        --line: rgba(117, 142, 180, 0.18);
+        --surface: rgba(255, 255, 255, 0.86);
+        --navy: #17315d;
+        --cyan: #0ea5e9;
+        --cyan-strong: #0284c7;
+        --teal: #14b8a6;
+        --danger: #dc2626;
+        --success: #16a34a;
+        --shadow-xl: 0 32px 70px rgba(17, 29, 58, 0.16);
+        --shadow-lg: 0 18px 38px rgba(17, 29, 58, 0.1);
+        --shadow-md: 0 12px 24px rgba(17, 29, 58, 0.08);
+        --radius-xl: 28px;
+        --radius-lg: 22px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      html {
+        color-scheme: light;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        min-height: 100dvh;
+        overflow-x: hidden;
+        font-family: "Segoe UI Variable", "Segoe UI", sans-serif;
+        color: var(--ink-main);
+        background:
+          radial-gradient(
+            circle at top left,
+            rgba(20, 184, 166, 0.18),
+            transparent 24%
+          ),
+          radial-gradient(
+            circle at top right,
+            rgba(14, 165, 233, 0.22),
+            transparent 26%
+          ),
+          linear-gradient(180deg, #eef6ff 0%, #f7fbff 38%, #f4f9ff 100%);
+        visibility: hidden;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+      }
+
+      .dashboard-body::before {
+        content: "";
+        position: fixed;
+        inset: auto -10% -30% 45%;
+        height: 480px;
+        background: radial-gradient(
+          circle,
+          rgba(14, 165, 233, 0.16),
+          transparent 68%
+        );
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .dashboard-body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+        background-size: 120px 120px;
+        opacity: 0.25;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .main {
+        position: relative;
+        z-index: 1;
+        min-height: 100vh;
+        min-height: 100dvh;
+        margin-left: 322px;
+        padding: 28px 28px 48px;
+      }
+
+      .main-shell {
+        max-width: 1320px;
+        margin: 0 auto;
+      }
+
+      .hero-panel {
+        display: grid;
+        grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.9fr);
+        gap: 18px;
+        margin-bottom: 20px;
+      }
+
+      .hero-panel__copy,
+      .hero-panel__user {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.58);
+        border-radius: var(--radius-xl);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.88),
+          rgba(245, 250, 255, 0.8)
+        );
+        box-shadow: var(--shadow-lg);
+        backdrop-filter: blur(14px);
+      }
+
+      .hero-panel__copy {
+        padding: 30px;
+      }
+
+      .hero-panel__copy::after {
+        content: "";
+        position: absolute;
+        inset: auto -40px -80px auto;
+        width: 220px;
+        height: 220px;
+        border-radius: 999px;
+        background: radial-gradient(
+          circle,
+          rgba(14, 165, 233, 0.18),
+          transparent 68%
+        );
+      }
+
+      .hero-panel__user {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 26px;
+      }
+
+      .hero-kicker {
+        display: inline-flex;
+        width: fit-content;
+        margin: 0 0 14px;
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: rgba(14, 165, 233, 0.1);
+        color: var(--cyan-strong);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .hero-panel h1 {
+        margin: 0;
+        color: var(--ink-strong);
+        font-size: clamp(20px, 5vw, 44px);
+        line-height: 0.98;
+        letter-spacing: -0.05em;
+      }
+
+      .hero-description {
+        max-width: 60ch;
+        margin: 16px 0 0;
+        color: var(--ink-soft);
+        font-size: 15px;
+        line-height: 1.8;
+      }
+
+      .hero-chip {
+        display: inline-flex;
+        width: fit-content;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 18px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(20, 184, 166, 0.1);
+        color: #0f766e;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      #welcomeUser {
+        margin: 0;
+        color: var(--ink-strong);
+        font-size: clamp(24px, 4vw, 34px);
+        line-height: 1.05;
+        letter-spacing: -0.04em;
+      }
+
+      #heroSubtitle {
+        margin: 14px 0 0;
+        color: var(--ink-soft);
+        font-size: 14px;
+        line-height: 1.7;
+      }
+
+      .overview-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 20px;
+      }
+
+      .overview-card {
+        position: relative;
+        overflow: hidden;
+        padding: 20px 20px 18px;
+        border: 1px solid rgba(255, 255, 255, 0.56);
+        border-radius: 24px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.94),
+          rgba(246, 251, 255, 0.86)
+        );
+        box-shadow: var(--shadow-md);
+      }
+
+      .overview-card::after {
+        content: "";
+        position: absolute;
+        top: -14px;
+        right: -10px;
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: var(--card-glow, rgba(14, 165, 233, 0.16));
+      }
+
+      .overview-card__label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+        color: var(--ink-soft);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .overview-card__value {
+        display: block;
+        color: var(--ink-strong);
+        font-size: clamp(24px, 3vw, 32px);
+        line-height: 1;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+      }
+
+      .overview-card__note {
+        display: block;
+        margin-top: 10px;
+        color: var(--ink-soft);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .section-meta {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+        padding: 20px 22px;
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.58);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.84),
+          rgba(246, 251, 255, 0.78)
+        );
+        box-shadow: var(--shadow-md);
+      }
+
+      .section-meta__eyebrow {
+        margin: 0 0 8px;
+        color: var(--cyan-strong);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .section-meta h3 {
+        margin: 0;
+        color: var(--ink-strong);
+        font-size: clamp(22px, 3vw, 32px);
+        line-height: 1.05;
+        letter-spacing: -0.04em;
+      }
+
+      .section-meta p {
+        max-width: 64ch;
+        margin: 10px 0 0;
+        color: var(--ink-soft);
+        font-size: 14px;
+        line-height: 1.7;
+      }
+
+      .section-meta__badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 112px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(23, 49, 93, 0.08);
+        color: var(--navy);
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .form-section {
+        display: none;
+      }
+
+      .form-section.active {
+        display: block;
+        animation: section-in 0.25s ease;
+      }
+
+      .section-grid {
+        display: grid;
+        gap: 16px;
+      }
+
+      .section-grid--inventory {
+        grid-template-columns: minmax(0, 1.6fr) minmax(300px, 0.9fr);
+      }
+
+      .section-grid--purchase {
+        grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.95fr);
+      }
+
+      .section-grid--dues {
+        grid-template-columns: minmax(340px, 0.92fr) minmax(0, 1.24fr);
+      }
+
+      .due-search-actions .btn,
+      .due-submit-row .btn {
+        min-height: 48px;
+      }
+
+      .section-grid--expense {
+        grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.25fr);
+      }
+
+      .chart-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 16px;
+      }
+
+      .panel-card {
+        position: relative;
+        overflow: hidden;
+        padding: 24px;
+        border-radius: var(--radius-lg);
+        border: 1px solid rgba(255, 255, 255, 0.58);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.92),
+          rgba(247, 251, 255, 0.84)
+        );
+        box-shadow: var(--shadow-lg);
+      }
+
+      .panel-card--surface {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.94),
+          rgba(248, 251, 255, 0.86)
+        );
+        margin-top: 16px;
+      }
+
+      .panel-card--highlight {
+        color: #e2edf9;
+        background:
+          radial-gradient(
+            circle at top right,
+            rgba(45, 212, 191, 0.16),
+            transparent 30%
+          ),
+          linear-gradient(180deg, #193563, #0f2447);
+      }
+
+      .panel-card--alert {
+        margin-top: 16px;
+        border-color: rgba(248, 113, 113, 0.22);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.96),
+          rgba(255, 246, 246, 0.92)
+        );
+      }
+
+      .panel-card__header,
+      .panel-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 20px;
+      }
+
+      .panel-kicker {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--cyan-strong);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .panel-card h4,
+      .panel-card h5,
+      .panel-card h6 {
+        margin: 0;
+        color: var(--ink-strong);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+
+      .panel-subtitle {
+        margin: 10px 0 0;
+        color: var(--ink-soft);
+        font-size: 14px;
+        line-height: 1.65;
+      }
+
+      .panel-card__icon {
+        width: 50px;
+        height: 50px;
+        display: grid;
+        place-items: center;
+        border-radius: 18px;
+        background: linear-gradient(
+          135deg,
+          rgba(14, 165, 233, 0.14),
+          rgba(20, 184, 166, 0.12)
+        );
+        color: var(--cyan-strong);
+        font-size: 19px;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      }
+
+      .panel-card--highlight .panel-kicker,
+      .panel-card--highlight h4,
+      .panel-card--highlight p,
+      .panel-card--highlight li,
+      .panel-card--highlight strong {
+        color: inherit;
+      }
+
+      .panel-card--highlight .panel-card__icon {
+        background: rgba(255, 255, 255, 0.14);
+        color: #ffffff;
+      }
+
+      .form-label.small {
+        margin-bottom: 8px;
+        color: var(--ink-main);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+      }
+
+      .form-control,
+      .form-select {
+        min-height: 52px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.92);
+        color: var(--ink-strong);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      }
+
+      .form-control::placeholder {
+        color: #8da0bc;
+      }
+
+      .form-control:focus,
+      .form-select:focus {
+        border-color: rgba(14, 165, 233, 0.56);
+        box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.12);
+      }
+
+      .btn {
+        min-height: 50px;
+        border: 0;
+        border-radius: 16px;
+        font-weight: 700;
+        box-shadow: 0 14px 26px rgba(17, 29, 58, 0.08);
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease,
+          opacity 0.2s ease;
+      }
+
+      .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 18px 30px rgba(17, 29, 58, 0.12);
+      }
+
+      .btn:disabled {
+        opacity: 0.72;
+        transform: none;
+        box-shadow: 0 10px 18px rgba(17, 29, 58, 0.08);
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, var(--cyan), var(--cyan-strong));
+      }
+
+      .btn-info {
+        background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+        color: #ffffff;
+      }
+
+      .btn-success {
+        background: linear-gradient(135deg, #22c55e, #16a34a);
+      }
+
+      .btn-danger {
+        background: linear-gradient(135deg, #f97316, #ea580c);
+      }
+
+      .btn-secondary {
+        background: linear-gradient(135deg, #475569, #334155);
+      }
+
+      .info-list {
+        display: grid;
+        gap: 12px;
+        margin: 20px 0 0;
+      }
+
+      .info-card {
+        padding: 14px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .info-card span {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: rgba(226, 232, 240, 0.76);
+      }
+
+      .info-card strong {
+        display: block;
+        font-size: 20px;
+        line-height: 1.1;
+      }
+
+      .info-card p {
+        margin: 8px 0 0;
+        font-size: 13px;
+        line-height: 1.6;
+        color: rgba(226, 232, 240, 0.82);
+      }
+
+      #previousBuyingRate {
+        margin-top: 8px;
+        color: #8fe2ff;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .support-list {
+        margin: 18px 0 0;
+        padding-left: 18px;
+        color: rgba(226, 232, 240, 0.82);
+      }
+
+      .support-list li + li {
+        margin-top: 8px;
+      }
+
+      .purchase-line-builder {
+        display: grid;
+        gap: 14px;
+      }
+
+      .purchase-line-card {
+        padding: 16px;
+        border-radius: 22px;
+        border: 1px solid rgba(191, 219, 254, 0.52);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.96),
+          rgba(245, 250, 255, 0.88)
+        );
+        box-shadow: var(--shadow-sm);
+      }
+
+      .purchase-line-card__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .purchase-line-card__title {
+        color: var(--ink-strong);
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+
+      .purchase-line-card__hint {
+        margin-top: 4px;
+        color: var(--ink-soft);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .purchase-line-card__grid {
+        /* display: grid; */
+        grid-template-columns: minmax(220px, 1.4fr) repeat(
+            5,
+            minmax(108px, 1fr)
+          );
+        gap: 12px;
+      }
+
+      .purchase-line-field {
+        display: grid;
+        gap: 8px;
+      }
+
+      .purchase-line-field--item {
+        grid-column: span 2;
+      }
+
+      .purchase-line-field label,
+      .purchase-line-total-box span,
+      .purchase-detail-note span {
+        display: block;
+        color: var(--ink-soft);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .purchase-previous-rate {
+        min-height: 18px;
+        color: var(--cyan-strong);
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.45;
+      }
+
+      .purchase-line-total-box {
+        height: 100%;
+        min-height: 56px;
+        display: grid;
+        align-content: center;
+        gap: 6px;
+        padding: 13px 15px;
+        border-radius: 18px;
+        border: 1px solid rgba(125, 211, 252, 0.38);
+        background: linear-gradient(
+          180deg,
+          rgba(224, 242, 254, 0.92),
+          rgba(239, 246, 255, 0.98)
+        );
+      }
+
+      .purchase-line-total-box strong {
+        color: var(--ink-strong);
+        font-size: 20px;
+        line-height: 1.1;
+        letter-spacing: -0.03em;
+      }
+
+      .purchase-line-actions {
+        display: flex;
+        align-items: stretch;
+      }
+
+      .purchase-remove-btn {
+        min-width: 56px;
+        width: 100%;
+      }
+
+      .interactive-row {
+        cursor: pointer;
+      }
+
+      .interactive-row td {
+        transition: background-color 0.2s ease;
+      }
+
+      .interactive-row:hover td {
+        background: rgba(224, 242, 254, 0.72) !important;
+      }
+
+      .table-row-hint {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 6px;
+        color: var(--cyan-strong);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .purchase-detail-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.9fr);
+        gap: 18px;
+        margin-top: 14px;
+      }
+
+      .purchase-detail-meta {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .purchase-detail-note {
+        margin-top: 16px;
+        padding: 16px;
+        border-radius: 20px;
+        border: 1px solid rgba(191, 219, 254, 0.42);
+        background: rgba(248, 251, 255, 0.82);
+      }
+
+      .purchase-detail-note strong {
+        display: block;
+        margin-top: 8px;
+        color: var(--ink-strong);
+        font-size: 14px;
+        line-height: 1.65;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .purchase-detail-empty {
+        padding: 26px 20px;
+        border-radius: 20px;
+        border: 1px dashed rgba(191, 219, 254, 0.56);
+        background: rgba(248, 251, 255, 0.76);
+        color: var(--ink-soft);
+        text-align: center;
+        line-height: 1.7;
+      }
+
+      .purchase-repay-panel {
+        margin-top: 18px;
+        padding: 18px;
+        border-radius: 22px;
+        border: 1px solid rgba(125, 211, 252, 0.32);
+        background: linear-gradient(
+          180deg,
+          rgba(240, 249, 255, 0.96),
+          rgba(247, 252, 255, 0.9)
+        );
+        box-shadow: var(--shadow-sm);
+      }
+
+      .purchase-repay-panel h5 {
+        margin-top: 6px;
+        color: var(--ink-strong);
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+
+      .purchase-repay-panel .panel-subtitle {
+        margin-top: 6px;
+      }
+
+      .purchase-pulse-card {
+        padding: 20px;
+      }
+
+      .purchase-pulse-card .panel-card__header {
+        margin-bottom: 16px;
+      }
+
+      .purchase-pulse-card .panel-subtitle {
+        margin-top: 8px;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .purchase-pulse-card .info-list {
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .purchase-pulse-card .info-card {
+        padding: 12px 14px;
+        border-radius: 16px;
+      }
+
+      .purchase-pulse-card .info-card strong {
+        font-size: 18px;
+      }
+
+      .purchase-pulse-card .info-card p {
+        margin-top: 6px;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .purchase-pulse-card .support-list {
+        margin-top: 14px;
+      }
+
+      .purchase-pulse-card .support-list li {
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .purchase-workspace-card {
+        margin-top: 16px;
+      }
+
+      .purchase-view-switch {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 18px;
+      }
+
+      .purchase-view-btn {
+        min-height: 46px;
+        padding: 0 18px;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.88);
+        color: var(--ink-main);
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+        box-shadow: none;
+      }
+
+      .purchase-view-btn:hover {
+        transform: translateY(-1px);
+      }
+
+      .purchase-view-btn.is-active {
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--cyan), var(--cyan-strong));
+        box-shadow: 0 14px 24px rgba(14, 165, 233, 0.18);
+      }
+
+      .purchase-view-panel + .purchase-view-panel {
+        margin-top: 18px;
+      }
+
+      .purchase-view-panel__head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+
+      .purchase-view-panel__head h5 {
+        margin: 0;
+        color: var(--ink-strong);
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+
+      .purchase-view-panel__head p {
+        margin: 8px 0 0;
+        color: var(--ink-soft);
+        font-size: 14px;
+        line-height: 1.65;
+      }
+
+      .purchase-view-panel__icon {
+        width: 48px;
+        height: 48px;
+        display: grid;
+        place-items: center;
+        border-radius: 16px;
+        background: rgba(14, 165, 233, 0.1);
+        color: var(--cyan-strong);
+        font-size: 18px;
+      }
+
+      .dropdown-list {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        right: 0;
+        z-index: 2200;
+        display: none;
+        max-height: 240px;
+        overflow-y: auto;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: var(--shadow-md);
+        backdrop-filter: blur(12px);
+      }
+
+      .dropdown-item {
+        padding: 12px 14px;
+        color: var(--ink-main);
+        cursor: pointer;
+      }
+
+      .dropdown-item:hover {
+        background: rgba(14, 165, 233, 0.08);
+      }
+
+      .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-x: contain;
+        border-radius: 18px;
+        border: 1px solid rgba(191, 219, 254, 0.42);
+        background: rgba(255, 255, 255, 0.78);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+      }
+
+      .table {
+        margin-bottom: 0;
+        color: var(--ink-main);
+      }
+
+      .dashboard-table {
+        width: 100%;
+        min-width: 720px;
+        table-layout: auto;
+      }
+
+      .table-label-compact {
+        display: none;
+      }
+
+      .dashboard-table thead th {
+        white-space: nowrap;
+      }
+
+      .dashboard-table--item-report th:first-child,
+      .dashboard-table--item-report td:first-child,
+      .dashboard-table--low-stock th:first-child,
+      .dashboard-table--low-stock td:first-child,
+      .dashboard-table--purchase-builder th:first-child,
+      .dashboard-table--purchase-builder td:first-child,
+      .dashboard-table--purchase-detail th:first-child,
+      .dashboard-table--purchase-detail td:first-child,
+      .dashboard-table--purchase-report th:nth-child(2),
+      .dashboard-table--purchase-report td:nth-child(2),
+      .dashboard-table--purchase-report th:nth-child(3),
+      .dashboard-table--purchase-report td:nth-child(3),
+      .dashboard-table--supplier-ledger th:first-child,
+      .dashboard-table--supplier-ledger td:first-child,
+      .dashboard-table--supplier-ledger th:nth-child(2),
+      .dashboard-table--supplier-ledger td:nth-child(2),
+      .dashboard-table--expense th:nth-child(2),
+      .dashboard-table--expense td:nth-child(2),
+      .dashboard-table--sales th:nth-child(2),
+      .dashboard-table--sales td:nth-child(2),
+      .dashboard-table--gst th:nth-child(2),
+      .dashboard-table--gst td:nth-child(2),
+      .dashboard-table--gst th:nth-child(3),
+      .dashboard-table--gst td:nth-child(3),
+      .dashboard-table--reorder th:first-child,
+      .dashboard-table--reorder td:first-child,
+      .dashboard-table--gst-monthly th:first-child,
+      .dashboard-table--gst-monthly td:first-child,
+      .dashboard-table--gst-rates th:first-child,
+      .dashboard-table--gst-rates td:first-child,
+      .dashboard-table--ledger td:first-child,
+      .dashboard-table--ledger td:last-child {
+        text-align: left;
+      }
+
+      .dashboard-table--item-report td:first-child,
+      .dashboard-table--low-stock td:first-child,
+      .dashboard-table--purchase-builder td:first-child,
+      .dashboard-table--purchase-detail td:first-child,
+      .dashboard-table--purchase-report td:nth-child(2),
+      .dashboard-table--purchase-report td:nth-child(3),
+      .dashboard-table--supplier-ledger td:first-child,
+      .dashboard-table--supplier-ledger td:nth-child(2),
+      .dashboard-table--expense td:nth-child(2),
+      .dashboard-table--sales td:nth-child(2),
+      .dashboard-table--gst td:nth-child(2),
+      .dashboard-table--gst td:nth-child(3),
+      .dashboard-table--reorder td:first-child,
+      .dashboard-table--gst-monthly td:first-child,
+      .dashboard-table--gst-rates td:first-child,
+      .dashboard-table--ledger td:first-child,
+      .dashboard-table--ledger td:last-child {
+        white-space: normal;
+        word-break: normal;
+        overflow-wrap: break-word;
+        line-height: 1.4;
+      }
+
+      .table > :not(caption) > * > * {
+        padding: 0.88rem 0.9rem;
+        border-bottom-color: rgba(191, 219, 254, 0.32);
+      }
+
+      .table thead th {
+        position: sticky;
+        top: 0;
+        background: linear-gradient(180deg, #eff7ff, #e6f2ff) !important;
+        color: var(--ink-strong);
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        border-bottom: 1px solid rgba(125, 211, 252, 0.42);
+      }
+
+      .table tbody tr {
+        transition: background-color 0.2s ease;
+      }
+
+      .table tbody tr:nth-child(even) {
+        background: rgba(248, 251, 255, 0.76);
+      }
+
+      .table tbody tr:hover {
+        background: rgba(224, 242, 254, 0.6);
+      }
+
+      #lowStockBody tr.critical-stock-row td {
+        background-color: rgba(254, 226, 226, 0.88) !important;
+        color: #991b1b !important;
+        font-weight: 700;
+      }
+
+      #lowStockBody tr.warning-stock-row td {
+        background-color: rgba(254, 249, 195, 0.96) !important;
+        color: #92400e !important;
+        font-weight: 700;
+      }
+
+      #reorderPlanBody tr.reorder-row--urgent td {
+        background-color: rgba(254, 226, 226, 0.76) !important;
+      }
+
+      #reorderPlanBody tr.reorder-row--soon td {
+        background-color: rgba(254, 249, 195, 0.72) !important;
+      }
+
+      .summary-strip {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+        margin-bottom: 10px;
+      }
+
+      .summary-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(14, 165, 233, 0.08);
+        color: var(--cyan-strong);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .status-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-width: 102px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .status-chip--paid {
+        color: #166534;
+        background: rgba(187, 247, 208, 0.72);
+      }
+
+      .status-chip--partial {
+        color: #92400e;
+        background: rgba(254, 240, 138, 0.72);
+      }
+
+      .status-chip--due {
+        color: #991b1b;
+        background: rgba(254, 202, 202, 0.82);
+      }
+
+      .status-chip--return {
+        color: #1d4ed8;
+        background: rgba(191, 219, 254, 0.76);
+      }
+
+      .report-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .report-kpi {
+        position: relative;
+        overflow: hidden;
+        padding: 18px;
+        border-radius: 20px;
+        border: 1px solid rgba(191, 219, 254, 0.42);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.94),
+          rgba(246, 251, 255, 0.88)
+        );
+        box-shadow: var(--shadow-md);
+      }
+
+      .report-kpi::after {
+        content: "";
+        position: absolute;
+        inset: auto -18px -28px auto;
+        width: 90px;
+        height: 90px;
+        border-radius: 999px;
+        background: var(--kpi-glow, rgba(14, 165, 233, 0.16));
+      }
+
+      .report-kpi__label {
+        position: relative;
+        z-index: 1;
+        display: block;
+        color: var(--ink-soft);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .report-kpi__value {
+        position: relative;
+        z-index: 1;
+        display: block;
+        margin-top: 10px;
+        color: var(--ink-strong);
+        font-size: clamp(22px, 2vw, 30px);
+        line-height: 1.05;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+      }
+
+      .report-kpi__note {
+        position: relative;
+        z-index: 1;
+        display: block;
+        margin-top: 8px;
+        color: var(--ink-soft);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .mini-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .mini-kpi {
+        padding: 16px;
+        border-radius: 18px;
+        border: 1px solid rgba(191, 219, 254, 0.44);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.96),
+          rgba(245, 250, 255, 0.9)
+        );
+      }
+
+      .mini-kpi__label {
+        display: block;
+        color: var(--ink-soft);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .mini-kpi__value {
+        display: block;
+        margin-top: 8px;
+        color: var(--ink-strong);
+        font-size: 20px;
+        line-height: 1.2;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+
+      .mini-kpi__meta {
+        display: block;
+        margin-top: 6px;
+        color: var(--ink-soft);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .insight-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 18px;
+      }
+
+      .insight-panel {
+        padding: 18px;
+        border-radius: 22px;
+        border: 1px solid rgba(191, 219, 254, 0.42);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.96),
+          rgba(246, 251, 255, 0.9)
+        );
+        box-shadow: var(--shadow-md);
+      }
+
+      .insight-panel--wide {
+        grid-column: 1 / -1;
+      }
+
+      .insight-panel__head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .insight-panel__eyebrow {
+        display: block;
+        color: var(--cyan-strong);
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .insight-panel__title {
+        display: block;
+        margin-top: 6px;
+        color: var(--ink-strong);
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+
+      .insight-panel__copy {
+        display: block;
+        margin-top: 6px;
+        color: var(--ink-soft);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .insight-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(14, 165, 233, 0.12);
+        color: var(--cyan-strong);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .table-primary-copy {
+        color: var(--ink-strong);
+        font-weight: 700;
+      }
+
+      .table-secondary-copy {
+        margin-top: 4px;
+        color: var(--ink-soft);
+        font-size: 11px;
+        line-height: 1.45;
+      }
+
+      .status-badge-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .status-badge-pill--urgent {
+        background: rgba(254, 226, 226, 0.95);
+        color: #b91c1c;
+      }
+
+      .status-badge-pill--soon {
+        background: rgba(254, 249, 195, 0.96);
+        color: #92400e;
+      }
+
+      .status-badge-pill--buffer {
+        background: rgba(219, 234, 254, 0.95);
+        color: #1d4ed8;
+      }
+
+      .analytics-card {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.94),
+          rgba(246, 251, 255, 0.86)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.58);
+        border-radius: 22px;
+        padding: 22px;
+        box-shadow: var(--shadow-md);
+      }
+
+      .analytics-title {
+        color: var(--ink-strong);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+
+      .chart-box {
+        position: relative;
+        width: 100%;
+        height: 350px;
+      }
+
+      .sales-net-profit-card {
+        margin-top: 18px;
+        padding: 18px 18px 16px;
+      }
+
+      .sales-net-profit-card__top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 12px;
+      }
+
+      .sales-net-profit-card__top h5 {
+        margin: 2px 0 0;
+        color: var(--ink-strong);
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+
+      .sales-net-profit-card__filters {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, auto));
+        gap: 10px;
+        align-items: end;
+      }
+
+      .sales-net-profit-card__field {
+        min-width: 122px;
+      }
+
+      .sales-net-profit-card__field label {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--ink-soft);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .sales-net-profit-card__field .form-control {
+        min-height: 42px;
+        padding: 10px 12px;
+      }
+
+      .sales-net-profit-card__filters .btn {
+        min-width: 94px;
+        min-height: 42px;
+        padding-inline: 14px;
+      }
+
+      .sales-net-profit-card__value {
+        display: block;
+        color: var(--ink-strong);
+        font-size: clamp(24px, 3vw, 34px);
+        line-height: 1;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+      }
+
+      .sales-net-profit-card__note {
+        display: block;
+        margin-top: 10px;
+        color: var(--ink-soft);
+        font-size: 13px;
+        line-height: 1.65;
+      }
+
+      #growthBadge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 24px;
+        margin-top: 12px;
+        font-size: 13px;
+      }
+
+      .dashboard-table--ledger td:last-child {
+        max-width: 220px;
+      }
+
+      .empty-ledger {
+        padding: 24px;
+        text-align: center;
+        color: var(--ink-soft);
+        font-size: 14px;
+        line-height: 1.7;
+      }
+
+      .staff-permission-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .staff-permission-chip {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        min-height: 58px;
+        padding: 14px 15px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(191, 219, 254, 0.56);
+        cursor: pointer;
+        transition:
+          border-color 0.2s ease,
+          box-shadow 0.2s ease,
+          transform 0.2s ease;
+      }
+
+      .staff-permission-chip:hover {
+        transform: translateY(-1px);
+        border-color: rgba(14, 165, 233, 0.42);
+        box-shadow: 0 14px 28px rgba(17, 29, 58, 0.06);
+      }
+
+      .staff-permission-chip.is-selected {
+        border-color: rgba(14, 165, 233, 0.44);
+        background: rgba(224, 242, 254, 0.96);
+        box-shadow: 0 16px 30px rgba(14, 165, 233, 0.12);
+      }
+
+      .staff-permission-chip input {
+        width: 18px;
+        height: 18px;
+        margin-top: 2px;
+        accent-color: var(--cyan-strong);
+        flex-shrink: 0;
+      }
+
+      .staff-permission-chip strong {
+        display: block;
+        color: var(--ink-strong);
+        font-size: 13px;
+      }
+
+      .staff-permission-chip span {
+        display: block;
+        margin-top: 4px;
+        color: var(--ink-soft);
+        font-size: 11px;
+        line-height: 1.45;
+      }
+
+      .staff-toggle-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .staff-helper-text {
+        margin: 0;
+        color: var(--ink-soft);
+        font-size: 12px;
+        line-height: 1.65;
+      }
+
+      .staff-card-list {
+        display: grid;
+        gap: 14px;
+      }
+
+      .staff-card {
+        padding: 18px;
+        border-radius: 22px;
+        border: 1px solid rgba(191, 219, 254, 0.48);
+        background: rgba(255, 255, 255, 0.86);
+        box-shadow: 0 14px 28px rgba(17, 29, 58, 0.06);
+      }
+
+      .staff-card__header,
+      .staff-card__actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .staff-card__meta strong {
+        display: block;
+        color: var(--ink-strong);
+        font-size: 16px;
+      }
+
+      .staff-card__meta span {
+        display: block;
+        margin-top: 4px;
+        color: var(--ink-soft);
+        font-size: 12px;
+      }
+
+      .staff-access-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 14px 0 16px;
+      }
+
+      .staff-access-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 11px;
+        border-radius: 999px;
+        background: rgba(14, 165, 233, 0.1);
+        color: var(--cyan-strong);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .staff-permission-grid--compact {
+        margin-top: 12px;
+      }
+
+      .popup-shell {
+        position: fixed;
+        inset: 0;
+        z-index: 5000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 22px;
+      }
+
+      .popup-shell.active {
+        display: flex;
+      }
+
+      .popup-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(10, 18, 37, 0.45);
+        backdrop-filter: blur(6px);
+      }
+
+      .popup-box {
+        position: relative;
+        width: min(100%, 420px);
+        border-radius: 24px;
+        padding: 28px 24px;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: var(--shadow-xl);
+        text-align: center;
+        animation: popup-in 0.22s ease;
+      }
+
+      .popup-close {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        width: 36px;
+        height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.12);
+        color: var(--ink-soft);
+        cursor: pointer;
+        transition:
+          background-color 0.2s ease,
+          color 0.2s ease,
+          transform 0.2s ease;
+      }
+
+      .popup-close:hover {
+        background: rgba(14, 165, 233, 0.12);
+        color: var(--cyan-strong);
+        transform: translateY(-1px);
+      }
+
+      .popup-box.success {
+        border: 1px solid rgba(34, 197, 94, 0.18);
+      }
+
+      .popup-box.error {
+        border: 1px solid rgba(239, 68, 68, 0.18);
+      }
+
+      .popup-icon {
+        width: 58px;
+        height: 58px;
+        display: grid;
+        place-items: center;
+        margin: 0 auto 16px;
+        border-radius: 18px;
+        background: rgba(14, 165, 233, 0.1);
+        color: var(--cyan-strong);
+        font-size: 24px;
+      }
+
+      .popup-box.success .popup-icon {
+        background: rgba(34, 197, 94, 0.1);
+        color: var(--success);
+      }
+
+      .popup-box.error .popup-icon {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
+      }
+
+      #popupTitle {
+        margin: 0 0 10px;
+        color: var(--ink-strong);
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+
+      #popupMessage {
+        margin: 0;
+        color: var(--ink-soft);
+        font-size: 14px;
+        line-height: 1.7;
+      }
+
+      .popup-close:focus-visible,
+      .btn:focus-visible,
+      .form-control:focus-visible,
+      .form-select:focus-visible {
+        outline: 3px solid rgba(14, 165, 233, 0.22);
+        outline-offset: 3px;
+      }
+
+      @keyframes popup-in {
+        from {
+          opacity: 0;
+          transform: translateY(18px) scale(0.96);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @keyframes section-in {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (max-width: 1460px) {
+        .section-grid--purchase {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 1199px) {
+        .overview-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .section-grid--inventory,
+        .section-grid--dues,
+        .section-grid--expense,
+        .purchase-detail-layout,
+        .chart-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 991px) {
+        .main {
+          margin-left: 0;
+          padding: 84px 16px 36px;
+        }
+
+        .hero-panel {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .overview-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .purchase-line-card__grid,
+        .purchase-detail-meta {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .purchase-line-field--item,
+        .purchase-line-actions {
+          grid-column: 1 / -1;
+        }
+
+        .chart-box {
+          height: 260px;
+        }
+
+        .sales-net-profit-card__top {
+          flex-direction: column;
+        }
+
+        .sales-net-profit-card__filters {
+          width: 100%;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .hero-panel__copy,
+        .hero-panel__user,
+        .panel-card {
+          padding: 20px;
+        }
+
+        .report-kpi-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .mini-kpi-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .insight-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .insight-panel--wide {
+          grid-column: auto;
+        }
+
+        .insight-panel__head {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .insight-badge {
+          align-self: flex-start;
+          margin-top: 10px;
+        }
+
+        .section-meta {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+      }
+
+      @media (max-width: 576px) {
+        .main {
+          padding: 78px 10px 28px;
+        }
+
+        .overview-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .sales-net-profit-card {
+          padding: 16px;
+        }
+
+        .sales-net-profit-card__filters {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .sales-net-profit-card__field {
+          min-width: 0;
+        }
+
+        .sales-net-profit-card__filters .btn {
+          grid-column: 1 / -1;
+          width: 100%;
+        }
+
+        .table {
+          font-size: 11px;
+        }
+
+        .table > :not(caption) > * > * {
+          padding: 0.56rem 0.34rem;
+        }
+
+        .dashboard-table {
+          min-width: 0;
+          table-layout: fixed;
+        }
+
+        .table-label-full {
+          display: none;
+        }
+
+        .table-label-compact {
+          display: inline;
+        }
+
+        .dashboard-table thead th {
+          font-size: 10px;
+          line-height: 1.2;
+          letter-spacing: 0.02em;
+          white-space: normal;
+          word-break: normal;
+          overflow-wrap: normal;
+        }
+
+        .dashboard-table tbody td {
+          white-space: normal;
+          word-break: normal;
+          overflow-wrap: break-word;
+          line-height: 1.3;
+        }
+
+        .dashboard-table--item-report td:first-child,
+        .dashboard-table--low-stock td:first-child,
+        .dashboard-table--reorder td:first-child,
+        .dashboard-table--purchase-detail td:first-child,
+        .dashboard-table--purchase-report td:nth-child(2),
+        .dashboard-table--purchase-report td:nth-child(3),
+        .dashboard-table--supplier-ledger td:first-child,
+        .dashboard-table--supplier-ledger td:nth-child(2),
+        .dashboard-table--expense td:nth-child(2),
+        .dashboard-table--gst-monthly td:first-child,
+        .dashboard-table--gst-rates td:first-child,
+        .dashboard-table--sales td:nth-child(2),
+        .dashboard-table--gst td:nth-child(2),
+        .dashboard-table--gst td:nth-child(3),
+        .dashboard-table--ledger td:first-child,
+        .dashboard-table--ledger td:last-child {
+          min-width: 170px;
+          white-space: normal;
+        }
+
+        .dashboard-table--item-report th:nth-child(1),
+        .dashboard-table--low-stock th:nth-child(1) {
+          width: 30%;
+        }
+
+        .dashboard-table--item-report th:nth-child(2),
+        .dashboard-table--low-stock th:nth-child(2) {
+          width: 15%;
+        }
+
+        .dashboard-table--item-report th:nth-child(3),
+        .dashboard-table--item-report th:nth-child(4),
+        .dashboard-table--item-report th:nth-child(5),
+        .dashboard-table--low-stock th:nth-child(3),
+        .dashboard-table--low-stock th:nth-child(4),
+        .dashboard-table--low-stock th:nth-child(5) {
+          width: 18.33%;
+        }
+
+        .dashboard-table--sales th:nth-child(1) {
+          width: 18%;
+        }
+
+        .dashboard-table--purchase-report th:nth-child(1) {
+          width: 16%;
+        }
+
+        .dashboard-table--purchase-report th:nth-child(2) {
+          width: 22%;
+        }
+
+        .dashboard-table--purchase-report th:nth-child(3) {
+          width: 18%;
+        }
+
+        .dashboard-table--purchase-report th:nth-child(4) {
+          width: 10%;
+        }
+
+        .dashboard-table--purchase-report th:nth-child(5),
+        .dashboard-table--purchase-report th:nth-child(6),
+        .dashboard-table--purchase-report th:nth-child(7) {
+          width: 12%;
+        }
+
+        .dashboard-table--purchase-report th:nth-child(8) {
+          width: 18%;
+        }
+
+        .dashboard-table--purchase-detail th:nth-child(1) {
+          width: 34%;
+        }
+
+        .dashboard-table--purchase-detail th:nth-child(2) {
+          width: 12%;
+        }
+
+        .dashboard-table--purchase-detail th:nth-child(3),
+        .dashboard-table--purchase-detail th:nth-child(4),
+        .dashboard-table--purchase-detail th:nth-child(5) {
+          width: 18%;
+        }
+
+        .dashboard-table--supplier-ledger th:nth-child(1),
+        .dashboard-table--supplier-ledger th:nth-child(2) {
+          width: 20%;
+        }
+
+        .dashboard-table--supplier-ledger th:nth-child(3),
+        .dashboard-table--supplier-ledger th:nth-child(4),
+        .dashboard-table--supplier-ledger th:nth-child(5) {
+          width: 14%;
+        }
+
+        .dashboard-table--supplier-ledger th:nth-child(6) {
+          width: 18%;
+        }
+
+        .dashboard-table--expense th:nth-child(1) {
+          width: 16%;
+        }
+
+        .dashboard-table--expense th:nth-child(2) {
+          width: 26%;
+        }
+
+        .dashboard-table--expense th:nth-child(3) {
+          width: 18%;
+        }
+
+        .dashboard-table--expense th:nth-child(4),
+        .dashboard-table--expense th:nth-child(5) {
+          width: 14%;
+        }
+
+        .dashboard-table--expense th:nth-child(6) {
+          width: 12%;
+        }
+
+        .dashboard-table--sales th:nth-child(2) {
+          width: 30%;
+        }
+
+        .dashboard-table--sales th:nth-child(3) {
+          width: 10%;
+        }
+
+        .dashboard-table--sales th:nth-child(4),
+        .dashboard-table--sales th:nth-child(5) {
+          width: 21%;
+        }
+
+        .dashboard-table--gst th:nth-child(1) {
+          width: 14%;
+        }
+
+        .dashboard-table--gst th:nth-child(2) {
+          width: 22%;
+        }
+
+        .dashboard-table--gst th:nth-child(3) {
+          width: 26%;
+        }
+
+        .dashboard-table--gst th:nth-child(4) {
+          width: 13%;
+        }
+
+        .dashboard-table--gst th:nth-child(5) {
+          width: 11%;
+        }
+
+        .dashboard-table--gst th:nth-child(6) {
+          width: 14%;
+        }
+
+        .dashboard-table--reorder th:nth-child(1) {
+          width: 31%;
+        }
+
+        .dashboard-table--reorder th:nth-child(2) {
+          width: 10%;
+        }
+
+        .dashboard-table--reorder th:nth-child(3) {
+          width: 13%;
+        }
+
+        .dashboard-table--reorder th:nth-child(4) {
+          width: 12%;
+        }
+
+        .dashboard-table--reorder th:nth-child(5) {
+          width: 14%;
+        }
+
+        .dashboard-table--reorder th:nth-child(6) {
+          width: 20%;
+        }
+
+        .dashboard-table--gst-monthly th:nth-child(1),
+        .dashboard-table--gst-rates th:nth-child(1) {
+          width: 22%;
+        }
+
+        .dashboard-table--gst-monthly th:nth-child(2),
+        .dashboard-table--gst-rates th:nth-child(2) {
+          width: 12%;
+        }
+
+        .dashboard-table--gst-monthly th:nth-child(3),
+        .dashboard-table--gst-rates th:nth-child(3) {
+          width: 24%;
+        }
+
+        .dashboard-table--gst-monthly th:nth-child(4),
+        .dashboard-table--gst-rates th:nth-child(4) {
+          width: 18%;
+        }
+
+        .dashboard-table--gst-monthly th:nth-child(5),
+        .dashboard-table--gst-rates th:nth-child(5) {
+          width: 24%;
+        }
+
+        .report-kpi-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .mini-kpi-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .mobile-table-wrap {
+          width: 100%;
+          margin-left: 0;
+          margin-right: 0;
+        }
+
+        .mobile-table-wrap-1 {
+          width: 100%;
+          margin-left: 0;
+        }
+
+        .mobile-table-wrap .summary-strip,
+        .mobile-table-wrap .empty-ledger,
+        .mobile-table-wrap-1 .summary-strip,
+        .mobile-table-wrap-1 .empty-ledger {
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+
+        .dashboard-table--purchase-report,
+        .dashboard-table--supplier-ledger,
+        .dashboard-table--purchase-detail {
+          min-width: 0;
+          width: 100%;
+          table-layout: fixed;
+        }
+
+        .dashboard-table--purchase-report thead,
+        .dashboard-table--supplier-ledger thead,
+        .dashboard-table--purchase-detail thead {
+          display: none;
+        }
+
+        .dashboard-table--purchase-report tbody,
+        .dashboard-table--supplier-ledger tbody,
+        .dashboard-table--purchase-detail tbody {
+          display: grid;
+          gap: 12px;
+          padding: 12px;
+        }
+
+        .dashboard-table--purchase-report tbody tr,
+        .dashboard-table--supplier-ledger tbody tr,
+        .dashboard-table--purchase-detail tbody tr {
+          display: block;
+          padding: 14px 14px 10px;
+          border-radius: 18px;
+          border: 1px solid rgba(191, 219, 254, 0.44);
+          background: linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.98),
+            rgba(246, 251, 255, 0.94)
+          );
+          box-shadow: var(--shadow-md);
+        }
+
+        .dashboard-table--purchase-report tbody td,
+        .dashboard-table--supplier-ledger tbody td,
+        .dashboard-table--purchase-detail tbody td {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+          width: 100%;
+          min-width: 0 !important;
+          padding: 8px 0;
+          border-bottom: 1px solid rgba(191, 219, 254, 0.22);
+          text-align: left !important;
+          white-space: normal;
+        }
+
+        .dashboard-table--purchase-report tbody td:last-child,
+        .dashboard-table--supplier-ledger tbody td:last-child,
+        .dashboard-table--purchase-detail tbody td:last-child {
+          border-bottom: 0;
+          padding-bottom: 0;
+        }
+
+        .dashboard-table--purchase-report tbody td::before,
+        .dashboard-table--supplier-ledger tbody td::before,
+        .dashboard-table--purchase-detail tbody td::before {
+          content: attr(data-label);
+          flex: 0 0 96px;
+          color: var(--ink-soft);
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          line-height: 1.4;
+        }
+
+        .dashboard-table--purchase-report tbody td > *,
+        .dashboard-table--supplier-ledger tbody td > *,
+        .dashboard-table--purchase-detail tbody td > * {
+          min-width: 0;
+        }
+
+        .dashboard-table--purchase-report tbody td[colspan],
+        .dashboard-table--supplier-ledger tbody td[colspan],
+        .dashboard-table--purchase-detail tbody td[colspan] {
+          display: block;
+          padding: 2px 0;
+          border-bottom: 0;
+          text-align: center !important;
+        }
+
+        .dashboard-table--purchase-report tbody td[colspan]::before,
+        .dashboard-table--supplier-ledger tbody td[colspan]::before,
+        .dashboard-table--purchase-detail tbody td[colspan]::before {
+          content: none;
+        }
+
+        .dashboard-table--purchase-report .status-chip,
+        .dashboard-table--supplier-ledger .status-chip {
+          min-width: 0;
+        }
+      }
+
+      @media (max-width: 420px) {
+        .main {
+          padding: 74px 8px 24px;
+        }
+
+        .hero-panel__copy,
+        .hero-panel__user,
+        .panel-card,
+        .section-meta,
+        .overview-card {
+          padding: 16px;
+        }
+
+        .panel-card__header,
+        .panel-heading {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .purchase-line-card {
+          padding: 12px;
+          border-radius: 18px;
+        }
+
+        .purchase-pulse-card {
+          padding: 16px;
+        }
+
+        .purchase-view-switch {
+          gap: 8px;
+        }
+
+        .purchase-view-btn {
+          flex: 1 1 calc(50% - 4px);
+          min-width: 0;
+          padding: 0 14px;
+        }
+
+        .purchase-view-panel__head {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .purchase-line-card__header {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          align-items: start;
+          gap: 10px;
+          margin-bottom: 10px;
+        }
+
+        .purchase-line-card__grid,
+        .purchase-detail-meta {
+          grid-template-columns: 1fr;
+        }
+
+        .purchase-line-card__title {
+          font-size: 13px;
+        }
+
+        .purchase-line-card__hint {
+          margin-top: 2px;
+          font-size: 11px;
+          line-height: 1.4;
+        }
+
+        .purchase-line-field {
+          gap: 6px;
+        }
+
+        .purchase-line-field .form-control,
+        .purchase-line-field .form-select {
+          min-height: 46px;
+          padding: 10px 12px;
+          border-radius: 14px;
+        }
+
+        .purchase-line-total-box {
+          min-height: 50px;
+          gap: 4px;
+          padding: 10px 12px;
+          border-radius: 14px;
+        }
+
+        .purchase-line-total-box strong {
+          font-size: 16px;
+        }
+
+        .purchase-remove-btn {
+          min-width: 68px;
+          width: 68px;
+          min-height: 42px;
+          padding: 0;
+          border-radius: 14px;
+        }
+
+        .purchase-line-field--item,
+        .purchase-line-actions {
+          grid-column: auto;
+        }
+
+        .section-meta__badge {
+          min-width: 0;
+          width: fit-content;
+          max-width: 100%;
+        }
+
+        .chart-box {
+          height: 220px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body class="dashboard-body">
+    <main class="main">
+      <div class="main-shell">
+        <header class="hero-panel">
+          <div class="hero-panel__copy">
+            <p class="hero-kicker" id="currentDateLabel">Today</p>
+            <h1>India Inventory Management</h1>
+            <p class="hero-description">
+              Maintain your daily stock, sales, reports, and dues from one
+              premium workspace built to stay practical for real shop
+              operations.
+            </p>
+          </div>
+
+          <div class="hero-panel__user">
+            <div>
+              <span class="hero-chip" id="sessionRoleChip">
+                <i class="fa-solid fa-shield-halved"></i>
+                Admin Workspace
+              </span>
+              <h2 id="welcomeUser"></h2>
+            </div>
+            <p id="heroSubtitle">
+              Your dashboard is syncing the latest inventory and sales view.
+            </p>
+          </div>
+        </header>
+
+        <section
+          id="overviewGrid"
+          class="overview-grid"
+          aria-label="Dashboard Overview"
+        >
+          <article
+            class="overview-card"
+            style="--card-glow: rgba(14, 165, 233, 0.18)"
+          >
+            <span class="overview-card__label">
+              <i class="fa-solid fa-boxes-stacked"></i>
+              Stock Items
+            </span>
+            <strong class="overview-card__value" id="statCatalogCount"
+              >0</strong
+            >
+            <small class="overview-card__note" id="statCatalogNote">
+              Total tracked items in your stock.
+            </small>
+          </article>
+
+          <article
+            class="overview-card"
+            style="--card-glow: rgba(20, 184, 166, 0.16)"
+          >
+            <span class="overview-card__label">
+              <i class="fa-solid fa-wallet"></i>
+              Stock Value
+            </span>
+            <strong class="overview-card__value" id="statCatalogValue"
+              >Rs. 0.00</strong
+            >
+            <small class="overview-card__note" id="statCatalogValueNote">
+              Estimated stock value based on buying rates
+            </small>
+          </article>
+
+          <article
+            class="overview-card"
+            style="--card-glow: rgba(245, 158, 11, 0.16)"
+          >
+            <span class="overview-card__label">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              Low Stock
+            </span>
+            <strong class="overview-card__value" id="statLowStock">0</strong>
+            <small class="overview-card__note" id="statLowStockNote">
+              Items that need attention soon
+            </small>
+          </article>
+
+          <article
+            class="overview-card"
+            style="--card-glow: rgba(59, 130, 246, 0.16)"
+          >
+            <span class="overview-card__label">
+              <i class="fa-solid fa-hand-holding-dollar"></i>
+              Due Balance
+            </span>
+            <strong class="overview-card__value" id="statDueBalance"
+              >Rs. 0.00</strong
+            >
+            <small class="overview-card__note" id="statDueNote">
+              Total outstanding customer balance
+            </small>
+          </article>
+
+          <article
+            class="overview-card"
+            style="--card-glow: rgba(20, 184, 166, 0.16)"
+          >
+            <span class="overview-card__label">
+              <i class="fa-solid fa-truck-ramp-box"></i>
+              Supplier Due
+            </span>
+            <strong class="overview-card__value" id="statSupplierDue"
+              >Rs. 0.00</strong
+            >
+            <small class="overview-card__note" id="statSupplierDueNote">
+              Total pending supplier payable amount
+            </small>
+          </article>
+        </section>
+
+        <section class="section-meta" aria-live="polite">
+          <div>
+            <p class="section-meta__eyebrow" id="sectionEyebrow">
+              Inventory Intake
+            </p>
+            <h3 id="sectionHeading">Add New Stock</h3>
+            <p id="sectionLead">
+              Keep quantity, buying rate, and selling rate aligned when fresh
+              stock arrives.
+            </p>
+          </div>
+          <span class="section-meta__badge" id="sectionBadge">Stock</span>
+        </section>
+
+        <div id="addStockSection" class="form-section active">
+          <div class="section-grid section-grid--inventory">
+            <section class="panel-card panel-card--surface">
+              <div class="panel-card__header">
+                <div>
+                  <span class="panel-kicker">Inventory Flow</span>
+                  <h4>Add or replenish stock</h4>
+                  <p class="panel-subtitle">
+                    Search an existing item or type a new one.
+                  </p>
+                </div>
+                <div class="panel-card__icon">
+                  <i class="fas fa-plus-circle"></i>
+                </div>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-12">
+                  <label class="form-label small"
+                    >Search Existing Item For Add</label
+                  >
+                  <div class="position-relative">
+                    <input
+                      type="text"
+                      id="newItemSearch"
+                      class="form-control"
+                      placeholder="Search or Select Item"
+                      autocomplete="off"
+                    />
+                    <div id="newItemDropdownList" class="dropdown-list"></div>
+                  </div>
+                </div>
+
+                <div class="col-sm-6">
+                  <label class="form-label small">Quantity</label>
+                  <input
+                    type="number"
+                    id="newQuantity"
+                    class="form-control"
+                    placeholder="Enter Quantity"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+
+                <div class="col-sm-6">
+                  <label class="form-label small">Profit %</label>
+                  <input
+                    type="number"
+                    id="profitPercent"
+                    class="form-control"
+                    value="30"
+                    min="0"
+                    step="0.1"
+                  />
+                </div>
+
+                <div class="col-sm-6">
+                  <label class="form-label small">Buying Rate</label>
+                  <input
+                    type="number"
+                    id="buyingRate"
+                    class="form-control"
+                    placeholder="Enter buying rate"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+
+                <div class="col-sm-6">
+                  <label class="form-label small">Selling Rate</label>
+                  <input
+                    type="number"
+                    id="sellingRate"
+                    class="form-control"
+                    placeholder="Editable auto-calculated selling rate"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+
+                <div class="col-12">
+                  <button
+                    class="btn btn-primary w-100"
+                    id="addStockBtn"
+                    type="button"
+                  >
+                    <i class="fas fa-plus-circle"></i>
+                    Add Stock
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <aside class="panel-card panel-card--highlight">
+              <div class="panel-card__header">
+                <div>
+                  <span class="panel-kicker">Pricing Helper</span>
+                  <h4>Margin-aware stock entry</h4>
+                  <p class="panel-subtitle">
+                    Saved profit percentage and past buying rates make new stock
+                    updates quicker and more consistent.
+                  </p>
+                </div>
+                <div class="panel-card__icon">
+                  <i class="fa-solid fa-arrow-trend-up"></i>
+                </div>
+              </div>
+
+              <div class="info-list">
+                <div class="info-card">
+                  <span>Default Profit Margin</span>
+                  <strong id="profitPreviewValue">30%</strong>
+                  <p id="profitPreviewNote">
+                    Saved in business settings to help auto-calculate selling
+                    rate.
+                  </p>
+                </div>
+
+                <div class="info-card">
+                  <span>Previous Buying Rate</span>
+                  <strong>Recent reference</strong>
+                  <div id="previousBuyingRate"></div>
+                </div>
+              </div>
+
+              <ul class="support-list">
+                <li>
+                  Pick an old item to compare the latest rate before saving.
+                </li>
+                <li>
+                  Buying rate changes automatically refresh the suggested
+                  selling rate.
+                </li>
+                <li>You can still edit the selling rate manually any time.</li>
+              </ul>
+            </aside>
+          </div>
+        </div>
+
+        <div id="purchaseEntrySection" class="form-section">
+          <div class="section-grid section-grid--purchase">
+            <section class="panel-card panel-card--surface">
+              <div class="panel-card__header">
+                <div>
+                  <span class="panel-kicker">Purchase Flow</span>
+                  <h4>Supplier purchase entry</h4>
+                  <p class="panel-subtitle">
+                    Save supplier bills, add stock directly from purchase rows,
+                    and keep paid vs due amounts clear.
+                  </p>
+                </div>
+                <div class="panel-card__icon">
+                  <i class="fa-solid fa-truck-ramp-box"></i>
+                </div>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-lg-6 position-relative">
+                  <label class="form-label small">Supplier Name</label>
+                  <input
+                    id="supplierName"
+                    type="text"
+                    class="form-control"
+                    placeholder="Search or enter supplier name"
+                    autocomplete="off"
+                  />
+                  <div id="supplierDropdown" class="dropdown-list"></div>
+                </div>
+                <div class="col-lg-6">
+                  <label class="form-label small">Supplier Mobile</label>
+                  <input
+                    id="supplierNumber"
+                    type="text"
+                    class="form-control"
+                    placeholder="10-digit mobile number"
+                    inputmode="numeric"
+                  />
+                </div>
+                <div class="col-lg-8">
+                  <label class="form-label small">Bill No</label>
+                  <input
+                    id="purchaseBillNo"
+                    type="text"
+                    class="form-control"
+                    placeholder="Supplier bill or challan no"
+                  />
+                </div>
+                <div class="col-sm-6 col-lg-4">
+                  <label class="form-label small">Purchase Date</label>
+                  <input id="purchaseDate" type="date" class="form-control" />
+                </div>
+                <div class="col-12">
+                  <label class="form-label small">Supplier Address</label>
+                  <input
+                    id="supplierAddress"
+                    type="text"
+                    class="form-control"
+                    placeholder="Optional supplier address"
+                  />
+                </div>
+                <div class="col-12">
+                  <label class="form-label small">Notes</label>
+                  <textarea
+                    id="purchaseNote"
+                    class="form-control"
+                    rows="3"
+                    placeholder="Optional note for this supplier purchase"
+                  ></textarea>
+                </div>
+              </div>
+
+              <hr class="my-4" />
+
+              <div class="panel-heading">
+                <div>
+                  <span class="panel-kicker">Purchase Lines</span>
+                  <h5>Bill Items</h5>
+                  <p class="panel-subtitle">
+                    Qty and buy rate update stock after save. Profit % starts
+                    from your saved default.
+                  </p>
+                </div>
+              </div>
+
+              <div id="purchaseItemsBody" class="purchase-line-builder"></div>
+
+              <div class="row g-2 mt-2">
+                <div class="col-6">
+                  <button
+                    id="addPurchaseItemBtn"
+                    class="btn btn-secondary w-100"
+                    type="button"
+                  >
+                    <i class="fa-solid fa-plus"></i>
+                    Add Purchase Row
+                  </button>
+                </div>
+                <div class="col-6">
+                  <button
+                    id="resetPurchaseBtn"
+                    class="btn btn-danger w-100"
+                    type="button"
+                  >
+                    <i class="fa-solid fa-rotate-left"></i>
+                    Clear Purchase Form
+                  </button>
+                </div>
+              </div>
+
+              <div class="mt-3">
+                <div class="row g-3 mb-3">
+                  <div class="col-6 col-md-6">
+                    <label class="form-label small">Payment Mode</label>
+                    <select id="purchasePaymentMode" class="form-select">
+                      <option value="cash">Cash</option>
+                      <option value="upi">UPI</option>
+                      <option value="bank">Bank</option>
+                      <option value="mixed">Mixed</option>
+                      <option value="credit">Credit</option>
+                    </select>
+                  </div>
+                  <div class="col-6 col-md-6">
+                    <label class="form-label small">Amount Paid</label>
+                    <input
+                      id="purchaseAmountPaid"
+                      type="number"
+                      class="form-control"
+                      min="0"
+                      step="0.01"
+                      placeholder="Auto-fills from bill total"
+                    />
+                  </div>
+                </div>
+                <button
+                  id="submitPurchaseBtn"
+                  class="btn btn-primary w-100"
+                  type="button"
+                >
+                  <i class="fa-solid fa-file-circle-plus"></i>
+                  Save Purchase and Update Stock
+                </button>
+              </div>
+            </section>
+
+            <aside class="panel-card panel-card--highlight purchase-pulse-card">
+              <div class="panel-card__header">
+                <div>
+                  <span class="panel-kicker">Purchase Pulse</span>
+                  <h4>Supplier payable snapshot</h4>
+                  <p class="panel-subtitle">
+                    Keep purchase total, paid amount, and remaining supplier due
+                    visible while recording the bill.
+                  </p>
+                </div>
+                <div class="panel-card__icon">
+                  <i class="fa-solid fa-file-invoice-dollar"></i>
+                </div>
+              </div>
+
+              <div class="info-list">
+                <div class="info-card">
+                  <span>Purchase Subtotal</span>
+                  <strong id="purchaseSubtotal">Rs. 0.00</strong>
+                  <p>Total of all purchase line items in the active bill.</p>
+                </div>
+                <div class="info-card">
+                  <span>Amount Paid</span>
+                  <strong id="purchaseAmountPaidDisplay">Rs. 0.00</strong>
+                  <p>Amount recorded as already paid to the supplier.</p>
+                </div>
+                <div class="info-card">
+                  <span>Amount Due</span>
+                  <strong id="purchaseAmountDueDisplay">Rs. 0.00</strong>
+                  <p id="purchasePulseNote">
+                    Any remaining amount becomes part of supplier ledger due.
+                  </p>
+                </div>
+                <div class="info-card">
+                  <span>Payment Status</span>
+                  <strong id="purchasePaymentStatus">Paid</strong>
+                  <p id="purchaseSupplierSnapshot">
+                    Supplier payables stay visible in the ledger below.
+                  </p>
+                </div>
+                <div class="info-card">
+                  <span>Active Rows</span>
+                  <strong id="purchaseActiveRows">0</strong>
+                  <p>Purchase lines ready to be added into stock.</p>
+                </div>
+              </div>
+
+              <ul class="support-list">
+                <li>
+                  Existing item names can be reused from the same item list.
+                </li>
+                <li>
+                  Selling rate can stay auto-suggested from your saved default
+                  profit percent.
+                </li>
+                <li>
+                  Partial or unpaid supplier purchases automatically stay in the
+                  supplier ledger.
+                </li>
+              </ul>
+            </aside>
+          </div>
+
+          <section
+            class="panel-card panel-card--surface purchase-workspace-card"
+          >
+            <div class="panel-heading">
+              <div>
+                <span class="panel-kicker">Purchase Desk</span>
+                <h4>Purchase bills and supplier ledger</h4>
+                <p class="panel-subtitle">
+                  Use one workspace to review recent bills, open supplier
+                  balances, and drill into any purchase detail below.
+                </p>
+              </div>
+              <div class="panel-card__icon">
+                <i class="fa-solid fa-layer-group"></i>
+              </div>
+            </div>
+
+            <div
+              class="purchase-view-switch"
+              role="tablist"
+              aria-label="Purchase workspace views"
+            >
+              <button
+                id="showPurchaseBillsViewBtn"
+                type="button"
+                class="btn purchase-view-btn is-active"
+                aria-pressed="true"
+              >
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                Bills View
+              </button>
+              <button
+                id="showSupplierLedgerViewBtn"
+                type="button"
+                class="btn purchase-view-btn"
+                aria-pressed="false"
+              >
+                <i class="fa-solid fa-address-book"></i>
+                Supplier Ledger
+              </button>
+            </div>
+
+            <div id="purchaseHistoryView" class="purchase-view-panel">
+              <div class="purchase-view-panel__head">
+                <div>
+                  <span class="panel-kicker">Purchase History</span>
+                  <h5>Recent purchase bills</h5>
+                  <p>
+                    Filter purchase entries by date or supplier. Click any bill
+                    row to open full purchase item details.
+                  </p>
+                </div>
+                <div class="purchase-view-panel__icon">
+                  <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+              </div>
+
+              <div class="row g-3 align-items-end">
+                <div class="col-6 col-lg-3">
+                  <label class="form-label small">From Date</label>
+                  <input
+                    id="purchaseFromDate"
+                    type="date"
+                    class="form-control"
+                  />
+                </div>
+                <div class="col-6 col-lg-3">
+                  <label class="form-label small">To Date</label>
+                  <input id="purchaseToDate" type="date" class="form-control" />
+                </div>
+                <div class="col-lg-4">
+                  <label class="form-label small">Search Supplier / Bill</label>
+                  <div class="position-relative">
+                    <input
+                      id="purchaseSearchInput"
+                      type="text"
+                      class="form-control"
+                      placeholder="Supplier name, mobile, or bill no"
+                      autocomplete="off"
+                    />
+                    <div
+                      id="purchaseSearchDropdown"
+                      class="dropdown-list"
+                    ></div>
+                  </div>
+                </div>
+                <div class="col-6 col-lg-2">
+                  <label class="form-label small">Load Report</label>
+                  <button
+                    id="loadPurchaseReportBtn"
+                    class="btn btn-primary w-100"
+                    type="button"
+                  >
+                    <i class="fa-solid fa-search"></i>
+                    Load
+                  </button>
+                </div>
+              </div>
+
+              <div class="table-responsive mobile-table-wrap mt-4">
+                <table
+                  class="table table-sm text-center align-middle dashboard-table dashboard-table--purchase-report"
+                >
+                  <thead>
+                    <tr>
+                      <th>
+                        <span class="table-label-full">Date</span>
+                        <span class="table-label-compact">Date</span>
+                      </th>
+                      <th>
+                        <span class="table-label-full">Supplier</span>
+                        <span class="table-label-compact">Supplier</span>
+                      </th>
+                      <th>
+                        <span class="table-label-full">Bill No</span>
+                        <span class="table-label-compact">Bill</span>
+                      </th>
+                      <th>
+                        <span class="table-label-full">Items</span>
+                        <span class="table-label-compact">Items</span>
+                      </th>
+                      <th>
+                        <span class="table-label-full">Total</span>
+                        <span class="table-label-compact">Total</span>
+                      </th>
+                      <th>
+                        <span class="table-label-full">Paid</span>
+                        <span class="table-label-compact">Paid</span>
+                      </th>
+                      <th>
+                        <span class="table-label-full">Due</span>
+                        <span class="table-label-compact">Due</span>
+                      </th>
+                      <th>
+                        <span class="table-label-full">Status</span>
+                        <span class="table-label-compact">Status</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody id="purchaseReportBody">
+                    <tr>
+                      <td colspan="8" class="text-muted">
+                        Load purchase report to review recent supplier bills.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div id="supplierLedgerView" class="purchase-view-panel" hidden>
+              <div class="purchase-view-panel__head">
+                <div>
+                  <span class="panel-kicker">Supplier Ledger</span>
+                  <h5>Search supplier balances</h5>
+                  <p>
+                    Open one supplier ledger or review all suppliers with
+                    current purchase dues. Click rows to open ledger or bill
+                    details.
+                  </p>
+                </div>
+                <div class="purchase-view-panel__icon">
+                  <i class="fa-solid fa-address-book"></i>
+                </div>
+              </div>
+
+              <div class="row g-3 align-items-end">
+                <div class="col-lg-8 position-relative">
+                  <label class="form-label small">Supplier Search</label>
+                  <input
+                    id="supplierSearchInput"
+                    type="text"
+                    class="form-control"
+                    placeholder="Search supplier by name or mobile"
+                    autocomplete="off"
+                  />
+                  <div id="supplierSearchDropdown" class="dropdown-list"></div>
+                </div>
+                <div class="col-6 col-lg-2">
+                  <button
+                    id="searchSupplierLedgerBtn"
+                    class="btn btn-primary w-100"
+                    type="button"
+                  >
+                    <i class="fa-solid fa-book-open"></i>
+                    Open
+                  </button>
+                </div>
+                <div class="col-6 col-lg-2">
+                  <button
+                    id="showAllSupplierSummaryBtn"
+                    class="btn btn-secondary w-100"
+                    type="button"
+                  >
+                    <i class="fa-solid fa-list"></i>
+                    View All
+                  </button>
+                </div>
+              </div>
+
+              <div
+                id="supplierLedgerTable"
+                class="table-responsive mobile-table-wrap mt-4"
+              >
+                <div class="text-muted p-4">
+                  Search a supplier or load all supplier balances to view the
+                  ledger.
+                </div>
+              </div>
+            </div>
+
+            <section
+              id="purchaseDetailCard"
+              class="panel-card panel-card--surface mt-4"
+              hidden
+            >
+              <div class="panel-heading">
+                <div>
+                  <span class="panel-kicker">Purchase Detail</span>
+                  <h4>Bill items and supplier payment actions</h4>
+                  <p class="panel-subtitle">
+                    Review the exact products in a bill and clear old supplier
+                    dues from the same place.
+                  </p>
+                </div>
+                <div class="panel-card__icon">
+                  <i class="fa-solid fa-receipt"></i>
+                </div>
+              </div>
+
+              <div id="purchaseDetailSummary" class="summary-strip"></div>
+
+              <div class="purchase-detail-layout">
+                <div>
+                  <div
+                    id="purchaseDetailItems"
+                    class="table-responsive mobile-table-wrap"
+                  >
+                    <div class="purchase-detail-empty">
+                      Click a purchase bill to view the item details here.
+                    </div>
+                  </div>
+
+                  <div
+                    id="purchaseDetailNote"
+                    class="purchase-detail-note"
+                    hidden
+                  >
+                    <span>Bill Note</span>
+                    <strong>-</strong>
+                  </div>
+                </div>
+
+                <aside>
+                  <div
+                    id="purchaseDetailMeta"
+                    class="purchase-detail-meta"
+                  ></div>
+
+                  <div
+                    id="purchaseRepayPanel"
+                    class="purchase-repay-panel"
+                    hidden
+                  >
+                    <span class="panel-kicker">Repayment</span>
+                    <h5>Clear pending supplier due</h5>
+                    <p class="panel-subtitle">
+                      Use this when you pay an older supplier bill after saving
+                      it as due or partial.
+                    </p>
+
+                    <div class="row g-3 mt-1">
+                      <div class="col-12">
+                        <label class="form-label small">Repayment Amount</label>
+                        <input
+                          id="purchaseRepayAmount"
+                          type="number"
+                          class="form-control"
+                          min="0"
+                          step="0.01"
+                          placeholder="Enter amount being paid now"
+                        />
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label small">Payment Mode</label>
+                        <select id="purchaseRepayMode" class="form-select">
+                          <option value="cash">Cash</option>
+                          <option value="upi">UPI</option>
+                          <option value="bank">Bank</option>
+                          <option value="mixed">Mixed</option>
+                        </select>
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label small">Repayment Note</label>
+                        <textarea
+                          id="purchaseRepayNote"
+                          class="form-control"
+                          rows="3"
+                          placeholder="Optional note for this supplier payment"
+                        ></textarea>
+                      </div>
+                      <div class="col-12">
+                        <button
+                          id="submitPurchaseRepaymentBtn"
+                          class="btn btn-success w-100"
+                          type="button"
+                        >
+                          <i class="fa-solid fa-money-bill-wave"></i>
+                          Record Supplier Payment
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </aside>
+              </div>
+            </section>
+          </section>
+        </div>
+
+        <div id="itemReportSection" class="form-section">
+          <section class="panel-card panel-card--surface">
+            <div class="panel-heading">
+              <div>
+                <span class="panel-kicker">Inventory Insights</span>
+                <h4>Stock report</h4>
+                <p class="panel-subtitle">
+                  Search a single item or review the full catalog with quantity,
+                  pricing, sold units, and export support.
+                </p>
+              </div>
+              <div class="panel-card__icon">
+                <i class="fas fa-boxes"></i>
+              </div>
+            </div>
+
+            <div class="row g-3 align-items-end">
+              <div class="col-lg-8">
+                <label class="form-label small"
+                  >Item Search / Direct Search</label
+                >
+                <div class="position-relative">
+                  <input
+                    type="text"
+                    id="itemReportSearch"
+                    class="form-control"
+                    placeholder="Search or select item"
+                    autocomplete="off"
+                  />
+                  <div id="itemReportDropdown" class="dropdown-list"></div>
+                </div>
+              </div>
+              <div class="col-6 col-lg-2">
+                <button
+                  class="btn btn-primary w-100"
+                  id="loadItemReportBtn"
+                  type="button"
+                >
+                  <i class="fas fa-search"></i>
+                  Search
+                </button>
+              </div>
+              <div class="col-6 col-lg-2">
+                <button
+                  class="btn btn-info w-100"
+                  id="itemReportPdfBtn"
+                  type="button"
+                >
+                  <i class="fas fa-file-pdf"></i>
+                  Download PDF
+                </button>
+              </div>
+            </div>
+
+            <hr class="my-4" />
+
+            <div class="table-responsive mobile-table-wrap">
+              <table
+                class="table table-sm text-center align-middle dashboard-table dashboard-table--item-report"
+              >
+                <thead>
+                  <tr>
+                    <th>
+                      <span class="table-label-full">Item Name</span>
+                      <span class="table-label-compact">Item</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Available Qty</span>
+                      <span class="table-label-compact">Avail. Qty</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Buying Rate</span>
+                      <span class="table-label-compact">Buy Rate</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Selling Rate</span>
+                      <span class="table-label-compact">Sell Rate</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Sold Qty</span>
+                      <span class="table-label-compact">Sold Qty</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="itemReportBody">
+                  <tr>
+                    <td colspan="5" class="text-muted">No data loaded</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section
+            id="lowStockCard"
+            class="panel-card panel-card--alert"
+            hidden
+          >
+            <div class="panel-heading">
+              <div>
+                <span class="panel-kicker">Stock Alert</span>
+                <h5>
+                  Items needing attention (<span id="lowStockCount">0</span>)
+                </h5>
+                <p class="panel-subtitle">
+                  Low-stock alerts are based on recent 30-day movement and the
+                  estimated number of days left.
+                </p>
+              </div>
+              <div class="panel-card__icon">
+                <i class="fas fa-triangle-exclamation"></i>
+              </div>
+            </div>
+
+            <div class="table-responsive mobile-table-wrap">
+              <table
+                class="table table-sm text-center align-middle dashboard-table dashboard-table--low-stock"
+              >
+                <thead>
+                  <tr>
+                    <th>
+                      <span class="table-label-full">Item Name</span>
+                      <span class="table-label-compact">Item</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Available Qty</span>
+                      <span class="table-label-compact">Avail. Qty</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Sold (30d)</span>
+                      <span class="table-label-compact">Sold 30d</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Days Left</span>
+                      <span class="table-label-compact">Days</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Status</span>
+                      <span class="table-label-compact">Status</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="lowStockBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section
+            id="reorderPlannerCard"
+            class="panel-card panel-card--surface"
+            hidden
+          >
+            <div class="panel-heading">
+              <div>
+                <span class="panel-kicker">Reorder Planner</span>
+                <h5>Suggested replenishment list</h5>
+                <p class="panel-subtitle">
+                  Review fast-moving items, see suggested reorder quantity, and
+                  plan a healthier stock buffer before products run short.
+                </p>
+              </div>
+              <div class="panel-card__icon">
+                <i class="fas fa-clipboard-list"></i>
+              </div>
+            </div>
+
+            <div class="mini-kpi-grid">
+              <article class="mini-kpi">
+                <span class="mini-kpi__label">Items</span>
+                <strong class="mini-kpi__value" id="reorderCandidateCount"
+                  >0</strong
+                >
+                <small class="mini-kpi__meta">
+                  Items that need replenishment to reach the target stock cover.
+                </small>
+              </article>
+              <article class="mini-kpi">
+                <span class="mini-kpi__label">Urgent</span>
+                <strong class="mini-kpi__value" id="reorderUrgentCount"
+                  >0</strong
+                >
+                <small class="mini-kpi__meta">
+                  High-risk items that may run out first based on recent
+                  movement.
+                </small>
+              </article>
+              <article class="mini-kpi">
+                <span class="mini-kpi__label">Suggested Units</span>
+                <strong class="mini-kpi__value" id="reorderSuggestedUnits"
+                  >0</strong
+                >
+                <small class="mini-kpi__meta">
+                  Total recommended quantity to rebuild the stock buffer.
+                </small>
+              </article>
+              <article class="mini-kpi">
+                <span class="mini-kpi__label">Est. Buy Cost</span>
+                <strong class="mini-kpi__value" id="reorderEstimatedCost">
+                  Rs. 0.00
+                </strong>
+                <small class="mini-kpi__meta">
+                  Approximate buying cost using the latest buying rate on
+                  record.
+                </small>
+              </article>
+            </div>
+
+            <div class="summary-strip">
+              <span class="summary-pill">
+                <i class="fa-solid fa-bolt"></i>
+                Fastest mover: <span id="reorderFastestItem">-</span>
+              </span>
+              <span class="summary-pill">
+                <i class="fa-solid fa-bullseye"></i>
+                Coverage target: <span id="reorderTargetDays">21 days</span>
+              </span>
+              <span class="summary-pill">
+                <i class="fa-solid fa-hourglass-half"></i>
+                Avg cover: <span id="reorderAverageCover">0.00 days</span>
+              </span>
+            </div>
+
+            <div class="table-responsive mobile-table-wrap">
+              <table
+                class="table table-sm text-center align-middle dashboard-table dashboard-table--reorder"
+              >
+                <thead>
+                  <tr>
+                    <th>
+                      <span class="table-label-full">Item</span>
+                      <span class="table-label-compact">Item</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Avail.</span>
+                      <span class="table-label-compact">Avail</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Run / Day</span>
+                      <span class="table-label-compact">Run</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Cover Days</span>
+                      <span class="table-label-compact">Cover</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Reorder Qty</span>
+                      <span class="table-label-compact">Qty</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Est. Cost</span>
+                      <span class="table-label-compact">Cost</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="reorderPlanBody">
+                  <tr>
+                    <td colspan="6" class="text-muted">
+                      Reorder suggestions will appear here.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+        <div id="salesReportSection" class="form-section">
+          <section class="panel-card panel-card--surface">
+            <div class="panel-heading">
+              <div>
+                <span class="panel-kicker">Sales Reporting</span>
+                <h4>Sales report and exports</h4>
+                <p class="panel-subtitle">
+                  Filter by date range, review line-by-line sales, and export
+                  the same report as PDF or Excel.
+                </p>
+              </div>
+              <div class="panel-card__icon">
+                <i class="fas fa-chart-line"></i>
+              </div>
+            </div>
+
+            <div class="row g-3">
+              <div class="col-6 col-lg-4">
+                <label class="form-label small">From Date</label>
+                <input type="date" id="fromDate" class="form-control" />
+              </div>
+              <div class="col-6 col-lg-4">
+                <label class="form-label small">To Date</label>
+                <input type="date" id="toDate" class="form-control" />
+              </div>
+              <div class="col-lg-4">
+                <label class="form-label small">Load Report</label>
+                <button
+                  class="btn btn-primary w-100"
+                  id="loadSalesBtn"
+                  type="button"
+                >
+                  <i class="fas fa-search"></i>
+                  Load Sales Report
+                </button>
+              </div>
+            </div>
+
+            <div class="row g-2 mt-1">
+              <div class="col-6">
+                <button class="btn btn-info w-100" id="pdfBtn" type="button">
+                  <i class="fas fa-file-pdf"></i>
+                  Download PDF
+                </button>
+              </div>
+              <div class="col-6">
+                <button
+                  class="btn btn-success w-100"
+                  id="excelBtn"
+                  type="button"
+                >
+                  <i class="fas fa-file-excel"></i>
+                  Download Excel
+                </button>
+              </div>
+            </div>
+
+            <hr class="my-4" />
+
+            <div class="table-responsive mobile-table-wrap">
+              <table
+                class="table table-sm text-center align-middle dashboard-table dashboard-table--sales"
+              >
+                <thead>
+                  <tr>
+                    <th>
+                      <span class="table-label-full">Date</span>
+                      <span class="table-label-compact">Date</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Item</span>
+                      <span class="table-label-compact">Item</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Qty</span>
+                      <span class="table-label-compact">Qty</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Unit Price</span>
+                      <span class="table-label-compact">Unit</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Total</span>
+                      <span class="table-label-compact">Total</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="salesReportBody">
+                  <tr>
+                    <td colspan="5" class="text-muted">No data loaded</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="summary-strip">
+              <span class="summary-pill">
+                <i class="fa-solid fa-sack-dollar"></i>
+                Total Sale: Rs. <span id="salesGrandTotal">0.00</span>
+              </span>
+            </div>
+          </section>
+
+          <div class="chart-grid">
+            <section class="analytics-card">
+              <div
+                class="d-flex justify-content-between align-items-center gap-3 mb-3"
+              >
+                <div>
+                  <h5 class="analytics-title mb-1">Growth Overview</h5>
+                  <p class="panel-subtitle mb-0">
+                    Compare monthly sales and profit from the same chart.
+                  </p>
+                </div>
+                <select
+                  id="yearFilter"
+                  class="form-select form-select-sm"
+                  style="width: 130px"
+                >
+                  <option value="all">All</option>
+                </select>
+              </div>
+
+              <div class="chart-box">
+                <canvas id="businessTrendChart"></canvas>
+              </div>
+              <div id="growthBadge" class="fw-semibold"></div>
+            </section>
+
+            <section class="analytics-card">
+              <div class="mb-3">
+                <h5 class="analytics-title mb-1">Last 13 Months Sales</h5>
+                <p class="panel-subtitle mb-0">
+                  Quick bar view of recent month-by-month revenue performance.
+                </p>
+              </div>
+              <div class="chart-box">
+                <canvas id="last12MonthsChart"></canvas>
+              </div>
+            </section>
+          </div>
+
+          <section
+            id="salesNetProfitCard"
+            class="analytics-card sales-net-profit-card"
+            hidden
+          >
+            <div class="sales-net-profit-card__top">
+              <div>
+                <span class="panel-kicker">Net Profit</span>
+                <h5>Net profit after expenses</h5>
+              </div>
+              <div class="sales-net-profit-card__filters">
+                <div class="sales-net-profit-card__field">
+                  <label for="salesNetProfitFromDate">From</label>
+                  <input
+                    id="salesNetProfitFromDate"
+                    type="date"
+                    class="form-control form-control-sm"
+                  />
+                </div>
+                <div class="sales-net-profit-card__field">
+                  <label for="salesNetProfitToDate">To</label>
+                  <input
+                    id="salesNetProfitToDate"
+                    type="date"
+                    class="form-control form-control-sm"
+                  />
+                </div>
+                <button
+                  id="loadSalesNetProfitBtn"
+                  class="btn btn-primary btn-sm"
+                  type="button"
+                >
+                  <i class="fa-solid fa-calendar-check"></i>
+                  View
+                </button>
+              </div>
+            </div>
+
+            <strong
+              id="salesNetProfitValue"
+              class="sales-net-profit-card__value"
+              >Rs. 0.00</strong
+            >
+            <small id="salesNetProfitNote" class="sales-net-profit-card__note">
+              Pick a date range to see net profit after tracked expenses.
+            </small>
+          </section>
+        </div>
+
+        <div id="gstReportSection" class="form-section">
+          <section class="panel-card panel-card--surface">
+            <div class="panel-heading">
+              <div>
+                <span class="panel-kicker">Tax Compliance</span>
+                <h4>GST report and exports</h4>
+                <p class="panel-subtitle">
+                  Review invoice-wise taxable value and GST collected for any
+                  date range, then export the same report as PDF or Excel.
+                </p>
+              </div>
+              <div class="panel-card__icon">
+                <i class="fas fa-receipt"></i>
+              </div>
+            </div>
+
+            <div class="row g-3">
+              <div class="col-6 col-lg-4">
+                <label class="form-label small">From Date</label>
+                <input type="date" id="gstFromDate" class="form-control" />
+              </div>
+              <div class="col-6 col-lg-4">
+                <label class="form-label small">To Date</label>
+                <input type="date" id="gstToDate" class="form-control" />
+              </div>
+              <div class="col-lg-4">
+                <label class="form-label small">Load Report</label>
+                <button
+                  class="btn btn-primary w-100"
+                  id="loadGstBtn"
+                  type="button"
+                >
+                  <i class="fas fa-search"></i>
+                  Load GST Report
+                </button>
+              </div>
+            </div>
+
+            <div class="row g-2 mt-1">
+              <div class="col-6">
+                <button class="btn btn-info w-100" id="gstPdfBtn" type="button">
+                  <i class="fas fa-file-pdf"></i>
+                  Download PDF
+                </button>
+              </div>
+              <div class="col-6">
+                <button
+                  class="btn btn-success w-100"
+                  id="gstExcelBtn"
+                  type="button"
+                >
+                  <i class="fas fa-file-excel"></i>
+                  Download Excel
+                </button>
+              </div>
+            </div>
+
+            <div class="report-kpi-grid">
+              <article
+                class="report-kpi"
+                style="--kpi-glow: rgba(14, 165, 233, 0.16)"
+              >
+                <span class="report-kpi__label">Invoices</span>
+                <strong class="report-kpi__value" id="gstInvoiceCount"
+                  >0</strong
+                >
+                <small class="report-kpi__note">
+                  Invoices found in the selected date range.
+                </small>
+              </article>
+              <article
+                class="report-kpi"
+                style="--kpi-glow: rgba(59, 130, 246, 0.16)"
+              >
+                <span class="report-kpi__label">Taxable Value</span>
+                <strong class="report-kpi__value" id="gstTaxableTotal">
+                  Rs. 0.00
+                </strong>
+                <small class="report-kpi__note">
+                  Net sales value before GST is applied.
+                </small>
+              </article>
+              <article
+                class="report-kpi"
+                style="--kpi-glow: rgba(20, 184, 166, 0.16)"
+              >
+                <span class="report-kpi__label">GST Collected</span>
+                <strong class="report-kpi__value" id="gstCollectedTotal">
+                  Rs. 0.00
+                </strong>
+                <small class="report-kpi__note">
+                  Total GST amount recorded in the invoices.
+                </small>
+              </article>
+              <article
+                class="report-kpi"
+                style="--kpi-glow: rgba(245, 158, 11, 0.16)"
+              >
+                <span class="report-kpi__label">Invoice Total</span>
+                <strong class="report-kpi__value" id="gstReportGrandTotal">
+                  Rs. 0.00
+                </strong>
+                <small class="report-kpi__note">
+                  Final invoice total including GST.
+                </small>
+              </article>
+            </div>
+
+            <hr class="my-4" />
+
+            <div class="table-responsive mobile-table-wrap">
+              <table
+                class="table table-sm text-center align-middle dashboard-table dashboard-table--gst"
+              >
+                <thead>
+                  <tr>
+                    <th>
+                      <span class="table-label-full">Date</span>
+                      <span class="table-label-compact">Date</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Invoice No</span>
+                      <span class="table-label-compact">Inv No</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Customer</span>
+                      <span class="table-label-compact">Cust.</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Taxable Amount</span>
+                      <span class="table-label-compact">Taxable</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">GST Amount</span>
+                      <span class="table-label-compact">GST</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Invoice Total</span>
+                      <span class="table-label-compact">Total</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="gstReportBody">
+                  <tr>
+                    <td colspan="6" class="text-muted">
+                      Select a date range and load the GST report.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="summary-strip">
+              <span class="summary-pill">
+                <i class="fa-solid fa-percent"></i>
+                Effective GST Rate: <span id="gstEffectiveRate">0.00%</span>
+              </span>
+              <span class="summary-pill">
+                <i class="fa-solid fa-calculator"></i>
+                Avg GST / Invoice: Rs.
+                <span id="gstAveragePerInvoice">0.00</span>
+              </span>
+            </div>
+
+            <div class="insight-grid">
+              <article class="insight-panel insight-panel--wide">
+                <div class="insight-panel__head">
+                  <div>
+                    <span class="insight-panel__eyebrow">Filing Snapshot</span>
+                    <strong class="insight-panel__title">
+                      GST summary for the selected period
+                    </strong>
+                    <span class="insight-panel__copy">
+                      Quick filing-ready highlights including period, dominant
+                      rate, zero-GST invoices, and how GST compares with taxable
+                      value.
+                    </span>
+                  </div>
+                  <span class="insight-badge">Advanced Summary</span>
+                </div>
+
+                <div class="mini-kpi-grid">
+                  <article class="mini-kpi">
+                    <span class="mini-kpi__label">Period</span>
+                    <strong class="mini-kpi__value" id="gstFilingPeriod"
+                      >-</strong
+                    >
+                    <small class="mini-kpi__meta">
+                      Active date range for this GST review.
+                    </small>
+                  </article>
+                  <article class="mini-kpi">
+                    <span class="mini-kpi__label">Top Month</span>
+                    <strong class="mini-kpi__value" id="gstTopCollectionMonth"
+                      >-</strong
+                    >
+                    <small class="mini-kpi__meta">
+                      Month that contributed the highest GST collection.
+                    </small>
+                  </article>
+                  <article class="mini-kpi">
+                    <span class="mini-kpi__label">Zero GST Invoices</span>
+                    <strong class="mini-kpi__value" id="gstZeroRatedInvoices"
+                      >0</strong
+                    >
+                    <small class="mini-kpi__meta">
+                      Invoices that carried no GST in the selected date range.
+                    </small>
+                  </article>
+                  <article class="mini-kpi">
+                    <span class="mini-kpi__label">Dominant Rate</span>
+                    <strong class="mini-kpi__value" id="gstDominantRate"
+                      >0.00%</strong
+                    >
+                    <small class="mini-kpi__meta">
+                      GST rate slab contributing the largest taxable value.
+                    </small>
+                  </article>
+                </div>
+              </article>
+
+              <article class="insight-panel">
+                <div class="insight-panel__head">
+                  <div>
+                    <span class="insight-panel__eyebrow">Month-wise View</span>
+                    <strong class="insight-panel__title"
+                      >Monthly GST summary</strong
+                    >
+                    <span class="insight-panel__copy">
+                      Review month-by-month invoice count, taxable value, GST,
+                      and final invoice total for filing prep.
+                    </span>
+                  </div>
+                  <span class="insight-badge">Monthly</span>
+                </div>
+                <div class="table-responsive mobile-table-wrap-1">
+                  <table
+                    class="table table-sm text-center align-middle dashboard-table dashboard-table--gst-monthly"
+                  >
+                    <thead>
+                      <tr>
+                        <th>
+                          <span class="table-label-full">Month</span>
+                          <span class="table-label-compact">Month</span>
+                        </th>
+                        <th>
+                          <span class="table-label-full">Inv.</span>
+                          <span class="table-label-compact">Inv</span>
+                        </th>
+                        <th>
+                          <span class="table-label-full">Taxable Amount</span>
+                          <span class="table-label-compact">Taxable</span>
+                        </th>
+                        <th>
+                          <span class="table-label-full">GST</span>
+                          <span class="table-label-compact">GST</span>
+                        </th>
+                        <th>
+                          <span class="table-label-full">Total</span>
+                          <span class="table-label-compact">Total</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody id="gstMonthlySummaryBody">
+                      <tr>
+                        <td colspan="5" class="text-muted">
+                          Load the GST report to view monthly summary.
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+
+              <article class="insight-panel">
+                <div class="insight-panel__head">
+                  <div>
+                    <span class="insight-panel__eyebrow">Rate Slabs</span>
+                    <strong class="insight-panel__title"
+                      >Rate-wise breakup</strong
+                    >
+                    <span class="insight-panel__copy">
+                      Identify which GST slabs are contributing most to taxable
+                      value and collection in the selected period.
+                    </span>
+                  </div>
+                  <span class="insight-badge">Rate-wise</span>
+                </div>
+                <div class="table-responsive mobile-table-wrap-1">
+                  <table
+                    class="table table-sm text-center align-middle dashboard-table dashboard-table--gst-rates"
+                  >
+                    <thead>
+                      <tr>
+                        <th>
+                          <span class="table-label-full">GST Rate</span>
+                          <span class="table-label-compact">Rate</span>
+                        </th>
+                        <th>
+                          <span class="table-label-full">Inv.</span>
+                          <span class="table-label-compact">Inv</span>
+                        </th>
+                        <th>
+                          <span class="table-label-full">Taxable Amount</span>
+                          <span class="table-label-compact">Taxable</span>
+                        </th>
+                        <th>
+                          <span class="table-label-full">GST</span>
+                          <span class="table-label-compact">GST</span>
+                        </th>
+                        <th>
+                          <span class="table-label-full">Total</span>
+                          <span class="table-label-compact">Total</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody id="gstRateSummaryBody">
+                      <tr>
+                        <td colspan="5" class="text-muted">
+                          Load the GST report to view rate-wise breakup.
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            </div>
+          </section>
+        </div>
+
+        <div id="customerDebtSection" class="form-section">
+          <div class="section-grid section-grid--dues">
+            <section class="panel-card panel-card--surface">
+              <div class="panel-heading">
+                <div>
+                  <span class="panel-kicker">Due Entry</span>
+                  <h4>Add customer due</h4>
+                  <p class="panel-subtitle">
+                    Record customer balance, credit amount, and notes in one
+                    clear form.
+                  </p>
+                </div>
+                <div class="panel-card__icon">
+                  <i class="fas fa-user-clock"></i>
+                </div>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-12">
+                  <label class="form-label small">Customer Name</label>
+                  <input
+                    id="cdName"
+                    type="text"
+                    class="form-control"
+                    placeholder="Customer Name"
+                  />
+                </div>
+
+                <div class="col-12 position-relative">
+                  <label class="form-label small">Mobile Number</label>
+                  <input
+                    id="cdNumber"
+                    type="text"
+                    maxlength="10"
+                    class="form-control"
+                    placeholder="10-digit Mobile Number"
+                    autocomplete="off"
+                    inputmode="numeric"
+                  />
+                  <div id="cdNumberDropdown" class="dropdown-list"></div>
+                </div>
+
+                <div class="col-sm-6">
+                  <label class="form-label small">Amount</label>
+                  <input
+                    id="cdTotal"
+                    type="number"
+                    class="form-control"
+                    placeholder="Amount"
+                  />
+                </div>
+
+                <div class="col-sm-6">
+                  <label class="form-label small">Credit Amount</label>
+                  <input
+                    id="cdCredit"
+                    type="number"
+                    class="form-control"
+                    placeholder="Credit Amount"
+                  />
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label small">Remarks</label>
+                  <input
+                    id="cdRemark"
+                    type="text"
+                    class="form-control"
+                    placeholder="Remarks (optional)"
+                  />
+                </div>
+
+                <div class="col-12 due-submit-row">
+                  <button
+                    class="btn btn-danger w-100"
+                    id="submitDebtBtn"
+                    type="button"
+                  >
+                    <i class="fas fa-check-circle"></i>
+                    Submit
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel-card panel-card--surface">
+              <div class="panel-heading">
+                <div>
+                  <span class="panel-kicker">Ledger Search</span>
+                  <h4>Search customer dues</h4>
+                  <p class="panel-subtitle">
+                    Find a single customer ledger or open the summary of all
+                    outstanding balances.
+                  </p>
+                </div>
+                <div class="panel-card__icon">
+                  <i class="fas fa-search"></i>
+                </div>
+              </div>
+
+              <div class="position-relative mb-3">
+                <label class="form-label small">Search by name or number</label>
+                <input
+                  id="cdSearchInput"
+                  type="text"
+                  class="form-control"
+                  placeholder="Search customer by name or number"
+                  autocomplete="off"
+                />
+                <div id="cdSearchDropdown" class="dropdown-list"></div>
+              </div>
+
+              <div class="row g-2 mb-3 due-search-actions">
+                <div class="col-sm-6">
+                  <button
+                    class="btn btn-success w-100"
+                    id="searchLedgerBtn"
+                    type="button"
+                  >
+                    <i class="fas fa-search"></i>
+                    Search
+                  </button>
+                </div>
+                <div class="col-sm-6">
+                  <button
+                    class="btn btn-secondary w-100"
+                    id="showAllDuesBtn"
+                    type="button"
+                  >
+                    <i class="fas fa-list"></i>
+                    All Customers
+                  </button>
+                </div>
+              </div>
+
+              <div id="ledgerTable" class="table-responsive mobile-table-wrap">
+                <div class="empty-ledger">
+                  Search a customer or load all due balances to view the ledger.
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div id="expenseTrackingSection" class="form-section">
+          <div class="section-grid section-grid--expense">
+            <section class="panel-card panel-card--surface">
+              <div class="panel-heading">
+                <div>
+                  <span class="panel-kicker">Expense Entry</span>
+                  <h4>Track daily business expenses</h4>
+                  <p class="panel-subtitle">
+                    Record rent, salary, transport, utilities, and other daily
+                    business costs without leaving the main dashboard.
+                  </p>
+                </div>
+                <div class="panel-card__icon">
+                  <i class="fa-solid fa-wallet"></i>
+                </div>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-lg-7">
+                  <label class="form-label small">Expense Title</label>
+                  <input
+                    id="expenseTitle"
+                    type="text"
+                    class="form-control"
+                    placeholder="Example: Shop rent, delivery fuel, staff salary"
+                  />
+                </div>
+                <div class="col-lg-5">
+                  <label class="form-label small">Category</label>
+                  <select id="expenseCategory" class="form-select">
+                    <option value="">Select category</option>
+                    <option value="Rent">Rent</option>
+                    <option value="Salary">Salary</option>
+                    <option value="Transport">Transport</option>
+                    <option value="Utilities">Utilities</option>
+                    <option value="Packaging">Packaging</option>
+                    <option value="Maintenance">Maintenance</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Misc">Misc</option>
+                  </select>
+                </div>
+                <div class="col-sm-6 col-lg-4">
+                  <label class="form-label small">Amount</label>
+                  <input
+                    id="expenseAmount"
+                    type="number"
+                    class="form-control"
+                    min="0"
+                    step="0.01"
+                    placeholder="Enter expense amount"
+                  />
+                </div>
+                <div class="col-sm-6 col-lg-4">
+                  <label class="form-label small">Payment Mode</label>
+                  <select id="expensePaymentMode" class="form-select">
+                    <option value="cash">Cash</option>
+                    <option value="upi">UPI</option>
+                    <option value="bank">Bank</option>
+                    <option value="mixed">Mixed</option>
+                  </select>
+                </div>
+                <div class="col-lg-4">
+                  <label class="form-label small">Expense Date</label>
+                  <input id="expenseDate" type="date" class="form-control" />
+                </div>
+                <div class="col-12">
+                  <label class="form-label small">Notes</label>
+                  <textarea
+                    id="expenseNote"
+                    class="form-control"
+                    rows="3"
+                    placeholder="Optional notes for bookkeeping or future reference"
+                  ></textarea>
+                </div>
+                <div class="col-12">
+                  <button
+                    id="submitExpenseBtn"
+                    class="btn btn-primary w-100"
+                    type="button"
+                  >
+                    <i class="fa-solid fa-plus"></i>
+                    Save Expense
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel-card panel-card--highlight">
+              <div class="panel-heading">
+                <div>
+                  <span class="panel-kicker">Profit Snapshot</span>
+                  <h4>Gross vs net profit</h4>
+                  <p class="panel-subtitle">
+                    Expenses are compared against sales profit so you can see
+                    the real business position more clearly.
+                  </p>
+                </div>
+                <div class="panel-card__icon">
+                  <i class="fa-solid fa-chart-line"></i>
+                </div>
+              </div>
+
+              <div class="info-list">
+                <div class="info-card">
+                  <span>Total Expenses</span>
+                  <strong id="expenseSummaryTotal">Rs. 0.00</strong>
+                  <p id="expenseSummaryEntryCount">
+                    No expense entries loaded yet.
+                  </p>
+                </div>
+                <div class="info-card">
+                  <span>Top Category</span>
+                  <strong id="expenseSummaryCategory">No expenses</strong>
+                  <p id="expenseSummaryCategoryNote">
+                    Category contribution will appear after loading the report.
+                  </p>
+                </div>
+                <div class="info-card">
+                  <span>Gross Profit</span>
+                  <strong id="expenseSummaryGrossProfit">Rs. 0.00</strong>
+                  <p>
+                    Based on sale value minus item cost in the selected period.
+                  </p>
+                </div>
+                <div class="info-card">
+                  <span>Net Profit</span>
+                  <strong id="expenseSummaryNetProfit">Rs. 0.00</strong>
+                  <p id="expenseSummaryNetProfitNote">
+                    Gross profit minus tracked business expenses.
+                  </p>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <section class="panel-card panel-card--surface">
+            <div class="panel-heading">
+              <div>
+                <span class="panel-kicker">Expense Report</span>
+                <h4>Review spending by date range</h4>
+                <p class="panel-subtitle">
+                  Filter expense entries, review category-wise spending, and
+                  keep profit impact visible from one report.
+                </p>
+              </div>
+              <div class="panel-card__icon">
+                <i class="fa-solid fa-file-invoice-dollar"></i>
+              </div>
+            </div>
+
+            <div class="row g-3 align-items-end">
+              <div class="col-6 col-lg-3">
+                <label class="form-label small">From Date</label>
+                <input id="expenseFromDate" type="date" class="form-control" />
+              </div>
+              <div class="col-6 col-lg-3">
+                <label class="form-label small">To Date</label>
+                <input id="expenseToDate" type="date" class="form-control" />
+              </div>
+              <div class="col-lg-4">
+                <label class="form-label small">Search Title / Category</label>
+                <input
+                  id="expenseSearchInput"
+                  type="text"
+                  class="form-control"
+                  placeholder="Search expense title or category"
+                />
+              </div>
+              <div class="col-6 col-lg-2">
+                <label class="form-label small">Load Report</label>
+                <button
+                  id="loadExpenseReportBtn"
+                  class="btn btn-primary w-100"
+                  type="button"
+                >
+                  <i class="fa-solid fa-search"></i>
+                  Load
+                </button>
+              </div>
+            </div>
+
+            <div class="table-responsive mobile-table-wrap mt-4">
+              <table
+                class="table table-sm text-center align-middle dashboard-table dashboard-table--expense"
+              >
+                <thead>
+                  <tr>
+                    <th>
+                      <span class="table-label-full">Date</span>
+                      <span class="table-label-compact">Date</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Title</span>
+                      <span class="table-label-compact">Title</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Category</span>
+                      <span class="table-label-compact">Category</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Mode</span>
+                      <span class="table-label-compact">Mode</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Amount</span>
+                      <span class="table-label-compact">Amount</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Notes</span>
+                      <span class="table-label-compact">Notes</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="expenseReportBody">
+                  <tr>
+                    <td colspan="6" class="text-muted">
+                      Load the expense report to review spending entries.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <div id="staffAccessSection" class="form-section">
+          <div class="section-grid section-grid--dues">
+            <section class="panel-card panel-card--surface">
+              <div class="panel-heading">
+                <div>
+                  <span class="panel-kicker">Team Setup</span>
+                  <h4>Create staff account</h4>
+                  <p class="panel-subtitle">
+                    Admin can create up to two staff logins with username and
+                    password based access.
+                  </p>
+                </div>
+                <div class="panel-card__icon">
+                  <i class="fa-solid fa-user-plus"></i>
+                </div>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-12">
+                  <label class="form-label small">Staff Name</label>
+                  <input
+                    id="staffName"
+                    type="text"
+                    class="form-control"
+                    placeholder="Staff full name"
+                  />
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label small">Username</label>
+                  <input
+                    id="staffUsername"
+                    type="text"
+                    class="form-control"
+                    placeholder="username"
+                    autocomplete="off"
+                    autocapitalize="none"
+                  />
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label small">Password</label>
+                  <input
+                    id="staffPassword"
+                    type="password"
+                    class="form-control"
+                    placeholder="At least 6 characters"
+                  />
+                </div>
+
+                <div class="col-12">
+                  <div class="panel-card panel-card--alert">
+                    <div class="panel-heading mb-0">
+                      <div>
+                        <span class="panel-kicker">Permission Scope</span>
+                        <h5>Choose page access for this staff account</h5>
+                        <p class="panel-subtitle">
+                          Admin can allow one page, multiple pages, or all
+                          business pages. Staff management itself remains admin
+                          only.
+                        </p>
+                      </div>
+                      <div class="panel-card__icon">
+                        <i class="fa-solid fa-user-shield"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <div class="staff-toggle-row mb-2">
+                    <button
+                      class="btn btn-info"
+                      id="selectAllStaffPagesBtn"
+                      type="button"
+                    >
+                      <i class="fa-solid fa-check-double"></i>
+                      Select All Pages
+                    </button>
+                    <button
+                      class="btn btn-secondary"
+                      id="clearAllStaffPagesBtn"
+                      type="button"
+                    >
+                      <i class="fa-solid fa-eraser"></i>
+                      Clear Selection
+                    </button>
+                  </div>
+                  <div
+                    id="staffPermissionGrid"
+                    class="staff-permission-grid"
+                  ></div>
+                  <p class="staff-helper-text mt-2">
+                    Tip: if you want the staff to use only invoice billing, keep
+                    just Sale and Invoice selected.
+                  </p>
+                </div>
+
+                <div class="col-12">
+                  <button
+                    class="btn btn-primary w-100"
+                    id="createStaffBtn"
+                    type="button"
+                  >
+                    <i class="fa-solid fa-plus"></i>
+                    Create Staff Account
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel-card panel-card--surface">
+              <div class="panel-heading">
+                <div>
+                  <span class="panel-kicker">Access Overview</span>
+                  <h4>Current staff accounts</h4>
+                  <p class="panel-subtitle">
+                    Review active staff logins, fine-tune page access, and
+                    remove them when access is no longer needed.
+                  </p>
+                </div>
+                <div class="panel-card__icon">
+                  <i class="fa-solid fa-users-line"></i>
+                </div>
+              </div>
+
+              <div class="summary-strip mb-3">
+                <span class="summary-pill">
+                  <i class="fa-solid fa-user-group"></i>
+                  Limit: <span id="staffLimitValue">2</span>
+                </span>
+                <span class="summary-pill">
+                  <i class="fa-solid fa-layer-group"></i>
+                  Remaining Slots: <span id="staffRemainingValue">2</span>
+                </span>
+              </div>
+
+              <div id="staffList" class="table-responsive mobile-table-wrap">
+                <div class="empty-ledger">
+                  No staff accounts yet. Create the first staff login to get
+                  started.
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <div
+      id="commonPopup"
+      class="popup-shell"
+      aria-hidden="true"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="popupTitle"
+    >
+      <div id="popupOverlay" class="popup-overlay"></div>
+      <div id="popupBox" class="popup-box">
+        <button
+          id="popupClose"
+          class="popup-close"
+          type="button"
+          aria-label="Close popup"
+        >
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="popup-icon" id="popupIcon">
+          <i class="fa-solid fa-circle-info"></i>
+        </div>
+        <h4 id="popupTitle"></h4>
+        <p id="popupMessage"></p>
+      </div>
+    </div>
+
+    <script src="js/chart.min.js"></script>
+    <script src="js/permission-contract.js"></script>
+    <script src="js/app-core.js"></script>
+    <script src="js/app-shell.js"></script>
+    <script src="js/dashboard.js"></script>
+  </body>
+</html>

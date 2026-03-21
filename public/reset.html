@@ -1,0 +1,910 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reset Password | India Inventory Management</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@fontsource/manrope@5.0.17/index.min.css"
+    />
+    <style>
+      :root {
+        --navy: #122744;
+        --navy-soft: #1d487a;
+        --sky: #1697d0;
+        --sky-soft: #46b9e6;
+        --ink: #15263f;
+        --muted: #60728d;
+        --line: rgba(82, 125, 177, 0.18);
+        --surface: rgba(255, 255, 255, 0.94);
+        --surface-strong: rgba(255, 255, 255, 0.98);
+        --success: #16a34a;
+        --danger: #dc2626;
+        --shadow-lg: 0 20px 46px rgba(12, 31, 59, 0.1);
+        --shadow-md: 0 12px 28px rgba(12, 31, 59, 0.08);
+        --radius-xl: 28px;
+        --radius-lg: 22px;
+        --radius-md: 16px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        color-scheme: light;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        min-height: 100dvh;
+        font-family: "Manrope", "Segoe UI Variable", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(
+            circle at 0% 0%,
+            rgba(70, 185, 230, 0.18),
+            transparent 28%
+          ),
+          radial-gradient(
+            circle at 100% 0%,
+            rgba(22, 151, 208, 0.12),
+            transparent 24%
+          ),
+          linear-gradient(180deg, #edf8fc 0%, #f7fbfe 54%, #eef7fd 100%);
+      }
+
+      a,
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .reset-page {
+        width: min(calc(100% - 24px), 560px);
+        margin: 14px auto 26px;
+      }
+
+      .topbar,
+      .reset-card {
+        border: 1px solid rgba(255, 255, 255, 0.74);
+        background: var(--surface);
+        box-shadow: var(--shadow-lg);
+        backdrop-filter: blur(18px);
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 18px;
+        border-radius: 22px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .brand-mark {
+        width: 40px;
+        height: 40px;
+        display: grid;
+        place-items: center;
+        border-radius: 13px;
+        background: linear-gradient(135deg, var(--sky), var(--sky-soft));
+        color: #ffffff;
+        font-size: 17px;
+        font-weight: 800;
+        box-shadow: 0 8px 20px rgba(22, 151, 208, 0.22);
+      }
+
+      .brand-copy {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .brand-copy strong {
+        font-size: 14px;
+      }
+
+      .brand-copy span {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      .topbar-link {
+        min-height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 0 14px;
+        border-radius: 14px;
+        border: 1px solid rgba(22, 151, 208, 0.18);
+        background: rgba(22, 151, 208, 0.05);
+        color: var(--sky);
+        font-size: 13px;
+        font-weight: 800;
+        text-decoration: none;
+        transition: all 0.25s ease;
+      }
+
+      .topbar-link:hover {
+        transform: translateY(-1px);
+        background: rgba(22, 151, 208, 0.11);
+      }
+
+      .topbar-link:focus-visible,
+      .submit-btn:focus-visible,
+      .password-toggle:focus-visible,
+      .support-link:focus-visible {
+        outline: 3px solid rgba(22, 151, 208, 0.18);
+        outline-offset: 3px;
+      }
+
+      .reset-card {
+        margin-top: 18px;
+        padding: 24px;
+        border-radius: var(--radius-xl);
+      }
+
+      .chip {
+        display: inline-flex;
+        width: fit-content;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: rgba(22, 151, 208, 0.08);
+        color: var(--sky);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .reset-card h1 {
+        margin: 14px 0 0;
+        font-size: clamp(30px, 7vw, 40px);
+        line-height: 1.03;
+        letter-spacing: -0.05em;
+      }
+
+      .reset-copy {
+        margin: 12px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.8;
+      }
+
+      .info-strip {
+        display: grid;
+        gap: 10px;
+        margin-top: 18px;
+        padding: 16px 18px;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--line);
+        background:
+          radial-gradient(
+            circle at top right,
+            rgba(103, 198, 234, 0.14),
+            transparent 34%
+          ),
+          linear-gradient(180deg, #fbfdff, #f5fbfe);
+        box-shadow: var(--shadow-md);
+      }
+
+      .info-strip strong {
+        font-size: 15px;
+      }
+
+      .info-strip ul {
+        margin: 0;
+        padding-left: 18px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.75;
+      }
+
+      .reset-panel {
+        margin-top: 18px;
+        padding: 20px;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--line);
+        background: var(--surface-strong);
+      }
+
+      .form-status {
+        display: none;
+        margin-bottom: 16px;
+        padding: 12px 14px;
+        border-radius: 16px;
+        border: 1px solid transparent;
+        font-size: 13px;
+        line-height: 1.65;
+      }
+
+      .form-status.active {
+        display: block;
+      }
+
+      .form-status.info {
+        background: rgba(22, 151, 208, 0.08);
+        border-color: rgba(22, 151, 208, 0.18);
+        color: var(--sky);
+      }
+
+      .form-status.success {
+        background: rgba(22, 163, 74, 0.08);
+        border-color: rgba(22, 163, 74, 0.2);
+        color: var(--success);
+      }
+
+      .form-status.error {
+        background: rgba(220, 38, 38, 0.08);
+        border-color: rgba(220, 38, 38, 0.18);
+        color: var(--danger);
+      }
+
+      .field {
+        margin-bottom: 16px;
+      }
+
+      .field-label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--ink);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .input-shell {
+        position: relative;
+        display: flex;
+        align-items: center;
+        min-height: 54px;
+        border: 1px solid rgba(176, 220, 241, 0.92);
+        border-radius: 18px;
+        background: linear-gradient(180deg, #fcfeff, #f7fbfe);
+        transition: all 0.25s ease;
+      }
+
+      .input-shell i {
+        margin-left: 16px;
+        color: #7da4cb;
+        font-size: 15px;
+      }
+
+      .input-shell.has-action input {
+        padding-right: 52px;
+      }
+
+      .input-shell:focus-within {
+        border-color: rgba(22, 151, 208, 0.45);
+        box-shadow: 0 0 0 4px rgba(22, 151, 208, 0.08);
+      }
+
+      .field.is-valid .input-shell {
+        border-color: rgba(22, 163, 74, 0.34);
+      }
+
+      .field.is-invalid .input-shell {
+        border-color: rgba(220, 38, 38, 0.34);
+      }
+
+      input {
+        width: 100%;
+        border: 0;
+        background: transparent;
+        color: var(--ink);
+        padding: 0 16px 0 12px;
+        font-size: 14px;
+        outline: none;
+      }
+
+      input::placeholder {
+        color: #90a4bd;
+      }
+
+      .password-toggle {
+        position: absolute;
+        right: 8px;
+        width: 40px;
+        height: 40px;
+        display: grid;
+        place-items: center;
+        border: 0;
+        border-radius: 12px;
+        background: transparent;
+        color: var(--muted);
+      }
+
+      .password-toggle:hover {
+        background: rgba(22, 151, 208, 0.08);
+        color: var(--sky);
+      }
+
+      .field-hint {
+        margin: 8px 2px 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.65;
+      }
+
+      .field.is-valid .field-hint {
+        color: var(--success);
+      }
+
+      .field.is-invalid .field-hint {
+        color: var(--danger);
+      }
+
+      .submit-btn {
+        width: 100%;
+        min-height: 54px;
+        margin-top: 4px;
+        border: 0;
+        border-radius: 18px;
+        background: linear-gradient(135deg, var(--sky), var(--sky-soft));
+        color: #ffffff;
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        box-shadow: 0 10px 24px rgba(22, 151, 208, 0.22);
+        transition: all 0.25s ease;
+      }
+
+      .submit-btn:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 14px 26px rgba(22, 151, 208, 0.26);
+      }
+
+      .submit-btn:disabled {
+        opacity: 0.65;
+        cursor: wait;
+        transform: none;
+      }
+
+      .panel-footer {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .support-link {
+        color: var(--sky);
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .support-link:hover {
+        text-decoration: underline;
+      }
+
+      .footer-note {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.7;
+      }
+
+      @media (max-width: 640px) {
+        .reset-page {
+          width: min(calc(100% - 18px), 560px);
+          margin: 10px auto 18px;
+        }
+
+        .topbar,
+        .reset-card {
+          padding: 18px;
+        }
+
+        .topbar {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .reset-panel {
+          padding: 16px;
+        }
+
+        .panel-footer {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="reset-page">
+      <header class="topbar">
+        <a class="brand" href="login.html" aria-label="Back to login page">
+          <span class="brand-mark">
+            <i class="fa-solid fa-boxes-stacked"></i>
+          </span>
+          <span class="brand-copy">
+            <strong>India Inventory</strong>
+            <span>Secure account recovery</span>
+          </span>
+        </a>
+
+        <a class="topbar-link" href="login.html">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span>Back to Login</span>
+        </a>
+      </header>
+
+      <main class="reset-card">
+        <span class="chip">
+          <i class="fa-solid fa-key"></i>
+          Reset password
+        </span>
+
+        <h1>Create a new password</h1>
+        <p class="reset-copy">
+          Use the email linked to your account, set a fresh password, and then
+          sign in again from the normal login page.
+        </p>
+
+        <div class="info-strip">
+          <strong>Before you continue</strong>
+          <ul>
+            <li>Use the same registered email that received the reset link.</li>
+            <li>Your new password should be at least 6 characters long.</li>
+            <li>If the link has expired, request a new reset email from login.</li>
+          </ul>
+        </div>
+
+        <div class="reset-panel">
+          <div id="formStatus" class="form-status" aria-live="polite"></div>
+
+          <form id="resetForm" novalidate>
+            <div class="field">
+              <label class="field-label" for="email">Registered email</label>
+              <div class="input-shell">
+                <i class="fa-solid fa-envelope"></i>
+                <input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your registered email"
+                  autocomplete="email"
+                  inputmode="email"
+                  autocapitalize="none"
+                  aria-describedby="emailHint"
+                  required
+                />
+              </div>
+              <p
+                class="field-hint"
+                id="emailHint"
+                data-default-message="Use the same business email that received the reset link."
+              >
+                Use the same business email that received the reset link.
+              </p>
+            </div>
+
+            <input id="token" type="hidden" autocomplete="off" />
+
+            <div class="field">
+              <label class="field-label" for="newPassword">New password</label>
+              <div class="input-shell has-action">
+                <i class="fa-solid fa-lock"></i>
+                <input
+                  id="newPassword"
+                  type="password"
+                  placeholder="Create your new password"
+                  autocomplete="new-password"
+                  minlength="6"
+                  aria-describedby="newPasswordHint"
+                  required
+                />
+                <button
+                  type="button"
+                  class="password-toggle"
+                  data-toggle-password="newPassword"
+                  aria-label="Show password"
+                >
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+              </div>
+              <p
+                class="field-hint"
+                id="newPasswordHint"
+                data-default-message="Use at least 6 characters for a stronger password."
+              >
+                Use at least 6 characters for a stronger password.
+              </p>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="confirmPassword"
+                >Confirm new password</label
+              >
+              <div class="input-shell has-action">
+                <i class="fa-solid fa-shield-halved"></i>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Re-enter the new password"
+                  autocomplete="new-password"
+                  minlength="6"
+                  aria-describedby="confirmPasswordHint"
+                  required
+                />
+                <button
+                  type="button"
+                  class="password-toggle"
+                  data-toggle-password="confirmPassword"
+                  aria-label="Show password"
+                >
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+              </div>
+              <p
+                class="field-hint"
+                id="confirmPasswordHint"
+                data-default-message="Enter the same password again to avoid mistakes."
+              >
+                Enter the same password again to avoid mistakes.
+              </p>
+            </div>
+
+            <button id="resetBtn" class="submit-btn" type="submit">
+              <i class="fa-solid fa-rotate-right"></i>
+              <span>Reset Password</span>
+            </button>
+          </form>
+
+          <div class="panel-footer">
+            <a class="support-link" href="login.html">Return to login</a>
+            <span class="footer-note"
+              >If the reset link does not work, request a new one from the
+              login page.</span
+            >
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const apiBase = "/api/auth";
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      const form = document.getElementById("resetForm");
+      const statusEl = document.getElementById("formStatus");
+      const resetBtn = document.getElementById("resetBtn");
+      const fields = {
+        email: document.getElementById("email"),
+        token: document.getElementById("token"),
+        newPassword: document.getElementById("newPassword"),
+        confirmPassword: document.getElementById("confirmPassword"),
+      };
+
+      const getFieldWrapper = (input) => input?.closest(".field");
+
+      const resetInputState = (input) => {
+        const wrapper = getFieldWrapper(input);
+        const hint = wrapper?.querySelector(".field-hint");
+        if (!wrapper || !hint) {
+          return;
+        }
+
+        wrapper.classList.remove("is-valid", "is-invalid");
+        hint.textContent = hint.dataset.defaultMessage || "";
+      };
+
+      const setInputState = (input, state, message) => {
+        const wrapper = getFieldWrapper(input);
+        const hint = wrapper?.querySelector(".field-hint");
+        if (!wrapper || !hint) {
+          return;
+        }
+
+        wrapper.classList.remove("is-valid", "is-invalid");
+        if (state) {
+          wrapper.classList.add(`is-${state}`);
+        }
+        hint.textContent = message || hint.dataset.defaultMessage || "";
+      };
+
+      const clearStatus = () => {
+        statusEl.className = "form-status";
+        statusEl.textContent = "";
+      };
+
+      const setStatus = (type, message) => {
+        statusEl.className = `form-status ${type} active`;
+        statusEl.textContent = message;
+      };
+
+      const setPendingState = (isPending) => {
+        resetBtn.disabled = isPending;
+        resetBtn.innerHTML = isPending
+          ? '<i class="fa-solid fa-spinner fa-spin"></i><span>Saving new password...</span>'
+          : '<i class="fa-solid fa-rotate-right"></i><span>Reset Password</span>';
+      };
+
+      const params = new URLSearchParams(window.location.search);
+      fields.email.value = decodeURIComponent(params.get("email") || "")
+        .trim()
+        .toLowerCase();
+      fields.token.value = params.get("token") || "";
+
+      if (fields.token.value) {
+        setStatus(
+          "info",
+          "Reset link verified. Set your new password below to continue.",
+        );
+      } else {
+        setStatus(
+          "error",
+          "This reset link is incomplete or expired. Request a new password reset email.",
+        );
+      }
+
+      const validateForm = () => {
+        clearStatus();
+        resetInputState(fields.email);
+        resetInputState(fields.newPassword);
+        resetInputState(fields.confirmPassword);
+
+        const email = fields.email.value.trim().toLowerCase();
+        const token = fields.token.value.trim();
+        const newPassword = fields.newPassword.value;
+        const confirmPassword = fields.confirmPassword.value;
+        let firstInvalidField = null;
+
+        fields.email.value = email;
+
+        if (!email) {
+          setInputState(
+            fields.email,
+            "invalid",
+            "Enter the registered business email address.",
+          );
+          firstInvalidField = fields.email;
+        } else if (!emailPattern.test(email)) {
+          setInputState(
+            fields.email,
+            "invalid",
+            "Please enter a valid email address.",
+          );
+          firstInvalidField = fields.email;
+        } else {
+          setInputState(fields.email, "valid", "Email format looks good.");
+        }
+
+        if (!token) {
+          setStatus(
+            "error",
+            "This reset link is incomplete or expired. Please request a new one from the login page.",
+          );
+        }
+
+        if (!newPassword) {
+          setInputState(
+            fields.newPassword,
+            "invalid",
+            "Enter a new password to continue.",
+          );
+          firstInvalidField = firstInvalidField || fields.newPassword;
+        } else if (newPassword.length < 6) {
+          setInputState(
+            fields.newPassword,
+            "invalid",
+            "Password must be at least 6 characters long.",
+          );
+          firstInvalidField = firstInvalidField || fields.newPassword;
+        } else {
+          setInputState(
+            fields.newPassword,
+            "valid",
+            "Password strength is acceptable.",
+          );
+        }
+
+        if (!confirmPassword) {
+          setInputState(
+            fields.confirmPassword,
+            "invalid",
+            "Please confirm the new password.",
+          );
+          firstInvalidField = firstInvalidField || fields.confirmPassword;
+        } else if (confirmPassword !== newPassword) {
+          setInputState(
+            fields.confirmPassword,
+            "invalid",
+            "Confirm password must match the new password above.",
+          );
+          firstInvalidField = firstInvalidField || fields.confirmPassword;
+        } else {
+          setInputState(
+            fields.confirmPassword,
+            "valid",
+            "Passwords match.",
+          );
+        }
+
+        if (!token || firstInvalidField) {
+          firstInvalidField?.focus();
+          if (!statusEl.textContent) {
+            setStatus(
+              "error",
+              "Please fix the highlighted fields before resetting your password.",
+            );
+          }
+          return null;
+        }
+
+        return { email, token, newPassword };
+      };
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const payload = validateForm();
+        if (!payload) {
+          return;
+        }
+
+        setPendingState(true);
+        try {
+          const response = await fetch(`${apiBase}/reset-password`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          let data = {};
+          try {
+            data = await response.json();
+          } catch (error) {
+            data = {};
+          }
+
+          if (!response.ok) {
+            throw new Error(data.error || "Reset failed");
+          }
+
+          setStatus(
+            "success",
+            `${data.message || "Password reset successful."} Redirecting to login...`,
+          );
+          window.setTimeout(() => {
+            window.location.href = "login.html";
+          }, 1600);
+        } catch (error) {
+          setStatus(
+            "error",
+            error.message ||
+              "We could not reset the password right now. Please try again.",
+          );
+        } finally {
+          setPendingState(false);
+        }
+      });
+
+      document.querySelectorAll("[data-toggle-password]").forEach((toggle) => {
+        const target = document.getElementById(toggle.dataset.togglePassword);
+        const icon = toggle.querySelector("i");
+        if (!target || !icon) {
+          return;
+        }
+
+        const syncState = () => {
+          const isHidden = target.type === "password";
+          icon.classList.toggle("fa-eye", isHidden);
+          icon.classList.toggle("fa-eye-slash", !isHidden);
+          toggle.setAttribute(
+            "aria-label",
+            isHidden ? "Show password" : "Hide password",
+          );
+        };
+
+        syncState();
+        toggle.addEventListener("click", () => {
+          target.type = target.type === "password" ? "text" : "password";
+          syncState();
+        });
+      });
+
+      fields.email.addEventListener("blur", () => {
+        const value = fields.email.value.trim().toLowerCase();
+        fields.email.value = value;
+        if (!value) {
+          resetInputState(fields.email);
+          return;
+        }
+
+        if (emailPattern.test(value)) {
+          setInputState(fields.email, "valid", "Email format looks good.");
+        } else {
+          setInputState(
+            fields.email,
+            "invalid",
+            "Please enter a valid email address.",
+          );
+        }
+      });
+
+      [fields.newPassword, fields.confirmPassword].forEach((field) => {
+        field.addEventListener("input", () => {
+          clearStatus();
+          if (field === fields.newPassword && fields.confirmPassword.value) {
+            if (fields.confirmPassword.value === fields.newPassword.value) {
+              setInputState(
+                fields.confirmPassword,
+                "valid",
+                "Passwords match.",
+              );
+            } else {
+              setInputState(
+                fields.confirmPassword,
+                "invalid",
+                "Confirm password must match the new password above.",
+              );
+            }
+          } else {
+            resetInputState(field);
+          }
+        });
+
+        field.addEventListener("blur", () => {
+          if (!field.value) {
+            resetInputState(field);
+            return;
+          }
+
+          if (field === fields.newPassword && field.value.length < 6) {
+            setInputState(
+              field,
+              "invalid",
+              "Password must be at least 6 characters long.",
+            );
+            return;
+          }
+
+          if (
+            field === fields.confirmPassword &&
+            field.value !== fields.newPassword.value
+          ) {
+            setInputState(
+              field,
+              "invalid",
+              "Confirm password must match the new password above.",
+            );
+            return;
+          }
+
+          setInputState(
+            field,
+            "valid",
+            field === fields.newPassword
+              ? "Password strength is acceptable."
+              : "Passwords match.",
+          );
+        });
+      });
+    </script>
+  </body>
+</html>
