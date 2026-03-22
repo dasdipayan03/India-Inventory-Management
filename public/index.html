@@ -424,8 +424,30 @@
         min-height: 154px;
       }
 
+      .due-hero-card .report-kpi {
+        border-color: rgba(191, 219, 254, 0.38);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.96),
+          rgba(241, 247, 255, 0.92)
+        );
+      }
+
+      .due-hero-card .report-kpi__label {
+        color: #4f6b91;
+      }
+
+      .due-hero-card .report-kpi__value,
+      .due-hero-card .report-kpi strong {
+        color: #153256;
+      }
+
       .due-kpi-grid .report-kpi__note {
         max-width: 28ch;
+      }
+
+      .due-hero-card .report-kpi__note {
+        color: #5f789b;
       }
 
       .due-section-grid {
@@ -2216,6 +2238,31 @@
           white-space: normal;
         }
 
+        .dashboard-table--ledger {
+          width: 100%;
+          min-width: 0;
+          table-layout: fixed;
+        }
+
+        .dashboard-table--ledger td:first-child,
+        .dashboard-table--ledger td:last-child {
+          min-width: 0;
+        }
+
+        .dashboard-table--ledger th:nth-child(1) {
+          width: 24%;
+        }
+
+        .dashboard-table--ledger th:nth-child(2),
+        .dashboard-table--ledger th:nth-child(3),
+        .dashboard-table--ledger th:nth-child(4) {
+          width: 16%;
+        }
+
+        .dashboard-table--ledger th:nth-child(5) {
+          width: 28%;
+        }
+
         .dashboard-table--item-report th:nth-child(1),
         .dashboard-table--low-stock th:nth-child(1) {
           width: 30%;
@@ -2435,7 +2482,8 @@
 
         .dashboard-table--purchase-report,
         .dashboard-table--supplier-ledger,
-        .dashboard-table--purchase-detail {
+        .dashboard-table--purchase-detail,
+        .dashboard-table--ledger {
           min-width: 0;
           width: 100%;
           table-layout: fixed;
@@ -2443,13 +2491,15 @@
 
         .dashboard-table--purchase-report thead,
         .dashboard-table--supplier-ledger thead,
-        .dashboard-table--purchase-detail thead {
+        .dashboard-table--purchase-detail thead,
+        .dashboard-table--ledger thead {
           display: none;
         }
 
         .dashboard-table--purchase-report tbody,
         .dashboard-table--supplier-ledger tbody,
-        .dashboard-table--purchase-detail tbody {
+        .dashboard-table--purchase-detail tbody,
+        .dashboard-table--ledger tbody {
           display: grid;
           gap: 12px;
           padding: 12px;
@@ -2457,7 +2507,8 @@
 
         .dashboard-table--purchase-report tbody tr,
         .dashboard-table--supplier-ledger tbody tr,
-        .dashboard-table--purchase-detail tbody tr {
+        .dashboard-table--purchase-detail tbody tr,
+        .dashboard-table--ledger tbody tr {
           display: block;
           padding: 14px 14px 10px;
           border-radius: 18px;
@@ -2472,7 +2523,8 @@
 
         .dashboard-table--purchase-report tbody td,
         .dashboard-table--supplier-ledger tbody td,
-        .dashboard-table--purchase-detail tbody td {
+        .dashboard-table--purchase-detail tbody td,
+        .dashboard-table--ledger tbody td {
           display: flex;
           align-items: flex-start;
           justify-content: space-between;
@@ -2487,14 +2539,17 @@
 
         .dashboard-table--purchase-report tbody td:last-child,
         .dashboard-table--supplier-ledger tbody td:last-child,
-        .dashboard-table--purchase-detail tbody td:last-child {
+        .dashboard-table--purchase-detail tbody td:last-child,
+        .dashboard-table--ledger tbody td:last-child {
           border-bottom: 0;
           padding-bottom: 0;
+          max-width: none;
         }
 
         .dashboard-table--purchase-report tbody td::before,
         .dashboard-table--supplier-ledger tbody td::before,
-        .dashboard-table--purchase-detail tbody td::before {
+        .dashboard-table--purchase-detail tbody td::before,
+        .dashboard-table--ledger tbody td::before {
           content: attr(data-label);
           flex: 0 0 96px;
           color: var(--ink-soft);
@@ -2507,13 +2562,15 @@
 
         .dashboard-table--purchase-report tbody td > *,
         .dashboard-table--supplier-ledger tbody td > *,
-        .dashboard-table--purchase-detail tbody td > * {
+        .dashboard-table--purchase-detail tbody td > *,
+        .dashboard-table--ledger tbody td > * {
           min-width: 0;
         }
 
         .dashboard-table--purchase-report tbody td[colspan],
         .dashboard-table--supplier-ledger tbody td[colspan],
-        .dashboard-table--purchase-detail tbody td[colspan] {
+        .dashboard-table--purchase-detail tbody td[colspan],
+        .dashboard-table--ledger tbody td[colspan] {
           display: block;
           padding: 2px 0;
           border-bottom: 0;
@@ -2535,6 +2592,15 @@
       @media (max-width: 420px) {
         .main {
           padding: 74px 8px 24px;
+        }
+
+        .dashboard-table--ledger td:first-child,
+        .dashboard-table--ledger td:last-child {
+          min-width: 0;
+        }
+
+        .dashboard-table--ledger .table-row-hint {
+          display: none;
         }
 
         .hero-panel__copy,
