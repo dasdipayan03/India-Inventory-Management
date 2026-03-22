@@ -16,6 +16,10 @@ const state = {
   reorderRows: [],
   ledgerMode: "empty",
   currentLedgerNumber: "",
+  currentLedgerName: "",
+  currentLedgerOutstanding: 0,
+  dueSummaryCustomerCount: 0,
+  dueSummaryOutstanding: 0,
   supplierLedgerMode: "empty",
   currentSupplierId: null,
   currentPurchaseDetailId: null,
@@ -452,17 +456,43 @@ function cacheElements() {
     businessTrendChart: document.getElementById("businessTrendChart"),
     growthBadge: document.getElementById("growthBadge"),
     last12MonthsChart: document.getElementById("last12MonthsChart"),
+    dueSectionTotalBalance: document.getElementById("dueSectionTotalBalance"),
+    dueSectionTotalBalanceNote: document.getElementById(
+      "dueSectionTotalBalanceNote",
+    ),
+    dueSectionCustomerCount: document.getElementById("dueSectionCustomerCount"),
+    dueSectionCustomerCountNote: document.getElementById(
+      "dueSectionCustomerCountNote",
+    ),
+    dueSectionViewMode: document.getElementById("dueSectionViewMode"),
+    dueSectionViewModeNote: document.getElementById("dueSectionViewModeNote"),
+    dueSectionSelectedCustomer: document.getElementById(
+      "dueSectionSelectedCustomer",
+    ),
+    dueSectionSelectedCustomerNote: document.getElementById(
+      "dueSectionSelectedCustomerNote",
+    ),
     cdName: document.getElementById("cdName"),
     cdNumber: document.getElementById("cdNumber"),
     cdNumberDropdown: document.getElementById("cdNumberDropdown"),
     cdTotal: document.getElementById("cdTotal"),
     cdCredit: document.getElementById("cdCredit"),
     cdRemark: document.getElementById("cdRemark"),
+    cdEntryType: document.getElementById("cdEntryType"),
+    cdEntryTypeMeta: document.getElementById("cdEntryTypeMeta"),
+    cdImpactValue: document.getElementById("cdImpactValue"),
+    cdImpactMeta: document.getElementById("cdImpactMeta"),
+    cdWorkflowValue: document.getElementById("cdWorkflowValue"),
+    cdWorkflowMeta: document.getElementById("cdWorkflowMeta"),
     submitDebtBtn: document.getElementById("submitDebtBtn"),
     cdSearchInput: document.getElementById("cdSearchInput"),
     cdSearchDropdown: document.getElementById("cdSearchDropdown"),
     searchLedgerBtn: document.getElementById("searchLedgerBtn"),
     showAllDuesBtn: document.getElementById("showAllDuesBtn"),
+    refreshDueLedgerBtn: document.getElementById("refreshDueLedgerBtn"),
+    dueLedgerViewPill: document.getElementById("dueLedgerViewPill"),
+    dueLedgerFocusPill: document.getElementById("dueLedgerFocusPill"),
+    dueLedgerHintPill: document.getElementById("dueLedgerHintPill"),
     ledgerTable: document.getElementById("ledgerTable"),
     expenseTitle: document.getElementById("expenseTitle"),
     expenseCategory: document.getElementById("expenseCategory"),
@@ -677,6 +707,224 @@ function updateCurrentDateLabel() {
 function setCustomerNameLocked(locked) {
   dom.cdName.disabled = locked;
   dom.cdName.classList.toggle("bg-light", locked);
+  updateCustomerDuePreview();
+}
+
+function getDueFormSnapshot() {
+  const customerName = dom.cdName?.value.trim() || "";
+  const customerNumber = dom.cdNumber?.value.trim() || "";
+  const total = Number(dom.cdTotal?.value) || 0;
+  const credit = Number(dom.cdCredit?.value) || 0;
+  const balanceImpact = Number((total - credit).toFixed(2));
+  const hasExactNumber = /^\d{10}$/.test(customerNumber);
+  const isMatchedCustomer = Boolean(dom.cdName?.disabled && hasExactNumber);
+
+  let entryType = "Waiting";
+  let entryTypeMeta = "Start with customer and amount details.";
+  let impactValue = formatCurrency(0);
+  let impactMeta = "The live preview updates as you type.";
+  let workflowValue = customerName ? "Manual entry" : "Ready";
+  let workflowMeta = hasExactNumber
+    ? "This customer number can be linked to a precise ledger."
+    : "Invoice-linked settlement guidance will appear here.";
+
+  if (total > 0 && credit > 0) {
+    entryType = "Mixed update";
+    entryTypeMeta =
+      "An opening due and a same-entry credit will be recorded together.";
+  } else if (total > 0) {
+    entryType = "New due";
+    entryTypeMeta = "A new outstanding balance will be added to the ledger.";
+  } else if (credit > 0) {
+    entryType = "Collection";
+    entryTypeMeta = "A payment receipt will be saved for this customer.";
+  }
+
+  if (balanceImpact > 0.009) {
+    impactValue = `+ ${formatCurrency(balanceImpact)}`;
+    impactMeta = "This much balance will stay pending after the entry.";
+  } else if (balanceImpact < -0.009) {
+    impactValue = `- ${formatCurrency(Math.abs(balanceImpact))}`;
+    impactMeta = "This entry reduces the running customer balance.";
+  } else if (total > 0 || credit > 0) {
+    impactMeta = "This entry balances total and credit with no net due change.";
+  }
+
+  if (credit > 0 && total === 0) {
+    workflowValue = isMatchedCustomer ? "Invoice-aware collection" : "Credit collection";
+    workflowMeta = hasExactNumber
+      ? "Available unpaid invoice dues for this customer number will be settled first."
+      : "Enter the exact 10-digit number to connect the collection to invoice dues.";
+  } else if (total > 0 && credit > 0) {
+    workflowValue = "Opening + collection";
+    workflowMeta =
+      "Useful when part of the amount is paid immediately and the rest remains due.";
+  } else if (total > 0) {
+    workflowValue = isMatchedCustomer ? "Matched ledger" : "New ledger";
+    workflowMeta =
+      "The remaining amount will stay available for later collection and search.";
+  } else if (isMatchedCustomer) {
+    workflowValue = "Matched customer";
+    workflowMeta =
+      "The customer name is locked from the saved ledger for cleaner tracking.";
+  }
+
+  if (total > 0 && credit > total) {
+    impactMeta = "Credit is higher than total. Reduce it before saving.";
+  }
+
+  return {
+    entryType,
+    entryTypeMeta,
+    impactValue,
+    impactMeta,
+    workflowValue,
+    workflowMeta,
+  };
+}
+
+function updateCustomerDuePreview() {
+  const snapshot = getDueFormSnapshot();
+
+  if (dom.cdEntryType) {
+    dom.cdEntryType.textContent = snapshot.entryType;
+  }
+
+  if (dom.cdEntryTypeMeta) {
+    dom.cdEntryTypeMeta.textContent = snapshot.entryTypeMeta;
+  }
+
+  if (dom.cdImpactValue) {
+    dom.cdImpactValue.textContent = snapshot.impactValue;
+  }
+
+  if (dom.cdImpactMeta) {
+    dom.cdImpactMeta.textContent = snapshot.impactMeta;
+  }
+
+  if (dom.cdWorkflowValue) {
+    dom.cdWorkflowValue.textContent = snapshot.workflowValue;
+  }
+
+  if (dom.cdWorkflowMeta) {
+    dom.cdWorkflowMeta.textContent = snapshot.workflowMeta;
+  }
+}
+
+function getDueBalancePillClass(value) {
+  const normalizedValue = Number(value) || 0;
+
+  if (normalizedValue < -0.009) {
+    return "due-balance-pill due-balance-pill--credit";
+  }
+
+  if (normalizedValue <= 0.009) {
+    return "due-balance-pill due-balance-pill--neutral";
+  }
+
+  return "due-balance-pill due-balance-pill--positive";
+}
+
+function renderDueBalancePill(value) {
+  return `<span class="${getDueBalancePillClass(value)}">${formatCurrency(value)}</span>`;
+}
+
+function updateDueWorkspaceMeta() {
+  const summaryCount = Number(state.dueSummaryCustomerCount) || 0;
+  const summaryOutstanding = Number(state.dueSummaryOutstanding) || 0;
+  const isLedgerView =
+    state.ledgerMode === "ledger" && Boolean(state.currentLedgerNumber);
+  const displayedCount = summaryCount || (isLedgerView ? 1 : 0);
+  const displayedOutstanding =
+    summaryCount > 0 ? summaryOutstanding : Number(state.currentLedgerOutstanding) || 0;
+
+  let viewLabel = "Ready";
+  let viewNote = "Search one customer or open the full customer list.";
+  let selectedLabel = "None";
+  let selectedNote = "The currently focused customer will appear here.";
+  let viewPillClass = "summary-pill summary-pill--success";
+  let focusPillText = "No customer selected";
+  let hintPillText = "Search a customer or load the full ledger summary.";
+
+  if (isLedgerView) {
+    viewLabel = "Customer Ledger";
+    viewNote = `${formatCurrency(state.currentLedgerOutstanding)} currently visible in the selected timeline.`;
+    selectedLabel = state.currentLedgerName || state.currentLedgerNumber;
+    selectedNote = state.currentLedgerNumber;
+    viewPillClass = "summary-pill summary-pill--warn";
+    focusPillText = `${state.currentLedgerName || "Customer"} - ${state.currentLedgerNumber}`;
+    hintPillText =
+      "Invoice-linked collections and manual ledger entries are shown together.";
+  } else if (state.ledgerMode === "summary") {
+    viewLabel = "All Customers";
+    viewNote = "Click a summary row to open the exact customer ledger.";
+    selectedLabel = `${formatCount(summaryCount)} loaded`;
+    selectedNote = summaryCount
+      ? "Use any row below to jump into its full history."
+      : "Load the summary to view customer records.";
+    focusPillText = `${formatCount(summaryCount)} customer${summaryCount === 1 ? "" : "s"} loaded`;
+    hintPillText = "Click a row to open full ledger details.";
+  }
+
+  if (dom.dueSectionTotalBalance) {
+    dom.dueSectionTotalBalance.textContent =
+      formatCurrency(displayedOutstanding);
+  }
+
+  if (dom.dueSectionTotalBalanceNote) {
+    dom.dueSectionTotalBalanceNote.textContent = summaryCount
+      ? `${formatCount(summaryCount)} customer ledger${summaryCount === 1 ? "" : "s"} included in this snapshot.`
+      : isLedgerView
+        ? "Showing the outstanding balance for the selected customer ledger."
+        : "Load all customers to see the latest ledger snapshot.";
+  }
+
+  if (dom.dueSectionCustomerCount) {
+    dom.dueSectionCustomerCount.textContent = formatCount(displayedCount);
+  }
+
+  if (dom.dueSectionCustomerCountNote) {
+    dom.dueSectionCustomerCountNote.textContent = summaryCount
+      ? "Customer records update whenever the due summary is refreshed."
+      : isLedgerView
+        ? "Only the selected customer ledger is in focus right now."
+        : "Summary rows will show how many customer ledgers are active.";
+  }
+
+  if (dom.dueSectionViewMode) {
+    dom.dueSectionViewMode.textContent = viewLabel;
+  }
+
+  if (dom.dueSectionViewModeNote) {
+    dom.dueSectionViewModeNote.textContent = viewNote;
+  }
+
+  if (dom.dueSectionSelectedCustomer) {
+    dom.dueSectionSelectedCustomer.textContent = selectedLabel;
+  }
+
+  if (dom.dueSectionSelectedCustomerNote) {
+    dom.dueSectionSelectedCustomerNote.textContent = selectedNote;
+  }
+
+  if (dom.dueLedgerViewPill) {
+    dom.dueLedgerViewPill.className = viewPillClass;
+    dom.dueLedgerViewPill.textContent = viewLabel;
+  }
+
+  if (dom.dueLedgerFocusPill) {
+    dom.dueLedgerFocusPill.textContent = focusPillText;
+  }
+
+  if (dom.dueLedgerHintPill) {
+    dom.dueLedgerHintPill.textContent = hintPillText;
+  }
+
+  if (dom.showAllDuesBtn) {
+    dom.showAllDuesBtn.innerHTML = isLedgerView
+      ? '<i class="fas fa-list"></i> Back to Summary'
+      : '<i class="fas fa-list"></i> All Customers';
+  }
 }
 
 function hidePreviousBuyingRate() {
@@ -1167,6 +1415,9 @@ async function loadDashboardOverview(options = {}) {
     dom.statDueNote.textContent = dueCustomerCount
       ? `${formatCount(dueCustomerCount)} customer${dueCustomerCount === 1 ? "" : "s"} currently have pending balances.`
       : "No outstanding due balance at the moment.";
+    state.dueSummaryCustomerCount = dueCustomerCount;
+    state.dueSummaryOutstanding = dueBalance;
+    updateDueWorkspaceMeta();
 
     if (dom.statSupplierDue) {
       dom.statSupplierDue.textContent = formatCurrency(supplierDue);
@@ -3851,6 +4102,16 @@ async function submitDebt() {
     return;
   }
 
+  if (total > 0 && credit > total) {
+    showPopup(
+      "error",
+      "Credit is too high",
+      "Credit amount cannot be greater than the total amount.",
+      { autoClose: false },
+    );
+    return;
+  }
+
   await withButtonState(
     dom.submitDebtBtn,
     '<i class="fa-solid fa-spinner fa-spin"></i> Saving due...',
@@ -4180,11 +4441,12 @@ function renderCustomerDropdown(listEl, customers, onSelect) {
 
       return `
         <div
-          class="dropdown-item"
+          class="dropdown-item dropdown-item--customer"
           data-name="${encodeURIComponent(customer.customer_name)}"
           data-number="${encodeURIComponent(customer.customer_number)}"
         >
-          ${customerName} - ${customerNumber}
+          <span class="dropdown-item__title">${customerName}</span>
+          <span class="dropdown-item__meta">${customerNumber} - Existing ledger match</span>
         </div>
       `;
     })
@@ -4204,15 +4466,35 @@ function renderCustomerDropdown(listEl, customers, onSelect) {
 }
 
 function renderEmptyLedger(message) {
-  dom.ledgerTable.innerHTML = `<div class="empty-ledger">${escapeHtml(message)}</div>`;
+  const normalizedMessage = String(message || "").trim();
+  const title = /^Could not/i.test(normalizedMessage)
+    ? "Customer ledger is unavailable"
+    : /^No records/i.test(normalizedMessage)
+      ? "No ledger rows found"
+      : "Ledger workspace is ready";
+
+  dom.ledgerTable.innerHTML = `
+    <div class="due-empty-state">
+      <div class="due-empty-state__icon">
+        <i class="fa-solid fa-address-book"></i>
+      </div>
+      <strong>${escapeHtml(title)}</strong>
+      <p>${escapeHtml(normalizedMessage)}</p>
+    </div>
+  `;
   state.ledgerMode = "empty";
   state.currentLedgerNumber = "";
+  state.currentLedgerName = "";
+  state.currentLedgerOutstanding = 0;
+  updateDueWorkspaceMeta();
 }
 
 function updateDueOverviewFromRows(rows) {
   const totalBalance = rows.reduce((sum, row) => {
     return sum + (Number(row.balance) || 0);
   }, 0);
+  state.dueSummaryCustomerCount = rows.length;
+  state.dueSummaryOutstanding = totalBalance;
 
   dom.statDueBalance.textContent = formatCurrency(totalBalance);
   dom.statDueNote.textContent = rows.length
@@ -4224,6 +4506,7 @@ function updateDueOverviewFromRows(rows) {
     lowStockCount: parseFormattedNumber(dom.statLowStock.textContent),
     dueCustomerCount: rows.length,
   });
+  updateDueWorkspaceMeta();
 }
 
 function renderLedgerTable(rows, mode = "summary") {
@@ -4240,6 +4523,8 @@ function renderLedgerTable(rows, mode = "summary") {
   if (mode === "summary") {
     state.ledgerMode = "summary";
     state.currentLedgerNumber = "";
+    state.currentLedgerName = "";
+    state.currentLedgerOutstanding = 0;
 
     tableHead = `
       <thead>
@@ -4272,15 +4557,31 @@ function renderLedgerTable(rows, mode = "summary") {
       const total = Number(row.total) || 0;
       const credit = Number(row.credit) || 0;
       const balance = Number(row.balance) || 0;
+      const customerName = escapeHtml(row.customer_name);
+      const customerNumber = escapeHtml(row.customer_number);
 
       totalOutstanding += balance;
       tableBody += `
-        <tr>
-          <td>${escapeHtml(row.customer_name)}</td>
-          <td>${escapeHtml(row.customer_number)}</td>
-          <td>${formatCurrencyValue(total)}</td>
-          <td>${formatCurrencyValue(credit)}</td>
-          <td>${formatCurrencyValue(balance)}</td>
+        <tr
+          class="interactive-row"
+          data-number="${customerNumber}"
+          tabindex="0"
+          role="button"
+          aria-label="Open ledger for ${customerName}"
+        >
+          <td data-label="Name">
+            <div class="due-row-title">
+              <strong>${customerName}</strong>
+              <span class="table-row-hint">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                Open full ledger
+              </span>
+            </div>
+          </td>
+          <td data-label="Number">${customerNumber}</td>
+          <td data-label="Total">${formatCurrencyValue(total)}</td>
+          <td data-label="Credit">${formatCurrencyValue(credit)}</td>
+          <td data-label="Balance">${renderDueBalancePill(balance)}</td>
         </tr>
       `;
     });
@@ -4293,6 +4594,7 @@ function renderLedgerTable(rows, mode = "summary") {
 
     state.ledgerMode = "ledger";
     state.currentLedgerNumber = ledgerNumber;
+    state.currentLedgerName = customerName;
 
     tableHead = `
       <thead>
@@ -4323,18 +4625,20 @@ function renderLedgerTable(rows, mode = "summary") {
 
     rows.forEach((row) => {
       totalOutstanding += (Number(row.total) || 0) - (Number(row.credit) || 0);
+      totalOutstanding = Number(totalOutstanding.toFixed(2));
 
       tableBody += `
         <tr>
-          <td>${formatDate(row.created_at)}</td>
-          <td>${formatCurrencyValue(row.total)}</td>
-          <td>${formatCurrencyValue(row.credit)}</td>
-          <td>${formatCurrencyValue(totalOutstanding)}</td>
-          <td>${escapeHtml(row.remark || "-")}</td>
+          <td data-label="Date">${formatDate(row.created_at)}</td>
+          <td data-label="Total">${formatCurrencyValue(row.total)}</td>
+          <td data-label="Credit">${formatCurrencyValue(row.credit)}</td>
+          <td data-label="Balance">${renderDueBalancePill(totalOutstanding)}</td>
+          <td data-label="Remarks">${escapeHtml(row.remark || "-")}</td>
         </tr>
       `;
     });
 
+    state.currentLedgerOutstanding = totalOutstanding;
     summaryLabel = `${escapeHtml(customerName)} - ${escapeHtml(ledgerNumber)}`;
   }
 
@@ -4348,12 +4652,40 @@ function renderLedgerTable(rows, mode = "summary") {
         <i class="fa-solid fa-hand-holding-dollar"></i>
         Outstanding: ${formatCurrency(totalOutstanding)}
       </span>
+      <span class="summary-pill summary-pill--neutral">
+        <i class="fa-solid ${mode === "summary" ? "fa-arrow-up-right-from-square" : "fa-clock-rotate-left"}"></i>
+        ${mode === "summary" ? "Click a row to open ledger details" : `${formatCount(rows.length)} timeline entr${rows.length === 1 ? "y" : "ies"}`}
+      </span>
     </div>
     <table class="table table-sm text-center align-middle dashboard-table dashboard-table--ledger">
       ${tableHead}
       <tbody>${tableBody}</tbody>
     </table>
   `;
+
+  if (mode === "summary") {
+    dom.ledgerTable.querySelectorAll(".interactive-row").forEach((row) => {
+      const openLedger = () => {
+        const number = row.dataset.number || "";
+        if (!number) {
+          return;
+        }
+
+        dom.cdSearchInput.value = number;
+        searchLedger({ value: number });
+      };
+
+      row.addEventListener("click", openLedger);
+      row.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openLedger();
+        }
+      });
+    });
+  }
+
+  updateDueWorkspaceMeta();
 }
 
 async function searchLedger(options = {}) {
@@ -4415,6 +4747,8 @@ async function searchLedger(options = {}) {
       }
     },
   );
+
+  updateDueWorkspaceMeta();
 }
 
 async function showAllDues(options = {}) {
@@ -4450,6 +4784,51 @@ async function showAllDues(options = {}) {
       }
     },
   );
+
+  updateDueWorkspaceMeta();
+}
+
+async function refreshCurrentDueView() {
+  const task = async () => {
+    if (state.ledgerMode === "ledger" && state.currentLedgerNumber) {
+      await searchLedger({ value: state.currentLedgerNumber, silent: true });
+      return;
+    }
+
+    if (state.ledgerMode === "summary") {
+      await showAllDues({ silent: true });
+      return;
+    }
+
+    const searchValue = dom.cdSearchInput.value.trim();
+
+    if (/^\d{10}$/.test(searchValue)) {
+      await searchLedger({ value: searchValue, silent: true });
+      return;
+    }
+
+    await showAllDues({ silent: true });
+  };
+
+  await withButtonState(
+    dom.refreshDueLedgerBtn,
+    '<i class="fa-solid fa-spinner fa-spin"></i> Refreshing...',
+    async () => {
+      try {
+        await task();
+      } catch (error) {
+        console.error("Due ledger refresh failed:", error);
+        showPopup(
+          "error",
+          "Refresh failed",
+          error.message || "Could not refresh the customer due workspace.",
+          { autoClose: false },
+        );
+      }
+    },
+  );
+
+  updateDueWorkspaceMeta();
 }
 
 function normalizeStaffUsername(value) {
@@ -5262,10 +5641,14 @@ function bindReportEvents() {
 
 function bindCustomerDueEvents() {
   restrictToDigits(dom.cdNumber);
+  [dom.cdName, dom.cdTotal, dom.cdCredit, dom.cdRemark].forEach((input) => {
+    input?.addEventListener("input", updateCustomerDuePreview);
+  });
 
   dom.cdNumber.addEventListener("input", async () => {
     const query = dom.cdNumber.value.trim();
     setCustomerNameLocked(false);
+    updateCustomerDuePreview();
 
     if (!query) {
       hideElement(dom.cdNumberDropdown);
@@ -5280,6 +5663,7 @@ function bindCustomerDueEvents() {
         dom.cdName.value = name;
         dom.cdNumber.value = number;
         setCustomerNameLocked(true);
+        updateCustomerDuePreview();
       },
     );
   });
@@ -5328,6 +5712,7 @@ function bindCustomerDueEvents() {
 
   dom.searchLedgerBtn.addEventListener("click", () => searchLedger());
   dom.showAllDuesBtn.addEventListener("click", () => showAllDues());
+  dom.refreshDueLedgerBtn?.addEventListener("click", () => refreshCurrentDueView());
 }
 
 function bindExpenseEvents() {
@@ -5421,6 +5806,8 @@ window.addEventListener("DOMContentLoaded", async () => {
   renderEmptyLedger(
     "Search a customer or load all due balances to view the ledger.",
   );
+  updateCustomerDuePreview();
+  updateDueWorkspaceMeta();
   if (dom.supplierLedgerTable) {
     dom.supplierLedgerTable.innerHTML =
       '<div class="empty-ledger">Search a supplier or load all supplier balances to view the ledger.</div>';

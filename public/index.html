@@ -391,6 +391,217 @@
         min-height: 48px;
       }
 
+      .due-hero-card {
+        margin-top: 16px;
+        padding: 28px;
+      }
+
+      .due-hero-card__top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+      }
+
+      .due-hero-card .panel-subtitle {
+        max-width: 62ch;
+        color: rgba(226, 232, 240, 0.82);
+      }
+
+      .due-hero-card__icon {
+        width: 64px;
+        height: 64px;
+        flex-shrink: 0;
+        background: rgba(255, 255, 255, 0.12);
+        color: #e0f2fe;
+      }
+
+      .due-kpi-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .due-kpi-grid .report-kpi {
+        min-height: 154px;
+      }
+
+      .due-kpi-grid .report-kpi__note {
+        max-width: 28ch;
+      }
+
+      .due-section-grid {
+        align-items: start;
+      }
+
+      .due-composer-card,
+      .due-workspace-card {
+        margin-top: 16px;
+      }
+
+      .due-preview-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-bottom: 18px;
+      }
+
+      .due-preview-grid .mini-kpi {
+        box-shadow: var(--shadow-sm);
+      }
+
+      .due-field-note {
+        display: block;
+        margin-top: 8px;
+        color: var(--ink-soft);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .due-remark-field {
+        min-height: 104px;
+        padding-top: 14px;
+        resize: vertical;
+      }
+
+      .due-submit-row {
+        margin-top: 4px;
+      }
+
+      .due-ledger-toolbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: end;
+        margin-bottom: 14px;
+      }
+
+      .due-ledger-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+
+      .due-ledger-actions .btn {
+        min-width: 146px;
+      }
+
+      .due-summary-strip {
+        justify-content: flex-start;
+      }
+
+      .summary-pill--neutral {
+        background: rgba(71, 85, 105, 0.08);
+        color: var(--ink-soft);
+      }
+
+      .summary-pill--success {
+        background: rgba(20, 184, 166, 0.12);
+        color: #0f766e;
+      }
+
+      .summary-pill--warn {
+        background: rgba(249, 115, 22, 0.14);
+        color: #c2410c;
+      }
+
+      .due-ledger-table {
+        margin-top: 10px;
+      }
+
+      .due-empty-state {
+        display: grid;
+        place-items: center;
+        gap: 12px;
+        min-height: 280px;
+        padding: 28px 22px;
+        text-align: center;
+      }
+
+      .due-empty-state__icon {
+        width: 58px;
+        height: 58px;
+        display: grid;
+        place-items: center;
+        border-radius: 18px;
+        background: rgba(14, 165, 233, 0.1);
+        color: var(--cyan-strong);
+        font-size: 24px;
+      }
+
+      .due-empty-state strong {
+        color: var(--ink-strong);
+        font-size: 20px;
+        line-height: 1.15;
+        letter-spacing: -0.03em;
+      }
+
+      .due-empty-state p {
+        max-width: 50ch;
+        margin: 0;
+        color: var(--ink-soft);
+        font-size: 14px;
+        line-height: 1.7;
+      }
+
+      .dropdown-item--customer {
+        display: grid;
+        gap: 4px;
+      }
+
+      .dropdown-item__title {
+        color: var(--ink-strong);
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .dropdown-item__meta {
+        color: var(--ink-soft);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .due-row-title {
+        display: grid;
+        gap: 2px;
+      }
+
+      .due-row-title strong {
+        color: var(--ink-strong);
+        font-size: 14px;
+        line-height: 1.3;
+      }
+
+      .due-row-title span {
+        color: var(--ink-soft);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .due-balance-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 110px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+      }
+
+      .due-balance-pill--positive {
+        color: #c2410c;
+        background: rgba(249, 115, 22, 0.14);
+      }
+
+      .due-balance-pill--neutral {
+        color: #0f766e;
+        background: rgba(20, 184, 166, 0.12);
+      }
+
+      .due-balance-pill--credit {
+        color: #1d4ed8;
+        background: rgba(59, 130, 246, 0.12);
+      }
+
       .section-grid--expense {
         grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.25fr);
       }
@@ -1798,6 +2009,14 @@
         .chart-grid {
           grid-template-columns: 1fr;
         }
+
+        .due-ledger-toolbar {
+          grid-template-columns: 1fr;
+        }
+
+        .due-ledger-actions {
+          justify-content: flex-start;
+        }
       }
 
       @media (max-width: 991px) {
@@ -1808,6 +2027,15 @@
 
         .hero-panel {
           grid-template-columns: 1fr;
+        }
+
+        .due-hero-card__top {
+          flex-direction: column;
+        }
+
+        .due-hero-card__icon {
+          width: 56px;
+          height: 56px;
         }
       }
 
@@ -1832,6 +2060,22 @@
 
         .sales-net-profit-card__top {
           flex-direction: column;
+        }
+
+        .due-kpi-grid,
+        .due-preview-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .due-ledger-actions {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          width: 100%;
+        }
+
+        .due-ledger-actions .btn {
+          min-width: 0;
+          width: 100%;
         }
 
         .sales-net-profit-card__filters {
@@ -1880,6 +2124,18 @@
       @media (max-width: 576px) {
         .main {
           padding: 78px 10px 28px;
+        }
+
+        .due-hero-card,
+        .due-composer-card,
+        .due-workspace-card {
+          padding: 20px;
+        }
+
+        .due-kpi-grid,
+        .due-preview-grid,
+        .due-ledger-actions {
+          grid-template-columns: 1fr;
         }
 
         .overview-grid {
@@ -2170,6 +2426,11 @@
         .mobile-table-wrap-1 .empty-ledger {
           padding-left: 16px;
           padding-right: 16px;
+        }
+
+        .due-empty-state {
+          min-height: 240px;
+          padding: 24px 18px;
         }
 
         .dashboard-table--purchase-report,
@@ -3960,20 +4221,111 @@
         </div>
 
         <div id="customerDebtSection" class="form-section">
-          <div class="section-grid section-grid--dues">
-            <section class="panel-card panel-card--surface">
+          <section class="panel-card panel-card--highlight due-hero-card">
+            <div class="due-hero-card__top">
+              <div>
+                <span class="panel-kicker">Collections Workspace</span>
+                <h4>Customer due tracking with cleaner daily follow-up</h4>
+                <p class="panel-subtitle">
+                  Keep manual due entries, invoice-linked balances, and later
+                  payment collections aligned from one polished workspace.
+                </p>
+              </div>
+              <div class="panel-card__icon due-hero-card__icon">
+                <i class="fas fa-hand-holding-dollar"></i>
+              </div>
+            </div>
+
+            <div class="report-kpi-grid due-kpi-grid">
+              <article class="report-kpi report-kpi--sky">
+                <span class="report-kpi__label">Outstanding Balance</span>
+                <strong class="report-kpi__value" id="dueSectionTotalBalance"
+                  >Rs. 0.00</strong
+                >
+                <small class="report-kpi__note" id="dueSectionTotalBalanceNote">
+                  Load all customers to see the latest ledger snapshot.
+                </small>
+              </article>
+
+              <article class="report-kpi report-kpi--blue">
+                <span class="report-kpi__label">Customer Records</span>
+                <strong class="report-kpi__value" id="dueSectionCustomerCount"
+                  >0</strong
+                >
+                <small class="report-kpi__note" id="dueSectionCustomerCountNote">
+                  Summary rows will show how many customer ledgers are active.
+                </small>
+              </article>
+
+              <article class="report-kpi report-kpi--teal">
+                <span class="report-kpi__label">Active View</span>
+                <strong class="report-kpi__value" id="dueSectionViewMode"
+                  >Ready</strong
+                >
+                <small class="report-kpi__note" id="dueSectionViewModeNote">
+                  Search one customer or open the full customer list.
+                </small>
+              </article>
+
+              <article class="report-kpi report-kpi--amber">
+                <span class="report-kpi__label">Selected Ledger</span>
+                <strong class="report-kpi__value" id="dueSectionSelectedCustomer"
+                  >None</strong
+                >
+                <small
+                  class="report-kpi__note"
+                  id="dueSectionSelectedCustomerNote"
+                >
+                  The currently focused customer will appear here.
+                </small>
+              </article>
+            </div>
+          </section>
+
+          <div class="section-grid section-grid--dues due-section-grid">
+            <section class="panel-card panel-card--surface due-composer-card">
               <div class="panel-heading">
                 <div>
                   <span class="panel-kicker">Due Entry</span>
-                  <h4>Add customer due</h4>
+                  <h4>Add or collect customer due</h4>
                   <p class="panel-subtitle">
-                    Record customer balance, credit amount, and notes in one
-                    clear form.
+                    Record a new due, capture a part payment, or collect later
+                    credit without leaving this section.
                   </p>
                 </div>
                 <div class="panel-card__icon">
                   <i class="fas fa-user-clock"></i>
                 </div>
+              </div>
+
+              <div class="mini-kpi-grid due-preview-grid">
+                <article class="mini-kpi">
+                  <span class="mini-kpi__label">Entry Type</span>
+                  <strong class="mini-kpi__value" id="cdEntryType">Waiting</strong>
+                  <small class="mini-kpi__meta" id="cdEntryTypeMeta">
+                    Start with customer and amount details.
+                  </small>
+                </article>
+
+                <article class="mini-kpi">
+                  <span class="mini-kpi__label">Balance Impact</span>
+                  <strong class="mini-kpi__value" id="cdImpactValue"
+                    >Rs. 0.00</strong
+                  >
+                  <small class="mini-kpi__meta" id="cdImpactMeta">
+                    The live preview updates as you type.
+                  </small>
+                </article>
+
+                <article class="mini-kpi">
+                  <span class="mini-kpi__label">Workflow</span>
+                  <strong class="mini-kpi__value" id="cdWorkflowValue"
+                    >Manual entry</strong
+                  >
+                  <small class="mini-kpi__meta" id="cdWorkflowMeta">
+                    Invoice-linked settlement guidance will appear here.
+                  </small>
+                </article>
               </div>
 
               <div class="row g-3">
@@ -3985,6 +4337,10 @@
                     class="form-control"
                     placeholder="Customer Name"
                   />
+                  <small class="due-field-note">
+                    Use the saved mobile number below to auto-fill and lock the
+                    name for an existing customer ledger.
+                  </small>
                 </div>
 
                 <div class="col-12 position-relative">
@@ -3999,6 +4355,10 @@
                     inputmode="numeric"
                   />
                   <div id="cdNumberDropdown" class="dropdown-list" hidden></div>
+                  <small class="due-field-note">
+                    The same customer number keeps invoice due entries and later
+                    collections connected.
+                  </small>
                 </div>
 
                 <div class="col-sm-6">
@@ -4007,8 +4367,13 @@
                     id="cdTotal"
                     type="number"
                     class="form-control"
+                    min="0"
+                    step="0.01"
                     placeholder="Amount"
                   />
+                  <small class="due-field-note">
+                    Enter the opening due amount that should be added.
+                  </small>
                 </div>
 
                 <div class="col-sm-6">
@@ -4017,18 +4382,23 @@
                     id="cdCredit"
                     type="number"
                     class="form-control"
+                    min="0"
+                    step="0.01"
                     placeholder="Credit Amount"
                   />
+                  <small class="due-field-note">
+                    Credit can settle the due now or apply against linked unpaid
+                    invoices.
+                  </small>
                 </div>
 
                 <div class="col-12">
                   <label class="form-label small">Remarks</label>
-                  <input
+                  <textarea
                     id="cdRemark"
-                    type="text"
-                    class="form-control"
+                    class="form-control due-remark-field"
                     placeholder="Remarks (optional)"
-                  />
+                  ></textarea>
                 </div>
 
                 <div class="col-12 due-submit-row">
@@ -4038,20 +4408,20 @@
                     type="button"
                   >
                     <i class="fas fa-check-circle"></i>
-                    Submit
+                    Save Due Entry
                   </button>
                 </div>
               </div>
             </section>
 
-            <section class="panel-card panel-card--surface">
+            <section class="panel-card panel-card--surface due-workspace-card">
               <div class="panel-heading">
                 <div>
-                  <span class="panel-kicker">Ledger Search</span>
-                  <h4>Search customer dues</h4>
+                  <span class="panel-kicker">Ledger Workspace</span>
+                  <h4>Search, review, and refresh customer ledgers</h4>
                   <p class="panel-subtitle">
-                    Find a single customer ledger or open the summary of all
-                    outstanding balances.
+                    Open a single customer ledger fast or switch to the full
+                    customer summary without losing context.
                   </p>
                 </div>
                 <div class="panel-card__icon">
@@ -4059,44 +4429,82 @@
                 </div>
               </div>
 
-              <div class="position-relative mb-3">
-                <label class="form-label small">Search by name or number</label>
-                <input
-                  id="cdSearchInput"
-                  type="text"
-                  class="form-control"
-                  placeholder="Search customer by name or number"
-                  autocomplete="off"
-                />
-                <div id="cdSearchDropdown" class="dropdown-list" hidden></div>
-              </div>
+              <div class="due-ledger-toolbar">
+                <div class="position-relative">
+                  <label class="form-label small">Search by name or number</label>
+                  <input
+                    id="cdSearchInput"
+                    type="text"
+                    class="form-control"
+                    placeholder="Search customer by name or number"
+                    autocomplete="off"
+                  />
+                  <div id="cdSearchDropdown" class="dropdown-list" hidden></div>
+                  <small class="due-field-note">
+                    Choose from the search dropdown for an exact 10-digit
+                    customer ledger match.
+                  </small>
+                </div>
 
-              <div class="row g-2 mb-3 due-search-actions">
-                <div class="col-sm-6">
+                <div class="due-ledger-actions">
                   <button
-                    class="btn btn-success w-100"
+                    class="btn btn-success"
                     id="searchLedgerBtn"
                     type="button"
                   >
                     <i class="fas fa-search"></i>
-                    Search
+                    Open Ledger
                   </button>
-                </div>
-                <div class="col-sm-6">
                   <button
-                    class="btn btn-secondary w-100"
+                    class="btn btn-secondary"
                     id="showAllDuesBtn"
                     type="button"
                   >
                     <i class="fas fa-list"></i>
                     All Customers
                   </button>
+                  <button
+                    class="btn btn-info"
+                    id="refreshDueLedgerBtn"
+                    type="button"
+                  >
+                    <i class="fas fa-rotate-right"></i>
+                    Refresh
+                  </button>
                 </div>
               </div>
 
-              <div id="ledgerTable" class="table-responsive mobile-table-wrap">
-                <div class="empty-ledger">
-                  Search a customer or load all due balances to view the ledger.
+              <div class="summary-strip due-summary-strip">
+                <span
+                  class="summary-pill summary-pill--success"
+                  id="dueLedgerViewPill"
+                >
+                  Ready
+                </span>
+                <span class="summary-pill" id="dueLedgerFocusPill">
+                  No customer selected
+                </span>
+                <span
+                  class="summary-pill summary-pill--neutral"
+                  id="dueLedgerHintPill"
+                >
+                  Search a customer or load the full ledger summary.
+                </span>
+              </div>
+
+              <div
+                id="ledgerTable"
+                class="table-responsive mobile-table-wrap due-ledger-table"
+              >
+                <div class="due-empty-state">
+                  <div class="due-empty-state__icon">
+                    <i class="fas fa-address-book"></i>
+                  </div>
+                  <strong>Ledger workspace is ready</strong>
+                  <p>
+                    Search a customer or load all due balances to view the
+                    ledger.
+                  </p>
                 </div>
               </div>
             </section>
