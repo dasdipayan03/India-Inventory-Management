@@ -16,6 +16,7 @@ const state = {
   currentExpenseRows: [],
   lowStockRows: [],
   reorderRows: [],
+  slowMovingRows: [],
   ledgerMode: "empty",
   currentLedgerNumber: "",
   currentLedgerName: "",
@@ -540,6 +541,19 @@ function cacheElements() {
     reorderTargetDays: document.getElementById("reorderTargetDays"),
     reorderAverageCover: document.getElementById("reorderAverageCover"),
     reorderPlanBody: document.getElementById("reorderPlanBody"),
+    slowMovingCard: document.getElementById("slowMovingCard"),
+    slowMovingCount: document.getElementById("slowMovingCount"),
+    slowMovingUnits: document.getElementById("slowMovingUnits"),
+    slowMovingValue: document.getElementById("slowMovingValue"),
+    slowMovingIdleCount: document.getElementById("slowMovingIdleCount"),
+    slowMovingIdleCountInline: document.getElementById(
+      "slowMovingIdleCountInline",
+    ),
+    slowMovingTopItem: document.getElementById("slowMovingTopItem"),
+    slowMovingAverageCover: document.getElementById(
+      "slowMovingAverageCover",
+    ),
+    slowMovingBody: document.getElementById("slowMovingBody"),
     fromDate: document.getElementById("fromDate"),
     toDate: document.getElementById("toDate"),
     loadSalesBtn: document.getElementById("loadSalesBtn"),
@@ -3292,6 +3306,17 @@ function getReorderBadgeClass(priority) {
   }
 }
 
+function getSlowMovingBadgeClass(priority) {
+  switch (priority) {
+    case "NO SALE":
+      return "status-badge-pill status-badge-pill--urgent";
+    case "OVERSTOCK":
+      return "status-badge-pill status-badge-pill--soon";
+    default:
+      return "status-badge-pill status-badge-pill--buffer";
+  }
+}
+
 function resetReorderPlanner() {
   dom.reorderPlannerCard.hidden = true;
   dom.reorderCandidateCount.textContent = "0";
@@ -3390,6 +3415,107 @@ function renderReorderPlanner(rows) {
     : "--";
 }
 
+function resetSlowMovingPlanner() {
+  dom.slowMovingCard.hidden = true;
+  dom.slowMovingCount.textContent = "0";
+  dom.slowMovingUnits.textContent = "0";
+  dom.slowMovingValue.textContent = "Rs. 0.00";
+  dom.slowMovingIdleCount.textContent = "0";
+  dom.slowMovingIdleCountInline.textContent = "0";
+  dom.slowMovingTopItem.textContent = "-";
+  dom.slowMovingAverageCover.textContent = "0.00 days";
+  dom.slowMovingBody.innerHTML =
+    '<tr><td colspan="5" class="text-muted">Slow-moving stock suggestions will appear here.</td></tr>';
+}
+
+function renderSlowMovingPlanner(rows) {
+  dom.slowMovingCard.hidden = false;
+  dom.slowMovingBody.innerHTML = "";
+
+  if (!rows.length) {
+    dom.slowMovingCount.textContent = "0";
+    dom.slowMovingUnits.textContent = "0";
+    dom.slowMovingValue.textContent = "Rs. 0.00";
+    dom.slowMovingIdleCount.textContent = "0";
+    dom.slowMovingIdleCountInline.textContent = "0";
+    dom.slowMovingTopItem.textContent = "No bulky slow mover right now";
+    dom.slowMovingAverageCover.textContent = "--";
+    dom.slowMovingBody.innerHTML =
+      '<tr><td colspan="5" class="text-muted">Current stock is moving well. No slow-moving pile stands out right now.</td></tr>';
+    return;
+  }
+
+  let totalUnits = 0;
+  let totalValue = 0;
+  let idleCount = 0;
+  let totalCoverDays = 0;
+  let coverCount = 0;
+  let topItem = rows[0];
+
+  rows.forEach((row) => {
+    const availableQty = Number(row.available_qty) || 0;
+    const soldLast30Days = Number(row.sold_30_days) || 0;
+    const daysCover =
+      row.days_cover == null ? null : Number(row.days_cover);
+    const stockValue = Number(row.stock_value) || 0;
+    const priority = row.priority || "SLOW";
+    const focusNote =
+      row.focus_note ||
+      (soldLast30Days <= 0
+        ? "No sale in the last 30 days."
+        : "Recent sales are soft for current stock.");
+    const tr = document.createElement("tr");
+
+    totalUnits += availableQty;
+    totalValue += stockValue;
+
+    if (soldLast30Days <= 0) {
+      idleCount += 1;
+      tr.classList.add("slow-row--stalled");
+    } else if (priority === "OVERSTOCK") {
+      tr.classList.add("slow-row--slow");
+    }
+
+    if ((Number(topItem?.stock_value) || 0) < stockValue) {
+      topItem = row;
+    }
+
+    if (Number.isFinite(daysCover)) {
+      totalCoverDays += daysCover;
+      coverCount += 1;
+    }
+
+    tr.innerHTML = `
+      <td>
+        <div class="table-primary-copy">${escapeHtml(row.item_name)}</div>
+        <div class="table-secondary-copy">
+          <span class="${getSlowMovingBadgeClass(priority)}">${escapeHtml(priority)}</span>
+          ${escapeHtml(focusNote)}
+        </div>
+      </td>
+      <td>${formatNumber(availableQty)}</td>
+      <td>${formatNumber(soldLast30Days)}</td>
+      <td>${Number.isFinite(daysCover) ? `${formatNumber(daysCover)} days` : "No sale in 30d"}</td>
+      <td>${formatCurrencyValue(stockValue)}</td>
+    `;
+    dom.slowMovingBody.appendChild(tr);
+  });
+
+  const averageCover = coverCount ? totalCoverDays / coverCount : 0;
+
+  dom.slowMovingCount.textContent = formatCount(rows.length);
+  dom.slowMovingUnits.textContent = formatCount(totalUnits);
+  dom.slowMovingValue.textContent = formatCurrency(totalValue);
+  dom.slowMovingIdleCount.textContent = formatCount(idleCount);
+  dom.slowMovingIdleCountInline.textContent = formatCount(idleCount);
+  dom.slowMovingTopItem.textContent = topItem
+    ? `${topItem.item_name} (${formatNumber(topItem.available_qty)} units)`
+    : "-";
+  dom.slowMovingAverageCover.textContent = coverCount
+    ? `${formatNumber(averageCover)} days`
+    : "No recent sale";
+}
+
 function renderLowStock(rows) {
   dom.lowStockBody.innerHTML = "";
   dom.lowStockCard.hidden = rows.length === 0;
@@ -3428,13 +3554,16 @@ function renderLowStock(rows) {
 }
 
 async function loadLowStock(options = {}) {
-  const [lowStockResult, reorderResult] = await Promise.allSettled([
+  const [lowStockResult, reorderResult, slowMovingResult] =
+    await Promise.allSettled([
     fetchJSON("/items/low-stock"),
     fetchJSON("/items/reorder-suggestions"),
+    fetchJSON("/items/slow-moving"),
   ]);
 
   const lowStockLoaded = lowStockResult.status === "fulfilled";
   const reorderLoaded = reorderResult.status === "fulfilled";
+  const slowMovingLoaded = slowMovingResult.status === "fulfilled";
 
   if (lowStockLoaded) {
     state.lowStockRows = Array.isArray(lowStockResult.value)
@@ -3460,7 +3589,18 @@ async function loadLowStock(options = {}) {
     resetReorderPlanner();
   }
 
-  if (!lowStockLoaded && !reorderLoaded && !options.silent) {
+  if (slowMovingLoaded) {
+    state.slowMovingRows = Array.isArray(slowMovingResult.value)
+      ? slowMovingResult.value
+      : [];
+    renderSlowMovingPlanner(state.slowMovingRows);
+  } else {
+    console.error("Slow-moving stock load failed:", slowMovingResult.reason);
+    state.slowMovingRows = [];
+    resetSlowMovingPlanner();
+  }
+
+  if (!lowStockLoaded && !reorderLoaded && !slowMovingLoaded && !options.silent) {
     showPopup(
       "error",
       "Alerts unavailable",

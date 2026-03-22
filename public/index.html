@@ -1203,6 +1203,8 @@
       .dashboard-table--gst td:nth-child(3),
       .dashboard-table--reorder th:first-child,
       .dashboard-table--reorder td:first-child,
+      .dashboard-table--slow-moving th:first-child,
+      .dashboard-table--slow-moving td:first-child,
       .dashboard-table--gst-monthly th:first-child,
       .dashboard-table--gst-monthly td:first-child,
       .dashboard-table--gst-rates th:first-child,
@@ -1225,6 +1227,7 @@
       .dashboard-table--gst td:nth-child(2),
       .dashboard-table--gst td:nth-child(3),
       .dashboard-table--reorder td:first-child,
+      .dashboard-table--slow-moving td:first-child,
       .dashboard-table--gst-monthly td:first-child,
       .dashboard-table--gst-rates td:first-child,
       .dashboard-table--ledger td:first-child,
@@ -1281,6 +1284,15 @@
       }
 
       #reorderPlanBody tr.reorder-row--soon td {
+        background-color: rgba(254, 249, 195, 0.72) !important;
+      }
+
+      #slowMovingBody tr.slow-row--stalled td {
+        background-color: rgba(255, 237, 213, 0.84) !important;
+        color: #9a3412 !important;
+      }
+
+      #slowMovingBody tr.slow-row--slow td {
         background-color: rgba(254, 249, 195, 0.72) !important;
       }
 
@@ -2150,6 +2162,7 @@
         .dashboard-table--item-report td:first-child,
         .dashboard-table--low-stock td:first-child,
         .dashboard-table--reorder td:first-child,
+        .dashboard-table--slow-moving td:first-child,
         .dashboard-table--purchase-detail td:first-child,
         .dashboard-table--purchase-report td:nth-child(2),
         .dashboard-table--purchase-report td:nth-child(3),
@@ -2350,6 +2363,26 @@
 
         .dashboard-table--reorder th:nth-child(6) {
           width: 20%;
+        }
+
+        .dashboard-table--slow-moving th:nth-child(1) {
+          width: 36%;
+        }
+
+        .dashboard-table--slow-moving th:nth-child(2) {
+          width: 12%;
+        }
+
+        .dashboard-table--slow-moving th:nth-child(3) {
+          width: 12%;
+        }
+
+        .dashboard-table--slow-moving th:nth-child(4) {
+          width: 16%;
+        }
+
+        .dashboard-table--slow-moving th:nth-child(5) {
+          width: 24%;
         }
 
         .dashboard-table--gst-monthly th:nth-child(1),
@@ -3589,6 +3622,7 @@
             </div>
           </section>
 
+          <div class="insight-grid">
           <section
             id="reorderPlannerCard"
             class="panel-card panel-card--surface"
@@ -3706,6 +3740,122 @@
               </table>
             </div>
           </section>
+
+          <section
+            id="slowMovingCard"
+            class="panel-card panel-card--surface"
+            hidden
+          >
+            <div class="panel-heading">
+              <div>
+                <span class="panel-kicker">Sell-First Focus</span>
+                <h5>Slow-moving stock worth pushing</h5>
+                <p class="panel-subtitle">
+                  These items are sitting with higher stock cover and softer
+                  recent sales. Push them through offers, counter placement,
+                  or combos before buying more.
+                </p>
+              </div>
+              <div class="panel-card__icon">
+                <i class="fas fa-box-open"></i>
+              </div>
+            </div>
+
+            <div class="mini-kpi-grid">
+              <article class="mini-kpi">
+                <span class="mini-kpi__label">Items</span>
+                <strong class="mini-kpi__value" id="slowMovingCount"
+                  >0</strong
+                >
+                <small class="mini-kpi__meta">
+                  Items that look bulky against recent 30-day sales.
+                </small>
+              </article>
+              <article class="mini-kpi">
+                <span class="mini-kpi__label">Units at Risk</span>
+                <strong class="mini-kpi__value" id="slowMovingUnits"
+                  >0</strong
+                >
+                <small class="mini-kpi__meta">
+                  Total quantity currently tied up in slower-moving stock.
+                </small>
+              </article>
+              <article class="mini-kpi">
+                <span class="mini-kpi__label">Stock Value</span>
+                <strong class="mini-kpi__value" id="slowMovingValue">
+                  Rs. 0.00
+                </strong>
+                <small class="mini-kpi__meta">
+                  Estimated buying value tied up in items that need sell-through
+                  focus.
+                </small>
+              </article>
+              <article class="mini-kpi">
+                <span class="mini-kpi__label">No Sale (30d)</span>
+                <strong class="mini-kpi__value" id="slowMovingIdleCount"
+                  >0</strong
+                >
+                <small class="mini-kpi__meta">
+                  Items with stock on hand but no sale recorded in the last 30
+                  days.
+                </small>
+              </article>
+            </div>
+
+            <div class="summary-strip">
+              <span class="summary-pill">
+                <i class="fa-solid fa-boxes-stacked"></i>
+                Biggest pile: <span id="slowMovingTopItem">-</span>
+              </span>
+              <span class="summary-pill">
+                <i class="fa-solid fa-store-slash"></i>
+                No recent sale: <span id="slowMovingIdleCountInline">0</span>
+              </span>
+              <span class="summary-pill">
+                <i class="fa-solid fa-calendar-days"></i>
+                Avg cover: <span id="slowMovingAverageCover">0.00 days</span>
+              </span>
+            </div>
+
+            <div class="table-responsive mobile-table-wrap">
+              <table
+                class="table table-sm text-center align-middle dashboard-table dashboard-table--slow-moving"
+              >
+                <thead>
+                  <tr>
+                    <th>
+                      <span class="table-label-full">Item</span>
+                      <span class="table-label-compact">Item</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Avail.</span>
+                      <span class="table-label-compact">Avail</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Sold (30d)</span>
+                      <span class="table-label-compact">Sold</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Cover Days</span>
+                      <span class="table-label-compact">Cover</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Stock Value</span>
+                      <span class="table-label-compact">Value</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="slowMovingBody">
+                  <tr>
+                    <td colspan="5" class="text-muted">
+                      Slow-moving stock suggestions will appear here.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+          </div>
         </div>
         <div id="salesReportSection" class="form-section">
           <section class="panel-card panel-card--surface">

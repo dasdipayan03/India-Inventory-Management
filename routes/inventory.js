@@ -22,6 +22,11 @@ const STOCK_CONFIG = {
   WARNING_DAYS: 15,
   REORDER_TARGET_DAYS: 21,
   REORDER_LIMIT: 8,
+  SLOW_MOVING_DAYS: 45,
+  STAGNANT_DAYS: 75,
+  SLOW_MOVING_LIMIT: 8,
+  SLOW_MOVING_MIN_QTY: 5,
+  SLOW_MOVING_LOW_SALES: 3,
 };
 
 const PDF_THEME = {
@@ -179,6 +184,34 @@ function getReorderPriority(daysLeft) {
   }
 
   return "BUFFER";
+}
+
+function getSlowMovingPriority(sold30Days, daysCover) {
+  if (sold30Days <= 0) {
+    return "NO SALE";
+  }
+
+  if (Number.isFinite(daysCover) && daysCover >= STOCK_CONFIG.STAGNANT_DAYS) {
+    return "OVERSTOCK";
+  }
+
+  return "SLOW";
+}
+
+function getSlowMovingFocusNote(sold30Days, daysCover) {
+  if (sold30Days <= 0) {
+    return "No sale in the last 30 days.";
+  }
+
+  if (Number.isFinite(daysCover) && daysCover >= STOCK_CONFIG.STAGNANT_DAYS) {
+    return "Very high stock cover against recent movement.";
+  }
+
+  if (Number.isFinite(daysCover) && daysCover >= STOCK_CONFIG.SLOW_MOVING_DAYS) {
+    return "Recent sales are soft for the stock on hand.";
+  }
+
+  return "Push visibility before buying more.";
 }
 
 // ✅ Protect all routes
@@ -571,6 +604,104 @@ router.get("/items/reorder-suggestions", requirePermission("stock_report"), asyn
     res.json(rowsWithPriority);
   } catch (err) {
     console.error("Reorder suggestions error:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ----------------- SLOW MOVING STOCK (Sell-First Focus) -----------------
+router.get("/items/slow-moving", requirePermission("stock_report"), async (req, res) => {
+  try {
+    const user_id = getUserId(req);
+
+    const result = await pool.query(
+      `
+      WITH sales_30 AS (
+        SELECT
+          item_id,
+          SUM(quantity) AS sold_30_days
+        FROM sales
+        WHERE user_id = $1
+          AND created_at >= NOW() - INTERVAL '30 days'
+        GROUP BY item_id
+      ),
+      movement AS (
+        SELECT
+          i.name AS item_name,
+          i.quantity AS available_qty,
+          COALESCE(i.buying_rate, 0) AS buying_rate,
+          COALESCE(s.sold_30_days, 0) AS sold_30_days,
+          ROUND(COALESCE(s.sold_30_days, 0) / 30.0, 2) AS daily_run_rate,
+          ROUND(
+            CASE
+              WHEN COALESCE(s.sold_30_days, 0) = 0 THEN NULL
+              ELSE (i.quantity / NULLIF((s.sold_30_days / 30.0), 0))
+            END
+          , 2) AS days_cover,
+          ROUND((i.quantity * COALESCE(i.buying_rate, 0))::numeric, 2) AS stock_value
+        FROM items i
+        LEFT JOIN sales_30 s
+          ON s.item_id = i.id
+        WHERE i.user_id = $1
+          AND i.quantity >= $4
+      )
+      SELECT
+        item_name,
+        available_qty,
+        buying_rate,
+        sold_30_days,
+        daily_run_rate,
+        days_cover,
+        stock_value
+      FROM movement
+      WHERE
+        sold_30_days = 0
+        OR days_cover >= $2
+        OR (
+          sold_30_days <= $3
+          AND available_qty >= ($4 * 2)
+        )
+      ORDER BY
+        CASE
+          WHEN sold_30_days = 0 THEN 0
+          WHEN days_cover >= $5 THEN 1
+          ELSE 2
+        END,
+        stock_value DESC,
+        available_qty DESC,
+        sold_30_days ASC,
+        item_name ASC
+      LIMIT $6
+      `,
+      [
+        user_id,
+        STOCK_CONFIG.SLOW_MOVING_DAYS,
+        STOCK_CONFIG.SLOW_MOVING_LOW_SALES,
+        STOCK_CONFIG.SLOW_MOVING_MIN_QTY,
+        STOCK_CONFIG.STAGNANT_DAYS,
+        STOCK_CONFIG.SLOW_MOVING_LIMIT,
+      ],
+    );
+
+    const rowsWithPriority = result.rows.map((row) => {
+      const availableQty = Number(row.available_qty) || 0;
+      const buyingRate = Number(row.buying_rate) || 0;
+      const sold30Days = Number(row.sold_30_days) || 0;
+      const daysCover =
+        row.days_cover == null ? null : Number(row.days_cover);
+
+      return {
+        ...row,
+        available_qty: availableQty,
+        sold_30_days: sold30Days,
+        stock_value: Number(row.stock_value) || availableQty * buyingRate,
+        priority: getSlowMovingPriority(sold30Days, daysCover),
+        focus_note: getSlowMovingFocusNote(sold30Days, daysCover),
+      };
+    });
+
+    res.json(rowsWithPriority);
+  } catch (err) {
+    console.error("Slow moving stock error:", err.message);
     res.status(500).json({ error: "Server error" });
   }
 });
