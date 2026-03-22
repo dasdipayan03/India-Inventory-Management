@@ -391,65 +391,6 @@
         min-height: 48px;
       }
 
-      .due-hero-card {
-        margin-top: 16px;
-        padding: 28px;
-      }
-
-      .due-hero-card__top {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 18px;
-      }
-
-      .due-hero-card .panel-subtitle {
-        max-width: 62ch;
-        color: rgba(226, 232, 240, 0.82);
-      }
-
-      .due-hero-card__icon {
-        width: 64px;
-        height: 64px;
-        flex-shrink: 0;
-        background: rgba(255, 255, 255, 0.12);
-        color: #e0f2fe;
-      }
-
-      .due-kpi-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-      }
-
-      .due-kpi-grid .report-kpi {
-        min-height: 154px;
-      }
-
-      .due-hero-card .report-kpi {
-        border-color: rgba(191, 219, 254, 0.38);
-        background: linear-gradient(
-          180deg,
-          rgba(255, 255, 255, 0.96),
-          rgba(241, 247, 255, 0.92)
-        );
-      }
-
-      .due-hero-card .report-kpi__label {
-        color: #4f6b91;
-      }
-
-      .due-hero-card .report-kpi__value,
-      .due-hero-card .report-kpi strong {
-        color: #153256;
-      }
-
-      .due-kpi-grid .report-kpi__note {
-        max-width: 28ch;
-      }
-
-      .due-hero-card .report-kpi__note {
-        color: #5f789b;
-      }
-
       .due-section-grid {
         align-items: start;
       }
@@ -2050,15 +1991,6 @@
         .hero-panel {
           grid-template-columns: 1fr;
         }
-
-        .due-hero-card__top {
-          flex-direction: column;
-        }
-
-        .due-hero-card__icon {
-          width: 56px;
-          height: 56px;
-        }
       }
 
       @media (max-width: 768px) {
@@ -2084,7 +2016,6 @@
           flex-direction: column;
         }
 
-        .due-kpi-grid,
         .due-preview-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
@@ -2148,13 +2079,11 @@
           padding: 78px 10px 28px;
         }
 
-        .due-hero-card,
         .due-composer-card,
         .due-workspace-card {
           padding: 20px;
         }
 
-        .due-kpi-grid,
         .due-preview-grid,
         .due-ledger-actions {
           grid-template-columns: 1fr;
@@ -4287,67 +4216,6 @@
         </div>
 
         <div id="customerDebtSection" class="form-section">
-          <section class="panel-card panel-card--highlight due-hero-card">
-            <div class="due-hero-card__top">
-              <div>
-                <span class="panel-kicker">Collections Workspace</span>
-                <h4>Customer due tracking with cleaner daily follow-up</h4>
-                <p class="panel-subtitle">
-                  Keep manual due entries, invoice-linked balances, and later
-                  payment collections aligned from one polished workspace.
-                </p>
-              </div>
-              <div class="panel-card__icon due-hero-card__icon">
-                <i class="fas fa-hand-holding-dollar"></i>
-              </div>
-            </div>
-
-            <div class="report-kpi-grid due-kpi-grid">
-              <article class="report-kpi report-kpi--sky">
-                <span class="report-kpi__label">Outstanding Balance</span>
-                <strong class="report-kpi__value" id="dueSectionTotalBalance"
-                  >Rs. 0.00</strong
-                >
-                <small class="report-kpi__note" id="dueSectionTotalBalanceNote">
-                  Load all customers to see the latest ledger snapshot.
-                </small>
-              </article>
-
-              <article class="report-kpi report-kpi--blue">
-                <span class="report-kpi__label">Customer Records</span>
-                <strong class="report-kpi__value" id="dueSectionCustomerCount"
-                  >0</strong
-                >
-                <small class="report-kpi__note" id="dueSectionCustomerCountNote">
-                  Summary rows will show how many customer ledgers are active.
-                </small>
-              </article>
-
-              <article class="report-kpi report-kpi--teal">
-                <span class="report-kpi__label">Active View</span>
-                <strong class="report-kpi__value" id="dueSectionViewMode"
-                  >Ready</strong
-                >
-                <small class="report-kpi__note" id="dueSectionViewModeNote">
-                  Search one customer or open the full customer list.
-                </small>
-              </article>
-
-              <article class="report-kpi report-kpi--amber">
-                <span class="report-kpi__label">Selected Ledger</span>
-                <strong class="report-kpi__value" id="dueSectionSelectedCustomer"
-                  >None</strong
-                >
-                <small
-                  class="report-kpi__note"
-                  id="dueSectionSelectedCustomerNote"
-                >
-                  The currently focused customer will appear here.
-                </small>
-              </article>
-            </div>
-          </section>
-
           <div class="section-grid section-grid--dues due-section-grid">
             <section class="panel-card panel-card--surface due-composer-card">
               <div class="panel-heading">

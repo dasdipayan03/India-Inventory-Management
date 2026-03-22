@@ -19,7 +19,6 @@ const state = {
   currentLedgerName: "",
   currentLedgerOutstanding: 0,
   dueSummaryCustomerCount: 0,
-  dueSummaryOutstanding: 0,
   supplierLedgerMode: "empty",
   currentSupplierId: null,
   currentPurchaseDetailId: null,
@@ -456,22 +455,6 @@ function cacheElements() {
     businessTrendChart: document.getElementById("businessTrendChart"),
     growthBadge: document.getElementById("growthBadge"),
     last12MonthsChart: document.getElementById("last12MonthsChart"),
-    dueSectionTotalBalance: document.getElementById("dueSectionTotalBalance"),
-    dueSectionTotalBalanceNote: document.getElementById(
-      "dueSectionTotalBalanceNote",
-    ),
-    dueSectionCustomerCount: document.getElementById("dueSectionCustomerCount"),
-    dueSectionCustomerCountNote: document.getElementById(
-      "dueSectionCustomerCountNote",
-    ),
-    dueSectionViewMode: document.getElementById("dueSectionViewMode"),
-    dueSectionViewModeNote: document.getElementById("dueSectionViewModeNote"),
-    dueSectionSelectedCustomer: document.getElementById(
-      "dueSectionSelectedCustomer",
-    ),
-    dueSectionSelectedCustomerNote: document.getElementById(
-      "dueSectionSelectedCustomerNote",
-    ),
     cdName: document.getElementById("cdName"),
     cdNumber: document.getElementById("cdNumber"),
     cdNumberDropdown: document.getElementById("cdNumberDropdown"),
@@ -831,80 +814,23 @@ function renderDueBalancePill(value) {
 
 function updateDueWorkspaceMeta() {
   const summaryCount = Number(state.dueSummaryCustomerCount) || 0;
-  const summaryOutstanding = Number(state.dueSummaryOutstanding) || 0;
   const isLedgerView =
     state.ledgerMode === "ledger" && Boolean(state.currentLedgerNumber);
-  const displayedCount = summaryCount || (isLedgerView ? 1 : 0);
-  const displayedOutstanding =
-    summaryCount > 0 ? summaryOutstanding : Number(state.currentLedgerOutstanding) || 0;
-
   let viewLabel = "Ready";
-  let viewNote = "Search one customer or open the full customer list.";
-  let selectedLabel = "None";
-  let selectedNote = "The currently focused customer will appear here.";
   let viewPillClass = "summary-pill summary-pill--success";
   let focusPillText = "No customer selected";
   let hintPillText = "Search a customer or load the full ledger summary.";
 
   if (isLedgerView) {
     viewLabel = "Customer Ledger";
-    viewNote = `${formatCurrency(state.currentLedgerOutstanding)} currently visible in the selected timeline.`;
-    selectedLabel = state.currentLedgerName || state.currentLedgerNumber;
-    selectedNote = state.currentLedgerNumber;
     viewPillClass = "summary-pill summary-pill--warn";
     focusPillText = `${state.currentLedgerName || "Customer"} - ${state.currentLedgerNumber}`;
     hintPillText =
       "Invoice-linked collections and manual ledger entries are shown together.";
   } else if (state.ledgerMode === "summary") {
     viewLabel = "All Customers";
-    viewNote = "Click a summary row to open the exact customer ledger.";
-    selectedLabel = `${formatCount(summaryCount)} loaded`;
-    selectedNote = summaryCount
-      ? "Use any row below to jump into its full history."
-      : "Load the summary to view customer records.";
     focusPillText = `${formatCount(summaryCount)} customer${summaryCount === 1 ? "" : "s"} loaded`;
     hintPillText = "Click a row to open full ledger details.";
-  }
-
-  if (dom.dueSectionTotalBalance) {
-    dom.dueSectionTotalBalance.textContent =
-      formatCurrency(displayedOutstanding);
-  }
-
-  if (dom.dueSectionTotalBalanceNote) {
-    dom.dueSectionTotalBalanceNote.textContent = summaryCount
-      ? `${formatCount(summaryCount)} customer ledger${summaryCount === 1 ? "" : "s"} included in this snapshot.`
-      : isLedgerView
-        ? "Showing the outstanding balance for the selected customer ledger."
-        : "Load all customers to see the latest ledger snapshot.";
-  }
-
-  if (dom.dueSectionCustomerCount) {
-    dom.dueSectionCustomerCount.textContent = formatCount(displayedCount);
-  }
-
-  if (dom.dueSectionCustomerCountNote) {
-    dom.dueSectionCustomerCountNote.textContent = summaryCount
-      ? "Customer records update whenever the due summary is refreshed."
-      : isLedgerView
-        ? "Only the selected customer ledger is in focus right now."
-        : "Summary rows will show how many customer ledgers are active.";
-  }
-
-  if (dom.dueSectionViewMode) {
-    dom.dueSectionViewMode.textContent = viewLabel;
-  }
-
-  if (dom.dueSectionViewModeNote) {
-    dom.dueSectionViewModeNote.textContent = viewNote;
-  }
-
-  if (dom.dueSectionSelectedCustomer) {
-    dom.dueSectionSelectedCustomer.textContent = selectedLabel;
-  }
-
-  if (dom.dueSectionSelectedCustomerNote) {
-    dom.dueSectionSelectedCustomerNote.textContent = selectedNote;
   }
 
   if (dom.dueLedgerViewPill) {
@@ -1416,7 +1342,6 @@ async function loadDashboardOverview(options = {}) {
       ? `${formatCount(dueCustomerCount)} customer${dueCustomerCount === 1 ? "" : "s"} currently have pending balances.`
       : "No outstanding due balance at the moment.";
     state.dueSummaryCustomerCount = dueCustomerCount;
-    state.dueSummaryOutstanding = dueBalance;
     updateDueWorkspaceMeta();
 
     if (dom.statSupplierDue) {
@@ -4494,8 +4419,6 @@ function updateDueOverviewFromRows(rows) {
     return sum + (Number(row.balance) || 0);
   }, 0);
   state.dueSummaryCustomerCount = rows.length;
-  state.dueSummaryOutstanding = totalBalance;
-
   dom.statDueBalance.textContent = formatCurrency(totalBalance);
   dom.statDueNote.textContent = rows.length
     ? `${formatCount(rows.length)} customer${rows.length === 1 ? "" : "s"} currently have pending balances.`
