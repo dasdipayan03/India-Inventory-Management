@@ -93,16 +93,16 @@ The system is owner-centric:
 
 ## 4. Repository Map
 
-| Path                              | Purpose                                                               |
-| --------------------------------- | --------------------------------------------------------------------- |
-| [`../server.js`](../server.js)    | app bootstrap, middleware, CSP, route registration, HTML serving      |
-| [`../db.js`](../db.js)            | PostgreSQL pool setup and schema compatibility patches                |
-| [`../middleware/`](../middleware) | auth and access control middleware                                    |
-| [`../routes/`](../routes)         | route files grouped by business domain                                |
-| [`../public/`](../public)         | HTML pages, frontend JS, images                                       |
-| [`../utils/`](../utils)           | shared backend helpers like advisory locking                          |
-| [`../migrations/`](../migrations) | SQL schema and migration history                                      |
-| [`../docs/`](.)                   | project documentation; this folder now contains this merged file only |
+| Path                              | Purpose                                                                                    |
+| --------------------------------- | ------------------------------------------------------------------------------------------ |
+| [`../server.js`](../server.js)    | app bootstrap, middleware, CSP, route registration, HTML serving                           |
+| [`../db.js`](../db.js)            | PostgreSQL pool setup and schema compatibility patches                                     |
+| [`../middleware/`](../middleware) | auth and access control middleware                                                         |
+| [`../routes/`](../routes)         | route files grouped by business domain                                                     |
+| [`../public/`](../public)         | HTML pages, frontend JS, images                                                            |
+| [`../utils/`](../utils)           | shared backend helpers like advisory locking                                               |
+| [`../migrations/`](../migrations) | SQL schema and migration history                                                           |
+| [`../docs/`](.)                   | project documentation, including this merged file and the manual functional test checklist |
 
 ### Key backend files
 
