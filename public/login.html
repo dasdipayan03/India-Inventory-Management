@@ -2171,9 +2171,12 @@
         };
 
         if (appDownloadBtn) {
-          if (isAndroidWrapper) {
-            appDownloadBtn.hidden = true;
-          } else {
+          const shouldShowAppDownload =
+            isAndroidUserAgent && !isAndroidWrapper;
+
+          appDownloadBtn.hidden = !shouldShowAppDownload;
+
+          if (shouldShowAppDownload) {
             configureAppDownloadButton();
           }
         }
