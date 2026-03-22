@@ -614,24 +614,6 @@
       passive: false,
     });
 
-    elements.sectionButtons.forEach((button) => {
-      listen(button, "click", () => {
-        options.onSectionSelect?.(button.dataset.section);
-        if (options.closeOnSelect !== false) {
-          controller.close();
-        }
-      });
-    });
-
-    elements.navSectionButtons.forEach((button) => {
-      listen(button, "click", () => {
-        options.onNavSectionSelect?.(button.dataset.navSection);
-        if (options.closeOnSelect !== false) {
-          controller.close();
-        }
-      });
-    });
-
     const handleInvoiceSelect = () => {
       options.onInvoiceSelect?.();
       if (options.closeOnSelect !== false) {
@@ -639,12 +621,41 @@
       }
     };
 
-    listen(elements.invoiceBtn, "click", handleInvoiceSelect);
-    listen(elements.invoiceNavBtn, "click", handleInvoiceSelect);
+    listen(elements.sidebarNav, "click", (event) => {
+      const button =
+        event.target instanceof Element
+          ? event.target.closest("button")
+          : null;
 
-    if (typeof options.onLogout === "function") {
-      listen(elements.logoutBtn, "click", options.onLogout);
-    }
+      if (!button || !elements.sidebarNav?.contains(button)) {
+        return;
+      }
+
+      if (button.id === "invoiceBtn" || button.id === "invoiceNavBtn") {
+        handleInvoiceSelect();
+        return;
+      }
+
+      if (button.id === "logoutBtn") {
+        options.onLogout?.();
+        return;
+      }
+
+      if (button.dataset.section) {
+        options.onSectionSelect?.(button.dataset.section);
+        if (options.closeOnSelect !== false) {
+          controller.close();
+        }
+        return;
+      }
+
+      if (button.dataset.navSection) {
+        options.onNavSectionSelect?.(button.dataset.navSection);
+        if (options.closeOnSelect !== false) {
+          controller.close();
+        }
+      }
+    });
 
     listen(global, "resize", () => {
       if (!isMobileLayout()) {

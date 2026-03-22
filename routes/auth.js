@@ -12,6 +12,7 @@ const {
 const {
   authMiddleware,
   getUserId,
+  invalidateStaffSessionCache,
   requireAdmin,
 } = require("../middleware/auth");
 
@@ -362,6 +363,7 @@ router.post("/staff/login", loginAttemptLimiter, async (req, res) => {
     const token = signSession(session);
     markSensitiveResponse(res);
     setSessionCookie(res, token);
+    invalidateStaffSessionCache(staff.id);
 
     return res.json({
       message: "Staff login successful",
@@ -650,6 +652,8 @@ router.patch("/staff/:staffId/permissions", authMiddleware, requireAdmin, async 
       return res.status(404).json({ error: "Staff account not found" });
     }
 
+    invalidateStaffSessionCache(staffId);
+
     return res.json({
       message: "Staff page access updated successfully",
       staff: {
@@ -685,6 +689,8 @@ router.delete("/staff/:staffId", authMiddleware, requireAdmin, async (req, res) 
       return res.status(404).json({ error: "Staff account not found" });
     }
 
+    invalidateStaffSessionCache(staffId);
+
     return res.json({ message: "Staff account removed successfully" });
   } catch (error) {
     console.error("Staff delete error:", error.message);
@@ -696,43 +702,7 @@ router.get("/me", authMiddleware, async (req, res) => {
   try {
     markSensitiveResponse(res);
     if (req.user.role === "staff") {
-      const result = await pool.query(
-        `
-          SELECT
-            s.id AS actor_id,
-            s.owner_user_id,
-            s.name,
-            s.username,
-            s.page_permissions,
-            s.is_active,
-            u.name AS owner_name
-          FROM staff_accounts s
-          JOIN users u ON u.id = s.owner_user_id
-          WHERE s.id = $1
-          LIMIT 1
-        `,
-        [req.user.actorId],
-      );
-
-      if (!result.rowCount || !result.rows[0].is_active) {
-        return res.status(401).json({ error: "Invalid or expired token" });
-      }
-
-      const staff = result.rows[0];
-      return res.json(
-        toClientUser({
-          actorId: staff.actor_id,
-          ownerId: staff.owner_user_id,
-          role: "staff",
-          accountType: "staff",
-          name: staff.name,
-          username: staff.username,
-          ownerName: staff.owner_name,
-          permissions: normalizePermissions(
-            staff.page_permissions || DEFAULT_STAFF_PERMISSIONS,
-          ),
-        }),
-      );
+      return res.json(toClientUser(req.user));
     }
 
     const result = await pool.query(

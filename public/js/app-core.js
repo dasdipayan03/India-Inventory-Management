@@ -12,6 +12,10 @@
     "sale_invoice",
   ];
   const invoicePagePermission = "sale_invoice";
+  const mobileLayoutMediaQuery =
+    typeof global.matchMedia === "function"
+      ? global.matchMedia("(max-width: 991px)")
+      : null;
 
   const permissionDescriptions = {
     add_stock: "Create or update stock entries from the main inventory form.",
@@ -212,7 +216,7 @@
   }
 
   function isMobileLayout() {
-    return global.matchMedia("(max-width: 991px)").matches;
+    return Boolean(mobileLayoutMediaQuery?.matches);
   }
 
   function isAdminUser(user) {

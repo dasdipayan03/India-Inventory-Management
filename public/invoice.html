@@ -2577,7 +2577,10 @@
 
         let userGstRate = 18;
         let itemNames = [];
+        let itemNameSearchIndex = [];
         let invoiceNumbers = [];
+        let invoiceNumberSearchIndex = [];
+        let invoiceNumberLookup = new Map();
         let invoiceSuggestions = [];
         let sessionUser = null;
         let pendingInvoiceNo = null;
@@ -2586,10 +2589,70 @@
         let suppressDraft = false;
         let sidebarController = null;
         let invoiceSuggestionRequestId = 0;
+        let invoiceNumbersPromise = null;
 
         const authHeaders = () => ({
           "Content-Type": "application/json",
         });
+
+        const normalizeSearchKey = (value) =>
+          String(value || "")
+            .trim()
+            .toLowerCase();
+
+        const buildStringSearchIndex = (values) =>
+          (Array.isArray(values) ? values : [])
+            .map((value) => String(value || "").trim())
+            .filter(Boolean)
+            .map((value) => ({
+              value,
+              searchKey: normalizeSearchKey(value),
+            }));
+
+        const buildStringLookup = (searchIndex) => {
+          const lookup = new Map();
+
+          searchIndex.forEach((entry) => {
+            if (!lookup.has(entry.searchKey)) {
+              lookup.set(entry.searchKey, entry.value);
+            }
+          });
+
+          return lookup;
+        };
+
+        const getSearchMatches = (searchIndex, query, limit = 10) => {
+          const normalizedQuery = normalizeSearchKey(query);
+          const matches = [];
+
+          for (const entry of searchIndex) {
+            if (normalizedQuery && !entry.searchKey.includes(normalizedQuery)) {
+              continue;
+            }
+
+            matches.push(entry.value);
+
+            if (matches.length >= limit) {
+              break;
+            }
+          }
+
+          return matches;
+        };
+
+        const debounce = (callback, delay = 180) => {
+          let timerId = 0;
+
+          return (...args) => {
+            if (timerId) {
+              window.clearTimeout(timerId);
+            }
+
+            timerId = window.setTimeout(() => {
+              callback(...args);
+            }, delay);
+          };
+        };
 
         const isMobileLayout =
           appConfig.isMobileLayout ||
@@ -3095,21 +3158,26 @@
           if (!items.length) {
             host.innerHTML = "";
             hideElement(host);
+            host.onpointerdown = null;
             return;
           }
           host.innerHTML = items
             .map(
-              (item) => `<div class="dropdown-item">${escapeHtml(item)}</div>`,
+              (item) =>
+                `<div class="dropdown-item" data-value="${encodeURIComponent(item)}">${escapeHtml(item)}</div>`,
             )
             .join("");
           showElement(host);
-          host.querySelectorAll(".dropdown-item").forEach((node) => {
-            node.addEventListener("pointerdown", (event) => {
-              event.preventDefault();
-              onSelect(node.textContent);
-              hideElement(host);
-            });
-          });
+          host.onpointerdown = (event) => {
+            const node = event.target.closest(".dropdown-item");
+            if (!node || !host.contains(node)) {
+              return;
+            }
+
+            event.preventDefault();
+            onSelect(decodeURIComponent(node.dataset.value || ""));
+            hideElement(host);
+          };
         };
 
         const renderInvoiceSuggestionDropdown = (
@@ -3120,6 +3188,7 @@
           if (!suggestions.length) {
             host.innerHTML = "";
             hideElement(host);
+            host.onpointerdown = null;
             return;
           }
 
@@ -3145,14 +3214,16 @@
             .join("");
 
           showElement(host);
+          host.onpointerdown = (event) => {
+            const node = event.target.closest(".dropdown-item--invoice");
+            if (!node || !host.contains(node)) {
+              return;
+            }
 
-          host.querySelectorAll(".dropdown-item--invoice").forEach((node) => {
-            node.addEventListener("pointerdown", (event) => {
-              event.preventDefault();
-              onSelect(decodeURIComponent(node.dataset.invoiceNo || ""));
-              hideElement(host);
-            });
-          });
+            event.preventDefault();
+            onSelect(decodeURIComponent(node.dataset.invoiceNo || ""));
+            hideElement(host);
+          };
         };
 
         async function loadItemNames() {
@@ -3160,32 +3231,57 @@
             headers: authHeaders(),
           });
           itemNames = res && res.ok ? await res.json() : [];
+          itemNameSearchIndex = buildStringSearchIndex(itemNames);
         }
 
         async function loadInvoiceNumbers() {
-          const res = await authFetch(API_PREFIX + "/invoices/numbers", {
-            headers: authHeaders(),
-          });
-          invoiceNumbers = res && res.ok ? await res.json() : [];
+          return loadInvoiceNumbersInternal();
+        }
 
-          if (invoiceNumbers.length) {
-            return;
+        async function loadInvoiceNumbersInternal(force = false) {
+          if (force) {
+            invoiceNumbersPromise = null;
           }
 
-          const fallback = await authFetch(`${API_PREFIX}/invoices?limit=50`, {
-            headers: authHeaders(),
-          });
-
-          if (!fallback || !fallback.ok) {
-            return;
+          if (invoiceNumbersPromise) {
+            return invoiceNumbersPromise;
           }
 
-          const data = await fallback.json();
-          invoiceNumbers = Array.isArray(data.invoices)
-            ? data.invoices
-                .map((row) => String(row.invoice_no || "").trim())
-                .filter(Boolean)
-            : [];
+          invoiceNumbersPromise = (async () => {
+            const res = await authFetch(API_PREFIX + "/invoices/numbers", {
+              headers: authHeaders(),
+            });
+            invoiceNumbers = res && res.ok ? await res.json() : [];
+
+            if (!invoiceNumbers.length) {
+              const fallback = await authFetch(`${API_PREFIX}/invoices?limit=50`, {
+                headers: authHeaders(),
+              });
+
+              if (fallback && fallback.ok) {
+                const data = await fallback.json();
+                invoiceNumbers = Array.isArray(data.invoices)
+                  ? data.invoices
+                      .map((row) => String(row.invoice_no || "").trim())
+                      .filter(Boolean)
+                  : [];
+              }
+            }
+
+            invoiceNumberSearchIndex = buildStringSearchIndex(invoiceNumbers);
+            invoiceNumberLookup = buildStringLookup(invoiceNumberSearchIndex);
+            return invoiceNumbers;
+          })();
+
+          try {
+            return await invoiceNumbersPromise;
+          } catch (error) {
+            invoiceNumbersPromise = null;
+            invoiceNumbers = [];
+            invoiceNumberSearchIndex = [];
+            invoiceNumberLookup = new Map();
+            return [];
+          }
         }
 
         async function loadInvoiceSuggestions(query = "") {
@@ -3225,16 +3321,15 @@
             return;
           }
 
-          const normalizedQuery = String(query || "")
-            .trim()
-            .toLowerCase();
-          const matches = invoiceNumbers
-            .filter((value) =>
-              normalizedQuery
-                ? value.toLowerCase().includes(normalizedQuery)
-                : true,
-            )
-            .slice(0, 10);
+          if (!invoiceNumberSearchIndex.length) {
+            await loadInvoiceNumbers();
+
+            if (requestId !== invoiceSuggestionRequestId) {
+              return;
+            }
+          }
+
+          const matches = getSearchMatches(invoiceNumberSearchIndex, query, 10);
 
           renderDropdown(invoiceDropdown, matches, (value) => {
             dom.searchInvoiceInput.value = value;
@@ -3249,9 +3344,7 @@
             return "";
           }
 
-          const staticMatch = invoiceNumbers.find(
-            (value) => value.toLowerCase() === normalizedQuery,
-          );
+          const staticMatch = invoiceNumberLookup.get(normalizedQuery);
           if (staticMatch) {
             return staticMatch;
           }
@@ -3441,9 +3534,7 @@
             }
             renderDropdown(
               dropdown,
-              itemNames
-                .filter((name) => name.toLowerCase().includes(q))
-                .slice(0, 15),
+              getSearchMatches(itemNameSearchIndex, q, 15),
               async (value) => {
                 itemInput.value = value;
                 syncItemTitle();
@@ -4246,7 +4337,7 @@
                 : "Invoice submitted successfully.",
             );
             resetInvoice();
-            await Promise.all([loadNewInvoice(), loadInvoiceNumbers()]);
+            await Promise.all([loadNewInvoice(), loadInvoiceNumbersInternal(true)]);
             setTimeout(() => {
               if (pendingInvoiceNo) openModal(dom.downloadModal);
             }, 2250);
@@ -4343,17 +4434,25 @@
           }
         });
 
+        const queueInvoiceSuggestionLoad = debounce((query) => {
+          void showInvoiceNumberSuggestions(query);
+        }, 180);
+
         dom.searchInvoiceInput.addEventListener("input", () => {
           const query = dom.searchInvoiceInput.value.trim().toLowerCase();
           if (!query) {
-            showInvoiceNumberSuggestions("");
+            queueInvoiceSuggestionLoad("");
             return;
           }
-          showInvoiceNumberSuggestions(query);
+          queueInvoiceSuggestionLoad(query);
         });
 
-        dom.searchInvoiceInput.addEventListener("focus", () => {
-          showInvoiceNumberSuggestions(dom.searchInvoiceInput.value.trim());
+        dom.searchInvoiceInput.addEventListener("focus", async () => {
+          if (!invoiceNumberSearchIndex.length) {
+            await loadInvoiceNumbers();
+          }
+
+          await showInvoiceNumberSuggestions(dom.searchInvoiceInput.value.trim());
         });
 
         dom.searchInvoiceInput.addEventListener("keydown", async (event) => {
@@ -4412,7 +4511,6 @@
           setDraftState("No draft saved yet", "clear");
           await Promise.all([
             loadItemNames(),
-            loadInvoiceNumbers(),
             loadShopInfo(),
             loadNewInvoice(),
           ]);

@@ -27,6 +27,11 @@ function shouldUseSsl(databaseUrl) {
   return !/localhost|127\.0\.0\.1/i.test(databaseUrl);
 }
 
+function readPositiveInt(value, fallback) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 // =========================================================
 // ENVIRONMENT VARIABLE CHECK
 // Ensures DATABASE_URL exists before server starts.
@@ -56,9 +61,18 @@ const pool = new Pool({
         rejectUnauthorized: false,
       }
     : false,
-  max: 10,
-  connectionTimeoutMillis: 10000,
-  idleTimeoutMillis: 30000,
+  max: readPositiveInt(process.env.PG_POOL_MAX, 10),
+  connectionTimeoutMillis: readPositiveInt(
+    process.env.PG_CONNECTION_TIMEOUT_MS,
+    10000,
+  ),
+  idleTimeoutMillis: readPositiveInt(process.env.PG_IDLE_TIMEOUT_MS, 30000),
+  keepAlive: true,
+  keepAliveInitialDelayMillis: readPositiveInt(
+    process.env.PG_KEEP_ALIVE_DELAY_MS,
+    10000,
+  ),
+  maxUses: readPositiveInt(process.env.PG_MAX_USES, 7500),
 });
 
 // =========================================================
@@ -180,6 +194,77 @@ async function ensureSchemaCompatibility() {
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_items_user_name
+      ON items (user_id, LOWER(TRIM(name)))
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_items_user_id
+      ON items (user_id)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_sales_user_date
+      ON sales (user_id, created_at)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_sales_user_id
+      ON sales (user_id)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_staff_accounts_owner_user_id
+      ON staff_accounts (owner_user_id)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_staff_accounts_username_lookup
+      ON staff_accounts (LOWER(TRIM(username)))
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_users_email_lookup
+      ON users (LOWER(email))
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_invoices_user_date
+      ON invoices (user_id, date DESC)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_invoices_user_id
+      ON invoices (user_id)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice
+      ON invoice_items (invoice_id)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_user_invoice_counter_user_id
+      ON user_invoice_counter (user_id)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_debts_user_id
+      ON debts (user_id)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_debts_user_number_created
+      ON debts (user_id, customer_number, created_at ASC, id ASC)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_invoices_user_contact_due_date
+      ON invoices (user_id, contact, date ASC)
+      WHERE amount_due > 0
   `);
 
   await pool.query(`

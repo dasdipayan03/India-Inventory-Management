@@ -7,6 +7,8 @@ const apiBase =
 
 const state = {
   itemNames: [],
+  itemNameSearchIndex: [],
+  itemNameLookup: new Map(),
   currentItemReportRows: [],
   currentPurchaseRows: [],
   currentSalesRows: [],
@@ -28,6 +30,7 @@ const state = {
   charts: {
     businessTrend: null,
     last13Months: null,
+    libraryPromise: null,
   },
   popupTimer: null,
   profitSaveRequestId: 0,
@@ -170,6 +173,71 @@ function sanitizeFileName(value) {
     .toLowerCase();
 }
 
+function normalizeSearchKey(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+function buildStringSearchIndex(values) {
+  return (Array.isArray(values) ? values : [])
+    .map((value) => String(value || "").trim())
+    .filter(Boolean)
+    .map((value) => ({
+      value,
+      searchKey: normalizeSearchKey(value),
+    }));
+}
+
+function buildStringLookup(searchIndex) {
+  const lookup = new Map();
+
+  searchIndex.forEach((entry) => {
+    if (!lookup.has(entry.searchKey)) {
+      lookup.set(entry.searchKey, entry.value);
+    }
+  });
+
+  return lookup;
+}
+
+function getSearchMatches(searchIndex, query, limit = 50) {
+  const normalizedQuery = normalizeSearchKey(query);
+  const matches = [];
+
+  for (const entry of searchIndex) {
+    if (normalizedQuery && !entry.searchKey.includes(normalizedQuery)) {
+      continue;
+    }
+
+    matches.push(entry.value);
+
+    if (matches.length >= limit) {
+      break;
+    }
+  }
+
+  return matches;
+}
+
+function findExactItemName(value) {
+  return state.itemNameLookup.get(normalizeSearchKey(value)) || null;
+}
+
+function debounce(callback, delay = 180) {
+  let timerId = 0;
+
+  return (...args) => {
+    if (timerId) {
+      window.clearTimeout(timerId);
+    }
+
+    timerId = window.setTimeout(() => {
+      callback(...args);
+    }, delay);
+  };
+}
+
 const escapeHtml =
   appConfig.escapeHtml ||
   ((value) =>
@@ -304,6 +372,58 @@ function getAccessibleSectionIds() {
 
 function getFirstAccessibleSection() {
   return getAccessibleSectionIds()[0] || null;
+}
+
+async function ensureChartLibrary() {
+  if (typeof window.Chart !== "undefined") {
+    return window.Chart;
+  }
+
+  if (state.charts.libraryPromise) {
+    return state.charts.libraryPromise;
+  }
+
+  state.charts.libraryPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "js/chart.min.js";
+    script.async = true;
+    script.dataset.chartLoader = "true";
+
+    script.addEventListener(
+      "load",
+      () => {
+        resolve(window.Chart);
+      },
+      { once: true },
+    );
+
+    script.addEventListener(
+      "error",
+      () => {
+        state.charts.libraryPromise = null;
+        script.remove();
+        reject(new Error("Could not load chart assets."));
+      },
+      { once: true },
+    );
+
+    document.body.appendChild(script);
+  });
+
+  return state.charts.libraryPromise;
+}
+
+async function ensureSalesWorkspaceReady(options = {}) {
+  if (!canAccessPermission("sales_report")) {
+    return;
+  }
+
+  initYearFilter();
+  await Promise.allSettled([
+    loadBusinessTrend(dom.yearFilter?.value || "all", options),
+    loadLast13MonthsChart(options),
+    Promise.resolve(loadSalesNetProfitCard(options)),
+  ]);
 }
 
 function cacheElements() {
@@ -1155,10 +1275,7 @@ function setActiveSection(sectionId) {
     sectionId === "salesReportSection" &&
     canAccessPermission("sales_report")
   ) {
-    initYearFilter();
-    loadBusinessTrend(dom.yearFilter?.value || "all", { silent: true });
-    loadLast13MonthsChart({ silent: true });
-    loadSalesNetProfitCard({ silent: true });
+    void ensureSalesWorkspaceReady({ silent: true });
   }
 
   if (sectionId === "staffAccessSection" && isAdminSession()) {
@@ -1181,6 +1298,7 @@ function renderDropdown(listEl, items, onSelect) {
   if (!items.length) {
     hideElement(listEl);
     listEl.innerHTML = "";
+    listEl.onclick = null;
     return;
   }
 
@@ -1198,12 +1316,15 @@ function renderDropdown(listEl, items, onSelect) {
     .join("");
 
   showElement(listEl);
-  listEl.querySelectorAll(".dropdown-item").forEach((entry) => {
-    entry.addEventListener("click", () => {
-      onSelect(decodeURIComponent(entry.dataset.value));
-      hideElement(listEl);
-    });
-  });
+  listEl.onclick = (event) => {
+    const entry = event.target.closest(".dropdown-item");
+    if (!entry || !listEl.contains(entry)) {
+      return;
+    }
+
+    onSelect(decodeURIComponent(entry.dataset.value));
+    hideElement(listEl);
+  };
 }
 
 function setupFilterInput(input, listEl, onSelect) {
@@ -1211,19 +1332,21 @@ function setupFilterInput(input, listEl, onSelect) {
     const query = input.value.trim().toLowerCase();
 
     if (!query) {
-      renderDropdown(listEl, state.itemNames.slice(0, 50), onSelect);
+      renderDropdown(
+        listEl,
+        getSearchMatches(state.itemNameSearchIndex, "", 50),
+        onSelect,
+      );
       return;
     }
 
-    const matches = state.itemNames
-      .filter((itemName) => itemName.toLowerCase().includes(query))
-      .slice(0, 50);
+    const matches = getSearchMatches(state.itemNameSearchIndex, query, 50);
 
     renderDropdown(listEl, matches, onSelect);
   });
 
   input.addEventListener("focus", () => {
-    renderDropdown(listEl, state.itemNames.slice(0, 50), onSelect);
+    renderDropdown(listEl, getSearchMatches(state.itemNameSearchIndex, "", 50), onSelect);
   });
 
   document.addEventListener("click", (event) => {
@@ -1259,10 +1382,14 @@ async function loadItemNames(options = {}) {
   try {
     const rows = await fetchJSON("/items/names");
     state.itemNames = Array.isArray(rows) ? rows : [];
+    state.itemNameSearchIndex = buildStringSearchIndex(state.itemNames);
+    state.itemNameLookup = buildStringLookup(state.itemNameSearchIndex);
     return state.itemNames;
   } catch (error) {
     console.error("Item names load failed:", error);
     state.itemNames = [];
+    state.itemNameSearchIndex = [];
+    state.itemNameLookup = new Map();
     if (!options.silent) {
       showPopup("error", "Load failed", "Could not load item names.", {
         autoClose: false,
@@ -1764,14 +1891,7 @@ function addPurchaseItemRow(item = {}) {
     hideElement(previousRateNote);
   };
 
-  const resolveExactItemName = (value) =>
-    state.itemNames.find(
-      (itemName) =>
-        itemName.trim().toLowerCase() ===
-        String(value || "")
-          .trim()
-          .toLowerCase(),
-    ) || null;
+  const resolveExactItemName = (value) => findExactItemName(value);
 
   const syncProfitFromSell = () => {
     const buyRate = Number(buyInput.value);
@@ -1858,9 +1978,7 @@ function addPurchaseItemRow(item = {}) {
 
     renderDropdown(
       dropdown,
-      state.itemNames
-        .filter((itemName) => itemName.toLowerCase().includes(query))
-        .slice(0, 20),
+      getSearchMatches(state.itemNameSearchIndex, query, 20),
       async (value) => {
         itemInput.value = value;
         hideElement(dropdown);
@@ -2010,6 +2128,7 @@ function renderSupplierDropdown(listEl, suppliers, onSelect) {
   if (!suppliers.length) {
     hideElement(listEl);
     listEl.innerHTML = "";
+    listEl.onclick = null;
     return;
   }
 
@@ -2031,17 +2150,20 @@ function renderSupplierDropdown(listEl, suppliers, onSelect) {
     .join("");
 
   showElement(listEl);
-  listEl.querySelectorAll(".dropdown-item").forEach((entry) => {
-    entry.addEventListener("click", () => {
-      onSelect({
-        id: Number(entry.dataset.id) || null,
-        name: decodeURIComponent(entry.dataset.name),
-        mobile_number: decodeURIComponent(entry.dataset.mobile),
-        address: decodeURIComponent(entry.dataset.address),
-      });
-      hideElement(listEl);
+  listEl.onclick = (event) => {
+    const entry = event.target.closest(".dropdown-item");
+    if (!entry || !listEl.contains(entry)) {
+      return;
+    }
+
+    onSelect({
+      id: Number(entry.dataset.id) || null,
+      name: decodeURIComponent(entry.dataset.name),
+      mobile_number: decodeURIComponent(entry.dataset.mobile),
+      address: decodeURIComponent(entry.dataset.address),
     });
-  });
+    hideElement(listEl);
+  };
 }
 
 async function loadPurchaseSearchSuggestions(query = "") {
@@ -2078,6 +2200,7 @@ function renderPurchaseSearchDropdown(rows, onSelect) {
   if (!rows.length) {
     hideElement(dom.purchaseSearchDropdown);
     dom.purchaseSearchDropdown.innerHTML = "";
+    dom.purchaseSearchDropdown.onclick = null;
     return;
   }
 
@@ -2103,17 +2226,18 @@ function renderPurchaseSearchDropdown(rows, onSelect) {
     .join("");
 
   showElement(dom.purchaseSearchDropdown);
-  dom.purchaseSearchDropdown
-    .querySelectorAll(".dropdown-item")
-    .forEach((entry) => {
-      entry.addEventListener("click", () => {
-        onSelect({
-          purchaseId: Number(entry.dataset.purchaseId || "0"),
-          value: decodeURIComponent(entry.dataset.value || ""),
-        });
-        hideElement(dom.purchaseSearchDropdown);
-      });
+  dom.purchaseSearchDropdown.onclick = (event) => {
+    const entry = event.target.closest(".dropdown-item");
+    if (!entry || !dom.purchaseSearchDropdown.contains(entry)) {
+      return;
+    }
+
+    onSelect({
+      purchaseId: Number(entry.dataset.purchaseId || "0"),
+      value: decodeURIComponent(entry.dataset.value || ""),
     });
+    hideElement(dom.purchaseSearchDropdown);
+  };
 }
 
 function validatePurchaseDates() {
@@ -4094,19 +4218,19 @@ async function submitDebt() {
 async function loadBusinessTrend(year = "all", options = {}) {
   if (
     !canAccessPermission("sales_report") ||
-    typeof Chart === "undefined" ||
     !dom.businessTrendChart
   ) {
     return;
   }
 
   try {
+    const ChartLibrary = await ensureChartLibrary();
     const rows = await fetchJSON(`/sales/monthly-trend?year=${year}`);
     const labels = rows.map((row) => row.month);
     const sales = rows.map((row) => Number(row.total_sales) || 0);
     const profit = rows.map((row) => Number(row.total_profit) || 0);
 
-    renderBusinessTrend(labels, sales, profit);
+    renderBusinessTrend(labels, sales, profit, ChartLibrary);
     updateGrowthBadge(sales);
   } catch (error) {
     console.error("Business trend load failed:", error);
@@ -4121,7 +4245,7 @@ async function loadBusinessTrend(year = "all", options = {}) {
   }
 }
 
-function renderBusinessTrend(labels, sales, profit) {
+function renderBusinessTrend(labels, sales, profit, ChartLibrary = window.Chart) {
   const ctx = dom.businessTrendChart.getContext("2d");
 
   if (state.charts.businessTrend) {
@@ -4136,7 +4260,7 @@ function renderBusinessTrend(labels, sales, profit) {
   profitGradient.addColorStop(0, "rgba(20, 184, 166, 0.24)");
   profitGradient.addColorStop(1, "rgba(20, 184, 166, 0.02)");
 
-  state.charts.businessTrend = new Chart(ctx, {
+  state.charts.businessTrend = new ChartLibrary(ctx, {
     type: "line",
     data: {
       labels,
@@ -4258,17 +4382,17 @@ function initYearFilter() {
 async function loadLast13MonthsChart(options = {}) {
   if (
     !canAccessPermission("sales_report") ||
-    typeof Chart === "undefined" ||
     !dom.last12MonthsChart
   ) {
     return;
   }
 
   try {
+    const ChartLibrary = await ensureChartLibrary();
     const rows = await fetchJSON("/sales/last-13-months");
     const labels = rows.map((row) => row.month);
     const data = rows.map((row) => Number(row.total_sales) || 0);
-    renderLast13MonthsChart(labels, data);
+    renderLast13MonthsChart(labels, data, ChartLibrary);
   } catch (error) {
     console.error("Last 13 months chart failed:", error);
     if (!options.silent) {
@@ -4282,7 +4406,7 @@ async function loadLast13MonthsChart(options = {}) {
   }
 }
 
-function renderLast13MonthsChart(labels, values) {
+function renderLast13MonthsChart(labels, values, ChartLibrary = window.Chart) {
   const ctx = dom.last12MonthsChart.getContext("2d");
 
   if (state.charts.last13Months) {
@@ -4293,7 +4417,7 @@ function renderLast13MonthsChart(labels, values) {
   barGradient.addColorStop(0, "rgba(37, 99, 235, 0.95)");
   barGradient.addColorStop(1, "rgba(14, 165, 233, 0.52)");
 
-  state.charts.last13Months = new Chart(ctx, {
+  state.charts.last13Months = new ChartLibrary(ctx, {
     type: "bar",
     data: {
       labels,
@@ -4356,6 +4480,7 @@ function renderCustomerDropdown(listEl, customers, onSelect) {
   if (!customers.length) {
     hideElement(listEl);
     listEl.innerHTML = "";
+    listEl.onclick = null;
     return;
   }
 
@@ -4378,16 +4503,18 @@ function renderCustomerDropdown(listEl, customers, onSelect) {
     .join("");
 
   showElement(listEl);
+  listEl.onclick = (event) => {
+    const item = event.target.closest(".dropdown-item");
+    if (!item || !listEl.contains(item)) {
+      return;
+    }
 
-  listEl.querySelectorAll(".dropdown-item").forEach((item) => {
-    item.addEventListener("click", () => {
-      onSelect({
-        name: decodeURIComponent(item.dataset.name),
-        number: decodeURIComponent(item.dataset.number),
-      });
-      hideElement(listEl);
+    onSelect({
+      name: decodeURIComponent(item.dataset.name),
+      number: decodeURIComponent(item.dataset.number),
     });
-  });
+    hideElement(listEl);
+  };
 }
 
 function renderEmptyLedger(message) {
@@ -5251,15 +5378,16 @@ function bindInventoryEvents() {
       return;
     }
 
-    if (!state.itemNames.includes(dom.newItemSearch.value.trim())) {
+    if (!findExactItemName(dom.newItemSearch.value.trim())) {
       hidePreviousBuyingRate();
     }
   });
 
   dom.newItemSearch.addEventListener("blur", () => {
     const itemName = dom.newItemSearch.value.trim();
-    if (state.itemNames.includes(itemName)) {
-      showPreviousBuyingRate(itemName);
+    const exactItemName = findExactItemName(itemName);
+    if (exactItemName) {
+      showPreviousBuyingRate(exactItemName);
     }
   });
 
@@ -5291,6 +5419,71 @@ function bindPurchaseEvents() {
     return;
   }
 
+  const runPurchaseSearchSuggestions = async () => {
+    const query = dom.purchaseSearchInput.value.trim();
+    const suggestions = await loadPurchaseSearchSuggestions(query);
+
+    if (dom.purchaseSearchInput.value.trim() !== query) {
+      return;
+    }
+
+    renderPurchaseSearchDropdown(suggestions, async ({ purchaseId, value }) => {
+      dom.purchaseSearchInput.value = value;
+      await loadPurchaseReport();
+      if (purchaseId > 0) {
+        await openPurchaseDetail(purchaseId, { silent: true });
+      }
+    });
+  };
+
+  const debouncedPurchaseSearchSuggestions = debounce(() => {
+    void runPurchaseSearchSuggestions();
+  }, 180);
+
+  const runSupplierSearchSuggestions = debounce(async () => {
+    const query = dom.supplierSearchInput.value.trim();
+
+    if (!query) {
+      hideElement(dom.supplierSearchDropdown);
+      return;
+    }
+
+    const suppliers = await loadSupplierSuggestions(query);
+    if (dom.supplierSearchInput.value.trim() !== query) {
+      return;
+    }
+
+    renderSupplierDropdown(
+      dom.supplierSearchDropdown,
+      suppliers,
+      (supplier) => {
+        dom.supplierSearchInput.value = supplier.name || "";
+        dom.supplierSearchInput.dataset.supplierId = String(supplier.id || "");
+        searchSupplierLedger({ supplierId: supplier.id });
+      },
+    );
+  }, 180);
+
+  const runSupplierNameSuggestions = debounce(async () => {
+    const query = dom.supplierName.value.trim();
+    if (!query) {
+      hideElement(dom.supplierDropdown);
+      return;
+    }
+
+    const suppliers = await loadSupplierSuggestions(query);
+    if (dom.supplierName.value.trim() !== query) {
+      return;
+    }
+
+    renderSupplierDropdown(dom.supplierDropdown, suppliers, (supplier) => {
+      dom.supplierName.value = supplier.name || "";
+      dom.supplierNumber.value = supplier.mobile_number || "";
+      dom.supplierAddress.value = supplier.address || "";
+      updatePurchaseSummary();
+    });
+  }, 180);
+
   restrictToDigits(dom.supplierNumber);
   dom.showPurchaseBillsViewBtn?.addEventListener("click", () =>
     setPurchaseWorkspaceView("bills"),
@@ -5299,22 +5492,9 @@ function bindPurchaseEvents() {
     setPurchaseWorkspaceView("supplier"),
   );
 
-  dom.supplierName.addEventListener("input", async () => {
+  dom.supplierName.addEventListener("input", () => {
     updatePurchaseSupplierSnapshot();
-
-    const query = dom.supplierName.value.trim();
-    if (!query) {
-      hideElement(dom.supplierDropdown);
-      return;
-    }
-
-    const suppliers = await loadSupplierSuggestions(query);
-    renderSupplierDropdown(dom.supplierDropdown, suppliers, (supplier) => {
-      dom.supplierName.value = supplier.name || "";
-      dom.supplierNumber.value = supplier.mobile_number || "";
-      dom.supplierAddress.value = supplier.address || "";
-      updatePurchaseSummary();
-    });
+    runSupplierNameSuggestions();
   });
 
   document.addEventListener("click", (event) => {
@@ -5393,29 +5573,11 @@ function bindPurchaseEvents() {
   );
 
   dom.purchaseSearchInput.addEventListener("focus", async () => {
-    const suggestions = await loadPurchaseSearchSuggestions(
-      dom.purchaseSearchInput.value,
-    );
-    renderPurchaseSearchDropdown(suggestions, async ({ purchaseId, value }) => {
-      dom.purchaseSearchInput.value = value;
-      await loadPurchaseReport();
-      if (purchaseId > 0) {
-        await openPurchaseDetail(purchaseId, { silent: true });
-      }
-    });
+    await runPurchaseSearchSuggestions();
   });
 
-  dom.purchaseSearchInput.addEventListener("input", async () => {
-    const suggestions = await loadPurchaseSearchSuggestions(
-      dom.purchaseSearchInput.value,
-    );
-    renderPurchaseSearchDropdown(suggestions, async ({ purchaseId, value }) => {
-      dom.purchaseSearchInput.value = value;
-      await loadPurchaseReport();
-      if (purchaseId > 0) {
-        await openPurchaseDetail(purchaseId, { silent: true });
-      }
-    });
+  dom.purchaseSearchInput.addEventListener("input", () => {
+    debouncedPurchaseSearchSuggestions();
   });
 
   dom.purchaseSearchInput.addEventListener("keydown", (event) => {
@@ -5448,26 +5610,10 @@ function bindPurchaseEvents() {
     submitPurchaseRepayment,
   );
 
-  dom.supplierSearchInput.addEventListener("input", async () => {
+  dom.supplierSearchInput.addEventListener("input", () => {
     setPurchaseWorkspaceView("supplier");
     dom.supplierSearchInput.dataset.supplierId = "";
-    const query = dom.supplierSearchInput.value.trim();
-
-    if (!query) {
-      hideElement(dom.supplierSearchDropdown);
-      return;
-    }
-
-    const suppliers = await loadSupplierSuggestions(query);
-    renderSupplierDropdown(
-      dom.supplierSearchDropdown,
-      suppliers,
-      (supplier) => {
-        dom.supplierSearchInput.value = supplier.name || "";
-        dom.supplierSearchInput.dataset.supplierId = String(supplier.id || "");
-        searchSupplierLedger({ supplierId: supplier.id });
-      },
-    );
+    runSupplierSearchSuggestions();
   });
 
   dom.supplierSearchInput.addEventListener("keydown", (event) => {
@@ -5563,15 +5709,8 @@ function bindReportEvents() {
 }
 
 function bindCustomerDueEvents() {
-  restrictToDigits(dom.cdNumber);
-  [dom.cdName, dom.cdTotal, dom.cdCredit, dom.cdRemark].forEach((input) => {
-    input?.addEventListener("input", updateCustomerDuePreview);
-  });
-
-  dom.cdNumber.addEventListener("input", async () => {
+  const runCustomerNumberSuggestions = debounce(async () => {
     const query = dom.cdNumber.value.trim();
-    setCustomerNameLocked(false);
-    updateCustomerDuePreview();
 
     if (!query) {
       hideElement(dom.cdNumberDropdown);
@@ -5579,6 +5718,10 @@ function bindCustomerDueEvents() {
     }
 
     const customers = await loadCustomerSuggestions(query);
+    if (dom.cdNumber.value.trim() !== query) {
+      return;
+    }
+
     renderCustomerDropdown(
       dom.cdNumberDropdown,
       customers,
@@ -5589,6 +5732,36 @@ function bindCustomerDueEvents() {
         updateCustomerDuePreview();
       },
     );
+  }, 180);
+
+  const runLedgerSearchSuggestions = debounce(async () => {
+    const query = dom.cdSearchInput.value.trim();
+
+    if (!query) {
+      hideElement(dom.cdSearchDropdown);
+      return;
+    }
+
+    const customers = await loadCustomerSuggestions(query);
+    if (dom.cdSearchInput.value.trim() !== query) {
+      return;
+    }
+
+    renderCustomerDropdown(dom.cdSearchDropdown, customers, ({ number }) => {
+      dom.cdSearchInput.value = number;
+      searchLedger({ value: number });
+    });
+  }, 180);
+
+  restrictToDigits(dom.cdNumber);
+  [dom.cdName, dom.cdTotal, dom.cdCredit, dom.cdRemark].forEach((input) => {
+    input?.addEventListener("input", updateCustomerDuePreview);
+  });
+
+  dom.cdNumber.addEventListener("input", () => {
+    setCustomerNameLocked(false);
+    updateCustomerDuePreview();
+    runCustomerNumberSuggestions();
   });
 
   document.addEventListener("click", (event) => {
@@ -5602,19 +5775,8 @@ function bindCustomerDueEvents() {
 
   dom.submitDebtBtn.addEventListener("click", submitDebt);
 
-  dom.cdSearchInput.addEventListener("input", async () => {
-    const query = dom.cdSearchInput.value.trim();
-
-    if (!query) {
-      hideElement(dom.cdSearchDropdown);
-      return;
-    }
-
-    const customers = await loadCustomerSuggestions(query);
-    renderCustomerDropdown(dom.cdSearchDropdown, customers, ({ number }) => {
-      dom.cdSearchInput.value = number;
-      searchLedger({ value: number });
-    });
+  dom.cdSearchInput.addEventListener("input", () => {
+    runLedgerSearchSuggestions();
   });
 
   dom.cdSearchInput.addEventListener("keydown", (event) => {
@@ -5788,26 +5950,11 @@ window.addEventListener("DOMContentLoaded", async () => {
   const initialTasks = [];
 
   if (isAdminSession()) {
-    initialTasks.push(
-      loadDashboardOverview({ silent: true }),
-      loadStaffAccounts({ silent: true }),
-    );
-  }
-
-  if (canAccessPermission("sales_report")) {
-    initYearFilter();
-    initialTasks.push(
-      loadBusinessTrend("all", { silent: true }),
-      loadLast13MonthsChart({ silent: true }),
-    );
+    initialTasks.push(loadDashboardOverview({ silent: true }));
   }
 
   if (initialTasks.length) {
     await Promise.allSettled(initialTasks);
-  }
-
-  if (isAdminSession() && validSection === "itemReportSection") {
-    await loadLowStock({ silent: true });
   }
 });
 

@@ -349,7 +349,7 @@ router.get("/items/names", requirePermission("add_stock", "sale_invoice", "stock
   try {
     const user_id = getUserId(req);
     const result = await pool.query(
-      "SELECT name FROM items WHERE user_id=$1 ORDER BY name ASC",
+      "SELECT name FROM items WHERE user_id=$1 ORDER BY LOWER(TRIM(name)) ASC",
       [user_id],
     );
     res.json(result.rows.map((r) => r.name));
@@ -1732,7 +1732,7 @@ router.get("/debts/:number", requirePermission("customer_due"), async (req, res)
       `SELECT id, customer_name, customer_number, total, credit, remark, created_at
        FROM debts
        WHERE user_id=$1 AND customer_number=$2
-       ORDER BY created_at ASC`,
+       ORDER BY created_at ASC, id ASC`,
       [user_id, number],
     );
 

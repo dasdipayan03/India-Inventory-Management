@@ -21,6 +21,116 @@ if (!process.env.JWT_SECRET) {
   process.exit(1);
 }
 
+const STAFF_SESSION_CACHE_TTL_MS = 15 * 1000;
+const STAFF_SESSION_CACHE_MAX_ENTRIES = 200;
+const staffSessionCache = new Map();
+
+function getStaffSessionCacheKey(staffId) {
+  const normalizedStaffId = Number(staffId);
+  return Number.isInteger(normalizedStaffId) && normalizedStaffId > 0
+    ? normalizedStaffId
+    : 0;
+}
+
+function getCachedStaffSession(staffId) {
+  const cacheKey = getStaffSessionCacheKey(staffId);
+  if (!cacheKey) {
+    return null;
+  }
+
+  const cachedEntry = staffSessionCache.get(cacheKey);
+  if (!cachedEntry) {
+    return null;
+  }
+
+  if (cachedEntry.expiresAt <= Date.now()) {
+    staffSessionCache.delete(cacheKey);
+    return null;
+  }
+
+  return cachedEntry.value;
+}
+
+function setCachedStaffSession(staffId, sessionData) {
+  const cacheKey = getStaffSessionCacheKey(staffId);
+  if (!cacheKey) {
+    return sessionData;
+  }
+
+  while (staffSessionCache.size >= STAFF_SESSION_CACHE_MAX_ENTRIES) {
+    const oldestKey = staffSessionCache.keys().next().value;
+    if (oldestKey === undefined) {
+      break;
+    }
+    staffSessionCache.delete(oldestKey);
+  }
+
+  staffSessionCache.set(cacheKey, {
+    value: sessionData,
+    expiresAt: Date.now() + STAFF_SESSION_CACHE_TTL_MS,
+  });
+
+  return sessionData;
+}
+
+function invalidateStaffSessionCache(staffId) {
+  const cacheKey = getStaffSessionCacheKey(staffId);
+  if (cacheKey) {
+    staffSessionCache.delete(cacheKey);
+  }
+}
+
+async function loadStaffSession(staffId) {
+  const cachedStaff = getCachedStaffSession(staffId);
+  if (cachedStaff) {
+    return cachedStaff;
+  }
+
+  const result = await pool.query(
+    `
+      SELECT
+        s.owner_user_id,
+        s.name,
+        s.username,
+        s.is_active,
+        s.page_permissions,
+        u.name AS owner_name
+      FROM staff_accounts s
+      JOIN users u ON u.id = s.owner_user_id
+      WHERE s.id = $1
+      LIMIT 1
+    `,
+    [staffId],
+  );
+
+  if (!result.rowCount) {
+    invalidateStaffSessionCache(staffId);
+    return null;
+  }
+
+  const staff = result.rows[0];
+  if (!staff.is_active) {
+    invalidateStaffSessionCache(staffId);
+    return {
+      ownerUserId: staff.owner_user_id,
+      name: staff.name,
+      username: staff.username,
+      isActive: false,
+      pagePermissions: staff.page_permissions,
+      ownerName: staff.owner_name,
+    };
+  }
+
+  return setCachedStaffSession(staffId, {
+    ownerUserId: staff.owner_user_id,
+    name: staff.name,
+    username: staff.username,
+    isActive: true,
+    pagePermissions: staff.page_permissions,
+    ownerName: staff.owner_name,
+  });
+}
+
 async function authMiddleware(req, res, next) {
   try {
     let token = null;
@@ -41,32 +151,25 @@ async function authMiddleware(req, res, next) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     if (String(decoded.role).toLowerCase() === "staff") {
-      const result = await pool.query(
-        `
-          SELECT owner_user_id, name, username, is_active, page_permissions
-          FROM staff_accounts
-          WHERE id = $1
-          LIMIT 1
-        `,
-        [decoded.actorId || decoded.staffId || decoded.id],
-      );
+      const staffId = decoded.actorId || decoded.staffId || decoded.id;
+      const staff = await loadStaffSession(staffId);
 
-      if (!result.rowCount || !result.rows[0].is_active) {
+      if (!staff || !staff.isActive) {
         return res.status(401).json({ error: "Invalid or expired token" });
       }
 
-      const staff = result.rows[0];
       req.user = {
         ...decoded,
-        actorId: decoded.actorId || decoded.staffId || decoded.id,
-        staffId: decoded.staffId || decoded.actorId || decoded.id,
-        ownerId: staff.owner_user_id,
+        actorId: staffId,
+        staffId,
+        ownerId: staff.ownerUserId,
         role: "staff",
         accountType: "staff",
         name: staff.name,
         username: staff.username,
+        ownerName: staff.ownerName,
         permissions: normalizePermissions(
-          staff.page_permissions || DEFAULT_STAFF_PERMISSIONS,
+          staff.pagePermissions || DEFAULT_STAFF_PERMISSIONS,
         ),
       };
       return next();
@@ -170,6 +273,7 @@ module.exports = {
   getActorId,
   getUserId,
   hasPermission,
+  invalidateStaffSessionCache,
   isAdminSession,
   requireAdmin,
   requirePermission,

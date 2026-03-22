@@ -42,6 +42,11 @@ const pool = require("./db");
 const app = express();
 const publicDir = path.join(__dirname, "public");
 const htmlTemplateCache = new Map();
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const JSON_BODY_LIMIT = process.env.JSON_BODY_LIMIT || "1mb";
+const URLENCODED_BODY_LIMIT = process.env.URLENCODED_BODY_LIMIT || "200kb";
+const STATIC_ASSET_CACHE_MS =
+  process.env.NODE_ENV === "production" ? ONE_DAY_MS : 0;
 
 // Required for deployment platforms like Railway / Render
 app.set("trust proxy", 1);
@@ -113,12 +118,38 @@ function getHtmlTemplate(fileName) {
   return template;
 }
 
+function applyHtmlCacheHeaders(res) {
+  res.set("Cache-Control", "no-store, max-age=0, must-revalidate");
+  res.set("Pragma", "no-cache");
+}
+
+function setStaticAssetCacheHeaders(res, filePath) {
+  if (/\.html?$/i.test(filePath)) {
+    applyHtmlCacheHeaders(res);
+    return;
+  }
+
+  if (
+    STATIC_ASSET_CACHE_MS > 0 &&
+    /\.(png|jpe?g|gif|svg|webp|ico|woff2?|ttf|eot)$/i.test(filePath)
+  ) {
+    res.set(
+      "Cache-Control",
+      `public, max-age=${Math.floor(STATIC_ASSET_CACHE_MS / 1000)}, must-revalidate`,
+    );
+    return;
+  }
+
+  res.set("Cache-Control", "no-cache");
+}
+
 function sendHtmlTemplate(res, fileName, statusCode = 200) {
   const html = getHtmlTemplate(fileName).replace(
     /__CSP_NONCE__/g,
     res.locals.cspNonce || "",
   );
 
+  applyHtmlCacheHeaders(res);
   res.status(statusCode).type("html").send(html);
 }
 
@@ -143,17 +174,20 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json()); // Parse incoming JSON requests
+app.use(express.json({ limit: JSON_BODY_LIMIT })); // Parse incoming JSON requests
+app.use(express.urlencoded({ extended: false, limit: URLENCODED_BODY_LIMIT }));
 app.use(cookieParser()); // Parse cookies from client
-app.use(compression()); // Compress responses for better performance
+app.use(compression({ threshold: 1024 })); // Compress larger responses only
 
 // Rate Limiter
 // Max 200 requests per 15 minutes per IP
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 500,
+  standardHeaders: true,
+  legacyHeaders: false,
 });
-app.use(limiter);
+app.use("/api", limiter);
 
 // =========================================================
 // 🛡 CONTENT SECURITY POLICY (Helmet)
@@ -269,7 +303,14 @@ app.get("/reset.html", (req, res) => {
   sendHtmlTemplate(res, "reset.html");
 });
 
-app.use(express.static(publicDir));
+app.use(
+  express.static(publicDir, {
+    etag: true,
+    lastModified: true,
+    maxAge: STATIC_ASSET_CACHE_MS,
+    setHeaders: setStaticAssetCacheHeaders,
+  }),
+);
 
 /**
  * Fallback Route
@@ -312,22 +353,46 @@ const server = app.listen(PORT, "0.0.0.0", () => {
 // 🛑 GRACEFUL SHUTDOWN
 // Handles container shutdown safely
 // =========================================================
-process.on("SIGTERM", async () => {
-  console.log("🛑 SIGTERM received. Closing server...");
+server.keepAliveTimeout = 65 * 1000;
+server.headersTimeout = 66 * 1000;
+server.requestTimeout = 120 * 1000;
+
+let isShuttingDown = false;
+
+function shutdown(signal) {
+  if (isShuttingDown) {
+    return;
+  }
+
+  isShuttingDown = true;
+  console.log(`${signal} received. Closing server...`);
 
   server.close(async () => {
-    console.log("🔌 HTTP server closed.");
+    console.log("HTTP server closed.");
 
-    await pool.end();
-    console.log("🔌 PostgreSQL pool closed.");
-
-    process.exit(0);
+    try {
+      await pool.end();
+      console.log("PostgreSQL pool closed.");
+      process.exit(0);
+    } catch (error) {
+      console.error("Error closing PostgreSQL pool:", error);
+      process.exit(1);
+    }
   });
-});
+
+  setTimeout(() => {
+    console.error("Forced shutdown after timeout.");
+    process.exit(1);
+  }, 10 * 1000).unref();
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
 
 // =========================================================
 // ⚠ GLOBAL PROCESS ERROR HANDLERS
 // =========================================================
+process.on("SIGINT", () => shutdown("SIGINT"));
+
 process.on("unhandledRejection", (err) => {
   console.error("Unhandled Rejection:", err);
 });
