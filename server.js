@@ -35,6 +35,7 @@ const cookieParser = require("cookie-parser"); // Cookie parsing
 // 🗄 DATABASE
 // =========================================================
 const pool = require("./db");
+const { logEvent } = require("./utils/runtime-log");
 
 // =========================================================
 // 🚀 CREATE EXPRESS APP
@@ -47,10 +48,47 @@ const JSON_BODY_LIMIT = process.env.JSON_BODY_LIMIT || "1mb";
 const URLENCODED_BODY_LIMIT = process.env.URLENCODED_BODY_LIMIT || "200kb";
 const STATIC_ASSET_CACHE_MS =
   process.env.NODE_ENV === "production" ? ONE_DAY_MS : 0;
+const PROCESS_STARTED_AT = Date.now();
+const PORT = process.env.PORT || 8080;
+const ENABLE_REQUEST_LOGS = process.env.ENABLE_REQUEST_LOGS === "true";
+const REQUEST_LOG_SLOW_MS = readPositiveInt(
+  process.env.REQUEST_LOG_SLOW_MS,
+  1500,
+);
+const READINESS_ROUTE_PATHS = new Set([
+  "/health",
+  "/api/health",
+  "/healthz",
+  "/api/healthz",
+  "/ready",
+  "/api/ready",
+  "/readyz",
+  "/api/readyz",
+]);
+const LIVENESS_ROUTE_PATHS = new Set([
+  "/live",
+  "/api/live",
+  "/livez",
+  "/api/livez",
+]);
+
+let server = null;
+let isShuttingDown = false;
 
 // Required for deployment platforms like Railway / Render
 app.set("trust proxy", 1);
 app.disable("x-powered-by");
+
+logEvent("info", "app_bootstrap_started", {
+  pid: process.pid,
+  nodeVersion: process.version,
+  env: process.env.NODE_ENV || "development",
+  port: Number(PORT),
+  publicDirExists: fs.existsSync(publicDir),
+  requestLoggingEnabled: ENABLE_REQUEST_LOGS,
+  requestLogSlowMs: REQUEST_LOG_SLOW_MS,
+  baseUrlConfigured: Boolean(process.env.BASE_URL),
+});
 
 // =========================================================
 // 🌐 GLOBAL MIDDLEWARE CONFIGURATION
@@ -60,6 +98,11 @@ app.disable("x-powered-by");
  * Enable CORS
  * Allows frontend to send cookies & requests
  */
+function readPositiveInt(value, fallback) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 function normalizeOrigin(value) {
   const rawValue = String(value || "").trim();
   if (!rawValue) {
@@ -106,6 +149,79 @@ function buildAllowedOrigins() {
 
 const allowedOrigins = new Set(buildAllowedOrigins());
 const nonceDirective = (_req, res) => `'nonce-${res.locals.cspNonce}'`;
+
+function normalizePathname(value) {
+  const pathname = String(value || "").split("?")[0].trim();
+
+  if (!pathname || pathname === "/") {
+    return "/";
+  }
+
+  return pathname.replace(/\/+$/, "") || "/";
+}
+
+function getRequestPath(req) {
+  return normalizePathname(req.originalUrl || req.url || req.path);
+}
+
+function isHealthRoutePath(pathname) {
+  return (
+    READINESS_ROUTE_PATHS.has(pathname) || LIVENESS_ROUTE_PATHS.has(pathname)
+  );
+}
+
+function roundTo(value, decimals = 2) {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
+
+function getMemoryUsageMb() {
+  const usage = process.memoryUsage();
+  return {
+    rss: roundTo(usage.rss / (1024 * 1024)),
+    heapTotal: roundTo(usage.heapTotal / (1024 * 1024)),
+    heapUsed: roundTo(usage.heapUsed / (1024 * 1024)),
+    external: roundTo(usage.external / (1024 * 1024)),
+  };
+}
+
+function buildDbHealth() {
+  const dbState = pool.dbState || {};
+  const isReady = typeof pool.isReady === "function" ? pool.isReady() : false;
+
+  return {
+    status: isReady ? "ready" : dbState.status || "unknown",
+    ready: isReady,
+    readyAt: dbState.readyAt || null,
+    lastError: dbState.lastError || null,
+    lastErrorAt: dbState.lastErrorAt || null,
+  };
+}
+
+function buildHealthPayload(kind) {
+  const db = buildDbHealth();
+  const ok = kind === "liveness" ? !isShuttingDown : db.ready && !isShuttingDown;
+
+  return {
+    status: ok ? "ok" : "degraded",
+    kind,
+    service: "india-inventory-management",
+    uptimeSeconds: roundTo(process.uptime(), 3),
+    timestamp: new Date().toISOString(),
+    port: Number(PORT),
+    nodeVersion: process.version,
+    shuttingDown: isShuttingDown,
+    serverListening: Boolean(server && server.listening),
+    db,
+    memoryMb: getMemoryUsageMb(),
+  };
+}
+
+function sendHealthResponse(res, kind) {
+  const payload = buildHealthPayload(kind);
+  res.set("Cache-Control", "no-store");
+  res.status(payload.status === "ok" ? 200 : 503).json(payload);
+}
 
 function getHtmlTemplate(fileName) {
   if (htmlTemplateCache.has(fileName)) {
@@ -154,6 +270,55 @@ function sendHtmlTemplate(res, fileName, statusCode = 200) {
 }
 
 app.use((req, res, next) => {
+  const startedAt = process.hrtime.bigint();
+  const requestId = req.get("x-request-id") || crypto.randomUUID();
+
+  req.requestId = requestId;
+  res.set("X-Request-Id", requestId);
+
+  res.on("finish", () => {
+    const durationMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
+    const pathName = getRequestPath(req);
+    const shouldLog =
+      ENABLE_REQUEST_LOGS ||
+      res.statusCode >= 500 ||
+      durationMs >= REQUEST_LOG_SLOW_MS ||
+      (isHealthRoutePath(pathName) && res.statusCode >= 400);
+
+    if (!shouldLog) {
+      return;
+    }
+
+    logEvent(
+      res.statusCode >= 500 ? "error" : durationMs >= REQUEST_LOG_SLOW_MS
+        ? "warn"
+        : "info",
+      "http_request",
+      {
+        requestId,
+        method: req.method,
+        path: pathName,
+        statusCode: res.statusCode,
+        durationMs: roundTo(durationMs, 2),
+        ip: req.ip,
+        userAgent: req.get("user-agent") || null,
+        responseLength: res.getHeader("content-length") || null,
+      },
+    );
+  });
+
+  next();
+});
+
+app.get(Array.from(READINESS_ROUTE_PATHS), (req, res) => {
+  sendHealthResponse(res, "readiness");
+});
+
+app.get(Array.from(LIVENESS_ROUTE_PATHS), (req, res) => {
+  sendHealthResponse(res, "liveness");
+});
+
+app.use((req, res, next) => {
   res.locals.cspNonce = crypto.randomBytes(16).toString("base64");
   next();
 });
@@ -186,6 +351,9 @@ const limiter = rateLimit({
   max: 500,
   standardHeaders: true,
   legacyHeaders: false,
+  skip(req) {
+    return isHealthRoutePath(getRequestPath(req));
+  },
 });
 app.use("/api", limiter);
 
@@ -245,8 +413,12 @@ app.use("/api", require("./routes/invoices"));
 // =========================================================
 // ❤️ HEALTH CHECK ROUTE (Railway stability)
 // =========================================================
-app.get("/health", (req, res) => {
-  res.status(200).send("OK");
+app.get(Array.from(READINESS_ROUTE_PATHS), (req, res) => {
+  sendHealthResponse(res, "readiness");
+});
+
+app.get(Array.from(LIVENESS_ROUTE_PATHS), (req, res) => {
+  sendHealthResponse(res, "liveness");
 });
 
 // =========================================================
@@ -331,6 +503,13 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error("🔥 Global Error:", err);
 
+  logEvent("error", "http_unhandled_error", {
+    requestId: req.requestId || null,
+    method: req.method,
+    path: getRequestPath(req),
+    error: err,
+  });
+
   res.status(err.status || 500).json({
     error: "Internal Server Error",
     message:
@@ -343,9 +522,13 @@ app.use((err, req, res, next) => {
 // =========================================================
 // 🚀 START SERVER
 // =========================================================
-const PORT = process.env.PORT || 8080;
-
-const server = app.listen(PORT, "0.0.0.0", () => {
+server = app.listen(PORT, "0.0.0.0", () => {
+  logEvent("info", "http_server_listening", {
+    host: "0.0.0.0",
+    port: Number(PORT),
+    uptimeSeconds: roundTo((Date.now() - PROCESS_STARTED_AT) / 1000, 3),
+    allowedOriginsCount: allowedOrigins.size,
+  });
   console.log(`🚀 Server running on port ${PORT}`);
 });
 
@@ -353,11 +536,31 @@ const server = app.listen(PORT, "0.0.0.0", () => {
 // 🛑 GRACEFUL SHUTDOWN
 // Handles container shutdown safely
 // =========================================================
+server.on("error", (error) => {
+  logEvent("error", "http_server_error", {
+    host: "0.0.0.0",
+    port: Number(PORT),
+    error,
+  });
+});
+
 server.keepAliveTimeout = 65 * 1000;
 server.headersTimeout = 66 * 1000;
 server.requestTimeout = 120 * 1000;
 
-let isShuttingDown = false;
+pool.readyPromise
+  .then(() => {
+    logEvent("info", "application_ready", {
+      port: Number(PORT),
+      uptimeSeconds: roundTo((Date.now() - PROCESS_STARTED_AT) / 1000, 3),
+    });
+  })
+  .catch((error) => {
+    logEvent("error", "application_dependency_init_failed", {
+      error,
+      port: Number(PORT),
+    });
+  });
 
 function shutdown(signal) {
   if (isShuttingDown) {
@@ -365,25 +568,46 @@ function shutdown(signal) {
   }
 
   isShuttingDown = true;
+  logEvent("warn", "shutdown_requested", {
+    signal,
+    uptimeSeconds: roundTo(process.uptime(), 3),
+    memoryMb: getMemoryUsageMb(),
+  });
   console.log(`${signal} received. Closing server...`);
 
+  const forcedShutdownTimer = setTimeout(() => {
+    logEvent("error", "shutdown_forced_timeout", {
+      signal,
+      timeoutMs: 10 * 1000,
+    });
+    console.error("Forced shutdown after timeout.");
+    process.exit(1);
+  }, 10 * 1000);
+  forcedShutdownTimer.unref();
+
   server.close(async () => {
+    clearTimeout(forcedShutdownTimer);
+    logEvent("info", "http_server_closed", {
+      signal,
+    });
     console.log("HTTP server closed.");
 
     try {
       await pool.end();
+      logEvent("info", "db_pool_closed", {
+        signal,
+      });
       console.log("PostgreSQL pool closed.");
       process.exit(0);
     } catch (error) {
+      logEvent("error", "db_pool_close_failed", {
+        signal,
+        error,
+      });
       console.error("Error closing PostgreSQL pool:", error);
       process.exit(1);
     }
   });
-
-  setTimeout(() => {
-    console.error("Forced shutdown after timeout.");
-    process.exit(1);
-  }, 10 * 1000).unref();
 }
 
 process.on("SIGTERM", () => shutdown("SIGTERM"));
@@ -394,9 +618,15 @@ process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
 
 process.on("unhandledRejection", (err) => {
+  logEvent("error", "process_unhandled_rejection", {
+    error: err,
+  });
   console.error("Unhandled Rejection:", err);
 });
 
 process.on("uncaughtException", (err) => {
+  logEvent("error", "process_uncaught_exception", {
+    error: err,
+  });
   console.error("Uncaught Exception:", err);
 });

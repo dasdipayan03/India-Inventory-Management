@@ -14,6 +14,7 @@
  * =========================================================
  */
 const { Pool } = require("pg");
+const { logEvent } = require("./utils/runtime-log");
 
 function shouldUseSsl(databaseUrl) {
   if (process.env.DB_SSL === "true") {
@@ -53,33 +54,50 @@ if (!process.env.DATABASE_URL) {
 //  - Improves performance
 //  - Prevents DB overload
 // =========================================================
+const SSL_ENABLED = shouldUseSsl(process.env.DATABASE_URL);
+const PG_POOL_MAX = readPositiveInt(process.env.PG_POOL_MAX, 10);
+const PG_CONNECTION_TIMEOUT_MS = readPositiveInt(
+  process.env.PG_CONNECTION_TIMEOUT_MS,
+  10000,
+);
+const PG_IDLE_TIMEOUT_MS = readPositiveInt(process.env.PG_IDLE_TIMEOUT_MS, 30000);
+const PG_KEEP_ALIVE_DELAY_MS = readPositiveInt(
+  process.env.PG_KEEP_ALIVE_DELAY_MS,
+  10000,
+);
+const PG_MAX_USES = readPositiveInt(process.env.PG_MAX_USES, 7500);
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: shouldUseSsl(process.env.DATABASE_URL)
+  ssl: SSL_ENABLED
     ? {
         require: true,
         rejectUnauthorized: false,
       }
     : false,
-  max: readPositiveInt(process.env.PG_POOL_MAX, 10),
-  connectionTimeoutMillis: readPositiveInt(
-    process.env.PG_CONNECTION_TIMEOUT_MS,
-    10000,
-  ),
-  idleTimeoutMillis: readPositiveInt(process.env.PG_IDLE_TIMEOUT_MS, 30000),
+  max: PG_POOL_MAX,
+  connectionTimeoutMillis: PG_CONNECTION_TIMEOUT_MS,
+  idleTimeoutMillis: PG_IDLE_TIMEOUT_MS,
   keepAlive: true,
-  keepAliveInitialDelayMillis: readPositiveInt(
-    process.env.PG_KEEP_ALIVE_DELAY_MS,
-    10000,
-  ),
-  maxUses: readPositiveInt(process.env.PG_MAX_USES, 7500),
+  keepAliveInitialDelayMillis: PG_KEEP_ALIVE_DELAY_MS,
+  maxUses: PG_MAX_USES,
 });
+
+const dbState = {
+  startedAt: new Date().toISOString(),
+  status: "starting",
+  readyAt: null,
+  lastError: null,
+  lastErrorAt: null,
+};
 
 // =========================================================
 // GLOBAL ERROR LISTENER
 // =========================================================
 pool.on("error", (err) => {
-  console.error("Unexpected PostgreSQL error:", err);
+  dbState.lastError = err.message;
+  dbState.lastErrorAt = new Date().toISOString();
+  logEvent("error", "db_pool_error", { error: err });
 });
 
 async function ensureSchemaCompatibility() {
@@ -307,12 +325,56 @@ async function ensureSchemaCompatibility() {
 // INITIAL CONNECTION TEST
 // Ensures the latest schema additions are available.
 // =========================================================
-pool
-  .query("SELECT 1")
-  .then(async () => {
-    console.log("PostgreSQL connected");
+async function initializeDatabase() {
+  const startedAt = Date.now();
+  dbState.status = "connecting";
+
+  logEvent("info", "db_init_started", {
+    sslEnabled: SSL_ENABLED,
+    poolMax: PG_POOL_MAX,
+    connectionTimeoutMs: PG_CONNECTION_TIMEOUT_MS,
+    idleTimeoutMs: PG_IDLE_TIMEOUT_MS,
+    keepAliveDelayMs: PG_KEEP_ALIVE_DELAY_MS,
+    maxUses: PG_MAX_USES,
+  });
+
+  try {
+    await pool.query("SELECT 1");
+    logEvent("info", "db_connection_ready", {
+      durationMs: Date.now() - startedAt,
+    });
+
+    dbState.status = "migrating";
+    const schemaStartedAt = Date.now();
     await ensureSchemaCompatibility();
-  })
-  .catch((err) => console.error("PostgreSQL connection error:", err));
+
+    dbState.status = "ready";
+    dbState.readyAt = new Date().toISOString();
+    dbState.lastError = null;
+    dbState.lastErrorAt = null;
+
+    logEvent("info", "db_schema_ready", {
+      schemaDurationMs: Date.now() - schemaStartedAt,
+      totalStartupMs: Date.now() - startedAt,
+    });
+
+    return dbState;
+  } catch (err) {
+    dbState.status = "error";
+    dbState.lastError = err.message;
+    dbState.lastErrorAt = new Date().toISOString();
+
+    logEvent("error", "db_init_failed", {
+      durationMs: Date.now() - startedAt,
+      error: err,
+    });
+
+    throw err;
+  }
+}
+
+pool.dbState = dbState;
+pool.isReady = () => dbState.status === "ready";
+pool.readyPromise = initializeDatabase();
 
 module.exports = pool;
