@@ -143,6 +143,8 @@
     .sidebar__nav {
       display: grid;
       gap: 2px;
+      align-content: start;
+      grid-auto-rows: max-content;
       flex: 1 1 auto;
       min-height: 0;
       overflow-y: auto;
