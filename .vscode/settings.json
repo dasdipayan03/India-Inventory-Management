@@ -1,3 +1,16 @@
 {
-  "chatgpt.openOnStartup": true
+  "chatgpt.openOnStartup": true,
+  "markdown-pdf.format": "A4",
+  "markdown-pdf.orientation": "portrait",
+  "markdown-pdf.margin.top": "1cm",
+  "markdown-pdf.margin.bottom": "1cm",
+  "markdown-pdf.margin.left": "1cm",
+  "markdown-pdf.margin.right": "1cm",
+  "markdown-pdf.displayHeaderFooter": false,
+  "markdown-pdf.printBackground": true,
+  "markdown-pdf.outputDirectory": ".",
+  "markdown-pdf.outputDirectoryRelativePathFile": true,
+  "markdown-pdf.styles": [
+    ".vscode/markdown-pdf.css"
+  ]
 }
