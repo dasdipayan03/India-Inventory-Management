@@ -1,6 +1,6 @@
 # India Inventory Management Documentation
 
-Last verified against this repository: `2026-03-22`
+Last verified against this repository: `2026-03-29`
 
 This is the single merged documentation file for the project. It replaces the earlier split project doc and database schema doc.
 
@@ -39,6 +39,8 @@ Important current-state notes:
 - `localStorage` is still used for UI state and invoice draft storage, but not as the primary auth token store.
 - HTML pages are served through [`server.js`](../server.js), which injects a CSP nonce into inline scripts and styles.
 - Database schema truth comes from the SQL files in [`migrations/`](../migrations) plus runtime compatibility patches in [`db.js`](../db.js).
+- Runtime health and readiness now expose structured JSON payloads through `/health`, `/api/health`, `/healthz`, `/ready`, `/readyz`, `/live`, and `/livez`.
+- Deployment healthcheck and start-command defaults are now pinned in [`../railway.json`](../railway.json), and lifecycle/request logging is centralized through [`../utils/runtime-log.js`](../utils/runtime-log.js).
 
 ## 2. Project Snapshot
 
@@ -76,6 +78,12 @@ The system is owner-centric:
 - `pdfkit` for PDF generation
 - `exceljs` for Excel export
 
+### Deployment and runtime
+
+- Railway config-as-code via [`../railway.json`](../railway.json)
+- structured JSON lifecycle logging via [`../utils/runtime-log.js`](../utils/runtime-log.js)
+- health/readiness/liveness endpoints emitted by [`../server.js`](../server.js)
+
 ### Frontend
 
 - static HTML pages in [`public/`](../public)
@@ -95,12 +103,13 @@ The system is owner-centric:
 
 | Path                              | Purpose                                                                                    |
 | --------------------------------- | ------------------------------------------------------------------------------------------ |
-| [`../server.js`](../server.js)    | app bootstrap, middleware, CSP, route registration, HTML serving                           |
-| [`../db.js`](../db.js)            | PostgreSQL pool setup and schema compatibility patches                                     |
+| [`../server.js`](../server.js)    | app bootstrap, middleware, request logging, health/readiness routes, and HTML serving      |
+| [`../db.js`](../db.js)            | PostgreSQL pool setup, readiness state, and schema compatibility patches                   |
+| [`../railway.json`](../railway.json) | Railway deployment config: start command, healthcheck path, timeout, restart policy    |
 | [`../middleware/`](../middleware) | auth and access control middleware                                                         |
 | [`../routes/`](../routes)         | route files grouped by business domain                                                     |
 | [`../public/`](../public)         | HTML pages, frontend JS, images                                                            |
-| [`../utils/`](../utils)           | shared backend helpers like advisory locking                                               |
+| [`../utils/`](../utils)           | shared backend helpers such as advisory locking and structured runtime logging             |
 | [`../migrations/`](../migrations) | SQL schema and migration history                                                           |
 | [`../docs/`](.)                   | project documentation, including this merged file and the manual functional test checklist |
 
@@ -108,14 +117,16 @@ The system is owner-centric:
 
 | File                                                 | Role                                                                                      |
 | ---------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| [`../server.js`](../server.js)                       | Express entrypoint, CSP nonce injection, CORS policy, health/debug routes, static serving |
-| [`../db.js`](../db.js)                               | DB connection pool, SSL selection, startup schema patching                                |
+| [`../server.js`](../server.js)                       | Express entrypoint, request logging, CSP nonce injection, CORS policy, health/debug routes, static serving |
+| [`../db.js`](../db.js)                               | DB connection pool, readiness state, SSL selection, startup schema patching               |
 | [`../middleware/auth.js`](../middleware/auth.js)     | JWT verification, role resolution, permission checks                                      |
 | [`../routes/auth.js`](../routes/auth.js)             | register/login/logout, forgot/reset password, staff management, `/me`                     |
 | [`../routes/inventory.js`](../routes/inventory.js)   | stock, stock reports, sales reports, GST reports, dashboard overview, customer dues       |
 | [`../routes/business.js`](../routes/business.js)     | suppliers, purchases, purchase repayment, expenses                                        |
 | [`../routes/invoices.js`](../routes/invoices.js)     | invoice numbering, invoice save, history, payment settlement, PDF, shop info              |
 | [`../utils/concurrency.js`](../utils/concurrency.js) | normalization helpers and owner-scoped advisory locks                                     |
+| [`../utils/runtime-log.js`](../utils/runtime-log.js) | structured JSON log serializer used by server and DB lifecycle logging                    |
+| [`../railway.json`](../railway.json)                 | Railway config-as-code for runtime start and healthcheck defaults                         |
 
 ### Key frontend files
 
@@ -142,17 +153,21 @@ flowchart LR
   InventoryRoutes["routes/inventory.js"]
   BusinessRoutes["routes/business.js"]
   InvoiceRoutes["routes/invoices.js"]
+  RuntimeLog["Runtime logger<br/>utils/runtime-log.js"]
+  DeployCfg["Railway config<br/>railway.json"]
   DB["PostgreSQL"]
   Schema["migrations/*.sql + db.js compatibility patch"]
 
   Browser --> SharedJS
   Browser -->|"GET HTML pages"| Server
   SharedJS -->|"fetch /api/*"| Server
+  DeployCfg -. deploy defaults .-> Server
   Server --> AuthMW
   Server --> AuthRoutes
   Server --> InventoryRoutes
   Server --> BusinessRoutes
   Server --> InvoiceRoutes
+  Server --> RuntimeLog
   AuthMW --> DB
   AuthRoutes --> DB
   InventoryRoutes --> DB
@@ -168,7 +183,8 @@ flowchart LR
 3. Frontend scripts call `/api/...` endpoints with `credentials: "include"`.
 4. [`middleware/auth.js`](../middleware/auth.js) resolves the current session and staff permissions.
 5. The matching route file runs business logic and queries PostgreSQL.
-6. PDF and Excel exports are generated directly inside route handlers.
+6. Health endpoints can report readiness or liveness without crossing the authenticated route stack.
+7. PDF and Excel exports are generated directly inside route handlers.
 
 ## 6. Frontend Structure
 
@@ -231,14 +247,36 @@ Current frontend storage behavior:
 - creating the Express app
 - enabling `trust proxy`
 - building the CORS allowlist from `CORS_ALLOWED_ORIGINS` or `BASE_URL`
+- creating per-request IDs and response `X-Request-Id` headers
+- emitting structured lifecycle and request logs through [`../utils/runtime-log.js`](../utils/runtime-log.js)
 - generating a per-request CSP nonce
 - applying `helmet`, compression, cookie parsing, JSON parsing, and rate limiting
+- skipping health routes from the API rate limiter
 - registering route files
 - serving HTML pages through nonce-aware template injection
-- exposing `/health`
+- exposing readiness routes:
+  - `/health`
+  - `/api/health`
+  - `/healthz`
+  - `/api/healthz`
+  - `/ready`
+  - `/api/ready`
+  - `/readyz`
+  - `/api/readyz`
+- exposing liveness routes:
+  - `/live`
+  - `/api/live`
+  - `/livez`
+  - `/api/livez`
+- returning health payloads that include DB readiness, shutdown state, uptime, and memory usage
 - exposing debug routes only when:
   - `NODE_ENV !== "production"`
   - `ENABLE_DEBUG_ROUTES === "true"`
+- configuring server shutdown behavior with:
+  - `keepAliveTimeout`
+  - `headersTimeout`
+  - `requestTimeout`
+- handling `SIGTERM`, `SIGINT`, `unhandledRejection`, and `uncaughtException`
 
 ### `db.js`
 
@@ -246,7 +284,10 @@ Current frontend storage behavior:
 
 - validating `DATABASE_URL`
 - choosing SSL automatically unless overridden by `DB_SSL`
+- reading connection-pool tuning from `PG_*` environment variables
 - creating the shared PostgreSQL pool
+- maintaining `dbState`, `pool.isReady()`, and `pool.readyPromise`
+- emitting structured startup and pool-error logs through [`../utils/runtime-log.js`](../utils/runtime-log.js)
 - applying schema compatibility patches at startup
 
 Compatibility patching currently ensures:
@@ -286,6 +327,22 @@ Those locks are used to reduce race conditions for:
 - supplier lookup/create flows
 - invoice numbering and settlement-adjacent resource updates
 - customer due operations
+
+### `utils/runtime-log.js`
+
+[`../utils/runtime-log.js`](../utils/runtime-log.js) provides:
+
+- structured JSON log output with:
+  - `ts`
+  - `level`
+  - `event`
+- sanitization for nested objects, arrays, dates, and `Error` instances
+- a shared log writer that routes `info`, `warn`, and `error` entries to the appropriate console method
+
+It is currently used by:
+
+- [`../server.js`](../server.js) for startup, health, request, and shutdown events
+- [`../db.js`](../db.js) for DB initialization and pool lifecycle events
 
 ## 8. Auth, Session, and Permission Model
 
@@ -329,6 +386,7 @@ Current hardening that is visible in the codebase:
 - `helmet.frameguard`, `helmet.noSniff`, and `helmet.referrerPolicy`
 - CORS allowlist instead of open production fallback
 - global rate limit of `500` requests per `15` minutes
+- health/readiness/liveness routes are exempt from the API rate limiter
 - login limiter in [`../routes/auth.js`](../routes/auth.js):
   - `10` attempts per `15` minutes
   - skips successful requests
@@ -338,6 +396,16 @@ Current hardening that is visible in the codebase:
 - reset links place the token in the URL hash, so the token is not sent back to the server as a query parameter during initial page load
 - auth-sensitive responses mark `Cache-Control: no-store`
 - Excel export sanitizes formula-like cell values in [`../routes/inventory.js`](../routes/inventory.js)
+- every response gets an `X-Request-Id` header
+- health endpoints emit `Cache-Control: no-store`
+- runtime emits structured JSON logs for:
+  - app bootstrap
+  - DB initialization
+  - readiness
+  - shutdown
+  - uncaught process errors
+  - slow requests, 5xx responses, and optionally all requests
+- graceful shutdown uses explicit server timeouts and closes the PostgreSQL pool before exit
 
 One legacy compatibility detail still exists:
 
@@ -957,18 +1025,27 @@ Runtime compatibility patching in [`../db.js`](../db.js) exists so older databas
 
 ## 13. Environment Variables
 
-| Variable               | Required                                        | Purpose                                                          |
-| ---------------------- | ----------------------------------------------- | ---------------------------------------------------------------- |
-| `DATABASE_URL`         | yes                                             | PostgreSQL connection string                                     |
-| `DB_SSL`               | optional                                        | force SSL on or off; otherwise auto-detected from `DATABASE_URL` |
-| `JWT_SECRET`           | yes                                             | signing key for session JWTs                                     |
-| `PORT`                 | optional                                        | HTTP port; defaults to `8080`                                    |
-| `NODE_ENV`             | optional                                        | production/development behavior                                  |
-| `CORS_ALLOWED_ORIGINS` | recommended                                     | comma-separated allowlist for cross-origin requests              |
-| `BASE_URL`             | recommended, effectively required in production | public app base URL, also used in reset links                    |
-| `MAIL_RELAY_URL`       | optional                                        | outbound mail relay endpoint                                     |
-| `MAIL_RELAY_KEY`       | optional                                        | credential for mail relay                                        |
-| `ENABLE_DEBUG_ROUTES`  | optional                                        | enable `/debug-env` and `/debug-db` in non-production            |
+| Variable                     | Required                                        | Purpose                                                          |
+| ---------------------------- | ----------------------------------------------- | ---------------------------------------------------------------- |
+| `DATABASE_URL`               | yes                                             | PostgreSQL connection string                                     |
+| `DB_SSL`                     | optional                                        | force SSL on or off; otherwise auto-detected from `DATABASE_URL` |
+| `PG_POOL_MAX`                | optional                                        | maximum PostgreSQL pool size                                     |
+| `PG_CONNECTION_TIMEOUT_MS`   | optional                                        | DB connect timeout in milliseconds                               |
+| `PG_IDLE_TIMEOUT_MS`         | optional                                        | DB idle timeout in milliseconds                                  |
+| `PG_KEEP_ALIVE_DELAY_MS`     | optional                                        | initial keep-alive delay for DB connections                      |
+| `PG_MAX_USES`                | optional                                        | recycle DB connections after this many uses                      |
+| `JWT_SECRET`                 | yes                                             | signing key for session JWTs                                     |
+| `PORT`                       | optional                                        | HTTP port; defaults to `8080`                                    |
+| `NODE_ENV`                   | optional                                        | production/development behavior                                  |
+| `CORS_ALLOWED_ORIGINS`       | recommended                                     | comma-separated allowlist for cross-origin requests              |
+| `BASE_URL`                   | recommended, effectively required in production | public app base URL, also used in reset links                    |
+| `MAIL_RELAY_URL`             | optional                                        | outbound mail relay endpoint                                     |
+| `MAIL_RELAY_KEY`             | optional                                        | credential for mail relay                                        |
+| `JSON_BODY_LIMIT`            | optional                                        | JSON request body size limit for Express                         |
+| `URLENCODED_BODY_LIMIT`      | optional                                        | URL-encoded request body size limit for Express                  |
+| `ENABLE_DEBUG_ROUTES`        | optional                                        | enable `/debug-env` and `/debug-db` in non-production            |
+| `ENABLE_REQUEST_LOGS`        | optional                                        | log every request instead of only slow/error requests            |
+| `REQUEST_LOG_SLOW_MS`        | optional                                        | mark requests slower than this threshold for logging             |
 
 ## 14. Maintenance Guide
 
@@ -1016,6 +1093,15 @@ Edit:
 - update compatibility logic in [`../db.js`](../db.js) if old databases also need startup patching
 - update this document after the schema change
 
+### If you want to change deployment healthchecks or runtime logging
+
+Edit:
+
+- [`../server.js`](../server.js)
+- [`../db.js`](../db.js)
+- [`../utils/runtime-log.js`](../utils/runtime-log.js)
+- [`../railway.json`](../railway.json)
+
 ## 15. Detailed Architecture Diagram
 
 ```mermaid
@@ -1032,14 +1118,16 @@ flowchart TB
   end
 
   subgraph Server["Express backend"]
-    Entry["server.js<br/>CORS | CSP nonce | helmet | compression | cookie parser | HTML template serving"]
+    Entry["server.js<br/>health routes | request IDs | CORS | CSP nonce | helmet | compression | HTML template serving"]
     AuthMW["middleware/auth.js<br/>cookie-first JWT auth | staff permission reload"]
     AuthAPI["routes/auth.js<br/>register | login | reset | staff CRUD | me"]
     InventoryAPI["routes/inventory.js<br/>stock | reports | GST | debts | overview"]
     BusinessAPI["routes/business.js<br/>suppliers | purchases | repayments | expenses"]
     InvoiceAPI["routes/invoices.js<br/>invoice save | history | settlement | PDF | shop info"]
     Concurrency["utils/concurrency.js<br/>normalizers | advisory locks"]
-    DBFile["db.js<br/>pool | SSL selection | schema compatibility patch"]
+    DBFile["db.js<br/>pool | readiness state | SSL selection | schema compatibility patch"]
+    RuntimeLog["utils/runtime-log.js<br/>structured lifecycle and request logging"]
+    DeployCfg["railway.json<br/>start command | healthcheck | restart policy"]
   end
 
   subgraph Database["PostgreSQL tables"]
@@ -1079,13 +1167,16 @@ flowchart TB
   Entry --> InventoryAPI
   Entry --> BusinessAPI
   Entry --> InvoiceAPI
+  Entry --> RuntimeLog
   AuthAPI --> DBFile
   InventoryAPI --> DBFile
   BusinessAPI --> DBFile
   InvoiceAPI --> DBFile
+  DBFile --> RuntimeLog
   InventoryAPI --> Concurrency
   BusinessAPI --> Concurrency
   InvoiceAPI --> Concurrency
+  DeployCfg -. deploy/runtime defaults .-> Entry
 
   DBFile --> Users
   DBFile --> Staff
@@ -1126,4 +1217,6 @@ This codebase is organized around a single owner-scoped business workspace:
 - Express route files are grouped by business domain
 - PostgreSQL stores all operational data for stock, invoices, purchases, dues, expenses, and staff control
 - authentication is cookie-based, with staff permissions enforced on both frontend and backend
+- runtime behavior now includes structured lifecycle/request logging plus readiness/liveness health endpoints
+- deployment defaults for Railway are partially codified in [`../railway.json`](../railway.json)
 - this document is now the single merged reference for both application structure and database schema
