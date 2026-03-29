@@ -29,7 +29,7 @@ This checklist is intentionally broad and covers the app from multiple angles:
 
 Main application areas included:
 
-- admin authentication
+- owner authentication
 - staff authentication
 - sidebar navigation and page access control
 - dashboard overview
@@ -54,7 +54,7 @@ Run the checklist across the following combinations as much as practical.
 
 ### Roles
 
-- admin
+- owner
 - staff with limited permissions
 - staff with sales-only permissions
 - staff with no dashboard pages except invoice, if applicable
@@ -80,7 +80,7 @@ Run the checklist across the following combinations as much as practical.
 
 Prepare the following before testing:
 
-- 1 admin account
+- 1 owner account
 - 2 staff accounts with different permission sets
 - 3 to 5 item records with different stock quantities
 - 1 low-stock item
@@ -132,12 +132,12 @@ These should remain true during the entire test run:
 
 ## 1. Authentication And Session
 
-### Admin Login
+### Owner Login
 
 - [ ] Login with valid email and password.
   Expected: dashboard opens with full access.
 - [ ] Login with valid mobile number and password.
-  Expected: same admin account opens correctly.
+  Expected: same owner account opens correctly.
 - [ ] Login with invalid email.
   Expected: clear error message, no session created.
 - [ ] Login with invalid mobile number format.
@@ -158,7 +158,7 @@ These should remain true during the entire test run:
 
 ### Session Persistence
 
-- [ ] Refresh dashboard after admin login.
+- [ ] Refresh dashboard after owner login.
   Expected: still logged in.
 - [ ] Refresh invoice page after login.
   Expected: still logged in.
@@ -182,7 +182,7 @@ These should remain true during the entire test run:
 
 ## 2. Role Access And Sidebar
 
-- [ ] Admin sees all available business sections.
+- [ ] Owner sees all available business sections.
 - [ ] Sales-only staff sees invoice page and only assigned sections.
 - [ ] Staff without `customer_due` cannot use customer due page.
 - [ ] Staff without `purchase_entry` cannot use purchase pages.
@@ -512,7 +512,7 @@ These should remain true during the entire test run:
   Expected: denied.
 - [ ] Staff without expense access tries expense section.
   Expected: denied.
-- [ ] Admin can still access all routes normally.
+- [ ] Owner can still access all routes normally.
 
 ## 16. Data Integrity Regression Tests
 
@@ -616,7 +616,7 @@ Check each for:
 
 ## 22. Final Release Sign-Off Checklist
 
-- [ ] Admin authentication passed.
+- [ ] Owner authentication passed.
 - [ ] Staff authentication passed.
 - [ ] All permissions behaved correctly.
 - [ ] Stock entry passed.

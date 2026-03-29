@@ -13,7 +13,7 @@ const {
   authMiddleware,
   getUserId,
   invalidateStaffSessionCache,
-  requireAdmin,
+  requireOwner,
 } = require("../middleware/auth");
 
 const router = express.Router();
@@ -138,12 +138,18 @@ function clearSessionCookie(res) {
   res.clearCookie("token", getSessionCookieOptions());
 }
 
-function buildAdminSession(user) {
+function normalizeSessionRole(value) {
+  return String(value || "").trim().toLowerCase() === "staff"
+    ? "staff"
+    : "owner";
+}
+
+function buildOwnerSession(user) {
   return {
     actorId: user.id,
     ownerId: user.id,
-    role: "admin",
-    accountType: "admin",
+    role: "owner",
+    accountType: "owner",
     name: user.name,
     email: user.email,
     ownerName: user.name,
@@ -168,24 +174,25 @@ function buildStaffSession(staff) {
 }
 
 function toClientUser(session) {
+  const normalizedRole = normalizeSessionRole(session.role);
   return {
     id: session.actorId,
     actorId: session.actorId,
     ownerId: session.ownerId,
-    role: session.role,
-    accountType: session.accountType,
+    role: normalizedRole,
+    accountType: normalizedRole,
     name: session.name,
     email: session.email || null,
     username: session.username || null,
     ownerName: session.ownerName || session.name,
     permissions:
-      session.role === "admin"
+      normalizedRole === "owner"
         ? ["all"]
         : normalizePermissions(session.permissions || DEFAULT_STAFF_PERMISSIONS),
   };
 }
 
-async function getAdminsByIdentifier(identifier) {
+async function getOwnersByIdentifier(identifier) {
   const rawIdentifier = String(identifier || "").trim();
   const email = normalizeEmail(rawIdentifier);
   const mobileNumber = rawIdentifier.includes("@")
@@ -307,7 +314,7 @@ router.post("/login", loginAttemptLimiter, async (req, res) => {
       });
     }
 
-    const users = await getAdminsByIdentifier(identifier);
+    const users = await getOwnersByIdentifier(identifier);
     if (users.length > 1 && isValidMobileNumber(normalizedMobileNumber)) {
       return res.status(400).json({
         error:
@@ -325,7 +332,7 @@ router.post("/login", loginAttemptLimiter, async (req, res) => {
       return res.status(400).json({ error: "Invalid credentials" });
     }
 
-    const session = buildAdminSession(user);
+    const session = buildOwnerSession(user);
     const token = signSession(session);
     markSensitiveResponse(res);
     setSessionCookie(res, token);
@@ -505,7 +512,7 @@ router.post("/reset-password", passwordResetLimiter, async (req, res) => {
   }
 });
 
-router.get("/staff", authMiddleware, requireAdmin, async (req, res) => {
+router.get("/staff", authMiddleware, requireOwner, async (req, res) => {
   try {
     const ownerId = getUserId(req);
     const result = await pool.query(
@@ -535,7 +542,7 @@ router.get("/staff", authMiddleware, requireAdmin, async (req, res) => {
   }
 });
 
-router.post("/staff", authMiddleware, requireAdmin, async (req, res) => {
+router.post("/staff", authMiddleware, requireOwner, async (req, res) => {
   try {
     const ownerId = getUserId(req);
     const name = normalizeName(req.body.name);
@@ -575,7 +582,7 @@ router.post("/staff", authMiddleware, requireAdmin, async (req, res) => {
 
     if ((currentStaff.rows[0]?.total || 0) >= 2) {
       return res.status(400).json({
-        error: "Maximum 2 staff accounts allowed for one admin account",
+        error: "Maximum 2 staff accounts allowed for one owner account",
       });
     }
 
@@ -622,7 +629,7 @@ router.post("/staff", authMiddleware, requireAdmin, async (req, res) => {
   }
 });
 
-router.patch("/staff/:staffId/permissions", authMiddleware, requireAdmin, async (req, res) => {
+router.patch("/staff/:staffId/permissions", authMiddleware, requireOwner, async (req, res) => {
   try {
     const ownerId = getUserId(req);
     const staffId = Number.parseInt(req.params.staffId, 10);
@@ -667,7 +674,7 @@ router.patch("/staff/:staffId/permissions", authMiddleware, requireAdmin, async 
   }
 });
 
-router.delete("/staff/:staffId", authMiddleware, requireAdmin, async (req, res) => {
+router.delete("/staff/:staffId", authMiddleware, requireOwner, async (req, res) => {
   try {
     const ownerId = getUserId(req);
     const staffId = Number.parseInt(req.params.staffId, 10);
@@ -715,7 +722,7 @@ router.get("/me", authMiddleware, async (req, res) => {
     }
 
     const user = result.rows[0];
-    return res.json(toClientUser(buildAdminSession(user)));
+    return res.json(toClientUser(buildOwnerSession(user)));
   } catch (err) {
     console.error("/me error:", err.message);
     return res.status(401).json({ error: "Unauthorized" });

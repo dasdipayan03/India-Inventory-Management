@@ -6,7 +6,7 @@ const ExcelJS = require("exceljs");
 const {
   authMiddleware,
   getUserId,
-  requireAdmin,
+  requireOwner,
   requirePermission,
 } = require("../middleware/auth");
 const {
@@ -1899,7 +1899,7 @@ router.get("/debts", requirePermission("customer_due"), async (req, res) => {
   }
 });
 
-router.get("/dashboard/overview", requireAdmin, async (req, res) => {
+router.get("/dashboard/overview", requireOwner, async (req, res) => {
   try {
     const user_id = getUserId(req);
 

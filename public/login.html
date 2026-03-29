@@ -1268,7 +1268,7 @@
 
             <ul class="hero-pills" aria-label="Highlights">
               <li>
-                <i class="fa-solid fa-user-shield"></i> Admin and staff access
+                <i class="fa-solid fa-user-shield"></i> Owner and staff access
               </li>
               <li>
                 <i class="fa-solid fa-file-invoice"></i> Invoice-ready workflow
@@ -1281,7 +1281,7 @@
 
             <p class="hero-note">
               Owners sign in with business email or mobile number. Staff sign in
-              with username and only the pages assigned by the admin.
+              with username and only the pages assigned by the owner.
             </p>
           </div>
 
@@ -1300,7 +1300,7 @@
             <div class="metric-grid">
               <article class="metric-card">
                 <span>Structured access</span>
-                <strong>Admin controls every staff workspace</strong>
+                <strong>Owner controls every staff workspace</strong>
                 <p>
                   Assign only the pages a staff member should see and update
                   that access anytime.
@@ -1350,7 +1350,7 @@
               <span>02</span>
               <strong>Access stays controlled by role</strong>
               <p>
-                Admin decides exactly which pages each staff account can open
+                Owner decides exactly which pages each staff account can open
                 inside the workspace.
               </p>
             </article>
@@ -1545,7 +1545,7 @@
               <div class="icon-chip">
                 <i class="fa-solid fa-right-to-bracket"></i>
               </div>
-              <span>Admin access</span>
+              <span>Owner access</span>
               <strong
                 >Use email or mobile number and password to open the full
                 business workspace</strong
@@ -1562,7 +1562,7 @@
                 >Use username and password to enter only assigned pages</strong
               >
               <p>
-                Staff login stays focused on the sections the admin has allowed.
+                Staff login stays focused on the sections the owner has allowed.
               </p>
             </article>
             <article class="support-card">
@@ -1646,7 +1646,7 @@
 
         <div class="auth-head">
           <span class="section-kicker">Account access</span>
-          <h2 id="authHeading">Secure admin sign in</h2>
+          <h2 id="authHeading">Secure owner sign in</h2>
           <p id="authLead">
             Use your registered business email or mobile number and password to
             enter the full workspace.
@@ -1661,23 +1661,23 @@
               <button
                 type="button"
                 class="mode-btn active"
-                data-login-mode="admin"
+                data-login-mode="owner"
               >
-                Admin Login
+                Owner Login
               </button>
               <button type="button" class="mode-btn" data-login-mode="staff">
                 Staff Login
               </button>
             </div>
             <p class="mode-note" id="loginModeNote">
-              Admin signs in with email or mobile number and password. Staff
-              signs in with username and only the pages assigned by the admin.
+              Owner signs in with email or mobile number and password. Staff
+              signs in with username and only the pages assigned by the owner.
             </p>
           </div>
 
           <form class="form active" id="login" novalidate>
             <div class="form-title">
-              <strong>Admin login</strong>
+              <strong>Owner login</strong>
               <span
                 >Use your registered business email or mobile number and
                 password.</span
@@ -1756,7 +1756,7 @@
           <form class="form" id="staffLogin" novalidate>
             <div class="form-title">
               <strong>Staff login</strong>
-              <span>Use the username and password assigned by the admin.</span>
+              <span>Use the username and password assigned by the owner.</span>
             </div>
             <div
               class="form-status"
@@ -1781,9 +1781,9 @@
               <p
                 class="field-hint"
                 id="staffUsernameHint"
-                data-default-message="Use the username your admin created for you."
+                data-default-message="Use the username your owner created for you."
               >
-                Use the username your admin created for you.
+                Use the username your owner created for you.
               </p>
             </div>
 
@@ -1823,7 +1823,7 @@
             </button>
 
             <div class="small-links">
-              <a href="#" id="staffBackToAdmin">Back to admin login</a>
+              <a href="#" id="staffBackToOwner">Back to owner login</a>
             </div>
           </form>
 
@@ -1907,9 +1907,9 @@
               <p
                 class="field-hint"
                 id="regMobileHint"
-                data-default-message="This 10-digit mobile number can also be used for admin login."
+                data-default-message="This 10-digit mobile number can also be used for owner login."
               >
-                This 10-digit mobile number can also be used for admin login.
+                This 10-digit mobile number can also be used for owner login.
               </p>
             </div>
 
@@ -2142,14 +2142,14 @@
           typeof window.AndroidAppShell.setSidebarGesturesLocked === "function";
         const formMeta = {
           login: {
-            title: "Secure admin sign in",
+            title: "Secure owner sign in",
             lead: "Use your registered business email or mobile number and password to enter the full workspace.",
             showMode: true,
-            mode: "admin",
+            mode: "owner",
           },
           staffLogin: {
             title: "Staff sign in",
-            lead: "Use the username and password assigned by the admin. Only the pages granted by the owner will open.",
+            lead: "Use the username and password assigned by the owner. Only the pages granted by the owner will open.",
             showMode: true,
             mode: "staff",
           },
@@ -2157,13 +2157,13 @@
             title: "Create a new business account",
             lead: "Register your shop with email and mobile number to start using inventory, billing, reports, and controlled staff access.",
             showMode: false,
-            mode: "admin",
+            mode: "owner",
           },
           forgot: {
             title: "Reset your password",
             lead: "Enter the registered email address and we will send a secure reset link.",
             showMode: false,
-            mode: "admin",
+            mode: "owner",
           },
         };
 
@@ -2271,8 +2271,8 @@
             );
           });
           loginModeNote.textContent = isStaff
-            ? "Staff signs in with username and password and only the pages assigned by the admin become available."
-            : "Admin signs in with email or mobile number and password and gets full access to inventory, reports, GST, due management, and staff access.";
+            ? "Staff signs in with username and password and only the pages assigned by the owner become available."
+            : "Owner signs in with email or mobile number and password and gets full access to inventory, reports, GST, due management, and staff access.";
         };
 
         const updateAuthMeta = (target) => {
@@ -2280,7 +2280,7 @@
           authHeading.textContent = meta.title;
           authLead.textContent = meta.lead;
           modeWrap.hidden = !meta.showMode;
-          setLoginMode(meta.mode || "admin");
+          setLoginMode(meta.mode || "owner");
         };
 
         const switchForm = (target) => {
@@ -2922,7 +2922,7 @@
             switchForm("login");
           });
         document
-          .getElementById("staffBackToAdmin")
+          .getElementById("staffBackToOwner")
           .addEventListener("click", (event) => {
             event.preventDefault();
             switchForm("login");

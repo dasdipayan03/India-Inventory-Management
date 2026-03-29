@@ -147,7 +147,7 @@
     {
       kind: "section",
       sectionId: "staffAccessSection",
-      adminOnly: true,
+      ownerOnly: true,
       iconClass: "fa-solid fa-users-gear",
       label: "Staff Access",
       eyebrow: "Access Control",
@@ -219,12 +219,18 @@
     return Boolean(mobileLayoutMediaQuery?.matches);
   }
 
-  function isAdminUser(user) {
-    return String(user?.role || "").toLowerCase() !== "staff";
+  function normalizeSessionRole(value) {
+    return String(value || "").trim().toLowerCase() === "staff"
+      ? "staff"
+      : "owner";
+  }
+
+  function isOwnerUser(user) {
+    return normalizeSessionRole(user?.role) === "owner";
   }
 
   function getUserPermissions(user) {
-    if (isAdminUser(user)) {
+    if (isOwnerUser(user)) {
       return new Set(["all"]);
     }
 
@@ -232,7 +238,7 @@
   }
 
   function canAccessPermission(user, ...permissions) {
-    if (isAdminUser(user)) {
+    if (isOwnerUser(user)) {
       return true;
     }
 
@@ -242,11 +248,11 @@
 
   function canAccessSection(user, sectionId) {
     if (sectionId === "staffAccessSection") {
-      return isAdminUser(user);
+      return isOwnerUser(user);
     }
 
     const permission = sectionPermissionMap[sectionId];
-    return permission ? canAccessPermission(user, permission) : isAdminUser(user);
+    return permission ? canAccessPermission(user, permission) : isOwnerUser(user);
   }
 
   global.InventoryApp = Object.freeze({
@@ -261,7 +267,7 @@
     getPermissionOption,
     getUserPermissions,
     invoicePagePermission,
-    isAdminUser,
+    isOwnerUser,
     isMobileLayout,
     normalizePermissions,
     sectionPermissionMap,

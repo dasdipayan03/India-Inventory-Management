@@ -2658,9 +2658,9 @@
           appConfig.isMobileLayout ||
           (() => window.matchMedia("(max-width: 991px)").matches);
 
-        const isAdminSession = () =>
-          typeof appConfig.isAdminUser === "function"
-            ? appConfig.isAdminUser(sessionUser)
+        const isOwnerSession = () =>
+          typeof appConfig.isOwnerUser === "function"
+            ? appConfig.isOwnerUser(sessionUser)
             : sessionUser?.role !== "staff";
 
         const getPermissionSummary = (permissions, options = {}) => {
@@ -2750,7 +2750,7 @@
 
           setShopProfileEditable(!isStaff);
           dom.shopProfileHelper.textContent = isStaff
-            ? "Shop profile is visible for invoice calculation only. Only admin can edit this section."
+            ? "Shop profile is visible for invoice calculation only. Only owner can edit this section."
             : "Shop profile is used in invoice preview, GST calculation, and PDF output.";
         };
 
@@ -4115,11 +4115,11 @@
         }
 
         async function saveShopProfile() {
-          if (!isAdminSession()) {
+          if (!isOwnerSession()) {
             showPopup(
               "error",
               "Access restricted",
-              "Only admin can update the shop profile.",
+              "Only owner can update the shop profile.",
             );
             return;
           }

@@ -325,9 +325,9 @@ function validateRange(fromDate, toDate, labels = {}) {
   return true;
 }
 
-function isAdminSession() {
-  return typeof appConfig.isAdminUser === "function"
-    ? appConfig.isAdminUser(state.sessionUser)
+function isOwnerSession() {
+  return typeof appConfig.isOwnerUser === "function"
+    ? appConfig.isOwnerUser(state.sessionUser)
     : state.sessionUser?.role !== "staff";
 }
 
@@ -1220,7 +1220,7 @@ function applySessionAccess(user) {
   const displayName = (user?.name || "").trim() || "Workspace User";
   dom.welcomeUser.textContent = `Welcome, ${displayName}`;
   dom.heroSubtitle.textContent = isStaff
-    ? `${ownerName || "Your admin"} assigned access to ${accessSummary}.`
+    ? `${ownerName || "Your owner"} assigned access to ${accessSummary}.`
     : "Your dashboard is syncing the latest inventory and sales view.";
 
   if (isStaff && accessibleSection) {
@@ -1292,7 +1292,7 @@ function setActiveSection(sectionId) {
     void ensureSalesWorkspaceReady({ silent: true });
   }
 
-  if (sectionId === "staffAccessSection" && isAdminSession()) {
+  if (sectionId === "staffAccessSection" && isOwnerSession()) {
     loadStaffAccounts({ silent: true });
   }
 
@@ -1441,7 +1441,7 @@ async function showPreviousBuyingRate(itemName) {
 }
 
 async function loadDashboardOverview(options = {}) {
-  if (!isAdminSession()) {
+  if (!isOwnerSession()) {
     return null;
   }
 
@@ -5207,7 +5207,7 @@ function renderStaffList(data = {}) {
               ></div>
 
               <p class="staff-helper-text mt-3">
-                Admin can revise this staff account access at any time. Staff management always stays admin only.
+                Owner can revise this staff account access at any time. Staff management always stays owner only.
               </p>
 
               <div class="staff-card__actions mt-3">
@@ -5339,7 +5339,7 @@ function renderStaffList(data = {}) {
 }
 
 async function loadStaffAccounts(options = {}) {
-  if (!isAdminSession() || !dom.staffList) {
+  if (!isOwnerSession() || !dom.staffList) {
     return;
   }
 
@@ -6089,7 +6089,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   const initialTasks = [];
 
-  if (isAdminSession()) {
+  if (isOwnerSession()) {
     initialTasks.push(loadDashboardOverview({ silent: true }));
   }
 

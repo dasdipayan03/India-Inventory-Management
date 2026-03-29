@@ -49,7 +49,7 @@ This is a Node.js + Express + PostgreSQL business app for a shop owner.
 
 Main business modules:
 
-- admin registration and login
+- owner registration and login
 - staff login with page-level permissions
 - stock entry and stock defaults
 - purchase entry with supplier ledger and supplier repayment tracking
@@ -139,7 +139,7 @@ The system is owner-centric:
 
 | File                                                                         | Role                                                                                 |
 | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| [`../public/login.html`](../public/login.html)                               | landing page, admin login/register, staff login, forgot password                     |
+| [`../public/login.html`](../public/login.html)                               | landing page, owner login/register, staff login, forgot password                     |
 | [`../public/index.html`](../public/index.html)                               | main dashboard shell with stock, purchase, reports, due, expense, and staff sections |
 | [`../public/invoice.html`](../public/invoice.html)                           | sale and invoice workspace, invoice history, PDF actions, shop profile               |
 | [`../public/reset.html`](../public/reset.html)                               | reset password page                                                                  |
@@ -199,8 +199,8 @@ flowchart LR
 
 | Page                                               | What it does                                                                           |
 | -------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| [`../public/login.html`](../public/login.html)     | auth entrypoint for admin and staff, forgot password entry, existing-session redirect  |
-| [`../public/index.html`](../public/index.html)     | multi-section dashboard for stock, purchases, reports, dues, expenses, and staff admin |
+| [`../public/login.html`](../public/login.html)     | auth entrypoint for owner and staff, forgot password entry, existing-session redirect  |
+| [`../public/index.html`](../public/index.html)     | multi-section dashboard for stock, purchases, reports, dues, expenses, and staff owner controls |
 | [`../public/invoice.html`](../public/invoice.html) | invoice builder, draft restore, payment summary, invoice lookup, invoice PDF actions   |
 | [`../public/reset.html`](../public/reset.html)     | password reset submission using email + token from URL hash                            |
 
@@ -322,7 +322,7 @@ Compatibility patching currently ensures:
   - `authMiddleware`
   - `getUserId(req)`
   - `getActorId(req)`
-  - `requireAdmin`
+  - `requireOwner`
   - `requirePermission(...)`
   - `allowRoles(...)`
 
@@ -408,15 +408,15 @@ Important scope note:
 | `authMiddleware(req, res, next)` | validates the JWT cookie/header and attaches normalized session context to `req.user` |
 | `getUserId(req)` | returns the owner-scoped `user_id` used by all business queries |
 | `getActorId(req)` | returns the acting account ID for audit-aware flows |
-| `isAdminSession(req)` | checks whether the current session belongs to an admin/owner |
+| `isOwnerSession(req)` | checks whether the current session belongs to the owner |
 | `hasPermission(req, ...permissions)` | checks whether the current session satisfies at least one requested permission |
-| `requireAdmin(req, res, next)` | blocks non-admin sessions from admin-only routes |
+| `requireOwner(req, res, next)` | blocks non-owner sessions from owner-only routes |
 | `requirePermission(...permissions)` | returns middleware that enforces one or more page permissions |
 | `allowRoles(...roles)` | returns middleware that allows only a selected set of roles |
 
 #### `routes/auth.js` function inventory
 
-Route handlers in this file cover registration, admin login, staff login, logout, password reset, staff CRUD, and current-session lookup.
+Route handlers in this file cover registration, owner login, staff login, logout, password reset, staff CRUD, and current-session lookup.
 
 | Function | Purpose |
 | -------- | ------- |
@@ -430,13 +430,13 @@ Route handlers in this file cover registration, admin login, staff login, logout
 | `normalizeMobileNumber(value)` | converts mobile numbers into the app's 10-digit format |
 | `isValidMobileNumber(value)` | validates the normalized mobile format |
 | `normalizeUsername(value)` | strips spaces and lowercases staff usernames |
-| `signSession(payload)` | signs the JWT used for admin and staff sessions |
+| `signSession(payload)` | signs the JWT used for owner and staff sessions |
 | `setSessionCookie(res, token)` | writes the signed session token into the `token` cookie |
 | `clearSessionCookie(res)` | clears the current login cookie |
-| `buildAdminSession(user)` | creates the normalized admin session payload |
+| `buildOwnerSession(user)` | creates the normalized owner session payload |
 | `buildStaffSession(staff)` | creates the normalized staff session payload with permissions |
 | `toClientUser(session)` | reshapes a server session into the frontend-safe user object |
-| `getAdminsByIdentifier(identifier)` | looks up owner accounts by email or mobile number |
+| `getOwnersByIdentifier(identifier)` | looks up owner accounts by email or mobile number |
 | `getStaffByUsername(username)` | looks up one staff account plus owner metadata |
 
 #### `routes/inventory.js` function inventory
@@ -531,7 +531,7 @@ Nested PDF helper functions such as `drawHeader()` and `drawTableHeader()` live 
 | `formatPermissionSummary(permissions, options)` | converts permission arrays into a short human-readable summary |
 | `clearStoredSession()` | removes legacy session artifacts from `localStorage` |
 | `isMobileLayout()` | checks whether the UI is currently in mobile layout |
-| `isAdminUser(user)` | identifies admin sessions on the client side |
+| `isOwnerUser(user)` | identifies owner sessions on the client side |
 | `getUserPermissions(user)` | returns the current permission set for a user |
 | `canAccessPermission(user, ...permissions)` | answers whether a user can access a given permission area |
 | `canAccessSection(user, sectionId)` | maps a dashboard section ID to the correct permission check |
@@ -564,14 +564,14 @@ Nested PDF helper functions such as `drawHeader()` and `drawTableHeader()` live 
 - report/export workflow: `renderItemReport`, `loadItemReport`, `loadLowStock`, `renderSalesReport`, `loadSalesReport`, `loadGstReport`, `downloadItemReportPDF`, `downloadSalesPDF`, `downloadSalesExcel`, `downloadGstPDF`, `downloadGstExcel`
 - due ledger workflow: `getDueFormSnapshot`, `updateCustomerDuePreview`, `searchLedger`, `showAllDues`, `refreshCurrentDueView`, `submitDebt`
 - dashboard analytics: `loadDashboardOverview`, `loadBusinessTrend`, `renderBusinessTrend`, `loadLast13MonthsChart`, `renderLast13MonthsChart`, `loadSalesNetProfitCard`
-- staff/admin workflow: `renderStaffPermissionGrid`, `readStaffPermissionSelection`, `setStaffPermissionSelection`, `renderStaffList`, `loadStaffAccounts`, `createStaffAccount`
+- staff/owner workflow: `renderStaffPermissionGrid`, `readStaffPermissionSelection`, `setStaffPermissionSelection`, `renderStaffList`, `loadStaffAccounts`, `createStaffAccount`
 - event wiring: `bindPopupEvents`, `bindInventoryEvents`, `bindPurchaseEvents`, `bindReportEvents`, `bindCustomerDueEvents`, `bindExpenseEvents`, `bindStaffEvents`
 
 ## 8. Auth, Session, and Permission Model
 
 ### Session model
 
-- Admin login happens through `POST /api/auth/login`.
+- Owner login happens through `POST /api/auth/login`.
 - Staff login happens through `POST /api/auth/staff/login`.
 - On success, [`routes/auth.js`](../routes/auth.js) signs a JWT and stores it in an `httpOnly` cookie named `token`.
 - Cookie settings:
@@ -596,7 +596,7 @@ Important rules:
 
 - staff accounts belong to an owner account
 - max 2 staff accounts per owner is enforced in application logic
-- admins always have all permissions
+- owners always have all permissions
 - staff page permissions come from `staff_accounts.page_permissions`
 - active staff session data is cached briefly in memory to reduce repeated DB lookups
 - frontend uses the same permission contract to hide or show sections
@@ -640,7 +640,7 @@ One legacy compatibility detail still exists:
 
 ## 10. Main Business Workflows
 
-### Admin registration
+### Owner registration
 
 ```text
 login.html
@@ -649,7 +649,7 @@ login.html
   -> user returns to login
 ```
 
-### Admin login
+### Owner login
 
 ```text
 login.html
@@ -754,7 +754,7 @@ All endpoints below are mounted under either `/api/auth` or `/api`.
 | Method   | Path                                   | Purpose                                  |
 | -------- | -------------------------------------- | ---------------------------------------- |
 | `POST`   | `/api/auth/register`                   | create owner account                     |
-| `POST`   | `/api/auth/login`                      | admin login by email or mobile           |
+| `POST`   | `/api/auth/login`                      | owner login by email or mobile           |
 | `POST`   | `/api/auth/staff/login`                | staff login by username                  |
 | `POST`   | `/api/auth/logout`                     | clear session cookie                     |
 | `POST`   | `/api/auth/forgot-password`            | create reset token and send reset email  |
@@ -788,7 +788,7 @@ All endpoints below are mounted under either `/api/auth` or `/api`.
 | `GET`  | `/api/debts/customers`           | search customers with dues        |
 | `GET`  | `/api/debts/:number`             | load one customer ledger          |
 | `GET`  | `/api/debts`                     | summary of all dues               |
-| `GET`  | `/api/dashboard/overview`        | admin dashboard summary cards     |
+| `GET`  | `/api/dashboard/overview`        | owner dashboard summary cards     |
 | `GET`  | `/api/sales/monthly-trend`       | monthly sales chart data          |
 | `GET`  | `/api/sales/last-13-months`      | rolling 13-month sales chart data |
 
@@ -873,7 +873,7 @@ erDiagram
 
 | Table                  | Purpose                                        | Main feature area      |
 | ---------------------- | ---------------------------------------------- | ---------------------- |
-| `users`                | owner/admin accounts                           | auth                   |
+| `users`                | owner accounts                                 | auth                   |
 | `staff_accounts`       | staff credentials and page permissions         | auth/staff             |
 | `settings`             | shop profile, GST defaults, profit defaults    | invoice/settings/stock |
 | `items`                | current stock master                           | inventory              |
@@ -893,7 +893,7 @@ erDiagram
 
 Purpose:
 
-- stores admin/owner accounts
+- stores owner accounts
 - supports registration, login, and password reset
 - owns all business data
 
@@ -1182,7 +1182,7 @@ The dictionary below reflects the current effective schema from [`../migrations/
 | Column | Type | Null | Default | Details |
 | ------ | ---- | ---- | ------- | ------- |
 | `id` | `SERIAL` | no | sequence | primary key |
-| `name` | `VARCHAR(50)` | no | none | owner/admin display name |
+| `name` | `VARCHAR(50)` | no | none | owner display name |
 | `email` | `VARCHAR(100)` | no | none | unique login identifier |
 | `mobile_number` | `VARCHAR(10)` | yes | none | optional 10-digit mobile number |
 | `password_hash` | `VARCHAR(255)` | no | none | bcrypt hash |
@@ -1621,7 +1621,7 @@ Edit:
 ```mermaid
 flowchart TB
   subgraph Frontend["Frontend pages and shared modules"]
-    Login["public/login.html<br/>register | admin login | staff login | forgot password"]
+    Login["public/login.html<br/>register | owner login | staff login | forgot password"]
     Dashboard["public/index.html<br/>stock | purchases | reports | dues | expenses | staff"]
     Invoice["public/invoice.html<br/>invoice builder | history | payment collection | PDF"]
     Reset["public/reset.html<br/>password reset"]

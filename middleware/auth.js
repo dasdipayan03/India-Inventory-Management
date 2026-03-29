@@ -23,7 +23,26 @@ if (!process.env.JWT_SECRET) {
 
 const STAFF_SESSION_CACHE_TTL_MS = 15 * 1000;
 const STAFF_SESSION_CACHE_MAX_ENTRIES = 200;
+const STAFF_ROLE = "staff";
+const OWNER_ROLE = "owner";
 const staffSessionCache = new Map();
+
+function normalizeSessionRole(value) {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
+
+  if (normalized === STAFF_ROLE) {
+    return STAFF_ROLE;
+  }
+
+  // Keep older admin tokens/sessions working while the app now speaks in owner terms.
+  if (normalized === "admin" || normalized === OWNER_ROLE) {
+    return OWNER_ROLE;
+  }
+
+  return normalized;
+}
 
 function getStaffSessionCacheKey(staffId) {
   const normalizedStaffId = Number(staffId);
@@ -150,7 +169,7 @@ async function authMiddleware(req, res, next) {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    if (String(decoded.role).toLowerCase() === "staff") {
+    if (normalizeSessionRole(decoded.role) === STAFF_ROLE) {
       const staffId = decoded.actorId || decoded.staffId || decoded.id;
       const staff = await loadStaffSession(staffId);
 
@@ -163,8 +182,8 @@ async function authMiddleware(req, res, next) {
         actorId: staffId,
         staffId,
         ownerId: staff.ownerUserId,
-        role: "staff",
-        accountType: "staff",
+        role: STAFF_ROLE,
+        accountType: STAFF_ROLE,
         name: staff.name,
         username: staff.username,
         ownerName: staff.ownerName,
@@ -179,8 +198,8 @@ async function authMiddleware(req, res, next) {
       ...decoded,
       actorId: decoded.actorId || decoded.id,
       ownerId: decoded.ownerId || decoded.id,
-      role: "admin",
-      accountType: "admin",
+      role: OWNER_ROLE,
+      accountType: OWNER_ROLE,
       permissions: ["all"],
     };
     return next();
@@ -208,12 +227,12 @@ function getActorId(req) {
   return actorId;
 }
 
-function isAdminSession(req) {
-  return String(req.user?.role || "").toLowerCase() === "admin";
+function isOwnerSession(req) {
+  return normalizeSessionRole(req.user?.role) === OWNER_ROLE;
 }
 
 function hasPermission(req, ...permissions) {
-  if (isAdminSession(req)) {
+  if (isOwnerSession(req)) {
     return true;
   }
 
@@ -224,13 +243,13 @@ function hasPermission(req, ...permissions) {
   return permissions.some((permission) => currentPermissions.includes(permission));
 }
 
-function requireAdmin(req, res, next) {
+function requireOwner(req, res, next) {
   if (!req.user) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  if (!isAdminSession(req)) {
-    return res.status(403).json({ error: "Admin access required" });
+  if (!isOwnerSession(req)) {
+    return res.status(403).json({ error: "Owner access required" });
   }
 
   next();
@@ -251,10 +270,10 @@ function requirePermission(...permissions) {
 }
 
 function allowRoles(...roles) {
-  const normalized = roles.map((role) => String(role).toLowerCase());
+  const normalized = roles.map((role) => normalizeSessionRole(role));
 
   return (req, res, next) => {
-    const currentRole = String(req.user?.role || "").toLowerCase();
+    const currentRole = normalizeSessionRole(req.user?.role);
     if (!req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -274,7 +293,7 @@ module.exports = {
   getUserId,
   hasPermission,
   invalidateStaffSessionCache,
-  isAdminSession,
-  requireAdmin,
+  isOwnerSession,
+  requireOwner,
   requirePermission,
 };

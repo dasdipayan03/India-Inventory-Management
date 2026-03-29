@@ -6,7 +6,7 @@ const pool = require("../db");
 const {
   authMiddleware,
   getUserId,
-  requireAdmin,
+  requireOwner,
   requirePermission,
 } = require("../middleware/auth");
 const {
@@ -1295,7 +1295,7 @@ router.get(
 );
 
 /* ---------------------- SHOP INFO save ---------------------- */
-router.post("/shop-info", authMiddleware, requireAdmin, async (req, res) => {
+router.post("/shop-info", authMiddleware, requireOwner, async (req, res) => {
   try {
     const { shop_name, shop_address, gst_no, gst_rate } = req.body;
     const userId = getUserId(req);
