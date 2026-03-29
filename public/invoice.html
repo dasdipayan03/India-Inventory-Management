@@ -2736,7 +2736,7 @@
 
           dom.sessionRolePill.innerHTML = isStaff
             ? '<i class="fa-solid fa-user-lock"></i> Staff Workspace'
-            : '<i class="fa-solid fa-user-shield"></i> Admin Workspace';
+            : '<i class="fa-solid fa-user-shield"></i> Owner Workspace';
           dom.sessionScopePill.innerHTML = isStaff
             ? `<i class="fa-solid fa-layer-group"></i> ${escapeHtml(ownerName || "Assigned shop")} | ${escapeHtml(accessSummary)}`
             : '<i class="fa-solid fa-layer-group"></i> Full stock, invoice, reports, GST, due, and staff control';
@@ -3254,9 +3254,12 @@
             invoiceNumbers = res && res.ok ? await res.json() : [];
 
             if (!invoiceNumbers.length) {
-              const fallback = await authFetch(`${API_PREFIX}/invoices?limit=50`, {
-                headers: authHeaders(),
-              });
+              const fallback = await authFetch(
+                `${API_PREFIX}/invoices?limit=50`,
+                {
+                  headers: authHeaders(),
+                },
+              );
 
               if (fallback && fallback.ok) {
                 const data = await fallback.json();
@@ -4337,7 +4340,10 @@
                 : "Invoice submitted successfully.",
             );
             resetInvoice();
-            await Promise.all([loadNewInvoice(), loadInvoiceNumbersInternal(true)]);
+            await Promise.all([
+              loadNewInvoice(),
+              loadInvoiceNumbersInternal(true),
+            ]);
             setTimeout(() => {
               if (pendingInvoiceNo) openModal(dom.downloadModal);
             }, 2250);
@@ -4452,7 +4458,9 @@
             await loadInvoiceNumbers();
           }
 
-          await showInvoiceNumberSuggestions(dom.searchInvoiceInput.value.trim());
+          await showInvoiceNumberSuggestions(
+            dom.searchInvoiceInput.value.trim(),
+          );
         });
 
         dom.searchInvoiceInput.addEventListener("keydown", async (event) => {

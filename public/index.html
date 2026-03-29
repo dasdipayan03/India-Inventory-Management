@@ -2706,7 +2706,7 @@
             <div>
               <span class="hero-chip" id="sessionRoleChip">
                 <i class="fa-solid fa-shield-halved"></i>
-                Admin Workspace
+                Owner Workspace
               </span>
               <h2 id="welcomeUser"></h2>
             </div>
@@ -3627,238 +3627,239 @@
           </section>
 
           <div class="insight-grid stock-insight-grid">
-          <section
-            id="reorderPlannerCard"
-            class="panel-card panel-card--surface"
-            hidden
-          >
-            <div class="panel-heading">
-              <div>
-                <span class="panel-kicker">Reorder Planner</span>
-                <h5>Suggested replenishment list</h5>
-                <p class="panel-subtitle">
-                  Review fast-moving items, see suggested reorder quantity, and
-                  plan a healthier stock buffer before products run short.
-                </p>
+            <section
+              id="reorderPlannerCard"
+              class="panel-card panel-card--surface"
+              hidden
+            >
+              <div class="panel-heading">
+                <div>
+                  <span class="panel-kicker">Reorder Planner</span>
+                  <h5>Suggested replenishment list</h5>
+                  <p class="panel-subtitle">
+                    Review fast-moving items, see suggested reorder quantity,
+                    and plan a healthier stock buffer before products run short.
+                  </p>
+                </div>
+                <div class="panel-card__icon">
+                  <i class="fas fa-clipboard-list"></i>
+                </div>
               </div>
-              <div class="panel-card__icon">
-                <i class="fas fa-clipboard-list"></i>
+
+              <div class="mini-kpi-grid">
+                <article class="mini-kpi">
+                  <span class="mini-kpi__label">Items</span>
+                  <strong class="mini-kpi__value" id="reorderCandidateCount"
+                    >0</strong
+                  >
+                  <small class="mini-kpi__meta">
+                    Items that need replenishment to reach the target stock
+                    cover.
+                  </small>
+                </article>
+                <article class="mini-kpi">
+                  <span class="mini-kpi__label">Urgent</span>
+                  <strong class="mini-kpi__value" id="reorderUrgentCount"
+                    >0</strong
+                  >
+                  <small class="mini-kpi__meta">
+                    High-risk items that may run out first based on recent
+                    movement.
+                  </small>
+                </article>
+                <article class="mini-kpi">
+                  <span class="mini-kpi__label">Suggested Units</span>
+                  <strong class="mini-kpi__value" id="reorderSuggestedUnits"
+                    >0</strong
+                  >
+                  <small class="mini-kpi__meta">
+                    Total recommended quantity to rebuild the stock buffer.
+                  </small>
+                </article>
+                <article class="mini-kpi">
+                  <span class="mini-kpi__label">Est. Buy Cost</span>
+                  <strong class="mini-kpi__value" id="reorderEstimatedCost">
+                    Rs. 0.00
+                  </strong>
+                  <small class="mini-kpi__meta">
+                    Approximate buying cost using the latest buying rate on
+                    record.
+                  </small>
+                </article>
               </div>
-            </div>
 
-            <div class="mini-kpi-grid">
-              <article class="mini-kpi">
-                <span class="mini-kpi__label">Items</span>
-                <strong class="mini-kpi__value" id="reorderCandidateCount"
-                  >0</strong
-                >
-                <small class="mini-kpi__meta">
-                  Items that need replenishment to reach the target stock cover.
-                </small>
-              </article>
-              <article class="mini-kpi">
-                <span class="mini-kpi__label">Urgent</span>
-                <strong class="mini-kpi__value" id="reorderUrgentCount"
-                  >0</strong
-                >
-                <small class="mini-kpi__meta">
-                  High-risk items that may run out first based on recent
-                  movement.
-                </small>
-              </article>
-              <article class="mini-kpi">
-                <span class="mini-kpi__label">Suggested Units</span>
-                <strong class="mini-kpi__value" id="reorderSuggestedUnits"
-                  >0</strong
-                >
-                <small class="mini-kpi__meta">
-                  Total recommended quantity to rebuild the stock buffer.
-                </small>
-              </article>
-              <article class="mini-kpi">
-                <span class="mini-kpi__label">Est. Buy Cost</span>
-                <strong class="mini-kpi__value" id="reorderEstimatedCost">
-                  Rs. 0.00
-                </strong>
-                <small class="mini-kpi__meta">
-                  Approximate buying cost using the latest buying rate on
-                  record.
-                </small>
-              </article>
-            </div>
-
-            <div class="summary-strip">
-              <span class="summary-pill">
-                <i class="fa-solid fa-bolt"></i>
-                Fastest mover: <span id="reorderFastestItem">-</span>
-              </span>
-              <span class="summary-pill">
-                <i class="fa-solid fa-bullseye"></i>
-                Coverage target: <span id="reorderTargetDays">21 days</span>
-              </span>
-              <span class="summary-pill">
-                <i class="fa-solid fa-hourglass-half"></i>
-                Avg cover: <span id="reorderAverageCover">0.00 days</span>
-              </span>
-            </div>
-
-            <div class="table-responsive mobile-table-wrap">
-              <table
-                class="table table-sm text-center align-middle dashboard-table dashboard-table--reorder"
-              >
-                <thead>
-                  <tr>
-                    <th>
-                      <span class="table-label-full">Item</span>
-                      <span class="table-label-compact">Item</span>
-                    </th>
-                    <th>
-                      <span class="table-label-full">Avail.</span>
-                      <span class="table-label-compact">Avail</span>
-                    </th>
-                    <th>
-                      <span class="table-label-full">Run / Day</span>
-                      <span class="table-label-compact">Run</span>
-                    </th>
-                    <th>
-                      <span class="table-label-full">Cover Days</span>
-                      <span class="table-label-compact">Cover</span>
-                    </th>
-                    <th>
-                      <span class="table-label-full">Reorder Qty</span>
-                      <span class="table-label-compact">Qty</span>
-                    </th>
-                    <th>
-                      <span class="table-label-full">Est. Cost</span>
-                      <span class="table-label-compact">Cost</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody id="reorderPlanBody">
-                  <tr>
-                    <td colspan="6" class="text-muted">
-                      Reorder suggestions will appear here.
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          <section
-            id="slowMovingCard"
-            class="panel-card panel-card--surface"
-            hidden
-          >
-            <div class="panel-heading">
-              <div>
-                <span class="panel-kicker">Sell-First Focus</span>
-                <h5>Slow-moving stock worth pushing</h5>
-                <p class="panel-subtitle">
-                  These items are sitting with higher stock cover and softer
-                  recent sales. Push them through offers, counter placement,
-                  or combos before buying more.
-                </p>
+              <div class="summary-strip">
+                <span class="summary-pill">
+                  <i class="fa-solid fa-bolt"></i>
+                  Fastest mover: <span id="reorderFastestItem">-</span>
+                </span>
+                <span class="summary-pill">
+                  <i class="fa-solid fa-bullseye"></i>
+                  Coverage target: <span id="reorderTargetDays">21 days</span>
+                </span>
+                <span class="summary-pill">
+                  <i class="fa-solid fa-hourglass-half"></i>
+                  Avg cover: <span id="reorderAverageCover">0.00 days</span>
+                </span>
               </div>
-              <div class="panel-card__icon">
-                <i class="fas fa-box-open"></i>
+
+              <div class="table-responsive mobile-table-wrap">
+                <table
+                  class="table table-sm text-center align-middle dashboard-table dashboard-table--reorder"
+                >
+                  <thead>
+                    <tr>
+                      <th>
+                        <span class="table-label-full">Item</span>
+                        <span class="table-label-compact">Item</span>
+                      </th>
+                      <th>
+                        <span class="table-label-full">Avail.</span>
+                        <span class="table-label-compact">Avail</span>
+                      </th>
+                      <th>
+                        <span class="table-label-full">Run / Day</span>
+                        <span class="table-label-compact">Run</span>
+                      </th>
+                      <th>
+                        <span class="table-label-full">Cover Days</span>
+                        <span class="table-label-compact">Cover</span>
+                      </th>
+                      <th>
+                        <span class="table-label-full">Reorder Qty</span>
+                        <span class="table-label-compact">Qty</span>
+                      </th>
+                      <th>
+                        <span class="table-label-full">Est. Cost</span>
+                        <span class="table-label-compact">Cost</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody id="reorderPlanBody">
+                    <tr>
+                      <td colspan="6" class="text-muted">
+                        Reorder suggestions will appear here.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-            </div>
+            </section>
 
-            <div class="mini-kpi-grid">
-              <article class="mini-kpi">
-                <span class="mini-kpi__label">Items</span>
-                <strong class="mini-kpi__value" id="slowMovingCount"
-                  >0</strong
-                >
-                <small class="mini-kpi__meta">
-                  Items that look bulky against recent 30-day sales.
-                </small>
-              </article>
-              <article class="mini-kpi">
-                <span class="mini-kpi__label">Units at Risk</span>
-                <strong class="mini-kpi__value" id="slowMovingUnits"
-                  >0</strong
-                >
-                <small class="mini-kpi__meta">
-                  Total quantity currently tied up in slower-moving stock.
-                </small>
-              </article>
-              <article class="mini-kpi">
-                <span class="mini-kpi__label">Stock Value</span>
-                <strong class="mini-kpi__value" id="slowMovingValue">
-                  Rs. 0.00
-                </strong>
-                <small class="mini-kpi__meta">
-                  Estimated buying value tied up in items that need sell-through
-                  focus.
-                </small>
-              </article>
-              <article class="mini-kpi">
-                <span class="mini-kpi__label">No Sale (30d)</span>
-                <strong class="mini-kpi__value" id="slowMovingIdleCount"
-                  >0</strong
-                >
-                <small class="mini-kpi__meta">
-                  Items with stock on hand but no sale recorded in the last 30
-                  days.
-                </small>
-              </article>
-            </div>
+            <section
+              id="slowMovingCard"
+              class="panel-card panel-card--surface"
+              hidden
+            >
+              <div class="panel-heading">
+                <div>
+                  <span class="panel-kicker">Sell-First Focus</span>
+                  <h5>Slow-moving stock worth pushing</h5>
+                  <p class="panel-subtitle">
+                    These items are sitting with higher stock cover and softer
+                    recent sales. Push them through offers, counter placement,
+                    or combos before buying more.
+                  </p>
+                </div>
+                <div class="panel-card__icon">
+                  <i class="fas fa-box-open"></i>
+                </div>
+              </div>
 
-            <div class="summary-strip">
-              <span class="summary-pill">
-                <i class="fa-solid fa-boxes-stacked"></i>
-                Biggest pile: <span id="slowMovingTopItem">-</span>
-              </span>
-              <span class="summary-pill">
-                <i class="fa-solid fa-store-slash"></i>
-                No recent sale: <span id="slowMovingIdleCountInline">0</span>
-              </span>
-              <span class="summary-pill">
-                <i class="fa-solid fa-calendar-days"></i>
-                Avg cover: <span id="slowMovingAverageCover">0.00 days</span>
-              </span>
-            </div>
+              <div class="mini-kpi-grid">
+                <article class="mini-kpi">
+                  <span class="mini-kpi__label">Items</span>
+                  <strong class="mini-kpi__value" id="slowMovingCount"
+                    >0</strong
+                  >
+                  <small class="mini-kpi__meta">
+                    Items that look bulky against recent 30-day sales.
+                  </small>
+                </article>
+                <article class="mini-kpi">
+                  <span class="mini-kpi__label">Units at Risk</span>
+                  <strong class="mini-kpi__value" id="slowMovingUnits"
+                    >0</strong
+                  >
+                  <small class="mini-kpi__meta">
+                    Total quantity currently tied up in slower-moving stock.
+                  </small>
+                </article>
+                <article class="mini-kpi">
+                  <span class="mini-kpi__label">Stock Value</span>
+                  <strong class="mini-kpi__value" id="slowMovingValue">
+                    Rs. 0.00
+                  </strong>
+                  <small class="mini-kpi__meta">
+                    Estimated buying value tied up in items that need
+                    sell-through focus.
+                  </small>
+                </article>
+                <article class="mini-kpi">
+                  <span class="mini-kpi__label">No Sale (30d)</span>
+                  <strong class="mini-kpi__value" id="slowMovingIdleCount"
+                    >0</strong
+                  >
+                  <small class="mini-kpi__meta">
+                    Items with stock on hand but no sale recorded in the last 30
+                    days.
+                  </small>
+                </article>
+              </div>
 
-            <div class="table-responsive mobile-table-wrap">
-              <table
-                class="table table-sm text-center align-middle dashboard-table dashboard-table--slow-moving"
-              >
-                <thead>
-                  <tr>
-                    <th>
-                      <span class="table-label-full">Item</span>
-                      <span class="table-label-compact">Item</span>
-                    </th>
-                    <th>
-                      <span class="table-label-full">Avail.</span>
-                      <span class="table-label-compact">Avail</span>
-                    </th>
-                    <th>
-                      <span class="table-label-full">Sold (30d)</span>
-                      <span class="table-label-compact">Sold</span>
-                    </th>
-                    <th>
-                      <span class="table-label-full">Cover Days</span>
-                      <span class="table-label-compact">Cover</span>
-                    </th>
-                    <th>
-                      <span class="table-label-full">Stock Value</span>
-                      <span class="table-label-compact">Value</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody id="slowMovingBody">
-                  <tr>
-                    <td colspan="5" class="text-muted">
-                      Slow-moving stock suggestions will appear here.
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
+              <div class="summary-strip">
+                <span class="summary-pill">
+                  <i class="fa-solid fa-boxes-stacked"></i>
+                  Biggest pile: <span id="slowMovingTopItem">-</span>
+                </span>
+                <span class="summary-pill">
+                  <i class="fa-solid fa-store-slash"></i>
+                  No recent sale: <span id="slowMovingIdleCountInline">0</span>
+                </span>
+                <span class="summary-pill">
+                  <i class="fa-solid fa-calendar-days"></i>
+                  Avg cover: <span id="slowMovingAverageCover">0.00 days</span>
+                </span>
+              </div>
+
+              <div class="table-responsive mobile-table-wrap">
+                <table
+                  class="table table-sm text-center align-middle dashboard-table dashboard-table--slow-moving"
+                >
+                  <thead>
+                    <tr>
+                      <th>
+                        <span class="table-label-full">Item</span>
+                        <span class="table-label-compact">Item</span>
+                      </th>
+                      <th>
+                        <span class="table-label-full">Avail.</span>
+                        <span class="table-label-compact">Avail</span>
+                      </th>
+                      <th>
+                        <span class="table-label-full">Sold (30d)</span>
+                        <span class="table-label-compact">Sold</span>
+                      </th>
+                      <th>
+                        <span class="table-label-full">Cover Days</span>
+                        <span class="table-label-compact">Cover</span>
+                      </th>
+                      <th>
+                        <span class="table-label-full">Stock Value</span>
+                        <span class="table-label-compact">Value</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody id="slowMovingBody">
+                    <tr>
+                      <td colspan="5" class="text-muted">
+                        Slow-moving stock suggestions will appear here.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
           </div>
         </div>
         <div id="salesReportSection" class="form-section">
@@ -4389,7 +4390,9 @@
               <div class="mini-kpi-grid due-preview-grid">
                 <article class="mini-kpi">
                   <span class="mini-kpi__label">Entry Type</span>
-                  <strong class="mini-kpi__value" id="cdEntryType">Waiting</strong>
+                  <strong class="mini-kpi__value" id="cdEntryType"
+                    >Waiting</strong
+                  >
                   <small class="mini-kpi__meta" id="cdEntryTypeMeta">
                     Start with customer and amount details.
                   </small>
@@ -4519,7 +4522,9 @@
 
               <div class="due-ledger-toolbar">
                 <div class="position-relative">
-                  <label class="form-label small">Search by name or number</label>
+                  <label class="form-label small"
+                    >Search by name or number</label
+                  >
                   <input
                     id="cdSearchInput"
                     type="text"
