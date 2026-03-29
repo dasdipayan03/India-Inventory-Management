@@ -1193,7 +1193,7 @@ function applySessionAccess(user) {
   if (dom.sessionRoleChip) {
     dom.sessionRoleChip.innerHTML = isStaff
       ? '<i class="fa-solid fa-user-lock"></i> Staff Workspace'
-      : '<i class="fa-solid fa-shield-halved"></i> Admin Workspace';
+      : '<i class="fa-solid fa-shield-halved"></i> Owner Workspace';
   }
 
   if (dom.overviewGrid) {
