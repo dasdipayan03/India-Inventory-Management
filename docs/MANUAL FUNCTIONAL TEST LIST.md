@@ -1,6 +1,6 @@
 # India Inventory Management Manual Functional Test Checklist
 
-Last updated against this repository: `2026-03-22`
+Last updated against this repository: `2026-03-29`
 
 ## Purpose
 
@@ -23,6 +23,7 @@ This checklist is intentionally broad and covers the app from multiple angles:
 - report/export flows
 - responsive behavior
 - session and stability behavior
+- deployment health and runtime verification
 
 ## Test Scope
 
@@ -45,6 +46,7 @@ Main application areas included:
 - staff management
 - session handling and logout
 - browser responsiveness and UI stability
+- deployment healthchecks and post-deploy runtime stability
 
 ## Test Matrix
 
@@ -110,15 +112,23 @@ These should remain true during the entire test run:
 - unauthorized access is blocked gracefully
 - saved data appears correctly after reload
 - app remains responsive during repeated searches and section switching
+- health endpoints respond without authentication
+- no immediate post-deploy container restart loop is visible in runtime logs
 
 ## Pre-Flight Checks
 
 - [ ] App starts successfully and login page opens.
-- [ ] Health of backend appears normal.
+- [ ] `GET /health` returns `200` with JSON `status: "ok"` and DB readiness marked true.
+- [ ] `GET /api/health` returns `200` without requiring login.
+- [ ] `GET /readyz` and `GET /livez` return healthy responses.
+- [ ] Health responses include `X-Request-Id` header.
 - [ ] Browser console shows no startup error.
 - [ ] Main CSS, icons, images, and scripts load properly.
 - [ ] Login page remains usable on mobile width.
 - [ ] Refreshing the page does not break the shell or styles.
+- [ ] In production, `/debug-env` and `/debug-db` are unavailable unless intentionally enabled.
+- [ ] Post-deploy runtime logs show startup events cleanly:
+  Expected: `app_bootstrap_started`, `db_connection_ready`, `db_schema_ready`, and `application_ready`.
 
 ## 1. Authentication And Session
 
@@ -580,7 +590,22 @@ Check each for:
 - [ ] Hard refresh after deployment-style reload.
   Expected: latest UI loads without stale-script break.
 
-## 20. Browser Console And Visual Audit
+## 20. Deployment And Runtime Verification
+
+- [ ] Deploy the latest build and confirm the service becomes healthy without manual restart.
+- [ ] Check Railway or host runtime logs immediately after deploy.
+  Expected: startup reaches `application_ready` without `SIGTERM`, restart loop, or repeated container stop events.
+- [ ] Keep logs open for 5 to 10 minutes after deploy.
+  Expected: no unexpected `Stopping Container`, `command failed`, or healthcheck-related shutdown pattern.
+- [ ] Visit `/health` after deploy.
+  Expected: JSON shows healthy app state, DB ready, server listening, and no shutdown flag.
+- [ ] Visit `/api/health` while logged out.
+  Expected: endpoint remains publicly reachable and does not redirect to login.
+- [ ] If request logging is enabled for diagnostics, verify logs include request IDs and then disable noisy logging before release if not needed.
+- [ ] Confirm no authenticated business route was accidentally exposed while adding health endpoints.
+  Expected: protected routes still require valid session and permissions.
+
+## 21. Browser Console And Visual Audit
 
 - [ ] No uncaught exception on login page.
 - [ ] No uncaught exception on dashboard.
@@ -589,7 +614,7 @@ Check each for:
 - [ ] No failed image/script request that breaks UI.
 - [ ] No obvious visual regression in due ledger, invoice detail, sidebar, or reports.
 
-## 21. Final Release Sign-Off Checklist
+## 22. Final Release Sign-Off Checklist
 
 - [ ] Admin authentication passed.
 - [ ] Staff authentication passed.
@@ -604,6 +629,7 @@ Check each for:
 - [ ] Reports passed.
 - [ ] Expense tracking passed.
 - [ ] Staff access passed.
+- [ ] Deployment/runtime health checks passed.
 - [ ] Mobile/tablet/desktop layouts passed.
 - [ ] Console clean enough for release.
 - [ ] No blocker or critical defect remains open.
@@ -625,6 +651,7 @@ Actual Result:
 Frequency:
 Screenshot/Video:
 Console Error:
+Runtime Log Snippet:
 Severity:
 ```
 
@@ -643,4 +670,5 @@ For fastest real-world regression testing, run in this order:
 9. expenses
 10. staff management
 11. responsive and performance pass
-12. final console and sign-off review
+12. deployment and runtime verification
+13. final console and sign-off review
