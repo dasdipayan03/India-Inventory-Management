@@ -2736,7 +2736,7 @@
 
           dom.sessionRolePill.innerHTML = isStaff
             ? '<i class="fa-solid fa-user-lock"></i> Staff Workspace'
-            : '<i class="fa-solid fa-user-shield"></i> Owner Workspace';
+            : '<i class="fa-solid fa-user-shield"></i> Admin Workspace';
           dom.sessionScopePill.innerHTML = isStaff
             ? `<i class="fa-solid fa-layer-group"></i> ${escapeHtml(ownerName || "Assigned shop")} | ${escapeHtml(accessSummary)}`
             : '<i class="fa-solid fa-layer-group"></i> Full stock, invoice, reports, GST, due, and staff control';
