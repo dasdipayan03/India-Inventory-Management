@@ -1184,7 +1184,6 @@ function applySessionAccess(user) {
   state.sessionUser = user;
 
   const isStaff = user?.role === "staff";
-  const accessibleSection = getFirstAccessibleSection();
   const ownerName = (user?.ownerName || "").trim();
   const accessSummary = formatPermissionSummary(user?.permissions, {
     short: true,
@@ -1222,10 +1221,6 @@ function applySessionAccess(user) {
   dom.heroSubtitle.textContent = isStaff
     ? `${ownerName || "Your owner"} assigned access to ${accessSummary}.`
     : "Your dashboard is syncing the latest inventory and sales view.";
-
-  if (isStaff && accessibleSection) {
-    localStorage.setItem("activeSection", accessibleSection);
-  }
 }
 
 function updateSectionMeta(button) {
