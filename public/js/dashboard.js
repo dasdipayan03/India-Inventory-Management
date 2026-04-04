@@ -4565,6 +4565,32 @@ function resolvePreviousTrendRow(rows, referenceRow) {
   return referenceIndex > 0 ? rows[referenceIndex - 1] : null;
 }
 
+function resolveTrendAverageBaseline(rows, referenceRow, context = {}) {
+  if (!Array.isArray(rows) || !rows.length || !referenceRow) {
+    return {
+      comparisonRows: [],
+      averageSales: 0,
+    };
+  }
+
+  const visibleRows = rows.filter((row) => !isFutureTrendMonth(row, context));
+  const referenceIndex = visibleRows.findIndex(
+    (row) => row.month_key === referenceRow.month_key,
+  );
+  const comparisonRows = referenceIndex > 0
+    ? visibleRows.slice(0, referenceIndex)
+    : [];
+  const totalSales = comparisonRows.reduce(
+    (sum, row) => sum + (Number(row.total_sales) || 0),
+    0,
+  );
+
+  return {
+    comparisonRows,
+    averageSales: comparisonRows.length ? totalSales / comparisonRows.length : 0,
+  };
+}
+
 function updateGrowthOverviewMeta(rows, context = {}) {
   if (
     !dom.growthRangeLabel ||
@@ -4638,43 +4664,55 @@ function updateGrowthBadge(rows, context = {}) {
   }
 
   const referenceRow = resolveTrendReferenceRow(rows, context);
-  const previousRow = resolvePreviousTrendRow(rows, referenceRow);
+  const { comparisonRows, averageSales } = resolveTrendAverageBaseline(
+    rows,
+    referenceRow,
+    context,
+  );
+  const visibleRowCount = Array.isArray(rows)
+    ? rows.filter((row) => !isFutureTrendMonth(row, context)).length
+    : 0;
   const currentYear = Number.parseInt(getCurrentMonthKey().slice(0, 4), 10);
   const futureHint =
     context.mode === "year" && Number(context.year) === currentYear
       ? "Future months stay on the axis and will fill in as sales happen."
-      : `${Array.isArray(rows) ? rows.length : 0} months are visible in this view.`;
+      : `${visibleRowCount} months are visible in this view.`;
 
-  if (!referenceRow || !previousRow) {
+  if (!referenceRow || !comparisonRows.length) {
     dom.growthBadge.innerHTML = `
       <span class="growth-badge__signal growth-badge__signal--neutral">
         <i class="fa-solid fa-wave-square"></i>
-        Need at least two visible months to compare growth.
+        Need at least two visible months to compare against the earlier average.
       </span>
       <span class="growth-badge__detail">
-        Once two months are available in the active timeline, month-on-month growth will appear here.
+        Once another earlier month is available in the active timeline, average-based growth will appear here.
       </span>
     `;
     return;
   }
 
   const latestSales = Number(referenceRow.total_sales) || 0;
-  const previousSales = Number(previousRow.total_sales) || 0;
+  const baselineStart = comparisonRows[0]?.month_label || "";
+  const baselineEnd =
+    comparisonRows[comparisonRows.length - 1]?.month_label || baselineStart;
+  const baselineLabel = comparisonRows.length === 1
+    ? baselineStart
+    : `${baselineStart} - ${baselineEnd}`;
 
-  if (previousSales <= 0) {
+  if (averageSales <= 0) {
     dom.growthBadge.innerHTML = `
       <span class="growth-badge__signal growth-badge__signal--neutral">
         <i class="fa-solid fa-chart-simple"></i>
         ${referenceRow.month_label} recorded ${formatCurrency(latestSales)} sales.
       </span>
       <span class="growth-badge__detail">
-        A percentage growth value will appear after ${previousRow.month_label} has comparable sales. ${futureHint}
+        The average of the earlier ${comparisonRows.length} month${comparisonRows.length === 1 ? "" : "s"} is not yet comparable. ${futureHint}
       </span>
     `;
     return;
   }
 
-  const growth = ((latestSales - previousSales) / previousSales) * 100;
+  const growth = ((latestSales - averageSales) / averageSales) * 100;
   const directionClass = growth >= 0 ? "positive" : "negative";
   const directionIcon =
     growth >= 0 ? "fa-arrow-trend-up" : "fa-arrow-trend-down";
@@ -4683,10 +4721,10 @@ function updateGrowthBadge(rows, context = {}) {
   dom.growthBadge.innerHTML = `
     <span class="growth-badge__signal growth-badge__signal--${directionClass}">
       <i class="fa-solid ${directionIcon}"></i>
-      ${Math.abs(growth).toFixed(1)}% ${directionText} vs previous month
+      ${Math.abs(growth).toFixed(1)}% ${directionText} vs earlier monthly average
     </span>
     <span class="growth-badge__detail">
-      Comparing ${referenceRow.month_label} with ${previousRow.month_label}. ${futureHint}
+      Comparing ${referenceRow.month_label} with the average of ${comparisonRows.length} earlier month${comparisonRows.length === 1 ? "" : "s"} from ${baselineLabel}. ${futureHint}
     </span>
   `;
 }
