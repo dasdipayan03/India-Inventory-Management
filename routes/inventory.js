@@ -911,6 +911,7 @@ router.get("/sales/report", requirePermission("sales_report"), async (req, res) 
         i.name AS item_name,
         s.quantity,
         s.selling_price,
+        COALESCE(s.gst_amount, 0) AS gst_amount,
         s.total_price
        FROM sales s
        JOIN items i ON i.id = s.item_id
@@ -945,6 +946,7 @@ router.get("/sales/report/pdf", requirePermission("sales_report"), async (req, r
         i.name AS item_name,
         s.quantity,
         s.selling_price,
+        COALESCE(s.gst_amount, 0) AS gst_amount,
         s.total_price
        FROM sales s
        JOIN items i ON i.id = s.item_id
@@ -957,12 +959,13 @@ router.get("/sales/report/pdf", requirePermission("sales_report"), async (req, r
 
     const doc = new PDFDocument({ margin: 40, size: "A4" });
     const salesColumns = [
-      { label: "Sl", x: 46, width: 28 },
-      { label: "Date", x: 78, width: 78 },
-      { label: "Item", x: 160, width: 190 },
-      { label: "Qty", x: 354, width: 44, align: "right" },
-      { label: "Rate", x: 402, width: 68, align: "right" },
-      { label: "Total", x: 474, width: 70, align: "right" },
+      { label: "Sl", x: 46, width: 24 },
+      { label: "Date", x: 74, width: 62 },
+      { label: "Item", x: 140, width: 160 },
+      { label: "Qty", x: 304, width: 36, align: "right" },
+      { label: "Rate", x: 344, width: 60, align: "right" },
+      { label: "GST", x: 408, width: 60, align: "right" },
+      { label: "Total", x: 472, width: 72, align: "right" },
     ];
 
     res.setHeader("Content-Type", "application/pdf");
@@ -998,7 +1001,7 @@ router.get("/sales/report/pdf", requirePermission("sales_report"), async (req, r
 
       // 👉 calculate dynamic height for item name
       const itemHeight = doc.heightOfString(r.item_name || "", {
-        width: 200,
+        width: 160,
         align: "left",
       });
 
@@ -1012,16 +1015,20 @@ router.get("/sales/report/pdf", requirePermission("sales_report"), async (req, r
 
       const saleDate = formatIstDate(r.created_at);
       doc.fillColor(PDF_THEME.ink).font("Helvetica").fontSize(10);
-      doc.text(i + 1, startX, y, { width: 30 });
-      doc.text(saleDate, startX + 30, y, { width: 80 });
-      doc.text(r.item_name || "", startX + 110, y, { width: 170 });
-      doc.text(r.quantity, startX + 280, y, { width: 50, align: "right" });
-      doc.text(formatCurrency(r.selling_price), startX + 330, y, {
-        width: 80,
+      doc.text(i + 1, startX, y, { width: 24 });
+      doc.text(saleDate, startX + 26, y, { width: 62 });
+      doc.text(r.item_name || "", startX + 92, y, { width: 160 });
+      doc.text(r.quantity, startX + 256, y, { width: 36, align: "right" });
+      doc.text(formatCurrency(r.selling_price), startX + 296, y, {
+        width: 60,
         align: "right",
       });
-      doc.text(formatCurrency(r.total_price), startX + 410, y, {
-        width: 100,
+      doc.text(formatCurrency(r.gst_amount), startX + 360, y, {
+        width: 60,
+        align: "right",
+      });
+      doc.text(formatCurrency(r.total_price), startX + 424, y, {
+        width: 72,
         align: "right",
       });
       doc
@@ -1081,6 +1088,7 @@ router.get("/sales/report/excel", requirePermission("sales_report"), async (req,
         i.name AS item_name,
         s.quantity,
         s.selling_price,
+        COALESCE(s.gst_amount, 0) AS gst_amount,
         s.total_price
        FROM sales s
        JOIN items i ON i.id = s.item_id
@@ -1116,11 +1124,12 @@ router.get("/sales/report/excel", requirePermission("sales_report"), async (req,
       { header: "Item Name", key: "item", width: 30 },
       { header: "Quantity", key: "qty", width: 12 },
       { header: "Rate", key: "rate", width: 12 },
+      { header: "GST", key: "gst", width: 12 },
       { header: "Amount", key: "total", width: 14 },
     ];
 
     sheet.insertRow(1, [`Sales Report`]);
-    sheet.mergeCells("A1:F1");
+    sheet.mergeCells("A1:G1");
     sheet.getCell("A1").font = { size: 16, bold: true };
     sheet.getCell("A1").alignment = { horizontal: "center" };
     sheet.getCell("A1").fill = {
@@ -1135,7 +1144,7 @@ router.get("/sales/report/excel", requirePermission("sales_report"), async (req,
     };
 
     sheet.insertRow(2, [sanitizeExcelCell(shopName)]);
-    sheet.mergeCells("A2:F2");
+    sheet.mergeCells("A2:G2");
     sheet.getCell("A2").alignment = { horizontal: "center" };
     sheet.getCell("A2").font = {
       size: 12,
@@ -1151,10 +1160,10 @@ router.get("/sales/report/excel", requirePermission("sales_report"), async (req,
     sheet.insertRow(3, [
       `From: ${from}   To: ${to}   |   Generated: ${formatIstDate(new Date())}`,
     ]);
-    sheet.mergeCells("A3:F3");
+    sheet.mergeCells("A3:G3");
     sheet.getCell("A3").alignment = { horizontal: "center" };
     sheet.getCell("A3").font = { italic: true, color: { argb: "FF475569" } };
-    sheet.autoFilter = "A4:F4";
+    sheet.autoFilter = "A4:G4";
 
     const headerRow = sheet.getRow(4);
     headerRow.font = { bold: true };
@@ -1183,6 +1192,7 @@ router.get("/sales/report/excel", requirePermission("sales_report"), async (req,
         item: sanitizeExcelCell(r.item_name),
         qty: r.quantity,
         rate: Number(r.selling_price),
+        gst: Number(r.gst_amount) || 0,
         total: Number(r.total_price),
       });
 
@@ -1201,6 +1211,7 @@ router.get("/sales/report/excel", requirePermission("sales_report"), async (req,
       row.getCell("D").alignment = { horizontal: "right" };
       row.getCell("E").alignment = { horizontal: "right" };
       row.getCell("F").alignment = { horizontal: "right" };
+      row.getCell("G").alignment = { horizontal: "right" };
 
       if (i % 2 === 1) {
         row.eachCell((cell) => {
@@ -1215,6 +1226,7 @@ router.get("/sales/report/excel", requirePermission("sales_report"), async (req,
       row.getCell(4).numFmt = "#,##0.00";
       row.getCell(5).numFmt = "#,##0.00";
       row.getCell(6).numFmt = "#,##0.00";
+      row.getCell(7).numFmt = "#,##0.00";
 
       grandTotal += Number(r.total_price);
     });
@@ -1239,9 +1251,9 @@ router.get("/sales/report/excel", requirePermission("sales_report"), async (req,
         bottom: { style: "thin" },
       };
     });
-    totalRow.getCell("F").numFmt = "#,##0.00";
+    totalRow.getCell("G").numFmt = "#,##0.00";
     totalRow.getCell("C").alignment = { horizontal: "right" };
-    totalRow.getCell("F").alignment = { horizontal: "right" };
+    totalRow.getCell("G").alignment = { horizontal: "right" };
 
     // ----------------- Response -----------------
     res.setHeader(

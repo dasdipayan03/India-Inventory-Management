@@ -112,6 +112,11 @@ async function ensureSchemaCompatibility() {
   `);
 
   await pool.query(`
+    ALTER TABLE sales
+    ADD COLUMN IF NOT EXISTS gst_amount NUMERIC(12,2) NOT NULL DEFAULT 0
+  `);
+
+  await pool.query(`
     UPDATE sales AS s
     SET cost_price = COALESCE(i.buying_rate, 0)
     FROM items AS i

@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS sales (
   cost_price NUMERIC(10,2) NOT NULL DEFAULT 0,
   selling_price NUMERIC(10,2) NOT NULL,
   total_price NUMERIC(12,2) NOT NULL,
+  gst_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

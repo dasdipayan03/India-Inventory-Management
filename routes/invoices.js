@@ -56,6 +56,14 @@ function normalizeInvoicePaymentMode(value) {
   return INVOICE_PAYMENT_MODES.has(normalized) ? normalized : "cash";
 }
 
+function calculateSaleGstAmount(baseAmount, gstRate) {
+  const normalizedBaseAmount = Number(baseAmount) || 0;
+  const normalizedGstRate = Number(gstRate) || 0;
+  return Number(
+    ((normalizedBaseAmount * normalizedGstRate) / 100).toFixed(2),
+  );
+}
+
 function buildInvoicePaymentSnapshot(totalAmount, amountPaidInput, paymentModeInput) {
   const normalizedTotal = Number(totalAmount) || 0;
 
@@ -305,9 +313,12 @@ router.post("/invoices", authMiddleware, requirePermission("sale_invoice"), asyn
           `SELECT gst_rate FROM settings WHERE user_id=$1`,
           [userId],
         );
-        const gstRate = gstR.rows[0]?.gst_rate || 18;
+        const gstRate = Number(gstR.rows[0]?.gst_rate || 18);
         const gst_amount = +((subtotal * gstRate) / 100).toFixed(2);
         const total_amount = +(subtotal + gst_amount).toFixed(2);
+        computed.forEach((item) => {
+          item.gstAmount = calculateSaleGstAmount(item.amount, gstRate);
+        });
         const payment = buildInvoicePaymentSnapshot(
           total_amount,
           amount_paid,
@@ -394,11 +405,13 @@ router.post("/invoices", authMiddleware, requirePermission("sale_invoice"), asyn
               (stockAdjustments.get(targetStockRow.id) || 0) - returnedQty,
             );
 
+            const saleBaseAmount = +((-returnedQty) * it.rate).toFixed(2);
+
             await client.query(
               `
                     INSERT INTO sales
-                    (user_id, item_id, quantity, cost_price, selling_price, total_price)
-                    VALUES ($1, $2, $3, $4, $5, $6)
+                    (user_id, item_id, quantity, cost_price, selling_price, total_price, gst_amount)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7)
                     `,
               [
                 userId,
@@ -406,7 +419,8 @@ router.post("/invoices", authMiddleware, requirePermission("sale_invoice"), asyn
                 -returnedQty,
                 targetStockRow.costPrice,
                 it.rate,
-                +((-returnedQty) * it.rate).toFixed(2),
+                saleBaseAmount,
+                it.gstAmount,
               ],
             );
 
@@ -414,6 +428,7 @@ router.post("/invoices", authMiddleware, requirePermission("sale_invoice"), asyn
           }
 
           let remainingQty = it.quantity;
+          let allocatedGstAmount = 0;
 
           for (const stockRow of stockRows) {
             if (remainingQty <= 0) {
@@ -427,6 +442,14 @@ router.post("/invoices", authMiddleware, requirePermission("sale_invoice"), asyn
             const consumedQty = Math.min(remainingQty, stockRow.available);
             stockRow.available -= consumedQty;
             remainingQty -= consumedQty;
+            const saleBaseAmount = +(consumedQty * it.rate).toFixed(2);
+            const isLastSplit = remainingQty <= 0;
+            const saleGstAmount = isLastSplit
+              ? Number((it.gstAmount - allocatedGstAmount).toFixed(2))
+              : calculateSaleGstAmount(saleBaseAmount, gstRate);
+            allocatedGstAmount = Number(
+              (allocatedGstAmount + saleGstAmount).toFixed(2),
+            );
 
             stockAdjustments.set(
               stockRow.id,
@@ -436,8 +459,8 @@ router.post("/invoices", authMiddleware, requirePermission("sale_invoice"), asyn
             await client.query(
               `
                     INSERT INTO sales
-                    (user_id, item_id, quantity, cost_price, selling_price, total_price)
-                    VALUES ($1, $2, $3, $4, $5, $6)
+                    (user_id, item_id, quantity, cost_price, selling_price, total_price, gst_amount)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7)
                     `,
               [
                 userId,
@@ -445,7 +468,8 @@ router.post("/invoices", authMiddleware, requirePermission("sale_invoice"), asyn
                 consumedQty,
                 stockRow.costPrice,
                 it.rate,
-                +(consumedQty * it.rate).toFixed(2),
+                saleBaseAmount,
+                saleGstAmount,
               ],
             );
           }
