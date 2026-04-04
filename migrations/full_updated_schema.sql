@@ -307,6 +307,9 @@ EXECUTE FUNCTION update_timestamp();
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email
   ON users(email);
 
+CREATE INDEX IF NOT EXISTS idx_users_email_lookup
+  ON users (LOWER(email));
+
 CREATE UNIQUE INDEX IF NOT EXISTS idx_staff_accounts_username_unique
   ON staff_accounts (LOWER(TRIM(username)));
 
@@ -322,6 +325,9 @@ CREATE INDEX IF NOT EXISTS idx_sales_user_id
 CREATE INDEX IF NOT EXISTS idx_debts_user_id
   ON debts(user_id);
 
+CREATE INDEX IF NOT EXISTS idx_debts_user_number_created
+  ON debts (user_id, customer_number, created_at ASC, id ASC);
+
 CREATE INDEX IF NOT EXISTS idx_suppliers_user_id
   ON suppliers(user_id);
 
@@ -333,6 +339,10 @@ CREATE INDEX IF NOT EXISTS idx_expenses_user_id
 
 CREATE INDEX IF NOT EXISTS idx_invoices_user_id
   ON invoices(user_id);
+
+CREATE INDEX IF NOT EXISTS idx_invoices_user_contact_due_date
+  ON invoices (user_id, contact, date ASC)
+  WHERE amount_due > 0;
 
 -- =====================================================
 -- OPTIONAL TIMEZONE FIX NOTES
