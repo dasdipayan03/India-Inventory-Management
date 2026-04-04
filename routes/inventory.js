@@ -61,6 +61,16 @@ function formatIstDate(value) {
   return dateFormatter.format(new Date(value));
 }
 
+function getCurrentIstYear() {
+  return Number.parseInt(
+    new Intl.DateTimeFormat("en-IN", {
+      year: "numeric",
+      timeZone: "Asia/Kolkata",
+    }).format(new Date()),
+    10,
+  );
+}
+
 function safeFilePart(value) {
   return String(value || "report")
     .trim()
@@ -2041,33 +2051,114 @@ router.use((err, req, res, next) => {
 router.get("/sales/monthly-trend", requirePermission("sales_report"), async (req, res) => {
   try {
     const user_id = getUserId(req);
-    const yearParam = req.query.year;
+    const rawYear = String(req.query.year || "all").trim().toLowerCase();
+    let selectedYear = null;
 
-    let yearFilter = "";
+    if (rawYear && rawYear !== "all") {
+      const parsedYear = Number.parseInt(rawYear, 10);
+      const currentYear = getCurrentIstYear();
 
-    if (yearParam && yearParam !== "all") {
-      yearFilter = "AND EXTRACT(YEAR FROM s.created_at) = $2";
+      if (
+        !Number.isInteger(parsedYear) ||
+        parsedYear < 2000 ||
+        parsedYear > currentYear
+      ) {
+        return res.status(400).json({ error: "Invalid year filter" });
+      }
+
+      selectedYear = parsedYear;
     }
-
-    const params =
-      yearParam && yearParam !== "all" ? [user_id, yearParam] : [user_id];
 
     const result = await pool.query(
       `
-      SELECT 
-        TO_CHAR(s.created_at, 'Mon') AS month,
-        SUM(s.total_price) AS total_sales,
-        SUM((s.selling_price - s.cost_price) * s.quantity) AS total_profit
-      FROM sales s
-      WHERE s.user_id = $1
-      ${yearFilter}
-      GROUP BY month
-      ORDER BY MIN(s.created_at)
+      WITH catalog_bounds AS (
+        SELECT
+          COALESCE(
+            MIN(DATE_TRUNC('month', s.created_at AT TIME ZONE 'Asia/Kolkata')),
+            DATE_TRUNC('month', CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Kolkata')
+          ) AS first_month,
+          DATE_TRUNC('month', CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Kolkata') AS current_month
+        FROM sales s
+        WHERE s.user_id = $1
+      ),
+      display_bounds AS (
+        SELECT
+          CASE
+            WHEN $2::int IS NULL THEN cb.first_month
+            ELSE make_date($2::int, 1, 1)::timestamp
+          END AS start_month,
+          CASE
+            WHEN $2::int IS NULL THEN cb.current_month
+            ELSE make_date($2::int, 12, 1)::timestamp
+          END AS end_month,
+          cb.first_month,
+          cb.current_month
+        FROM catalog_bounds cb
+      ),
+      months AS (
+        SELECT
+          db.first_month,
+          db.current_month,
+          generate_series(db.start_month, db.end_month, INTERVAL '1 month') AS month_start
+        FROM display_bounds db
+      ),
+      sales_rollup AS (
+        SELECT
+          DATE_TRUNC('month', s.created_at AT TIME ZONE 'Asia/Kolkata') AS month_start,
+          SUM(s.total_price) AS total_sales,
+          SUM((s.selling_price - s.cost_price) * s.quantity) AS total_profit
+        FROM sales s
+        WHERE s.user_id = $1
+          AND (
+            $2::int IS NULL
+            OR EXTRACT(YEAR FROM s.created_at AT TIME ZONE 'Asia/Kolkata') = $2::int
+          )
+        GROUP BY 1
+      )
+      SELECT
+        TO_CHAR(
+          m.month_start,
+          CASE
+            WHEN $2::int IS NULL THEN 'Mon YYYY'
+            ELSE 'Mon'
+          END
+        ) AS month_label,
+        TO_CHAR(m.month_start, 'YYYY-MM') AS month_key,
+        m.month_start::date AS month_start_date,
+        COALESCE(sr.total_sales, 0)::numeric(12,2) AS total_sales,
+        COALESCE(sr.total_profit, 0)::numeric(12,2) AS total_profit,
+        EXTRACT(YEAR FROM m.first_month)::int AS first_available_year,
+        EXTRACT(YEAR FROM m.current_month)::int AS current_year
+      FROM months m
+      LEFT JOIN sales_rollup sr
+        ON sr.month_start = m.month_start
+      ORDER BY m.month_start ASC
       `,
-      params,
+      [user_id, selectedYear],
     );
 
-    res.json(result.rows);
+    const currentYear = Number(result.rows[0]?.current_year) || getCurrentIstYear();
+    const firstAvailableYear =
+      Number(result.rows[0]?.first_available_year) || currentYear;
+    const availableYears = [];
+
+    for (let year = currentYear; year >= firstAvailableYear; year -= 1) {
+      availableYears.push(year);
+    }
+
+    res.json({
+      success: true,
+      mode: selectedYear ? "year" : "all",
+      year: selectedYear,
+      available_years: availableYears,
+      timeline: result.rows.map((row) => ({
+        month_label: row.month_label,
+        month_key: row.month_key,
+        month_start_date: row.month_start_date,
+        total_sales: row.total_sales,
+        total_profit: row.total_profit,
+      })),
+    });
   } catch (err) {
     console.error("Monthly trend error:", err);
     res.status(500).json({ error: "Server error" });

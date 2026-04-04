@@ -63,6 +63,37 @@ const formatters = {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }),
+  compactMoney: new Intl.NumberFormat("en-IN", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }),
+};
+
+const businessTrendHoverLinePlugin = {
+  id: "businessTrendHoverLine",
+  afterDatasetsDraw(chart) {
+    const activeElements = chart.tooltip?.getActiveElements?.() || [];
+    const activePoint = activeElements[0]?.element;
+
+    if (!activePoint) {
+      return;
+    }
+
+    const {
+      ctx,
+      chartArea: { top, bottom },
+    } = chart;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(activePoint.x, top + 8);
+    ctx.lineTo(activePoint.x, bottom);
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = "rgba(39, 64, 107, 0.18)";
+    ctx.stroke();
+    ctx.restore();
+  },
 };
 
 const dom = {};
@@ -111,6 +142,10 @@ function formatCurrency(value) {
   return `Rs. ${formatters.money.format(Number(value) || 0)}`;
 }
 
+function formatCompactCurrency(value) {
+  return `Rs. ${formatters.compactMoney.format(Number(value) || 0)}`;
+}
+
 function formatCurrencyValue(value) {
   return formatters.money.format(Number(value) || 0);
 }
@@ -153,6 +188,10 @@ function formatMonthBucket(bucket) {
     year: "numeric",
     timeZone: "Asia/Kolkata",
   }).format(new Date(Date.UTC(year, Math.max(month - 1, 0), 1)));
+}
+
+function getCurrentMonthKey() {
+  return getMonthBucket(new Date());
 }
 
 function toInputDate(date) {
@@ -586,6 +625,13 @@ function cacheElements() {
     gstMonthlySummaryBody: document.getElementById("gstMonthlySummaryBody"),
     gstRateSummaryBody: document.getElementById("gstRateSummaryBody"),
     yearFilter: document.getElementById("yearFilter"),
+    growthLivePill: document.getElementById("growthLivePill"),
+    growthRangeLabel: document.getElementById("growthRangeLabel"),
+    growthRangeNote: document.getElementById("growthRangeNote"),
+    growthLatestValue: document.getElementById("growthLatestValue"),
+    growthLatestNote: document.getElementById("growthLatestNote"),
+    growthPeakValue: document.getElementById("growthPeakValue"),
+    growthPeakNote: document.getElementById("growthPeakNote"),
     businessTrendChart: document.getElementById("businessTrendChart"),
     growthBadge: document.getElementById("growthBadge"),
     last12MonthsChart: document.getElementById("last12MonthsChart"),
@@ -4360,13 +4406,49 @@ async function loadBusinessTrend(year = "all", options = {}) {
 
   try {
     const ChartLibrary = await ensureChartLibrary();
-    const rows = await fetchJSON(`/sales/monthly-trend?year=${year}`);
-    const labels = rows.map((row) => row.month);
-    const sales = rows.map((row) => Number(row.total_sales) || 0);
-    const profit = rows.map((row) => Number(row.total_profit) || 0);
+    const payload = await fetchJSON(`/sales/monthly-trend?year=${year}`);
+    const rows = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload.timeline)
+        ? payload.timeline
+        : [];
+    const mode = Array.isArray(payload)
+      ? year === "all"
+        ? "all"
+        : "year"
+      : payload.mode || (year === "all" ? "all" : "year");
+    const selectedYear =
+      Array.isArray(payload)
+        ? year === "all"
+          ? null
+          : Number.parseInt(year, 10)
+        : payload.year ?? (year === "all" ? null : Number.parseInt(year, 10));
 
-    renderBusinessTrend(labels, sales, profit, ChartLibrary);
-    updateGrowthBadge(sales);
+    setTrendYearFilterOptions(
+      Array.isArray(payload?.available_years) ? payload.available_years : [],
+      year,
+    );
+
+    const trendContext = {
+      mode,
+      year: Number.isInteger(selectedYear) ? selectedYear : null,
+    };
+    const labels = rows.map(
+      (row) => row.month_label || formatMonthBucket(row.month_key),
+    );
+    const sales = buildTrendChartSeries(rows, "total_sales", trendContext);
+    const profit = buildTrendChartSeries(rows, "total_profit", trendContext);
+    const referenceRow = resolveTrendReferenceRow(rows, trendContext);
+    const referenceIndex = referenceRow
+      ? rows.findIndex((row) => row.month_key === referenceRow.month_key)
+      : -1;
+
+    renderBusinessTrend(labels, sales, profit, ChartLibrary, {
+      referenceIndex,
+      denseTimeline: labels.length > 12,
+    });
+    updateGrowthOverviewMeta(rows, trendContext);
+    updateGrowthBadge(rows, trendContext);
   } catch (error) {
     console.error("Business trend load failed:", error);
     if (!options.silent) {
@@ -4380,7 +4462,239 @@ async function loadBusinessTrend(year = "all", options = {}) {
   }
 }
 
-function renderBusinessTrend(labels, sales, profit, ChartLibrary = window.Chart) {
+function setTrendYearFilterOptions(availableYears = [], selectedValue = "all") {
+  if (!dom.yearFilter) {
+    return;
+  }
+
+  const normalizedSelected =
+    selectedValue == null ? "all" : String(selectedValue);
+  const years = Array.from(
+    new Set(
+      (Array.isArray(availableYears) ? availableYears : [])
+        .map((year) => Number.parseInt(year, 10))
+        .filter((year) => Number.isInteger(year) && year >= 2000),
+    ),
+  ).sort((a, b) => b - a);
+
+  dom.yearFilter.innerHTML = "";
+
+  const allOption = document.createElement("option");
+  allOption.value = "all";
+  allOption.textContent = "All";
+  dom.yearFilter.appendChild(allOption);
+
+  years.forEach((year) => {
+    const option = document.createElement("option");
+    option.value = String(year);
+    option.textContent = String(year);
+    dom.yearFilter.appendChild(option);
+  });
+
+  const selectedYearNumber = Number.parseInt(normalizedSelected, 10);
+  const shouldKeepSelected =
+    normalizedSelected === "all" ||
+    years.includes(selectedYearNumber);
+
+  dom.yearFilter.value = shouldKeepSelected ? normalizedSelected : "all";
+}
+
+function isFutureTrendMonth(row, context = {}) {
+  const selectedYear = Number.parseInt(context.year, 10);
+  const currentMonthKey = getCurrentMonthKey();
+  const currentYear = Number.parseInt(currentMonthKey.slice(0, 4), 10);
+
+  return (
+    context.mode === "year" &&
+    Number.isInteger(selectedYear) &&
+    selectedYear === currentYear &&
+    String(row?.month_key || "") > currentMonthKey
+  );
+}
+
+function buildTrendChartSeries(rows, fieldName, context = {}) {
+  return (Array.isArray(rows) ? rows : []).map((row) => {
+    if (isFutureTrendMonth(row, context)) {
+      return null;
+    }
+
+    return Number(row?.[fieldName]) || 0;
+  });
+}
+
+function resolveTrendReferenceRow(rows, context = {}) {
+  if (!Array.isArray(rows) || !rows.length) {
+    return null;
+  }
+
+  const currentMonthKey = getCurrentMonthKey();
+
+  if (context.mode === "all") {
+    return rows.find((row) => row.month_key === currentMonthKey)
+      || rows[rows.length - 1];
+  }
+
+  const selectedYear = Number.parseInt(context.year, 10);
+  const currentYear = Number.parseInt(currentMonthKey.slice(0, 4), 10);
+
+  if (Number.isInteger(selectedYear) && selectedYear === currentYear) {
+    const currentRow = rows.find((row) => row.month_key === currentMonthKey);
+    if (currentRow) {
+      return currentRow;
+    }
+
+    const visibleRows = rows.filter((row) => !isFutureTrendMonth(row, context));
+    return visibleRows[visibleRows.length - 1] || rows[0];
+  }
+
+  return rows[rows.length - 1];
+}
+
+function resolvePreviousTrendRow(rows, referenceRow) {
+  if (!Array.isArray(rows) || !rows.length || !referenceRow) {
+    return null;
+  }
+
+  const referenceIndex = rows.findIndex(
+    (row) => row.month_key === referenceRow.month_key,
+  );
+
+  return referenceIndex > 0 ? rows[referenceIndex - 1] : null;
+}
+
+function updateGrowthOverviewMeta(rows, context = {}) {
+  if (
+    !dom.growthRangeLabel ||
+    !dom.growthRangeNote ||
+    !dom.growthLatestValue ||
+    !dom.growthLatestNote ||
+    !dom.growthPeakValue ||
+    !dom.growthPeakNote ||
+    !dom.growthLivePill
+  ) {
+    return;
+  }
+
+  if (!Array.isArray(rows) || !rows.length) {
+    dom.growthRangeLabel.textContent = "No data";
+    dom.growthRangeNote.textContent =
+      "Monthly trend will appear after sales are recorded.";
+    dom.growthLatestValue.textContent = "Rs. 0.00";
+    dom.growthLatestNote.textContent =
+      "Current month sales and profit snapshot will appear here.";
+    dom.growthPeakValue.textContent = "Rs. 0.00";
+    dom.growthPeakNote.textContent =
+      "Peak revenue month inside the active timeline.";
+    dom.growthLivePill.textContent = "Waiting for sales data";
+    return;
+  }
+
+  const referenceRow = resolveTrendReferenceRow(rows, context) || rows[rows.length - 1];
+  const visibleRows = rows.filter((row) => !isFutureTrendMonth(row, context));
+  const peakRow = visibleRows.reduce((bestRow, row) => (
+    Number(row.total_sales || 0) > Number(bestRow.total_sales || 0)
+      ? row
+      : bestRow
+  ), visibleRows[0] || rows[0]);
+  const zeroMonths = visibleRows.filter(
+    (row) => Number(row.total_sales || 0) === 0,
+  ).length;
+  const currentYear = Number.parseInt(getCurrentMonthKey().slice(0, 4), 10);
+
+  if (context.mode === "year" && Number.isInteger(context.year)) {
+    dom.growthRangeLabel.textContent = `${context.year} | 12 months`;
+    dom.growthRangeNote.textContent =
+      context.year === currentYear
+        ? "Jan to Dec stays visible. Future months will fill in as new sales happen."
+        : `Full January to December snapshot for ${context.year}.`;
+    dom.growthLivePill.textContent =
+      context.year === currentYear
+        ? `Updated through ${referenceRow.month_label}`
+        : `Full ${context.year} snapshot`;
+  } else {
+    dom.growthRangeLabel.textContent =
+      `${rows[0].month_label} - ${rows[rows.length - 1].month_label}`;
+    dom.growthRangeNote.textContent =
+      `Continuous month-by-month view with ${visibleRows.length} months in the active timeline.`;
+    dom.growthLivePill.textContent = `Updated through ${referenceRow.month_label}`;
+  }
+
+  dom.growthLatestValue.textContent = formatCurrency(referenceRow.total_sales);
+  dom.growthLatestNote.textContent =
+    `${referenceRow.month_label} sales | Profit ${formatCurrency(referenceRow.total_profit)}`;
+  dom.growthPeakValue.textContent = formatCurrency(peakRow.total_sales);
+  dom.growthPeakNote.textContent =
+    `${peakRow.month_label} peak revenue${zeroMonths > 0
+      ? ` | ${zeroMonths} zero-sale month${zeroMonths === 1 ? "" : "s"} visible`
+      : ""}.`;
+}
+
+function updateGrowthBadge(rows, context = {}) {
+  if (!dom.growthBadge) {
+    return;
+  }
+
+  const referenceRow = resolveTrendReferenceRow(rows, context);
+  const previousRow = resolvePreviousTrendRow(rows, referenceRow);
+  const currentYear = Number.parseInt(getCurrentMonthKey().slice(0, 4), 10);
+  const futureHint =
+    context.mode === "year" && Number(context.year) === currentYear
+      ? "Future months stay on the axis and will fill in as sales happen."
+      : `${Array.isArray(rows) ? rows.length : 0} months are visible in this view.`;
+
+  if (!referenceRow || !previousRow) {
+    dom.growthBadge.innerHTML = `
+      <span class="growth-badge__signal growth-badge__signal--neutral">
+        <i class="fa-solid fa-wave-square"></i>
+        Need at least two visible months to compare growth.
+      </span>
+      <span class="growth-badge__detail">
+        Once two months are available in the active timeline, month-on-month growth will appear here.
+      </span>
+    `;
+    return;
+  }
+
+  const latestSales = Number(referenceRow.total_sales) || 0;
+  const previousSales = Number(previousRow.total_sales) || 0;
+
+  if (previousSales <= 0) {
+    dom.growthBadge.innerHTML = `
+      <span class="growth-badge__signal growth-badge__signal--neutral">
+        <i class="fa-solid fa-chart-simple"></i>
+        ${referenceRow.month_label} recorded ${formatCurrency(latestSales)} sales.
+      </span>
+      <span class="growth-badge__detail">
+        A percentage growth value will appear after ${previousRow.month_label} has comparable sales. ${futureHint}
+      </span>
+    `;
+    return;
+  }
+
+  const growth = ((latestSales - previousSales) / previousSales) * 100;
+  const directionClass = growth >= 0 ? "positive" : "negative";
+  const directionIcon =
+    growth >= 0 ? "fa-arrow-trend-up" : "fa-arrow-trend-down";
+  const directionText = growth >= 0 ? "growth" : "drop";
+
+  dom.growthBadge.innerHTML = `
+    <span class="growth-badge__signal growth-badge__signal--${directionClass}">
+      <i class="fa-solid ${directionIcon}"></i>
+      ${Math.abs(growth).toFixed(1)}% ${directionText} vs previous month
+    </span>
+    <span class="growth-badge__detail">
+      Comparing ${referenceRow.month_label} with ${previousRow.month_label}. ${futureHint}
+    </span>
+  `;
+}
+
+function renderBusinessTrend(
+  labels,
+  sales,
+  profit,
+  ChartLibrary = window.Chart,
+  options = {},
+) {
   const ctx = dom.businessTrendChart.getContext("2d");
 
   if (state.charts.businessTrend) {
@@ -4394,9 +4708,15 @@ function renderBusinessTrend(labels, sales, profit, ChartLibrary = window.Chart)
   const profitGradient = ctx.createLinearGradient(0, 0, 0, 260);
   profitGradient.addColorStop(0, "rgba(20, 184, 166, 0.24)");
   profitGradient.addColorStop(1, "rgba(20, 184, 166, 0.02)");
+  const highlightIndex = options.referenceIndex >= 0
+    ? options.referenceIndex
+    : sales.reduce((lastIndex, value, index) => (
+      value === null ? lastIndex : index
+    ), -1);
 
   state.charts.businessTrend = new ChartLibrary(ctx, {
     type: "line",
+    plugins: [businessTrendHoverLinePlugin],
     data: {
       labels,
       datasets: [
@@ -4407,9 +4727,17 @@ function renderBusinessTrend(labels, sales, profit, ChartLibrary = window.Chart)
           backgroundColor: salesGradient,
           fill: true,
           borderWidth: 3,
-          tension: 0.32,
-          pointRadius: 3,
-          pointHoverRadius: 5,
+          tension: 0.36,
+          pointRadius(context) {
+            return context.dataIndex === highlightIndex ? 4 : 0;
+          },
+          pointHoverRadius: 6,
+          pointHitRadius: 18,
+          pointBackgroundColor: "#0ea5e9",
+          pointBorderColor: "#ffffff",
+          pointBorderWidth(context) {
+            return context.dataIndex === highlightIndex ? 3 : 0;
+          },
         },
         {
           label: "Profit",
@@ -4418,25 +4746,49 @@ function renderBusinessTrend(labels, sales, profit, ChartLibrary = window.Chart)
           backgroundColor: profitGradient,
           fill: true,
           borderWidth: 3,
-          tension: 0.32,
-          pointRadius: 3,
-          pointHoverRadius: 5,
+          tension: 0.36,
+          pointRadius(context) {
+            return context.dataIndex === highlightIndex ? 4 : 0;
+          },
+          pointHoverRadius: 6,
+          pointHitRadius: 18,
+          pointBackgroundColor: "#14b8a6",
+          pointBorderColor: "#ffffff",
+          pointBorderWidth(context) {
+            return context.dataIndex === highlightIndex ? 3 : 0;
+          },
         },
       ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      interaction: {
+        mode: "index",
+        intersect: false,
+      },
       plugins: {
         legend: {
           position: "top",
           labels: {
             usePointStyle: true,
             boxWidth: 10,
+            color: "#27406b",
+            padding: 18,
           },
         },
         tooltip: {
+          backgroundColor: "rgba(15, 23, 42, 0.92)",
+          titleColor: "#ffffff",
+          bodyColor: "#e2e8f0",
+          borderColor: "rgba(148, 163, 184, 0.22)",
+          borderWidth: 1,
+          padding: 12,
+          displayColors: true,
           callbacks: {
+            title(context) {
+              return context[0]?.label || "";
+            },
             label(context) {
               return `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`;
             },
@@ -4448,12 +4800,23 @@ function renderBusinessTrend(labels, sales, profit, ChartLibrary = window.Chart)
           grid: {
             display: false,
           },
+          ticks: {
+            color: "#5f7496",
+            maxRotation: 0,
+            autoSkip: Boolean(options.denseTimeline),
+            maxTicksLimit: options.denseTimeline ? 10 : 12,
+          },
         },
         y: {
           beginAtZero: true,
+          grid: {
+            color: "rgba(117, 142, 180, 0.14)",
+            drawBorder: false,
+          },
           ticks: {
+            color: "#5f7496",
             callback(value) {
-              return formatCurrency(value);
+              return formatCompactCurrency(value);
             },
           },
         },
@@ -4462,50 +4825,9 @@ function renderBusinessTrend(labels, sales, profit, ChartLibrary = window.Chart)
   });
 }
 
-function updateGrowthBadge(values) {
-  if (!values.length || values.length < 2) {
-    dom.growthBadge.innerHTML =
-      '<span class="text-muted">Need at least two months of sales data to calculate growth.</span>';
-    return;
-  }
-
-  const last = Number(values[values.length - 1]) || 0;
-  const previous = Number(values[values.length - 2]) || 0;
-
-  if (previous <= 0) {
-    dom.growthBadge.innerHTML =
-      '<span class="text-muted">Growth will appear once two comparable sales months are available.</span>';
-    return;
-  }
-
-  const growth = ((last - previous) / previous) * 100;
-  const directionIcon =
-    growth >= 0
-      ? '<i class="fa-solid fa-arrow-trend-up text-success"></i>'
-      : '<i class="fa-solid fa-arrow-trend-down text-danger"></i>';
-  const directionText = growth >= 0 ? "growth" : "drop";
-  const directionClass = growth >= 0 ? "text-success" : "text-danger";
-
-  dom.growthBadge.innerHTML = `
-    ${directionIcon}
-    <span class="${directionClass}">
-      ${Math.abs(growth).toFixed(1)}% ${directionText} vs previous month
-    </span>
-  `;
-}
-
 function initYearFilter() {
   if (!dom.yearFilter || dom.yearFilter.dataset.initialized === "true") {
     return;
-  }
-
-  const currentYear = new Date().getFullYear();
-
-  for (let year = currentYear; year >= currentYear - 5; year -= 1) {
-    const option = document.createElement("option");
-    option.value = String(year);
-    option.textContent = String(year);
-    dom.yearFilter.appendChild(option);
   }
 
   dom.yearFilter.addEventListener("change", () => {

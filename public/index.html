@@ -1595,6 +1595,8 @@
       }
 
       .analytics-card {
+        position: relative;
+        overflow: hidden;
         background: linear-gradient(
           180deg,
           rgba(255, 255, 255, 0.94),
@@ -1606,16 +1608,129 @@
         box-shadow: var(--shadow-md);
       }
 
+      .analytics-card--trend::after {
+        content: "";
+        position: absolute;
+        right: -34px;
+        bottom: -86px;
+        width: 240px;
+        height: 240px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(14, 165, 233, 0.14),
+          transparent 70%
+        );
+        pointer-events: none;
+      }
+
       .analytics-title {
         color: var(--ink-strong);
         font-weight: 800;
         letter-spacing: -0.03em;
       }
 
+      .analytics-card__toolbar {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+
+      .analytics-card__actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+
+      .analytics-card__live-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(20, 184, 166, 0.12);
+        color: #0f766e;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+      }
+
+      .analytics-card__live-pill::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+        box-shadow: 0 0 0 6px rgba(20, 184, 166, 0.14);
+      }
+
+      .growth-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .growth-summary-card {
+        position: relative;
+        padding: 15px 16px;
+        border-radius: 18px;
+        border: 1px solid rgba(191, 219, 254, 0.56);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.96),
+          rgba(240, 249, 255, 0.8)
+        );
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.9),
+          0 10px 20px rgba(17, 29, 58, 0.05);
+      }
+
+      .growth-summary-card span {
+        display: block;
+        color: var(--ink-soft);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .growth-summary-card strong {
+        display: block;
+        margin-top: 8px;
+        color: var(--ink-strong);
+        font-size: clamp(18px, 2.1vw, 24px);
+        line-height: 1.08;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+      }
+
+      .growth-summary-card small {
+        display: block;
+        margin-top: 8px;
+        color: var(--ink-soft);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
       .chart-box {
         position: relative;
         width: 100%;
         height: 350px;
+      }
+
+      .chart-box--trend {
+        height: 370px;
+        padding-right: 6px;
+      }
+
+      .chart-box--trend canvas {
+        filter: drop-shadow(0 16px 30px rgba(17, 29, 58, 0.08));
       }
 
       .sales-net-profit-card {
@@ -1689,12 +1804,41 @@
       }
 
       #growthBadge {
+        display: grid;
+        gap: 6px;
+        min-height: 24px;
+        margin-top: 14px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: rgba(255, 255, 255, 0.72);
+        backdrop-filter: blur(10px);
+      }
+
+      .growth-badge__signal {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        min-height: 24px;
-        margin-top: 12px;
         font-size: 13px;
+        font-weight: 800;
+      }
+
+      .growth-badge__signal--positive {
+        color: #15803d;
+      }
+
+      .growth-badge__signal--negative {
+        color: #b91c1c;
+      }
+
+      .growth-badge__signal--neutral {
+        color: var(--ink-soft);
+      }
+
+      .growth-badge__detail {
+        color: var(--ink-soft);
+        font-size: 12px;
+        line-height: 1.6;
       }
 
       .dashboard-table--ledger td:last-child {
@@ -2026,6 +2170,20 @@
 
         .chart-box {
           height: 260px;
+        }
+
+        .chart-box--trend {
+          height: 300px;
+        }
+
+        .analytics-card__toolbar,
+        .analytics-card__actions {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .growth-summary-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
         .sales-net-profit-card__top {
@@ -2673,6 +2831,14 @@
 
         .chart-box {
           height: 220px;
+        }
+
+        .chart-box--trend {
+          height: 260px;
+        }
+
+        .growth-summary-grid {
+          grid-template-columns: 1fr;
         }
       }
 
@@ -3966,25 +4132,53 @@
           </section>
 
           <div class="chart-grid">
-            <section class="analytics-card">
-              <div
-                class="d-flex justify-content-between align-items-center gap-3 mb-3"
-              >
+            <section class="analytics-card analytics-card--trend">
+              <div class="analytics-card__toolbar">
                 <div>
                   <h5 class="analytics-title mb-1">Growth Overview</h5>
                   <p class="panel-subtitle mb-0">
-                    Compare monthly sales and profit from the same chart.
+                    Follow the business trend from the first active month to
+                    the current one, or open any year in a clean 12-month view.
                   </p>
                 </div>
-                <select
-                  id="yearFilter"
-                  class="form-select form-select-sm chart-filter-select"
-                >
-                  <option value="all">All</option>
-                </select>
+                <div class="analytics-card__actions">
+                  <span id="growthLivePill" class="analytics-card__live-pill">
+                    Updated through current month
+                  </span>
+                  <select
+                    id="yearFilter"
+                    class="form-select form-select-sm chart-filter-select"
+                  >
+                    <option value="all">All</option>
+                  </select>
+                </div>
               </div>
 
-              <div class="chart-box">
+              <div class="growth-summary-grid">
+                <article class="growth-summary-card">
+                  <span>Timeline</span>
+                  <strong id="growthRangeLabel">All months</strong>
+                  <small id="growthRangeNote">
+                    From the first sale month up to the current month.
+                  </small>
+                </article>
+                <article class="growth-summary-card">
+                  <span>Latest Month</span>
+                  <strong id="growthLatestValue">Rs. 0.00</strong>
+                  <small id="growthLatestNote">
+                    Current month sales and profit snapshot will appear here.
+                  </small>
+                </article>
+                <article class="growth-summary-card">
+                  <span>Best Month</span>
+                  <strong id="growthPeakValue">Rs. 0.00</strong>
+                  <small id="growthPeakNote">
+                    Peak revenue month inside the active timeline.
+                  </small>
+                </article>
+              </div>
+
+              <div class="chart-box chart-box--trend">
                 <canvas id="businessTrendChart"></canvas>
               </div>
               <div id="growthBadge" class="fw-semibold"></div>
