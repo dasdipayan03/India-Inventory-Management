@@ -988,6 +988,8 @@ router.get("/sales/report/pdf", requirePermission("sales_report"), async (req, r
     drawPdfTableHeader(doc, salesColumns);
 
     // ---- Rows ----
+    let subtotal = 0;
+    let gstTotal = 0;
     let grandTotal = 0;
 
     result.rows.forEach((r, i) => {
@@ -1043,26 +1045,40 @@ router.get("/sales/report/pdf", requirePermission("sales_report"), async (req, r
       // 👉 move y based on tallest content
       doc.y = y + Math.max(itemHeight, 18) + 6;
 
+      subtotal += totalPrice;
+      gstTotal += gstAmount;
       grandTotal += finalTotal;
     });
 
-    const totalBoxHeight = 46;
-    ensurePdfSpace(doc, totalBoxHeight + 12, () =>
+    const summaryHeight = 88;
+    ensurePdfSpace(doc, summaryHeight + 12, () =>
       drawPdfTableHeader(doc, salesColumns),
     );
 
-    const totalY = doc.y + 6;
+    const summaryY = doc.y + 6;
     doc.save();
     doc
-      .roundedRect(360, totalY, 195, totalBoxHeight, 12)
+      .roundedRect(320, summaryY, 235, summaryHeight, 12)
       .fillAndStroke("#f8fbff", PDF_THEME.line);
     doc.restore();
 
     doc.font("Helvetica-Bold").fontSize(11).fillColor(PDF_THEME.navy);
-    doc.text("Grand Total", 376, totalY + 12, { width: 90 });
-    doc.text(`Rs. ${formatCurrency(grandTotal)}`, 446, totalY + 12, {
-      width: 92,
-      align: "right",
+    doc.text("Sales Summary", 336, summaryY + 12, { width: 180 });
+    [
+      ["Total Sale", grandTotal, true],
+      ["Total GST", gstTotal, false],
+      ["Subtotal", subtotal, false],
+    ].forEach(([label, value, highlight], index) => {
+      const rowY = summaryY + 32 + index * 16;
+      doc
+        .font(highlight ? "Helvetica-Bold" : "Helvetica")
+        .fontSize(10)
+        .fillColor(highlight ? PDF_THEME.navy : PDF_THEME.ink);
+      doc.text(label, 336, rowY, { width: 96 });
+      doc.text(`Rs. ${formatCurrency(value)}`, 430, rowY, {
+        width: 110,
+        align: "right",
+      });
     });
 
     doc.fillColor(PDF_THEME.ink);
@@ -1185,6 +1201,8 @@ router.get("/sales/report/excel", requirePermission("sales_report"), async (req,
       };
     });
 
+    let subtotal = 0;
+    let gstTotal = 0;
     let grandTotal = 0;
 
     result.rows.forEach((r, i) => {
@@ -1234,32 +1252,40 @@ router.get("/sales/report/excel", requirePermission("sales_report"), async (req,
       row.getCell(6).numFmt = "#,##0.00";
       row.getCell(7).numFmt = "#,##0.00";
 
+      subtotal += totalPrice;
+      gstTotal += gstAmount;
       grandTotal += finalTotal;
     });
 
-    // ----------------- Grand Total -----------------
+    // ----------------- Summary -----------------
     sheet.addRow([]);
 
-    const totalRow = sheet.addRow({
-      item: "Grand Total (Rs.)",
-      total: grandTotal,
-    });
+    [
+      { label: "Total Sale (Rs.)", value: grandTotal, fill: "FFE0F2FE" },
+      { label: "Total GST (Rs.)", value: gstTotal, fill: "FFF0F9FF" },
+      { label: "Subtotal (Rs.)", value: subtotal, fill: "FFF8FBFF" },
+    ].forEach(({ label, value, fill }) => {
+      const summaryRow = sheet.addRow({
+        item: label,
+        total: value,
+      });
 
-    totalRow.font = { bold: true };
-    totalRow.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FFE0F2FE" },
-    };
-    totalRow.eachCell((cell) => {
-      cell.border = {
-        top: { style: "thin" },
-        bottom: { style: "thin" },
+      summaryRow.font = { bold: true };
+      summaryRow.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: fill },
       };
+      summaryRow.eachCell((cell) => {
+        cell.border = {
+          top: { style: "thin" },
+          bottom: { style: "thin" },
+        };
+      });
+      summaryRow.getCell("G").numFmt = "#,##0.00";
+      summaryRow.getCell("C").alignment = { horizontal: "right" };
+      summaryRow.getCell("G").alignment = { horizontal: "right" };
     });
-    totalRow.getCell("G").numFmt = "#,##0.00";
-    totalRow.getCell("C").alignment = { horizontal: "right" };
-    totalRow.getCell("G").alignment = { horizontal: "right" };
 
     // ----------------- Response -----------------
     res.setHeader(

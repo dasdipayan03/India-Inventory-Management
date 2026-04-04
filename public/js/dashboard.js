@@ -600,6 +600,8 @@ function cacheElements() {
     excelBtn: document.getElementById("excelBtn"),
     salesReportBody: document.getElementById("salesReportBody"),
     salesGrandTotal: document.getElementById("salesGrandTotal"),
+    salesGstTotal: document.getElementById("salesGstTotal"),
+    salesSubtotalTotal: document.getElementById("salesSubtotalTotal"),
     salesNetProfitCard: document.getElementById("salesNetProfitCard"),
     salesNetProfitFromDate: document.getElementById("salesNetProfitFromDate"),
     salesNetProfitToDate: document.getElementById("salesNetProfitToDate"),
@@ -3776,12 +3778,16 @@ async function loadSalesNetProfitCard(options = {}) {
 
 function renderSalesReport(rows) {
   dom.salesReportBody.innerHTML = "";
+  let subtotal = 0;
+  let gstTotal = 0;
   let grandTotal = 0;
 
   if (!rows.length) {
     dom.salesReportBody.innerHTML =
       '<tr><td colspan="6" class="text-muted">No sales records found for this range.</td></tr>';
     dom.salesGrandTotal.textContent = "0.00";
+    dom.salesGstTotal.textContent = "0.00";
+    dom.salesSubtotalTotal.textContent = "0.00";
     return;
   }
 
@@ -3792,6 +3798,8 @@ function renderSalesReport(rows) {
     const finalTotal = totalPrice + gstAmount;
     const quantity = Number(row.quantity) || 0;
 
+    subtotal += totalPrice;
+    gstTotal += gstAmount;
     grandTotal += finalTotal;
 
     const tr = document.createElement("tr");
@@ -3807,6 +3815,8 @@ function renderSalesReport(rows) {
   });
 
   dom.salesGrandTotal.textContent = formatters.money.format(grandTotal);
+  dom.salesGstTotal.textContent = formatters.money.format(gstTotal);
+  dom.salesSubtotalTotal.textContent = formatters.money.format(subtotal);
 }
 
 function validateGstDates() {
