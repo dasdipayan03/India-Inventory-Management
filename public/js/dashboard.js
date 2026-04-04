@@ -3789,9 +3789,10 @@ function renderSalesReport(rows) {
     const totalPrice = Number(row.total_price) || 0;
     const sellingPrice = Number(row.selling_price) || 0;
     const gstAmount = Number(row.gst_amount) || 0;
+    const finalTotal = totalPrice + gstAmount;
     const quantity = Number(row.quantity) || 0;
 
-    grandTotal += totalPrice;
+    grandTotal += finalTotal;
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -3800,7 +3801,7 @@ function renderSalesReport(rows) {
       <td>${formatNumber(quantity)}</td>
       <td>${formatCurrencyValue(sellingPrice)}</td>
       <td>${formatCurrencyValue(gstAmount)}</td>
-      <td>${formatCurrencyValue(totalPrice)}</td>
+      <td>${formatCurrencyValue(finalTotal)}</td>
     `;
     dom.salesReportBody.appendChild(tr);
   });

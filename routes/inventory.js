@@ -991,6 +991,9 @@ router.get("/sales/report/pdf", requirePermission("sales_report"), async (req, r
     let grandTotal = 0;
 
     result.rows.forEach((r, i) => {
+      const totalPrice = Number(r.total_price) || 0;
+      const gstAmount = Number(r.gst_amount) || 0;
+      const finalTotal = totalPrice + gstAmount;
       // 🔒 Page overflow protection
       if (doc.y > 720) {
         doc.addPage();
@@ -1027,7 +1030,7 @@ router.get("/sales/report/pdf", requirePermission("sales_report"), async (req, r
         width: 60,
         align: "right",
       });
-      doc.text(formatCurrency(r.total_price), startX + 424, y, {
+      doc.text(formatCurrency(finalTotal), startX + 424, y, {
         width: 72,
         align: "right",
       });
@@ -1040,7 +1043,7 @@ router.get("/sales/report/pdf", requirePermission("sales_report"), async (req, r
       // 👉 move y based on tallest content
       doc.y = y + Math.max(itemHeight, 18) + 6;
 
-      grandTotal += Number(r.total_price);
+      grandTotal += finalTotal;
     });
 
     const totalBoxHeight = 46;
@@ -1185,6 +1188,9 @@ router.get("/sales/report/excel", requirePermission("sales_report"), async (req,
     let grandTotal = 0;
 
     result.rows.forEach((r, i) => {
+      const totalPrice = Number(r.total_price) || 0;
+      const gstAmount = Number(r.gst_amount) || 0;
+      const finalTotal = totalPrice + gstAmount;
       const saleDate = formatIstDate(r.created_at);
       const row = sheet.addRow({
         sl: i + 1,
@@ -1192,8 +1198,8 @@ router.get("/sales/report/excel", requirePermission("sales_report"), async (req,
         item: sanitizeExcelCell(r.item_name),
         qty: r.quantity,
         rate: Number(r.selling_price),
-        gst: Number(r.gst_amount) || 0,
-        total: Number(r.total_price),
+        gst: gstAmount,
+        total: finalTotal,
       });
 
       row.eachCell((cell) => {
@@ -1228,7 +1234,7 @@ router.get("/sales/report/excel", requirePermission("sales_report"), async (req,
       row.getCell(6).numFmt = "#,##0.00";
       row.getCell(7).numFmt = "#,##0.00";
 
-      grandTotal += Number(r.total_price);
+      grandTotal += finalTotal;
     });
 
     // ----------------- Grand Total -----------------
