@@ -613,9 +613,7 @@ function cacheElements() {
       "slowMovingIdleCountInline",
     ),
     slowMovingTopItem: document.getElementById("slowMovingTopItem"),
-    slowMovingAverageCover: document.getElementById(
-      "slowMovingAverageCover",
-    ),
+    slowMovingAverageCover: document.getElementById("slowMovingAverageCover"),
     slowMovingBody: document.getElementById("slowMovingBody"),
     fromDate: document.getElementById("fromDate"),
     toDate: document.getElementById("toDate"),
@@ -948,7 +946,9 @@ function getDueFormSnapshot() {
   }
 
   if (credit > 0 && total === 0) {
-    workflowValue = isMatchedCustomer ? "Invoice-aware collection" : "Credit collection";
+    workflowValue = isMatchedCustomer
+      ? "Invoice-aware collection"
+      : "Credit collection";
     workflowMeta = hasExactNumber
       ? "Available unpaid invoice dues for this customer number will be settled first."
       : "Enter the exact 10-digit number to connect the collection to invoice dues.";
@@ -1432,9 +1432,9 @@ function renderSupportThread() {
         ? "summary-pill summary-pill--success"
         : "summary-pill summary-pill--neutral";
     const label = isClosed
-      ? "Closed until you send again"
+      ? "your complain is close"
       : conversation
-        ? "Open with customer care support"
+        ? "Your Complain is open"
         : "Waiting to start";
 
     dom.supportStatusPill.className = toneClass;
@@ -1447,7 +1447,7 @@ function renderSupportThread() {
   if (dom.supportThreadIdPill) {
     dom.supportThreadIdPill.innerHTML = `
       <i class="fa-solid fa-lock"></i>
-      Private support thread
+      Live chat Support with Customer care
     `;
   }
 
@@ -1693,7 +1693,11 @@ function setupFilterInput(input, listEl, onSelect) {
   });
 
   input.addEventListener("focus", () => {
-    renderDropdown(listEl, getSearchMatches(state.itemNameSearchIndex, "", 50), onSelect);
+    renderDropdown(
+      listEl,
+      getSearchMatches(state.itemNameSearchIndex, "", 50),
+      onSelect,
+    );
   });
 
   document.addEventListener("click", (event) => {
@@ -3788,8 +3792,7 @@ function renderSlowMovingPlanner(rows) {
   rows.forEach((row) => {
     const availableQty = Number(row.available_qty) || 0;
     const soldLast30Days = Number(row.sold_30_days) || 0;
-    const daysCover =
-      row.days_cover == null ? null : Number(row.days_cover);
+    const daysCover = row.days_cover == null ? null : Number(row.days_cover);
     const stockValue = Number(row.stock_value) || 0;
     const priority = row.priority || "SLOW";
     const focusNote =
@@ -3889,10 +3892,10 @@ function renderLowStock(rows) {
 async function loadLowStock(options = {}) {
   const [lowStockResult, reorderResult, slowMovingResult] =
     await Promise.allSettled([
-    fetchJSON("/items/low-stock"),
-    fetchJSON("/items/reorder-suggestions"),
-    fetchJSON("/items/slow-moving"),
-  ]);
+      fetchJSON("/items/low-stock"),
+      fetchJSON("/items/reorder-suggestions"),
+      fetchJSON("/items/slow-moving"),
+    ]);
 
   const lowStockLoaded = lowStockResult.status === "fulfilled";
   const reorderLoaded = reorderResult.status === "fulfilled";
@@ -3933,7 +3936,12 @@ async function loadLowStock(options = {}) {
     resetSlowMovingPlanner();
   }
 
-  if (!lowStockLoaded && !reorderLoaded && !slowMovingLoaded && !options.silent) {
+  if (
+    !lowStockLoaded &&
+    !reorderLoaded &&
+    !slowMovingLoaded &&
+    !options.silent
+  ) {
     showPopup(
       "error",
       "Alerts unavailable",
@@ -4700,10 +4708,7 @@ async function submitDebt() {
 }
 
 async function loadBusinessTrend(year = "all", options = {}) {
-  if (
-    !canAccessPermission("sales_report") ||
-    !dom.businessTrendChart
-  ) {
+  if (!canAccessPermission("sales_report") || !dom.businessTrendChart) {
     return;
   }
 
@@ -4720,12 +4725,11 @@ async function loadBusinessTrend(year = "all", options = {}) {
         ? "all"
         : "year"
       : payload.mode || (year === "all" ? "all" : "year");
-    const selectedYear =
-      Array.isArray(payload)
-        ? year === "all"
-          ? null
-          : Number.parseInt(year, 10)
-        : payload.year ?? (year === "all" ? null : Number.parseInt(year, 10));
+    const selectedYear = Array.isArray(payload)
+      ? year === "all"
+        ? null
+        : Number.parseInt(year, 10)
+      : (payload.year ?? (year === "all" ? null : Number.parseInt(year, 10)));
 
     setTrendYearFilterOptions(
       Array.isArray(payload?.available_years) ? payload.available_years : [],
@@ -4796,8 +4800,7 @@ function setTrendYearFilterOptions(availableYears = [], selectedValue = "all") {
 
   const selectedYearNumber = Number.parseInt(normalizedSelected, 10);
   const shouldKeepSelected =
-    normalizedSelected === "all" ||
-    years.includes(selectedYearNumber);
+    normalizedSelected === "all" || years.includes(selectedYearNumber);
 
   dom.yearFilter.value = shouldKeepSelected ? normalizedSelected : "all";
 }
@@ -4833,8 +4836,10 @@ function resolveTrendReferenceRow(rows, context = {}) {
   const currentMonthKey = getCurrentMonthKey();
 
   if (context.mode === "all") {
-    return rows.find((row) => row.month_key === currentMonthKey)
-      || rows[rows.length - 1];
+    return (
+      rows.find((row) => row.month_key === currentMonthKey) ||
+      rows[rows.length - 1]
+    );
   }
 
   const selectedYear = Number.parseInt(context.year, 10);
@@ -4877,9 +4882,8 @@ function resolveTrendAverageBaseline(rows, referenceRow, context = {}) {
   const referenceIndex = visibleRows.findIndex(
     (row) => row.month_key === referenceRow.month_key,
   );
-  const comparisonRows = referenceIndex > 0
-    ? visibleRows.slice(0, referenceIndex)
-    : [];
+  const comparisonRows =
+    referenceIndex > 0 ? visibleRows.slice(0, referenceIndex) : [];
   const totalSales = comparisonRows.reduce(
     (sum, row) => sum + (Number(row.total_sales) || 0),
     0,
@@ -4887,7 +4891,9 @@ function resolveTrendAverageBaseline(rows, referenceRow, context = {}) {
 
   return {
     comparisonRows,
-    averageSales: comparisonRows.length ? totalSales / comparisonRows.length : 0,
+    averageSales: comparisonRows.length
+      ? totalSales / comparisonRows.length
+      : 0,
   };
 }
 
@@ -4918,13 +4924,16 @@ function updateGrowthOverviewMeta(rows, context = {}) {
     return;
   }
 
-  const referenceRow = resolveTrendReferenceRow(rows, context) || rows[rows.length - 1];
+  const referenceRow =
+    resolveTrendReferenceRow(rows, context) || rows[rows.length - 1];
   const visibleRows = rows.filter((row) => !isFutureTrendMonth(row, context));
-  const peakRow = visibleRows.reduce((bestRow, row) => (
-    Number(row.total_sales || 0) > Number(bestRow.total_sales || 0)
-      ? row
-      : bestRow
-  ), visibleRows[0] || rows[0]);
+  const peakRow = visibleRows.reduce(
+    (bestRow, row) =>
+      Number(row.total_sales || 0) > Number(bestRow.total_sales || 0)
+        ? row
+        : bestRow,
+    visibleRows[0] || rows[0],
+  );
   const zeroMonths = visibleRows.filter(
     (row) => Number(row.total_sales || 0) === 0,
   ).length;
@@ -4941,21 +4950,19 @@ function updateGrowthOverviewMeta(rows, context = {}) {
         ? `Updated through ${referenceRow.month_label}`
         : `Full ${context.year} snapshot`;
   } else {
-    dom.growthRangeLabel.textContent =
-      `${rows[0].month_label} - ${rows[rows.length - 1].month_label}`;
-    dom.growthRangeNote.textContent =
-      `Continuous month-by-month view with ${visibleRows.length} months in the active timeline.`;
+    dom.growthRangeLabel.textContent = `${rows[0].month_label} - ${rows[rows.length - 1].month_label}`;
+    dom.growthRangeNote.textContent = `Continuous month-by-month view with ${visibleRows.length} months in the active timeline.`;
     dom.growthLivePill.textContent = `Updated through ${referenceRow.month_label}`;
   }
 
   dom.growthLatestValue.textContent = formatCurrency(referenceRow.total_sales);
-  dom.growthLatestNote.textContent =
-    `${referenceRow.month_label} sales | Profit ${formatCurrency(referenceRow.total_profit)}`;
+  dom.growthLatestNote.textContent = `${referenceRow.month_label} sales | Profit ${formatCurrency(referenceRow.total_profit)}`;
   dom.growthPeakValue.textContent = formatCurrency(peakRow.total_sales);
-  dom.growthPeakNote.textContent =
-    `${peakRow.month_label} peak revenue${zeroMonths > 0
+  dom.growthPeakNote.textContent = `${peakRow.month_label} peak revenue${
+    zeroMonths > 0
       ? ` | ${zeroMonths} zero-sale month${zeroMonths === 1 ? "" : "s"} visible`
-      : ""}.`;
+      : ""
+  }.`;
 }
 
 function updateGrowthBadge(rows, context = {}) {
@@ -4995,9 +5002,10 @@ function updateGrowthBadge(rows, context = {}) {
   const baselineStart = comparisonRows[0]?.month_label || "";
   const baselineEnd =
     comparisonRows[comparisonRows.length - 1]?.month_label || baselineStart;
-  const baselineLabel = comparisonRows.length === 1
-    ? baselineStart
-    : `${baselineStart} - ${baselineEnd}`;
+  const baselineLabel =
+    comparisonRows.length === 1
+      ? baselineStart
+      : `${baselineStart} - ${baselineEnd}`;
 
   if (averageSales <= 0) {
     dom.growthBadge.innerHTML = `
@@ -5049,11 +5057,13 @@ function renderBusinessTrend(
   const profitGradient = ctx.createLinearGradient(0, 0, 0, 260);
   profitGradient.addColorStop(0, "rgba(20, 184, 166, 0.24)");
   profitGradient.addColorStop(1, "rgba(20, 184, 166, 0.02)");
-  const highlightIndex = options.referenceIndex >= 0
-    ? options.referenceIndex
-    : sales.reduce((lastIndex, value, index) => (
-      value === null ? lastIndex : index
-    ), -1);
+  const highlightIndex =
+    options.referenceIndex >= 0
+      ? options.referenceIndex
+      : sales.reduce(
+          (lastIndex, value, index) => (value === null ? lastIndex : index),
+          -1,
+        );
 
   state.charts.businessTrend = new ChartLibrary(ctx, {
     type: "line",
@@ -5178,10 +5188,7 @@ function initYearFilter() {
 }
 
 async function loadLast13MonthsChart(options = {}) {
-  if (
-    !canAccessPermission("sales_report") ||
-    !dom.last12MonthsChart
-  ) {
+  if (!canAccessPermission("sales_report") || !dom.last12MonthsChart) {
     return;
   }
 
@@ -6595,7 +6602,9 @@ function bindCustomerDueEvents() {
 
   dom.searchLedgerBtn.addEventListener("click", () => searchLedger());
   dom.showAllDuesBtn.addEventListener("click", () => showAllDues());
-  dom.refreshDueLedgerBtn?.addEventListener("click", () => refreshCurrentDueView());
+  dom.refreshDueLedgerBtn?.addEventListener("click", () =>
+    refreshCurrentDueView(),
+  );
 }
 
 function bindExpenseEvents() {

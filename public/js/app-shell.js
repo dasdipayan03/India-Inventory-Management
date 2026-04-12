@@ -578,8 +578,7 @@
 
       const deltaY = touchY - touchStartY;
       const isPullingDownFromTop = deltaY > 0 && nav.scrollTop <= 0;
-      const isPushingUpFromBottom =
-        deltaY < 0 && nav.scrollTop >= maxScrollTop;
+      const isPushingUpFromBottom = deltaY < 0 && nav.scrollTop >= maxScrollTop;
 
       if (isPullingDownFromTop || isPushingUpFromBottom) {
         event.preventDefault();
@@ -625,9 +624,7 @@
 
     listen(elements.sidebarNav, "click", (event) => {
       const button =
-        event.target instanceof Element
-          ? event.target.closest("button")
-          : null;
+        event.target instanceof Element ? event.target.closest("button") : null;
 
       if (!button || !elements.sidebarNav?.contains(button)) {
         return;

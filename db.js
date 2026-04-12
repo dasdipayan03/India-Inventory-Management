@@ -35,7 +35,9 @@ function readPositiveInt(value, fallback) {
 }
 
 function normalizeEmail(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 // =========================================================
@@ -65,7 +67,10 @@ const PG_CONNECTION_TIMEOUT_MS = readPositiveInt(
   process.env.PG_CONNECTION_TIMEOUT_MS,
   10000,
 );
-const PG_IDLE_TIMEOUT_MS = readPositiveInt(process.env.PG_IDLE_TIMEOUT_MS, 30000);
+const PG_IDLE_TIMEOUT_MS = readPositiveInt(
+  process.env.PG_IDLE_TIMEOUT_MS,
+  30000,
+);
 const PG_KEEP_ALIVE_DELAY_MS = readPositiveInt(
   process.env.PG_KEEP_ALIVE_DELAY_MS,
   10000,

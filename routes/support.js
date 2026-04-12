@@ -50,15 +50,21 @@ function markSensitiveResponse(res) {
 }
 
 function normalizeEmail(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function normalizeSupportMessage(value) {
-  return String(value || "").replace(/\r/g, "").trim();
+  return String(value || "")
+    .replace(/\r/g, "")
+    .trim();
 }
 
 function normalizeConversationStatus(value) {
-  const normalized = String(value || "").trim().toLowerCase();
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
   return conversationStatusValues.has(normalized) ? normalized : "";
 }
 
@@ -90,7 +96,9 @@ function serializeDeveloperSession(admin) {
 
 function getRequesterContext(req) {
   const requesterRole =
-    String(req.user?.role || "").trim().toLowerCase() === "staff"
+    String(req.user?.role || "")
+      .trim()
+      .toLowerCase() === "staff"
       ? "staff"
       : "owner";
 
@@ -292,54 +300,60 @@ async function loadDeveloperConversationList(client) {
   return result.rows.map(serializeSupportConversation);
 }
 
-router.post("/developer-auth/login", developerLoginLimiter, async (req, res) => {
-  try {
-    const email = normalizeEmail(req.body.email);
-    const password = String(req.body.password || "");
+router.post(
+  "/developer-auth/login",
+  developerLoginLimiter,
+  async (req, res) => {
+    try {
+      const email = normalizeEmail(req.body.email);
+      const password = String(req.body.password || "");
 
-    if (!email || !password) {
-      return res.status(400).json({ error: "Email and password are required" });
-    }
+      if (!email || !password) {
+        return res
+          .status(400)
+          .json({ error: "Email and password are required" });
+      }
 
-    const developer = await getDeveloperByEmail(email);
-    if (!developer || !developer.is_active) {
-      return res.status(401).json({ error: "Invalid developer credentials" });
-    }
+      const developer = await getDeveloperByEmail(email);
+      if (!developer || !developer.is_active) {
+        return res.status(401).json({ error: "Invalid developer credentials" });
+      }
 
-    const isPasswordValid = await bcrypt.compare(
-      password,
-      developer.password_hash,
-    );
+      const isPasswordValid = await bcrypt.compare(
+        password,
+        developer.password_hash,
+      );
 
-    if (!isPasswordValid) {
-      return res.status(401).json({ error: "Invalid developer credentials" });
-    }
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: "Invalid developer credentials" });
+      }
 
-    const session = serializeDeveloperSession(developer);
-    const token = signDeveloperSession(session);
+      const session = serializeDeveloperSession(developer);
+      const token = signDeveloperSession(session);
 
-    await pool.query(
-      `
+      await pool.query(
+        `
         UPDATE developer_admins
         SET last_login_at = NOW(),
             updated_at = NOW()
         WHERE id = $1
       `,
-      [developer.id],
-    );
+        [developer.id],
+      );
 
-    markSensitiveResponse(res);
-    setDeveloperSessionCookie(res, token);
+      markSensitiveResponse(res);
+      setDeveloperSessionCookie(res, token);
 
-    return res.json({
-      message: "Developer login successful",
-      developer: session,
-    });
-  } catch (error) {
-    console.error("Developer login error:", error.message);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
+      return res.json({
+        message: "Developer login successful",
+        developer: session,
+      });
+    } catch (error) {
+      console.error("Developer login error:", error.message);
+      return res.status(500).json({ error: "Server error" });
+    }
+  },
+);
 
 router.get("/developer-auth/me", developerAuthMiddleware, async (req, res) => {
   markSensitiveResponse(res);
@@ -380,14 +394,13 @@ router.get("/support/thread", authMiddleware, async (req, res) => {
           updated_at = NOW()
         WHERE id = $1
       `,
-      [
-        conversation.id,
-        requester.requesterName,
-        requester.requesterIdentifier,
-      ],
+      [conversation.id, requester.requesterName, requester.requesterIdentifier],
     );
 
-    const refreshedConversation = await getRequesterConversation(client, requester);
+    const refreshedConversation = await getRequesterConversation(
+      client,
+      requester,
+    );
     const messages = await loadConversationMessages(client, conversation.id);
 
     await client.query("COMMIT");
@@ -471,11 +484,7 @@ router.post("/support/messages", authMiddleware, async (req, res) => {
         WHERE id = $1
         RETURNING *
       `,
-      [
-        conversation.id,
-        requester.requesterName,
-        requester.requesterIdentifier,
-      ],
+      [conversation.id, requester.requesterName, requester.requesterIdentifier],
     );
 
     const conversationRow = await loadDeveloperConversationById(

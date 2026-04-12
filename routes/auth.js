@@ -86,7 +86,10 @@ function getSessionCookieOptions() {
 }
 
 function hashResetToken(token) {
-  return crypto.createHash("sha256").update(String(token || "")).digest("hex");
+  return crypto
+    .createHash("sha256")
+    .update(String(token || ""))
+    .digest("hex");
 }
 
 function markSensitiveResponse(res) {
@@ -94,11 +97,15 @@ function markSensitiveResponse(res) {
 }
 
 function normalizeName(value) {
-  return String(value || "").replace(/\s+/g, " ").trim();
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function normalizeEmail(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function normalizeMobileNumber(value) {
@@ -120,7 +127,10 @@ function isValidMobileNumber(value) {
 }
 
 function normalizeUsername(value) {
-  return String(value || "").replace(/\s+/g, "").trim().toLowerCase();
+  return String(value || "")
+    .replace(/\s+/g, "")
+    .trim()
+    .toLowerCase();
 }
 
 function signSession(payload) {
@@ -139,7 +149,9 @@ function clearSessionCookie(res) {
 }
 
 function normalizeSessionRole(value) {
-  return String(value || "").trim().toLowerCase() === "staff"
+  return String(value || "")
+    .trim()
+    .toLowerCase() === "staff"
     ? "staff"
     : "owner";
 }
@@ -188,7 +200,9 @@ function toClientUser(session) {
     permissions:
       normalizedRole === "owner"
         ? ["all"]
-        : normalizePermissions(session.permissions || DEFAULT_STAFF_PERMISSIONS),
+        : normalizePermissions(
+            session.permissions || DEFAULT_STAFF_PERMISSIONS,
+          ),
   };
 }
 
@@ -308,7 +322,10 @@ router.post("/login", loginAttemptLimiter, async (req, res) => {
       return res.status(400).json({ error: "All fields required" });
     }
 
-    if (!identifier.includes("@") && !isValidMobileNumber(normalizedMobileNumber)) {
+    if (
+      !identifier.includes("@") &&
+      !isValidMobileNumber(normalizedMobileNumber)
+    ) {
       return res.status(400).json({
         error: "Enter a valid email address or 10-digit mobile number",
       });
@@ -572,7 +589,9 @@ router.post("/staff", authMiddleware, requireOwner, async (req, res) => {
     if (!permissions.length) {
       return res
         .status(400)
-        .json({ error: "Select at least one page access for the staff account" });
+        .json({
+          error: "Select at least one page access for the staff account",
+        });
     }
 
     const currentStaff = await pool.query(
@@ -629,81 +648,93 @@ router.post("/staff", authMiddleware, requireOwner, async (req, res) => {
   }
 });
 
-router.patch("/staff/:staffId/permissions", authMiddleware, requireOwner, async (req, res) => {
-  try {
-    const ownerId = getUserId(req);
-    const staffId = Number.parseInt(req.params.staffId, 10);
-    const permissions = normalizePermissions(req.body.permissions || []);
+router.patch(
+  "/staff/:staffId/permissions",
+  authMiddleware,
+  requireOwner,
+  async (req, res) => {
+    try {
+      const ownerId = getUserId(req);
+      const staffId = Number.parseInt(req.params.staffId, 10);
+      const permissions = normalizePermissions(req.body.permissions || []);
 
-    if (!Number.isInteger(staffId) || staffId <= 0) {
-      return res.status(400).json({ error: "Invalid staff account" });
-    }
+      if (!Number.isInteger(staffId) || staffId <= 0) {
+        return res.status(400).json({ error: "Invalid staff account" });
+      }
 
-    if (!permissions.length) {
-      return res
-        .status(400)
-        .json({ error: "Select at least one page access for the staff account" });
-    }
+      if (!permissions.length) {
+        return res
+          .status(400)
+          .json({
+            error: "Select at least one page access for the staff account",
+          });
+      }
 
-    const result = await pool.query(
-      `
+      const result = await pool.query(
+        `
         UPDATE staff_accounts
         SET page_permissions = $1, updated_at = NOW()
         WHERE id = $2 AND owner_user_id = $3
         RETURNING id, name, username, page_permissions, is_active, created_at
       `,
-      [permissions, staffId, ownerId],
-    );
+        [permissions, staffId, ownerId],
+      );
 
-    if (!result.rowCount) {
-      return res.status(404).json({ error: "Staff account not found" });
+      if (!result.rowCount) {
+        return res.status(404).json({ error: "Staff account not found" });
+      }
+
+      invalidateStaffSessionCache(staffId);
+
+      return res.json({
+        message: "Staff page access updated successfully",
+        staff: {
+          ...result.rows[0],
+          permissions: normalizePermissions(result.rows[0].page_permissions),
+        },
+      });
+    } catch (error) {
+      console.error("Staff permission update error:", error.message);
+      return res.status(500).json({ error: "Server error" });
     }
+  },
+);
 
-    invalidateStaffSessionCache(staffId);
+router.delete(
+  "/staff/:staffId",
+  authMiddleware,
+  requireOwner,
+  async (req, res) => {
+    try {
+      const ownerId = getUserId(req);
+      const staffId = Number.parseInt(req.params.staffId, 10);
 
-    return res.json({
-      message: "Staff page access updated successfully",
-      staff: {
-        ...result.rows[0],
-        permissions: normalizePermissions(result.rows[0].page_permissions),
-      },
-    });
-  } catch (error) {
-    console.error("Staff permission update error:", error.message);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
+      if (!Number.isInteger(staffId) || staffId <= 0) {
+        return res.status(400).json({ error: "Invalid staff account" });
+      }
 
-router.delete("/staff/:staffId", authMiddleware, requireOwner, async (req, res) => {
-  try {
-    const ownerId = getUserId(req);
-    const staffId = Number.parseInt(req.params.staffId, 10);
-
-    if (!Number.isInteger(staffId) || staffId <= 0) {
-      return res.status(400).json({ error: "Invalid staff account" });
-    }
-
-    const result = await pool.query(
-      `
+      const result = await pool.query(
+        `
         DELETE FROM staff_accounts
         WHERE id = $1 AND owner_user_id = $2
         RETURNING id
       `,
-      [staffId, ownerId],
-    );
+        [staffId, ownerId],
+      );
 
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: "Staff account not found" });
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: "Staff account not found" });
+      }
+
+      invalidateStaffSessionCache(staffId);
+
+      return res.json({ message: "Staff account removed successfully" });
+    } catch (error) {
+      console.error("Staff delete error:", error.message);
+      return res.status(500).json({ error: "Server error" });
     }
-
-    invalidateStaffSessionCache(staffId);
-
-    return res.json({ message: "Staff account removed successfully" });
-  } catch (error) {
-    console.error("Staff delete error:", error.message);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
+  },
+);
 
 router.get("/me", authMiddleware, async (req, res) => {
   try {

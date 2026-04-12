@@ -2193,8 +2193,7 @@
         };
 
         if (appDownloadBtn) {
-          const shouldShowAppDownload =
-            isAndroidUserAgent && !isAndroidWrapper;
+          const shouldShowAppDownload = isAndroidUserAgent && !isAndroidWrapper;
 
           appDownloadBtn.hidden = !shouldShowAppDownload;
 

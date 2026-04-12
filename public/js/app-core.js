@@ -4,13 +4,15 @@
     ? "http://localhost:4000/api"
     : "/api";
 
-  const copyrightText = "© 2026 India Inventory Management - All rights reserved.";
+  const copyrightText =
+    "© 2026 India Inventory Management - All rights reserved.";
   const staffPageConfig = permissionContract.STAFF_PAGE_CONFIG || {};
   const staffPermissionKeys = permissionContract.STAFF_PAGE_PERMISSIONS || [];
-  const defaultStaffPermissions = permissionContract.DEFAULT_STAFF_PERMISSIONS || [
-    "add_stock",
-    "sale_invoice",
-  ];
+  const defaultStaffPermissions =
+    permissionContract.DEFAULT_STAFF_PERMISSIONS || [
+      "add_stock",
+      "sale_invoice",
+    ];
   const invoicePagePermission = "sale_invoice";
   const mobileLayoutMediaQuery =
     typeof global.matchMedia === "function"
@@ -23,7 +25,8 @@
       "Record supplier purchases, increase stock from bills, and review supplier ledger balances.",
     sale_invoice:
       "Create sales bills, generate invoices, and open invoice history.",
-    stock_report: "Review stock availability, sold quantity, and low stock report.",
+    stock_report:
+      "Review stock availability, sold quantity, and low stock report.",
     sales_report:
       "Open sales analytics, export reports, and check date-wise totals.",
     gst_report: "See GST report data for filing and invoice-wise tax review.",
@@ -43,7 +46,9 @@
 
   const sectionPermissionMap = Object.fromEntries(
     Object.entries(staffPageConfig)
-      .filter(([, config]) => config.sectionId && config.sectionId !== "invoicePage")
+      .filter(
+        ([, config]) => config.sectionId && config.sectionId !== "invoicePage",
+      )
       .map(([permission, config]) => [config.sectionId, permission]),
   );
 
@@ -165,7 +170,7 @@
       eyebrow: "Customer Care Support",
       title: "Chat Support",
       description:
-        "Send a private message to customer care support, track replies in one thread, and keep support tied to your current login.",
+        "Send a private message to customer care support, track replies easily, and keep support tied to your current login.",
       badge: "Support",
     },
   ];
@@ -186,7 +191,11 @@
 
     const list = Array.isArray(values) ? values : [];
     const normalized = list
-      .map((value) => String(value || "").trim().toLowerCase())
+      .map((value) =>
+        String(value || "")
+          .trim()
+          .toLowerCase(),
+      )
       .filter((value) => staffPermissionKeys.includes(value));
 
     return [...new Set(normalized)];
@@ -194,7 +203,8 @@
 
   function getPermissionOption(permission) {
     return (
-      staffPermissionOptions.find((option) => option.value === permission) || null
+      staffPermissionOptions.find((option) => option.value === permission) ||
+      null
     );
   }
 
@@ -232,7 +242,9 @@
   }
 
   function normalizeSessionRole(value) {
-    return String(value || "").trim().toLowerCase() === "staff"
+    return String(value || "")
+      .trim()
+      .toLowerCase() === "staff"
       ? "staff"
       : "owner";
   }
@@ -269,7 +281,9 @@
     }
 
     const permission = sectionPermissionMap[sectionId];
-    return permission ? canAccessPermission(user, permission) : isOwnerUser(user);
+    return permission
+      ? canAccessPermission(user, permission)
+      : isOwnerUser(user);
   }
 
   global.InventoryApp = Object.freeze({

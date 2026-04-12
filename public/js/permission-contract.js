@@ -56,7 +56,11 @@
     function normalizePermissions(values) {
       const list = Array.isArray(values) ? values : [];
       const normalized = list
-        .map((value) => String(value || "").trim().toLowerCase())
+        .map((value) =>
+          String(value || "")
+            .trim()
+            .toLowerCase(),
+        )
         .filter((value) => STAFF_PAGE_PERMISSIONS.includes(value));
 
       return [...new Set(normalized)];

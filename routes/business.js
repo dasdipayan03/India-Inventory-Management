@@ -40,7 +40,9 @@ function normalizeMobileNumber(value) {
 }
 
 function normalizePaymentMode(value, fallback = "cash") {
-  const normalized = String(value || "").trim().toLowerCase();
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
   return PAYMENT_MODES.has(normalized) ? normalized : fallback;
 }
 
@@ -74,7 +76,8 @@ function buildPaymentSnapshot(subtotal, paidInput, fallbackMode = "cash") {
   const total = Number(subtotal) || 0;
   const paymentMode = normalizePaymentMode(fallbackMode, "cash");
   const rawPaidInput = String(paidInput ?? "").trim();
-  const normalizedPaid = rawPaidInput === "" ? null : parseNonNegativeNumber(paidInput);
+  const normalizedPaid =
+    rawPaidInput === "" ? null : parseNonNegativeNumber(paidInput);
 
   if (total <= 0) {
     return {
@@ -91,7 +94,9 @@ function buildPaymentSnapshot(subtotal, paidInput, fallbackMode = "cash") {
         ? 0
         : total
       : normalizedPaid;
-  const amountPaid = Number(Math.min(Math.max(desiredPaid, 0), total).toFixed(2));
+  const amountPaid = Number(
+    Math.min(Math.max(desiredPaid, 0), total).toFixed(2),
+  );
   const amountDue = Number((total - amountPaid).toFixed(2));
 
   let paymentStatus = "paid";
@@ -199,25 +204,28 @@ async function findOrCreateSupplier(client, userId, payload) {
 
 router.use(authMiddleware);
 
-router.get("/suppliers", requirePermission("purchase_entry"), async (req, res) => {
-  try {
-    const userId = getUserId(req);
-    const query = String(req.query.q || "").trim();
-    const params = [userId];
-    let whereClause = "";
+router.get(
+  "/suppliers",
+  requirePermission("purchase_entry"),
+  async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const query = String(req.query.q || "").trim();
+      const params = [userId];
+      let whereClause = "";
 
-    if (query) {
-      params.push(`%${query}%`);
-      whereClause = `
+      if (query) {
+        params.push(`%${query}%`);
+        whereClause = `
         AND (
           s.name ILIKE $2
           OR COALESCE(s.mobile_number, '') ILIKE $2
         )
       `;
-    }
+      }
 
-    const result = await pool.query(
-      `
+      const result = await pool.query(
+        `
         SELECT
           s.id,
           s.name,
@@ -229,100 +237,117 @@ router.get("/suppliers", requirePermission("purchase_entry"), async (req, res) =
         ORDER BY s.updated_at DESC, s.name ASC
         LIMIT 20
       `,
-      params,
-    );
+        params,
+      );
 
-    res.json(result.rows);
-  } catch (error) {
-    console.error("Supplier lookup error:", error);
-    res.status(500).json({ error: "Failed to load suppliers" });
-  }
-});
-
-router.post("/purchases", requirePermission("purchase_entry"), async (req, res) => {
-  const client = await pool.connect();
-
-  try {
-    const userId = getUserId(req);
-    const supplierName = normalizeDisplayText(req.body.supplier_name);
-    const supplierNumber = normalizeMobileNumber(req.body.supplier_number);
-    const supplierAddress = String(req.body.supplier_address || "").trim();
-    const billNo = String(req.body.bill_no || "").trim();
-    const purchaseDate = parseDateInput(req.body.purchase_date);
-    const note = String(req.body.note || "").trim();
-    const paymentMode = normalizePaymentMode(req.body.payment_mode, "cash");
-    const items = Array.isArray(req.body.items) ? req.body.items : [];
-
-    if (!supplierName) {
-      return res.status(400).json({ error: "Supplier name is required." });
+      res.json(result.rows);
+    } catch (error) {
+      console.error("Supplier lookup error:", error);
+      res.status(500).json({ error: "Failed to load suppliers" });
     }
+  },
+);
 
-    if (supplierNumber && !/^\d{10}$/.test(supplierNumber)) {
-      return res
-        .status(400)
-        .json({ error: "Supplier mobile number must be 10 digits." });
-    }
+router.post(
+  "/purchases",
+  requirePermission("purchase_entry"),
+  async (req, res) => {
+    const client = await pool.connect();
 
-    if (!items.length) {
-      return res.status(400).json({ error: "Add at least one purchase item." });
-    }
+    try {
+      const userId = getUserId(req);
+      const supplierName = normalizeDisplayText(req.body.supplier_name);
+      const supplierNumber = normalizeMobileNumber(req.body.supplier_number);
+      const supplierAddress = String(req.body.supplier_address || "").trim();
+      const billNo = String(req.body.bill_no || "").trim();
+      const purchaseDate = parseDateInput(req.body.purchase_date);
+      const note = String(req.body.note || "").trim();
+      const paymentMode = normalizePaymentMode(req.body.payment_mode, "cash");
+      const items = Array.isArray(req.body.items) ? req.body.items : [];
 
-    await client.query("BEGIN");
+      if (!supplierName) {
+        return res.status(400).json({ error: "Supplier name is required." });
+      }
 
-    const settingsResult = await client.query(
-      `
+      if (supplierNumber && !/^\d{10}$/.test(supplierNumber)) {
+        return res
+          .status(400)
+          .json({ error: "Supplier mobile number must be 10 digits." });
+      }
+
+      if (!items.length) {
+        return res
+          .status(400)
+          .json({ error: "Add at least one purchase item." });
+      }
+
+      await client.query("BEGIN");
+
+      const settingsResult = await client.query(
+        `
         SELECT default_profit_percent
         FROM settings
         WHERE user_id = $1
         LIMIT 1
       `,
-      [userId],
-    );
+        [userId],
+      );
 
-    const defaultProfitPercent =
-      Number(settingsResult.rows[0]?.default_profit_percent) || 30;
+      const defaultProfitPercent =
+        Number(settingsResult.rows[0]?.default_profit_percent) || 30;
 
-    const normalizedItems = items.map((item, index) => {
-      const itemName = normalizeDisplayText(item.item_name || item.name);
-      const lookupKey = normalizeLookupText(itemName);
-      const quantity = parsePositiveNumber(item.quantity);
-      const buyingRate = parsePositiveNumber(item.buying_rate);
-      const sellingRateInput = parseNonNegativeNumber(item.selling_rate);
+      const normalizedItems = items.map((item, index) => {
+        const itemName = normalizeDisplayText(item.item_name || item.name);
+        const lookupKey = normalizeLookupText(itemName);
+        const quantity = parsePositiveNumber(item.quantity);
+        const buyingRate = parsePositiveNumber(item.buying_rate);
+        const sellingRateInput = parseNonNegativeNumber(item.selling_rate);
 
-      if (!itemName || !lookupKey || quantity === null || buyingRate === null) {
-        throw new Error(`Invalid purchase item at line ${index + 1}`);
-      }
+        if (
+          !itemName ||
+          !lookupKey ||
+          quantity === null ||
+          buyingRate === null
+        ) {
+          throw new Error(`Invalid purchase item at line ${index + 1}`);
+        }
 
-      const sellingRate =
-        sellingRateInput === null
-          ? Number((buyingRate * (1 + defaultProfitPercent / 100)).toFixed(2))
-          : Number(sellingRateInput.toFixed(2));
-      const lineTotal = Number((quantity * buyingRate).toFixed(2));
+        const sellingRate =
+          sellingRateInput === null
+            ? Number((buyingRate * (1 + defaultProfitPercent / 100)).toFixed(2))
+            : Number(sellingRateInput.toFixed(2));
+        const lineTotal = Number((quantity * buyingRate).toFixed(2));
 
-      return {
-        itemName,
-        lookupKey,
-        quantity: Number(quantity.toFixed(2)),
-        buyingRate: Number(buyingRate.toFixed(2)),
-        sellingRate,
-        lineTotal,
-      };
-    });
+        return {
+          itemName,
+          lookupKey,
+          quantity: Number(quantity.toFixed(2)),
+          buyingRate: Number(buyingRate.toFixed(2)),
+          sellingRate,
+          lineTotal,
+        };
+      });
 
-    const subtotal = Number(
-      normalizedItems.reduce((sum, item) => sum + item.lineTotal, 0).toFixed(2),
-    );
+      const subtotal = Number(
+        normalizedItems
+          .reduce((sum, item) => sum + item.lineTotal, 0)
+          .toFixed(2),
+      );
 
-    const payment = buildPaymentSnapshot(subtotal, req.body.amount_paid, paymentMode);
+      const payment = buildPaymentSnapshot(
+        subtotal,
+        req.body.amount_paid,
+        paymentMode,
+      );
 
-    const supplier = await findOrCreateSupplier(client, userId, {
-      name: supplierName,
-      mobile_number: supplierNumber,
-      address: supplierAddress,
-    });
+      const supplier = await findOrCreateSupplier(client, userId, {
+        name: supplierName,
+        mobile_number: supplierNumber,
+        address: supplierAddress,
+      });
 
-    const purchaseResult = await client.query(
-      `
+      const purchaseResult = await client.query(
+        `
         INSERT INTO purchases (
           user_id,
           supplier_id,
@@ -338,25 +363,25 @@ router.post("/purchases", requirePermission("purchase_entry"), async (req, res) 
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING id, subtotal, amount_paid, amount_due, payment_status
       `,
-      [
-        userId,
-        supplier.id,
-        billNo || null,
-        toIstStartTimestamp(purchaseDate),
-        subtotal,
-        payment.amountPaid,
-        payment.amountDue,
-        payment.paymentMode,
-        payment.paymentStatus,
-        note || null,
-      ],
-    );
+        [
+          userId,
+          supplier.id,
+          billNo || null,
+          toIstStartTimestamp(purchaseDate),
+          subtotal,
+          payment.amountPaid,
+          payment.amountDue,
+          payment.paymentMode,
+          payment.paymentStatus,
+          note || null,
+        ],
+      );
 
-    const purchase = purchaseResult.rows[0];
+      const purchase = purchaseResult.rows[0];
 
-    for (const item of normalizedItems) {
-      await client.query(
-        `
+      for (const item of normalizedItems) {
+        await client.query(
+          `
           INSERT INTO purchase_items (
             purchase_id,
             item_name,
@@ -367,20 +392,20 @@ router.post("/purchases", requirePermission("purchase_entry"), async (req, res) 
           )
           VALUES ($1, $2, $3, $4, $5, $6)
         `,
-        [
-          purchase.id,
-          item.itemName,
-          item.quantity,
-          item.buyingRate,
-          item.sellingRate,
-          item.lineTotal,
-        ],
-      );
+          [
+            purchase.id,
+            item.itemName,
+            item.quantity,
+            item.buyingRate,
+            item.sellingRate,
+            item.lineTotal,
+          ],
+        );
 
-      await lockScopedResource(client, userId, "item-stock", item.lookupKey);
+        await lockScopedResource(client, userId, "item-stock", item.lookupKey);
 
-      const existingItem = await client.query(
-        `
+        const existingItem = await client.query(
+          `
           SELECT id
           FROM items
           WHERE user_id = $1 AND LOWER(TRIM(name)) = $2
@@ -388,12 +413,12 @@ router.post("/purchases", requirePermission("purchase_entry"), async (req, res) 
           LIMIT 1
           FOR UPDATE
         `,
-        [userId, item.lookupKey],
-      );
+          [userId, item.lookupKey],
+        );
 
-      if (existingItem.rowCount) {
-        await client.query(
-          `
+        if (existingItem.rowCount) {
+          await client.query(
+            `
             UPDATE items
             SET
               quantity = quantity + $1,
@@ -402,90 +427,92 @@ router.post("/purchases", requirePermission("purchase_entry"), async (req, res) 
               updated_at = NOW()
             WHERE id = $4 AND user_id = $5
           `,
-          [
-            item.quantity,
-            item.buyingRate,
-            item.sellingRate,
-            existingItem.rows[0].id,
-            userId,
-          ],
-        );
-      } else {
-        await client.query(
-          `
+            [
+              item.quantity,
+              item.buyingRate,
+              item.sellingRate,
+              existingItem.rows[0].id,
+              userId,
+            ],
+          );
+        } else {
+          await client.query(
+            `
             INSERT INTO items (user_id, name, quantity, buying_rate, selling_rate)
             VALUES ($1, $2, $3, $4, $5)
           `,
-          [
-            userId,
-            item.itemName,
-            item.quantity,
-            item.buyingRate,
-            item.sellingRate,
-          ],
-        );
+            [
+              userId,
+              item.itemName,
+              item.quantity,
+              item.buyingRate,
+              item.sellingRate,
+            ],
+          );
+        }
       }
+
+      await client.query("COMMIT");
+
+      res.json({
+        success: true,
+        message: "Purchase saved and stock updated successfully.",
+        purchase: {
+          id: purchase.id,
+          subtotal: purchase.subtotal,
+          amount_paid: purchase.amount_paid,
+          amount_due: purchase.amount_due,
+          payment_status: purchase.payment_status,
+        },
+      });
+    } catch (error) {
+      try {
+        await client.query("ROLLBACK");
+      } catch (rollbackError) {
+        console.error("Purchase rollback error:", rollbackError);
+      }
+
+      if (
+        error.message.startsWith("Invalid purchase item") ||
+        error.message.includes("Supplier")
+      ) {
+        return res.status(400).json({ error: error.message });
+      }
+
+      console.error("Purchase save error:", error);
+      res.status(500).json({ error: "Failed to save purchase entry" });
+    } finally {
+      client.release();
     }
+  },
+);
 
-    await client.query("COMMIT");
-
-    res.json({
-      success: true,
-      message: "Purchase saved and stock updated successfully.",
-      purchase: {
-        id: purchase.id,
-        subtotal: purchase.subtotal,
-        amount_paid: purchase.amount_paid,
-        amount_due: purchase.amount_due,
-        payment_status: purchase.payment_status,
-      },
-    });
-  } catch (error) {
+router.get(
+  "/purchases/report",
+  requirePermission("purchase_entry"),
+  async (req, res) => {
     try {
-      await client.query("ROLLBACK");
-    } catch (rollbackError) {
-      console.error("Purchase rollback error:", rollbackError);
-    }
+      const userId = getUserId(req);
+      const rawQuery = String(req.query.q || "").trim();
+      const { fromDate, toDate, fromTimestamp, toTimestampExclusive } =
+        toIstDateRange(req.query.from, req.query.to);
 
-    if (
-      error.message.startsWith("Invalid purchase item") ||
-      error.message.includes("Supplier")
-    ) {
-      return res.status(400).json({ error: error.message });
-    }
+      const params = [userId, fromTimestamp, toTimestampExclusive];
+      let searchClause = "";
 
-    console.error("Purchase save error:", error);
-    res.status(500).json({ error: "Failed to save purchase entry" });
-  } finally {
-    client.release();
-  }
-});
-
-router.get("/purchases/report", requirePermission("purchase_entry"), async (req, res) => {
-  try {
-    const userId = getUserId(req);
-    const rawQuery = String(req.query.q || "").trim();
-    const { fromDate, toDate, fromTimestamp, toTimestampExclusive } = toIstDateRange(
-      req.query.from,
-      req.query.to,
-    );
-
-    const params = [userId, fromTimestamp, toTimestampExclusive];
-    let searchClause = "";
-
-    if (rawQuery) {
-      params.push(`%${rawQuery}%`);
-      searchClause = `
+      if (rawQuery) {
+        params.push(`%${rawQuery}%`);
+        searchClause = `
         AND (
           COALESCE(s.name, '') ILIKE $4
           OR COALESCE(s.mobile_number, '') ILIKE $4
           OR COALESCE(p.bill_no, '') ILIKE $4
         )
       `;
-    }
+      }
 
-    const result = await pool.query(
-      `
+      const result = await pool.query(
+        `
         SELECT
           p.id,
           p.bill_no,
@@ -512,31 +539,35 @@ router.get("/purchases/report", requirePermission("purchase_entry"), async (req,
         GROUP BY p.id, s.id
         ORDER BY p.purchase_date DESC, p.id DESC
       `,
-      params,
-    );
+        params,
+      );
 
-    res.json({
-      success: true,
-      range: { from: fromDate, to: toDate },
-      purchases: result.rows,
-    });
-  } catch (error) {
-    console.error("Purchase report error:", error);
-    res.status(500).json({ error: "Failed to load purchase report" });
-  }
-});
-
-router.get("/purchases/:purchaseId", requirePermission("purchase_entry"), async (req, res) => {
-  try {
-    const userId = getUserId(req);
-    const purchaseId = Number.parseInt(req.params.purchaseId, 10);
-
-    if (!Number.isInteger(purchaseId) || purchaseId <= 0) {
-      return res.status(400).json({ error: "Invalid purchase selection." });
+      res.json({
+        success: true,
+        range: { from: fromDate, to: toDate },
+        purchases: result.rows,
+      });
+    } catch (error) {
+      console.error("Purchase report error:", error);
+      res.status(500).json({ error: "Failed to load purchase report" });
     }
+  },
+);
 
-    const result = await pool.query(
-      `
+router.get(
+  "/purchases/:purchaseId",
+  requirePermission("purchase_entry"),
+  async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const purchaseId = Number.parseInt(req.params.purchaseId, 10);
+
+      if (!Number.isInteger(purchaseId) || purchaseId <= 0) {
+        return res.status(400).json({ error: "Invalid purchase selection." });
+      }
+
+      const result = await pool.query(
+        `
         SELECT
           p.id,
           p.bill_no,
@@ -575,22 +606,23 @@ router.get("/purchases/:purchaseId", requirePermission("purchase_entry"), async 
         GROUP BY p.id, s.id
         LIMIT 1
       `,
-      [userId, purchaseId],
-    );
+        [userId, purchaseId],
+      );
 
-    if (!result.rowCount) {
-      return res.status(404).json({ error: "Purchase not found." });
+      if (!result.rowCount) {
+        return res.status(404).json({ error: "Purchase not found." });
+      }
+
+      res.json({
+        success: true,
+        purchase: result.rows[0],
+      });
+    } catch (error) {
+      console.error("Purchase detail error:", error);
+      res.status(500).json({ error: "Failed to load purchase detail" });
     }
-
-    res.json({
-      success: true,
-      purchase: result.rows[0],
-    });
-  } catch (error) {
-    console.error("Purchase detail error:", error);
-    res.status(500).json({ error: "Failed to load purchase detail" });
-  }
-});
+  },
+);
 
 router.post(
   "/purchases/:purchaseId/repayment",
@@ -650,7 +682,9 @@ router.post(
 
       if (currentDue <= 0) {
         await client.query("ROLLBACK");
-        return res.status(400).json({ error: "This purchase already has no due amount." });
+        return res
+          .status(400)
+          .json({ error: "This purchase already has no due amount." });
       }
 
       if (amount - currentDue > 0.001) {
@@ -660,7 +694,9 @@ router.post(
         });
       }
 
-      const nextAmountPaid = Number(((Number(purchase.amount_paid) || 0) + amount).toFixed(2));
+      const nextAmountPaid = Number(
+        ((Number(purchase.amount_paid) || 0) + amount).toFixed(2),
+      );
       const nextAmountDue = Number((currentDue - amount).toFixed(2));
       const nextPaymentStatus = nextAmountDue > 0 ? "partial" : "paid";
       const previousMode = normalizePaymentMode(purchase.payment_mode, "cash");
@@ -751,25 +787,28 @@ router.post(
   },
 );
 
-router.get("/suppliers/summary", requirePermission("purchase_entry"), async (req, res) => {
-  try {
-    const userId = getUserId(req);
-    const rawQuery = String(req.query.q || "").trim();
-    const params = [userId];
-    let searchClause = "";
+router.get(
+  "/suppliers/summary",
+  requirePermission("purchase_entry"),
+  async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const rawQuery = String(req.query.q || "").trim();
+      const params = [userId];
+      let searchClause = "";
 
-    if (rawQuery) {
-      params.push(`%${rawQuery}%`);
-      searchClause = `
+      if (rawQuery) {
+        params.push(`%${rawQuery}%`);
+        searchClause = `
         AND (
           s.name ILIKE $2
           OR COALESCE(s.mobile_number, '') ILIKE $2
         )
       `;
-    }
+      }
 
-    const result = await pool.query(
-      `
+      const result = await pool.query(
+        `
         SELECT
           s.id,
           s.name,
@@ -788,44 +827,48 @@ router.get("/suppliers/summary", requirePermission("purchase_entry"), async (req
         HAVING COUNT(p.id) > 0
         ORDER BY COALESCE(SUM(p.amount_due), 0) DESC, MAX(p.purchase_date) DESC NULLS LAST
       `,
-      params,
-    );
+        params,
+      );
 
-    res.json({
-      success: true,
-      suppliers: result.rows,
-    });
-  } catch (error) {
-    console.error("Supplier ledger summary error:", error);
-    res.status(500).json({ error: "Failed to load supplier summary" });
-  }
-});
-
-router.get("/suppliers/:supplierId/ledger", requirePermission("purchase_entry"), async (req, res) => {
-  try {
-    const userId = getUserId(req);
-    const supplierId = Number.parseInt(req.params.supplierId, 10);
-
-    if (!Number.isInteger(supplierId) || supplierId <= 0) {
-      return res.status(400).json({ error: "Invalid supplier selection." });
+      res.json({
+        success: true,
+        suppliers: result.rows,
+      });
+    } catch (error) {
+      console.error("Supplier ledger summary error:", error);
+      res.status(500).json({ error: "Failed to load supplier summary" });
     }
+  },
+);
 
-    const supplierResult = await pool.query(
-      `
+router.get(
+  "/suppliers/:supplierId/ledger",
+  requirePermission("purchase_entry"),
+  async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const supplierId = Number.parseInt(req.params.supplierId, 10);
+
+      if (!Number.isInteger(supplierId) || supplierId <= 0) {
+        return res.status(400).json({ error: "Invalid supplier selection." });
+      }
+
+      const supplierResult = await pool.query(
+        `
         SELECT id, name, mobile_number, address
         FROM suppliers
         WHERE id = $1 AND user_id = $2
         LIMIT 1
       `,
-      [supplierId, userId],
-    );
+        [supplierId, userId],
+      );
 
-    if (!supplierResult.rowCount) {
-      return res.status(404).json({ error: "Supplier not found." });
-    }
+      if (!supplierResult.rowCount) {
+        return res.status(404).json({ error: "Supplier not found." });
+      }
 
-    const rows = await pool.query(
-      `
+      const rows = await pool.query(
+        `
         SELECT
           p.id,
           p.bill_no,
@@ -845,46 +888,50 @@ router.get("/suppliers/:supplierId/ledger", requirePermission("purchase_entry"),
         GROUP BY p.id
         ORDER BY p.purchase_date ASC, p.id ASC
       `,
-      [userId, supplierId],
-    );
+        [userId, supplierId],
+      );
 
-    res.json({
-      success: true,
-      supplier: supplierResult.rows[0],
-      ledger: rows.rows,
-    });
-  } catch (error) {
-    console.error("Supplier ledger detail error:", error);
-    res.status(500).json({ error: "Failed to load supplier ledger" });
-  }
-});
-
-router.post("/expenses", requirePermission("expense_tracking"), async (req, res) => {
-  try {
-    const userId = getUserId(req);
-    const title = normalizeDisplayText(req.body.title);
-    const category = normalizeDisplayText(req.body.category);
-    const amount = parsePositiveNumber(req.body.amount);
-    const paymentMode = normalizePaymentMode(req.body.payment_mode, "cash");
-    const expenseDate = parseDateInput(req.body.expense_date);
-    const note = String(req.body.note || "").trim();
-
-    if (!title) {
-      return res.status(400).json({ error: "Expense title is required." });
+      res.json({
+        success: true,
+        supplier: supplierResult.rows[0],
+        ledger: rows.rows,
+      });
+    } catch (error) {
+      console.error("Supplier ledger detail error:", error);
+      res.status(500).json({ error: "Failed to load supplier ledger" });
     }
+  },
+);
 
-    if (!category) {
-      return res.status(400).json({ error: "Expense category is required." });
-    }
+router.post(
+  "/expenses",
+  requirePermission("expense_tracking"),
+  async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const title = normalizeDisplayText(req.body.title);
+      const category = normalizeDisplayText(req.body.category);
+      const amount = parsePositiveNumber(req.body.amount);
+      const paymentMode = normalizePaymentMode(req.body.payment_mode, "cash");
+      const expenseDate = parseDateInput(req.body.expense_date);
+      const note = String(req.body.note || "").trim();
 
-    if (amount === null) {
-      return res
-        .status(400)
-        .json({ error: "Expense amount must be greater than zero." });
-    }
+      if (!title) {
+        return res.status(400).json({ error: "Expense title is required." });
+      }
 
-    const result = await pool.query(
-      `
+      if (!category) {
+        return res.status(400).json({ error: "Expense category is required." });
+      }
+
+      if (amount === null) {
+        return res
+          .status(400)
+          .json({ error: "Expense amount must be greater than zero." });
+      }
+
+      const result = await pool.query(
+        `
         INSERT INTO expenses (
           user_id,
           title,
@@ -897,53 +944,55 @@ router.post("/expenses", requirePermission("expense_tracking"), async (req, res)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING id, title, category, amount, payment_mode, expense_date
       `,
-      [
-        userId,
-        title,
-        category,
-        Number(amount.toFixed(2)),
-        paymentMode,
-        toIstStartTimestamp(expenseDate),
-        note || null,
-      ],
-    );
+        [
+          userId,
+          title,
+          category,
+          Number(amount.toFixed(2)),
+          paymentMode,
+          toIstStartTimestamp(expenseDate),
+          note || null,
+        ],
+      );
 
-    res.json({
-      success: true,
-      message: "Expense saved successfully.",
-      expense: result.rows[0],
-    });
-  } catch (error) {
-    console.error("Expense save error:", error);
-    res.status(500).json({ error: "Failed to save expense" });
-  }
-});
+      res.json({
+        success: true,
+        message: "Expense saved successfully.",
+        expense: result.rows[0],
+      });
+    } catch (error) {
+      console.error("Expense save error:", error);
+      res.status(500).json({ error: "Failed to save expense" });
+    }
+  },
+);
 
-router.get("/expenses/report", requirePermission("expense_tracking"), async (req, res) => {
-  try {
-    const userId = getUserId(req);
-    const rawQuery = String(req.query.q || "").trim();
-    const { fromDate, toDate, fromTimestamp, toTimestampExclusive } = toIstDateRange(
-      req.query.from,
-      req.query.to,
-    );
+router.get(
+  "/expenses/report",
+  requirePermission("expense_tracking"),
+  async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const rawQuery = String(req.query.q || "").trim();
+      const { fromDate, toDate, fromTimestamp, toTimestampExclusive } =
+        toIstDateRange(req.query.from, req.query.to);
 
-    const baseParams = [userId, fromTimestamp, toTimestampExclusive];
-    let searchClause = "";
+      const baseParams = [userId, fromTimestamp, toTimestampExclusive];
+      let searchClause = "";
 
-    if (rawQuery) {
-      baseParams.push(`%${rawQuery}%`);
-      searchClause = `
+      if (rawQuery) {
+        baseParams.push(`%${rawQuery}%`);
+        searchClause = `
         AND (
           e.title ILIKE $4
           OR e.category ILIKE $4
           OR COALESCE(e.note, '') ILIKE $4
         )
       `;
-    }
+      }
 
-    const rowsResult = await pool.query(
-      `
+      const rowsResult = await pool.query(
+        `
         SELECT
           e.id,
           e.title,
@@ -959,25 +1008,25 @@ router.get("/expenses/report", requirePermission("expense_tracking"), async (req
           ${searchClause}
         ORDER BY e.expense_date DESC, e.id DESC
       `,
-      baseParams,
-    );
+        baseParams,
+      );
 
-    const summaryParams = [userId, fromTimestamp, toTimestampExclusive];
-    let summarySearchClause = "";
+      const summaryParams = [userId, fromTimestamp, toTimestampExclusive];
+      let summarySearchClause = "";
 
-    if (rawQuery) {
-      summaryParams.push(`%${rawQuery}%`);
-      summarySearchClause = `
+      if (rawQuery) {
+        summaryParams.push(`%${rawQuery}%`);
+        summarySearchClause = `
         AND (
           e.title ILIKE $4
           OR e.category ILIKE $4
           OR COALESCE(e.note, '') ILIKE $4
         )
       `;
-    }
+      }
 
-    const summaryResult = await pool.query(
-      `
+      const summaryResult = await pool.query(
+        `
         WITH filtered_expenses AS (
           SELECT e.*
           FROM expenses e
@@ -1019,30 +1068,31 @@ router.get("/expenses/report", requirePermission("expense_tracking"), async (req
         CROSS JOIN gross_profit
         LEFT JOIN top_category ON TRUE
       `,
-      summaryParams,
-    );
+        summaryParams,
+      );
 
-    const summary = summaryResult.rows[0] || {};
-    const totalExpense = Number(summary.total_expense) || 0;
-    const grossProfit = Number(summary.gross_profit) || 0;
+      const summary = summaryResult.rows[0] || {};
+      const totalExpense = Number(summary.total_expense) || 0;
+      const grossProfit = Number(summary.gross_profit) || 0;
 
-    res.json({
-      success: true,
-      range: { from: fromDate, to: toDate },
-      expenses: rowsResult.rows,
-      summary: {
-        entry_count: Number(summary.entry_count) || 0,
-        total_expense: totalExpense,
-        top_category: summary.top_category || "No expenses",
-        top_category_total: Number(summary.top_category_total) || 0,
-        gross_profit: grossProfit,
-        net_profit: Number((grossProfit - totalExpense).toFixed(2)),
-      },
-    });
-  } catch (error) {
-    console.error("Expense report error:", error);
-    res.status(500).json({ error: "Failed to load expense report" });
-  }
-});
+      res.json({
+        success: true,
+        range: { from: fromDate, to: toDate },
+        expenses: rowsResult.rows,
+        summary: {
+          entry_count: Number(summary.entry_count) || 0,
+          total_expense: totalExpense,
+          top_category: summary.top_category || "No expenses",
+          top_category_total: Number(summary.top_category_total) || 0,
+          gross_profit: grossProfit,
+          net_profit: Number((grossProfit - totalExpense).toFixed(2)),
+        },
+      });
+    } catch (error) {
+      console.error("Expense report error:", error);
+      res.status(500).json({ error: "Failed to load expense report" });
+    }
+  },
+);
 
 module.exports = router;

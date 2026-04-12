@@ -214,7 +214,11 @@
             rgba(14, 165, 233, 0.15),
             transparent 28%
           ),
-          linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(245, 250, 255, 0.88));
+          linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.94),
+            rgba(245, 250, 255, 0.88)
+          );
       }
 
       .hero-kicker {
@@ -762,7 +766,11 @@
   <body>
     <div class="workspace">
       <header class="topbar">
-        <a class="brand" href="developer-support.html" aria-label="Developer support home">
+        <a
+          class="brand"
+          href="developer-support.html"
+          aria-label="Developer support home"
+        >
           <span class="brand-mark">
             <img src="/images/app_logo.png" alt="" />
           </span>
@@ -817,7 +825,9 @@
           <article class="hero-stat">
             <span>Need Reply</span>
             <strong id="statUnreadThreads">0</strong>
-            <small>Threads with unread user messages for developer review.</small>
+            <small
+              >Threads with unread user messages for developer review.</small
+            >
           </article>
           <article class="hero-stat">
             <span>Open Threads</span>
@@ -850,23 +860,40 @@
                 spellcheck="false"
                 placeholder="Search by requester, owner, email, username, or preview"
               />
-              <div id="conversationSearchDropdown" class="search-dropdown" hidden></div>
+              <div
+                id="conversationSearchDropdown"
+                class="search-dropdown"
+                hidden
+              ></div>
             </div>
 
             <div class="filter-row" id="filterRow">
-              <button class="filter-btn is-active" type="button" data-filter="needs_reply">
+              <button
+                class="filter-btn is-active"
+                type="button"
+                data-filter="needs_reply"
+              >
                 Needs Reply
               </button>
-              <button class="filter-btn" type="button" data-filter="open">Open</button>
-              <button class="filter-btn" type="button" data-filter="all">All</button>
-              <button class="filter-btn" type="button" data-filter="closed">Closed</button>
+              <button class="filter-btn" type="button" data-filter="open">
+                Open
+              </button>
+              <button class="filter-btn" type="button" data-filter="all">
+                All
+              </button>
+              <button class="filter-btn" type="button" data-filter="closed">
+                Closed
+              </button>
             </div>
 
             <div id="conversationList" class="queue-list">
               <div class="queue-empty">
                 <i class="fa-solid fa-inbox"></i>
                 <strong>Support queue is empty</strong>
-                <p>User support conversations will appear here as soon as they send a message.</p>
+                <p>
+                  User support conversations will appear here as soon as they
+                  send a message.
+                </p>
               </div>
             </div>
           </aside>
@@ -903,7 +930,8 @@
               <span class="panel-kicker">Thread Workspace</span>
               <h2 id="threadTitle">Select a support conversation</h2>
               <p id="threadLead">
-                Open a thread from the queue to read the full message history and send a reply.
+                Open a thread from the queue to read the full message history
+                and send a reply.
               </p>
             </div>
           </div>
@@ -940,7 +968,10 @@
             <div class="thread-empty">
               <i class="fa-solid fa-comments"></i>
               <strong>No support thread selected</strong>
-              <p>Choose a conversation from the queue to open the full history here.</p>
+              <p>
+                Choose a conversation from the queue to open the full history
+                here.
+              </p>
             </div>
           </div>
 
@@ -961,7 +992,8 @@
 
             <div class="reply-row">
               <p id="composerStatus" class="composer-status" data-tone="info">
-                Select a thread first, then reply from the dedicated developer support identity.
+                Select a thread first, then reply from the dedicated developer
+                support identity.
               </p>
               <button id="replySendBtn" class="primary-btn" type="button">
                 <i class="fa-solid fa-paper-plane"></i>
@@ -973,8 +1005,14 @@
       </section>
 
       <footer class="footer-card">
-        <span>Developer support replies stay separate from owner and staff login sessions.</span>
-        <span>&copy; <span id="currentYear"></span> India Inventory Management</span>
+        <span
+          >Developer support replies stay separate from owner and staff login
+          sessions.</span
+        >
+        <span
+          >&copy; <span id="currentYear"></span> India Inventory
+          Management</span
+        >
       </footer>
     </div>
 

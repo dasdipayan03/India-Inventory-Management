@@ -61,7 +61,9 @@
   async function handleSubmit(event) {
     event.preventDefault();
 
-    const email = String(dom.email?.value || "").trim().toLowerCase();
+    const email = String(dom.email?.value || "")
+      .trim()
+      .toLowerCase();
     const password = String(dom.password?.value || "");
 
     if (!email || !password) {
@@ -83,14 +85,19 @@
           '<i class="fa-solid fa-spinner fa-spin"></i> Signing In...';
       }
 
-      setStatus("Checking developer credentials and opening the support inbox...");
+      setStatus(
+        "Checking developer credentials and opening the support inbox...",
+      );
 
       await requestJSON("/developer-auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
 
-      setStatus("Developer login successful. Redirecting to the inbox...", "success");
+      setStatus(
+        "Developer login successful. Redirecting to the inbox...",
+        "success",
+      );
       window.setTimeout(() => {
         window.location.replace("developer-support.html");
       }, 250);

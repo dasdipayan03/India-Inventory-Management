@@ -255,7 +255,11 @@ async function developerAuthMiddleware(req, res, next) {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (String(decoded.role || "").trim().toLowerCase() !== DEVELOPER_SUPPORT_ROLE) {
+    if (
+      String(decoded.role || "")
+        .trim()
+        .toLowerCase() !== DEVELOPER_SUPPORT_ROLE
+    ) {
       return res.status(401).json({ error: "Invalid or expired token" });
     }
 
@@ -324,7 +328,9 @@ function hasPermission(req, ...permissions) {
     ? req.user.permissions
     : [];
 
-  return permissions.some((permission) => currentPermissions.includes(permission));
+  return permissions.some((permission) =>
+    currentPermissions.includes(permission),
+  );
 }
 
 function requireOwner(req, res, next) {

@@ -475,7 +475,9 @@
           <ul>
             <li>Use the same registered email that received the reset link.</li>
             <li>Your new password should be at least 6 characters long.</li>
-            <li>If the link has expired, request a new reset email from login.</li>
+            <li>
+              If the link has expired, request a new reset email from login.
+            </li>
           </ul>
         </div>
 
@@ -582,8 +584,8 @@
           <div class="panel-footer">
             <a class="support-link" href="login.html">Return to login</a>
             <span class="footer-note"
-              >If the reset link does not work, request a new one from the
-              login page.</span
+              >If the reset link does not work, request a new one from the login
+              page.</span
             >
           </div>
         </div>
@@ -661,7 +663,11 @@
       fields.token.value = tokenFromUrl;
 
       if (window.location.search || window.location.hash) {
-        window.history.replaceState(null, document.title, window.location.pathname);
+        window.history.replaceState(
+          null,
+          document.title,
+          window.location.pathname,
+        );
       }
 
       if (fields.token.value) {
@@ -752,11 +758,7 @@
           );
           firstInvalidField = firstInvalidField || fields.confirmPassword;
         } else {
-          setInputState(
-            fields.confirmPassword,
-            "valid",
-            "Passwords match.",
-          );
+          setInputState(fields.confirmPassword, "valid", "Passwords match.");
         }
 
         if (!token || firstInvalidField) {

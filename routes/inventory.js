@@ -89,9 +89,7 @@ function sanitizeExcelCell(value) {
   }
 
   const normalized = value.replace(/^\uFEFF/, "");
-  return /^[\t\r ]*[=+\-@]/.test(normalized)
-    ? `'${normalized}`
-    : normalized;
+  return /^[\t\r ]*[=+\-@]/.test(normalized) ? `'${normalized}` : normalized;
 }
 
 function parseNonNegativeNumber(value) {
@@ -217,7 +215,10 @@ function getSlowMovingFocusNote(sold30Days, daysCover) {
     return "Very high stock cover against recent movement.";
   }
 
-  if (Number.isFinite(daysCover) && daysCover >= STOCK_CONFIG.SLOW_MOVING_DAYS) {
+  if (
+    Number.isFinite(daysCover) &&
+    daysCover >= STOCK_CONFIG.SLOW_MOVING_DAYS
+  ) {
     return "Recent sales are soft for the stock on hand.";
   }
 
@@ -228,52 +229,57 @@ function getSlowMovingFocusNote(sold30Days, daysCover) {
 router.use(authMiddleware);
 
 // ----------------- STOCK DEFAULT SETTINGS -----------------
-router.get("/stock-defaults", requirePermission("add_stock", "purchase_entry"), async (req, res) => {
-  try {
-    const user_id = getUserId(req);
-    const { rows } = await pool.query(
-      `
+router.get(
+  "/stock-defaults",
+  requirePermission("add_stock", "purchase_entry"),
+  async (req, res) => {
+    try {
+      const user_id = getUserId(req);
+      const { rows } = await pool.query(
+        `
         SELECT default_profit_percent
         FROM settings
         WHERE user_id = $1
         LIMIT 1
       `,
-      [user_id],
-    );
+        [user_id],
+      );
 
-    const savedValue = Number(rows[0]?.default_profit_percent);
+      const savedValue = Number(rows[0]?.default_profit_percent);
 
-    res.json({
-      success: true,
-      settings: Number.isFinite(savedValue)
-        ? { default_profit_percent: savedValue }
-        : {},
-    });
-  } catch (err) {
-    console.error("Stock defaults load error:", err);
-    res.status(500).json({ error: "Failed to load stock defaults" });
-  }
-});
-
-router.put("/stock-defaults", requirePermission("add_stock", "purchase_entry"), async (req, res) => {
-  try {
-    const user_id = getUserId(req);
-    const normalizedProfitPercent = parseNonNegativeNumber(
-      req.body?.default_profit_percent,
-    );
-
-    if (
-      normalizedProfitPercent === null ||
-      normalizedProfitPercent > 10000
-    ) {
-      return res.status(400).json({
-        error: "Default profit percent must be a valid number between 0 and 10000.",
+      res.json({
+        success: true,
+        settings: Number.isFinite(savedValue)
+          ? { default_profit_percent: savedValue }
+          : {},
       });
+    } catch (err) {
+      console.error("Stock defaults load error:", err);
+      res.status(500).json({ error: "Failed to load stock defaults" });
     }
+  },
+);
 
-    const roundedProfitPercent = Number(normalizedProfitPercent.toFixed(2));
-    const { rows } = await pool.query(
-      `
+router.put(
+  "/stock-defaults",
+  requirePermission("add_stock", "purchase_entry"),
+  async (req, res) => {
+    try {
+      const user_id = getUserId(req);
+      const normalizedProfitPercent = parseNonNegativeNumber(
+        req.body?.default_profit_percent,
+      );
+
+      if (normalizedProfitPercent === null || normalizedProfitPercent > 10000) {
+        return res.status(400).json({
+          error:
+            "Default profit percent must be a valid number between 0 and 10000.",
+        });
+      }
+
+      const roundedProfitPercent = Number(normalizedProfitPercent.toFixed(2));
+      const { rows } = await pool.query(
+        `
         INSERT INTO settings (user_id, default_profit_percent)
         VALUES ($1, $2)
         ON CONFLICT (user_id)
@@ -281,21 +287,22 @@ router.put("/stock-defaults", requirePermission("add_stock", "purchase_entry"), 
           default_profit_percent = EXCLUDED.default_profit_percent
         RETURNING default_profit_percent
       `,
-      [user_id, roundedProfitPercent],
-    );
+        [user_id, roundedProfitPercent],
+      );
 
-    res.json({
-      success: true,
-      settings: {
-        default_profit_percent:
-          Number(rows[0]?.default_profit_percent) || roundedProfitPercent,
-      },
-    });
-  } catch (err) {
-    console.error("Stock defaults save error:", err);
-    res.status(500).json({ error: "Failed to save stock defaults" });
-  }
-});
+      res.json({
+        success: true,
+        settings: {
+          default_profit_percent:
+            Number(rows[0]?.default_profit_percent) || roundedProfitPercent,
+        },
+      });
+    } catch (err) {
+      console.error("Stock defaults save error:", err);
+      res.status(500).json({ error: "Failed to save stock defaults" });
+    }
+  },
+);
 
 // ------------------------------- ADD ITEMS ---------------------------------------
 
@@ -388,60 +395,71 @@ router.post("/items", requirePermission("add_stock"), async (req, res) => {
 });
 
 // Auto-suggest item names
-router.get("/items/names", requirePermission("add_stock", "sale_invoice", "stock_report"), async (req, res) => {
-  try {
-    const user_id = getUserId(req);
-    const result = await pool.query(
-      "SELECT name FROM items WHERE user_id=$1 ORDER BY LOWER(TRIM(name)) ASC",
-      [user_id],
-    );
-    res.json(result.rows.map((r) => r.name));
-  } catch (err) {
-    if (process.env.NODE_ENV !== "production")
-      console.error("Error fetching item names:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+router.get(
+  "/items/names",
+  requirePermission("add_stock", "sale_invoice", "stock_report"),
+  async (req, res) => {
+    try {
+      const user_id = getUserId(req);
+      const result = await pool.query(
+        "SELECT name FROM items WHERE user_id=$1 ORDER BY LOWER(TRIM(name)) ASC",
+        [user_id],
+      );
+      res.json(result.rows.map((r) => r.name));
+    } catch (err) {
+      if (process.env.NODE_ENV !== "production")
+        console.error("Error fetching item names:", err);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
+);
 
-router.get("/items/info", requirePermission("add_stock", "sale_invoice", "purchase_entry"), async (req, res) => {
-  try {
-    const user_id = getUserId(req);
-    const name = req.query.name;
-    if (!name) return res.status(400).json({ error: "Missing item name" });
+router.get(
+  "/items/info",
+  requirePermission("add_stock", "sale_invoice", "purchase_entry"),
+  async (req, res) => {
+    try {
+      const user_id = getUserId(req);
+      const name = req.query.name;
+      if (!name) return res.status(400).json({ error: "Missing item name" });
 
-    const result = await pool.query(
-      `SELECT id, name, quantity, buying_rate, selling_rate
+      const result = await pool.query(
+        `SELECT id, name, quantity, buying_rate, selling_rate
        FROM items
        WHERE user_id=$1 AND LOWER(TRIM(name))=LOWER($2)`,
-      [user_id, name.trim()],
-    );
+        [user_id, name.trim()],
+      );
 
-    if (!result.rows.length)
-      return res.status(404).json({ error: "Item not found" });
+      if (!result.rows.length)
+        return res.status(404).json({ error: "Item not found" });
 
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error("Item info error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+      res.json(result.rows[0]);
+    } catch (err) {
+      console.error("Item info error:", err);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
+);
 
 // ----------------- ITEM WISE STOCK & SALES REPORT (JSON) -----------------
-router.get("/items/report", requirePermission("stock_report"), async (req, res) => {
-  try {
-    const user_id = getUserId(req);
-    const { name } = req.query;
+router.get(
+  "/items/report",
+  requirePermission("stock_report"),
+  async (req, res) => {
+    try {
+      const user_id = getUserId(req);
+      const { name } = req.query;
 
-    let params = [user_id];
-    let nameFilter = "";
+      let params = [user_id];
+      let nameFilter = "";
 
-    if (name && name.trim()) {
-      params.push(name.trim());
-      nameFilter = "AND LOWER(TRIM(i.name)) = LOWER($2)";
-    }
+      if (name && name.trim()) {
+        params.push(name.trim());
+        nameFilter = "AND LOWER(TRIM(i.name)) = LOWER($2)";
+      }
 
-    const result = await pool.query(
-      `
+      const result = await pool.query(
+        `
       SELECT
       i.name AS item_name,
       i.quantity AS available_qty,
@@ -457,23 +475,27 @@ router.get("/items/report", requirePermission("stock_report"), async (req, res) 
       GROUP BY i.id, i.name, i.quantity, i.buying_rate, i.selling_rate
       ORDER BY i.name ASC
       `,
-      params,
-    );
+        params,
+      );
 
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Item report error:", err.message);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+      res.json(result.rows);
+    } catch (err) {
+      console.error("Item report error:", err.message);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
+);
 
 // ----------------- STOCK ALERTS (Days of Stock Model) -----------------
-router.get("/items/low-stock", requirePermission("stock_report"), async (req, res) => {
-  try {
-    const user_id = getUserId(req);
+router.get(
+  "/items/low-stock",
+  requirePermission("stock_report"),
+  async (req, res) => {
+    try {
+      const user_id = getUserId(req);
 
-    const result = await pool.query(
-      `
+      const result = await pool.query(
+        `
       WITH sales_30 AS (
         SELECT 
           item_id,
@@ -503,28 +525,32 @@ router.get("/items/low-stock", requirePermission("stock_report"), async (req, re
         )
       ORDER BY days_left ASC
       `,
-      [user_id, STOCK_CONFIG.WARNING_DAYS],
-    );
+        [user_id, STOCK_CONFIG.WARNING_DAYS],
+      );
 
-    const rowsWithStatus = result.rows.map((r) => ({
-      ...r,
-      status: getLowStockStatus(Number(r.days_left)),
-    }));
+      const rowsWithStatus = result.rows.map((r) => ({
+        ...r,
+        status: getLowStockStatus(Number(r.days_left)),
+      }));
 
-    res.json(rowsWithStatus);
-  } catch (err) {
-    console.error("Stock alert error FULL:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+      res.json(rowsWithStatus);
+    } catch (err) {
+      console.error("Stock alert error FULL:", err);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
+);
 
 // ----------------- REORDER SUGGESTIONS (Replenishment Planner) -----------------
-router.get("/items/reorder-suggestions", requirePermission("stock_report"), async (req, res) => {
-  try {
-    const user_id = getUserId(req);
+router.get(
+  "/items/reorder-suggestions",
+  requirePermission("stock_report"),
+  async (req, res) => {
+    try {
+      const user_id = getUserId(req);
 
-    const result = await pool.query(
-      `
+      const result = await pool.query(
+        `
       WITH sales_30 AS (
         SELECT
           item_id,
@@ -588,43 +614,48 @@ router.get("/items/reorder-suggestions", requirePermission("stock_report"), asyn
         item_name ASC
       LIMIT $5
       `,
-      [
-        user_id,
-        STOCK_CONFIG.REORDER_TARGET_DAYS,
-        STOCK_CONFIG.CRITICAL_DAYS,
-        STOCK_CONFIG.WARNING_DAYS,
-        STOCK_CONFIG.REORDER_LIMIT,
-      ],
-    );
+        [
+          user_id,
+          STOCK_CONFIG.REORDER_TARGET_DAYS,
+          STOCK_CONFIG.CRITICAL_DAYS,
+          STOCK_CONFIG.WARNING_DAYS,
+          STOCK_CONFIG.REORDER_LIMIT,
+        ],
+      );
 
-    const rowsWithPriority = result.rows.map((row) => {
-      const daysLeft = Number(row.days_left);
-      const recommendedReorderQty = Number(row.recommended_reorder_qty) || 0;
-      const buyingRate = Number(row.buying_rate) || 0;
+      const rowsWithPriority = result.rows.map((row) => {
+        const daysLeft = Number(row.days_left);
+        const recommendedReorderQty = Number(row.recommended_reorder_qty) || 0;
+        const buyingRate = Number(row.buying_rate) || 0;
 
-      return {
-        ...row,
-        target_days: STOCK_CONFIG.REORDER_TARGET_DAYS,
-        priority: getReorderPriority(daysLeft),
-        recommended_reorder_qty: recommendedReorderQty,
-        reorder_cost: Number(row.reorder_cost) || recommendedReorderQty * buyingRate,
-      };
-    });
+        return {
+          ...row,
+          target_days: STOCK_CONFIG.REORDER_TARGET_DAYS,
+          priority: getReorderPriority(daysLeft),
+          recommended_reorder_qty: recommendedReorderQty,
+          reorder_cost:
+            Number(row.reorder_cost) || recommendedReorderQty * buyingRate,
+        };
+      });
 
-    res.json(rowsWithPriority);
-  } catch (err) {
-    console.error("Reorder suggestions error:", err.message);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+      res.json(rowsWithPriority);
+    } catch (err) {
+      console.error("Reorder suggestions error:", err.message);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
+);
 
 // ----------------- SLOW MOVING STOCK (Sell-First Focus) -----------------
-router.get("/items/slow-moving", requirePermission("stock_report"), async (req, res) => {
-  try {
-    const user_id = getUserId(req);
+router.get(
+  "/items/slow-moving",
+  requirePermission("stock_report"),
+  async (req, res) => {
+    try {
+      const user_id = getUserId(req);
 
-    const result = await pool.query(
-      `
+      const result = await pool.query(
+        `
       WITH sales_30 AS (
         SELECT
           item_id,
@@ -682,57 +713,61 @@ router.get("/items/slow-moving", requirePermission("stock_report"), async (req, 
         item_name ASC
       LIMIT $6
       `,
-      [
-        user_id,
-        STOCK_CONFIG.SLOW_MOVING_DAYS,
-        STOCK_CONFIG.SLOW_MOVING_LOW_SALES,
-        STOCK_CONFIG.SLOW_MOVING_MIN_QTY,
-        STOCK_CONFIG.STAGNANT_DAYS,
-        STOCK_CONFIG.SLOW_MOVING_LIMIT,
-      ],
-    );
+        [
+          user_id,
+          STOCK_CONFIG.SLOW_MOVING_DAYS,
+          STOCK_CONFIG.SLOW_MOVING_LOW_SALES,
+          STOCK_CONFIG.SLOW_MOVING_MIN_QTY,
+          STOCK_CONFIG.STAGNANT_DAYS,
+          STOCK_CONFIG.SLOW_MOVING_LIMIT,
+        ],
+      );
 
-    const rowsWithPriority = result.rows.map((row) => {
-      const availableQty = Number(row.available_qty) || 0;
-      const buyingRate = Number(row.buying_rate) || 0;
-      const sold30Days = Number(row.sold_30_days) || 0;
-      const daysCover =
-        row.days_cover == null ? null : Number(row.days_cover);
+      const rowsWithPriority = result.rows.map((row) => {
+        const availableQty = Number(row.available_qty) || 0;
+        const buyingRate = Number(row.buying_rate) || 0;
+        const sold30Days = Number(row.sold_30_days) || 0;
+        const daysCover =
+          row.days_cover == null ? null : Number(row.days_cover);
 
-      return {
-        ...row,
-        available_qty: availableQty,
-        sold_30_days: sold30Days,
-        stock_value: Number(row.stock_value) || availableQty * buyingRate,
-        priority: getSlowMovingPriority(sold30Days, daysCover),
-        focus_note: getSlowMovingFocusNote(sold30Days, daysCover),
-      };
-    });
+        return {
+          ...row,
+          available_qty: availableQty,
+          sold_30_days: sold30Days,
+          stock_value: Number(row.stock_value) || availableQty * buyingRate,
+          priority: getSlowMovingPriority(sold30Days, daysCover),
+          focus_note: getSlowMovingFocusNote(sold30Days, daysCover),
+        };
+      });
 
-    res.json(rowsWithPriority);
-  } catch (err) {
-    console.error("Slow moving stock error:", err.message);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+      res.json(rowsWithPriority);
+    } catch (err) {
+      console.error("Slow moving stock error:", err.message);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
+);
 
 // ----------------- ITEM WISE STOCK & SALES REPORT (PDF) -----------------
-router.get("/items/report/pdf", requirePermission("stock_report"), async (req, res) => {
-  try {
-    const user_id = getUserId(req);
-    const { name } = req.query;
-    const shopName = await getShopName(user_id);
+router.get(
+  "/items/report/pdf",
+  requirePermission("stock_report"),
+  async (req, res) => {
+    try {
+      const user_id = getUserId(req);
+      const { name } = req.query;
+      const shopName = await getShopName(user_id);
 
-    let params = [user_id];
-    let nameFilter = "";
+      let params = [user_id];
+      let nameFilter = "";
 
-    if (name && name.trim()) {
-      params.push(name.trim());
-      nameFilter = "AND LOWER(TRIM(i.name)) = LOWER($2)";
-    }
+      if (name && name.trim()) {
+        params.push(name.trim());
+        nameFilter = "AND LOWER(TRIM(i.name)) = LOWER($2)";
+      }
 
-    const result = await pool.query(
-      `
+      const result = await pool.query(
+        `
       SELECT
       i.name AS item_name,
       i.quantity AS available_qty,
@@ -748,165 +783,172 @@ router.get("/items/report/pdf", requirePermission("stock_report"), async (req, r
       GROUP BY i.id, i.name, i.quantity, i.buying_rate, i.selling_rate
       ORDER BY i.name ASC
       `,
-      params,
-    );
+        params,
+      );
 
-    const doc = new PDFDocument({ size: "A4", margin: 40 });
-    const filename =
-      name && name.trim()
-        ? `stock_report_${safeFilePart(name)}.pdf`
-        : "stock_report.pdf";
-    const reportScope =
-      name && name.trim()
-        ? `Filtered for: ${name.trim()}`
-        : "Full stock catalog";
-    const stockColumns = [
-      { label: "Sl", x: 46, width: 28 },
-      { label: "Item Name", x: 78, width: 180 },
-      { label: "Available", x: 262, width: 72, align: "right" },
-      { label: "Buying", x: 338, width: 72, align: "right" },
-      { label: "Selling", x: 414, width: 72, align: "right" },
-      { label: "Sold", x: 490, width: 54, align: "right" },
-    ];
+      const doc = new PDFDocument({ size: "A4", margin: 40 });
+      const filename =
+        name && name.trim()
+          ? `stock_report_${safeFilePart(name)}.pdf`
+          : "stock_report.pdf";
+      const reportScope =
+        name && name.trim()
+          ? `Filtered for: ${name.trim()}`
+          : "Full stock catalog";
+      const stockColumns = [
+        { label: "Sl", x: 46, width: 28 },
+        { label: "Item Name", x: 78, width: 180 },
+        { label: "Available", x: 262, width: 72, align: "right" },
+        { label: "Buying", x: 338, width: 72, align: "right" },
+        { label: "Selling", x: 414, width: 72, align: "right" },
+        { label: "Sold", x: 490, width: 54, align: "right" },
+      ];
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
 
-    doc.pipe(res);
+      doc.pipe(res);
 
-    drawPdfBanner(
-      doc,
-      "Stock Report",
-      shopName,
-      reportScope,
-      `Generated: ${formatIstDate(new Date())}`,
-    );
-
-    // ✅ draw table header for first page
-    drawPdfTableHeader(doc, stockColumns);
-
-    // ---- Rows ----
-    const startX = 40;
-    let totalCostValue = 0;
-    let totalSellingValue = 0;
-
-    result.rows.forEach((r, i) => {
-      // 🔒 Page overflow handling (same as Sales PDF)
-      if (doc.y > 720) {
-        doc.addPage();
-        drawPdfTableHeader(doc, stockColumns);
-      }
-      const qty = Number(r.available_qty);
-      const buy = Number(r.buying_rate);
-      const sell = Number(r.selling_rate);
-
-      totalCostValue += qty * buy;
-      totalSellingValue += qty * sell;
-
-      const y = doc.y;
-
-      // 👉 Dynamic height based on item name
-      const itemHeight = doc.heightOfString(r.item_name || "", {
-        width: 150,
-        align: "left",
-      });
-
-      if (i % 2 === 0) {
-        doc.save();
-        doc
-          .rect(40, y - 2, 515, Math.max(itemHeight, 18) + 6)
-          .fill(PDF_THEME.rowAlt);
-        doc.restore();
-      }
-
-      doc.fillColor(PDF_THEME.ink).font("Helvetica").fontSize(10);
-      doc.text(i + 1, startX, y, { width: 30 });
-      doc.text(r.item_name || "", startX + 30, y, { width: 190 });
-      doc.text(qty.toFixed(2), startX + 220, y, { width: 70, align: "right" });
-      doc.text(formatCurrency(buy), startX + 290, y, {
-        width: 80,
-        align: "right",
-      });
-      doc.text(formatCurrency(sell), startX + 370, y, {
-        width: 80,
-        align: "right",
-      });
-      doc.text(Number(r.sold_qty).toFixed(2), startX + 450, y, {
-        width: 65,
-        align: "right",
-      });
-      doc
-        .moveTo(40, y + Math.max(itemHeight, 18) + 2)
-        .lineTo(555, y + Math.max(itemHeight, 18) + 2)
-        .strokeColor(PDF_THEME.line)
-        .stroke();
-      // 👉 Move Y exactly like Sales PDF
-      doc.y = y + Math.max(itemHeight, 18) + 6;
-    });
-
-    const profit = totalSellingValue - totalCostValue;
-    const summaryHeight = 88;
-
-    ensurePdfSpace(doc, summaryHeight + 16, () => {
       drawPdfBanner(
         doc,
-        "Stock Summary",
+        "Stock Report",
         shopName,
         reportScope,
         `Generated: ${formatIstDate(new Date())}`,
       );
-    });
 
-    const summaryY = doc.y + 8;
+      // ✅ draw table header for first page
+      drawPdfTableHeader(doc, stockColumns);
 
-    doc.save();
-    doc
-      .roundedRect(310, summaryY, 245, summaryHeight, 12)
-      .fillAndStroke("#f8fbff", PDF_THEME.line);
-    doc.restore();
+      // ---- Rows ----
+      const startX = 40;
+      let totalCostValue = 0;
+      let totalSellingValue = 0;
 
-    doc.font("Helvetica-Bold").fontSize(11).fillColor(PDF_THEME.navy);
-    doc.text("Report Summary", 326, summaryY + 12, { width: 190 });
-    doc.font("Helvetica").fontSize(10).fillColor(PDF_THEME.ink);
-    doc.text(
-      `Total Cost Value: Rs. ${formatCurrency(totalCostValue)}`,
-      326,
-      summaryY + 34,
-    );
-    doc.text(
-      `Total Selling Value: Rs. ${formatCurrency(totalSellingValue)}`,
-      326,
-      summaryY + 50,
-    );
-    doc
-      .font("Helvetica-Bold")
-      .fillColor(profit >= 0 ? PDF_THEME.success : PDF_THEME.danger)
-      .text(
-        `Estimated Profit: Rs. ${formatCurrency(profit)}`,
+      result.rows.forEach((r, i) => {
+        // 🔒 Page overflow handling (same as Sales PDF)
+        if (doc.y > 720) {
+          doc.addPage();
+          drawPdfTableHeader(doc, stockColumns);
+        }
+        const qty = Number(r.available_qty);
+        const buy = Number(r.buying_rate);
+        const sell = Number(r.selling_rate);
+
+        totalCostValue += qty * buy;
+        totalSellingValue += qty * sell;
+
+        const y = doc.y;
+
+        // 👉 Dynamic height based on item name
+        const itemHeight = doc.heightOfString(r.item_name || "", {
+          width: 150,
+          align: "left",
+        });
+
+        if (i % 2 === 0) {
+          doc.save();
+          doc
+            .rect(40, y - 2, 515, Math.max(itemHeight, 18) + 6)
+            .fill(PDF_THEME.rowAlt);
+          doc.restore();
+        }
+
+        doc.fillColor(PDF_THEME.ink).font("Helvetica").fontSize(10);
+        doc.text(i + 1, startX, y, { width: 30 });
+        doc.text(r.item_name || "", startX + 30, y, { width: 190 });
+        doc.text(qty.toFixed(2), startX + 220, y, {
+          width: 70,
+          align: "right",
+        });
+        doc.text(formatCurrency(buy), startX + 290, y, {
+          width: 80,
+          align: "right",
+        });
+        doc.text(formatCurrency(sell), startX + 370, y, {
+          width: 80,
+          align: "right",
+        });
+        doc.text(Number(r.sold_qty).toFixed(2), startX + 450, y, {
+          width: 65,
+          align: "right",
+        });
+        doc
+          .moveTo(40, y + Math.max(itemHeight, 18) + 2)
+          .lineTo(555, y + Math.max(itemHeight, 18) + 2)
+          .strokeColor(PDF_THEME.line)
+          .stroke();
+        // 👉 Move Y exactly like Sales PDF
+        doc.y = y + Math.max(itemHeight, 18) + 6;
+      });
+
+      const profit = totalSellingValue - totalCostValue;
+      const summaryHeight = 88;
+
+      ensurePdfSpace(doc, summaryHeight + 16, () => {
+        drawPdfBanner(
+          doc,
+          "Stock Summary",
+          shopName,
+          reportScope,
+          `Generated: ${formatIstDate(new Date())}`,
+        );
+      });
+
+      const summaryY = doc.y + 8;
+
+      doc.save();
+      doc
+        .roundedRect(310, summaryY, 245, summaryHeight, 12)
+        .fillAndStroke("#f8fbff", PDF_THEME.line);
+      doc.restore();
+
+      doc.font("Helvetica-Bold").fontSize(11).fillColor(PDF_THEME.navy);
+      doc.text("Report Summary", 326, summaryY + 12, { width: 190 });
+      doc.font("Helvetica").fontSize(10).fillColor(PDF_THEME.ink);
+      doc.text(
+        `Total Cost Value: Rs. ${formatCurrency(totalCostValue)}`,
         326,
-        summaryY + 66,
+        summaryY + 34,
       );
+      doc.text(
+        `Total Selling Value: Rs. ${formatCurrency(totalSellingValue)}`,
+        326,
+        summaryY + 50,
+      );
+      doc
+        .font("Helvetica-Bold")
+        .fillColor(profit >= 0 ? PDF_THEME.success : PDF_THEME.danger)
+        .text(
+          `Estimated Profit: Rs. ${formatCurrency(profit)}`,
+          326,
+          summaryY + 66,
+        );
 
-    doc.fillColor(PDF_THEME.ink);
-    doc.end();
-  } catch (err) {
-    console.error("Item report PDF error:", err.message);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+      doc.fillColor(PDF_THEME.ink);
+      doc.end();
+    } catch (err) {
+      console.error("Item report PDF error:", err.message);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
+);
 
 // ----------------- SALES REPORT table (JSON PREVIEW) -----------------
-router.get("/sales/report", requirePermission("sales_report"), async (req, res) => {
-  try {
-    const user_id = getUserId(req);
-    const { from, to } = req.query;
+router.get(
+  "/sales/report",
+  requirePermission("sales_report"),
+  async (req, res) => {
+    try {
+      const user_id = getUserId(req);
+      const { from, to } = req.query;
 
-    if (!from || !to) {
-      return res.status(400).json({ error: "Missing date range" });
-    }
+      if (!from || !to) {
+        return res.status(400).json({ error: "Missing date range" });
+      }
 
-    const result = await pool.query(
-      `SELECT
+      const result = await pool.query(
+        `SELECT
         s.created_at,
         i.name AS item_name,
         s.quantity,
@@ -919,29 +961,33 @@ router.get("/sales/report", requirePermission("sales_report"), async (req, res) 
           AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date >= $2::date
           AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date <= $3::date
       ORDER BY s.created_at ASC`,
-      [user_id, from, to],
-    );
+        [user_id, from, to],
+      );
 
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Sales report JSON error:", err.message);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+      res.json(result.rows);
+    } catch (err) {
+      console.error("Sales report JSON error:", err.message);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
+);
 
 // ----------------- SALES REPORT (PDF DOWNLOAD) -----------------
-router.get("/sales/report/pdf", requirePermission("sales_report"), async (req, res) => {
-  try {
-    const user_id = getUserId(req);
-    const { from, to } = req.query;
-    const shopName = await getShopName(user_id);
+router.get(
+  "/sales/report/pdf",
+  requirePermission("sales_report"),
+  async (req, res) => {
+    try {
+      const user_id = getUserId(req);
+      const { from, to } = req.query;
+      const shopName = await getShopName(user_id);
 
-    if (!from || !to) {
-      return res.status(400).json({ error: "Missing date range" });
-    }
+      if (!from || !to) {
+        return res.status(400).json({ error: "Missing date range" });
+      }
 
-    const result = await pool.query(
-      `SELECT
+      const result = await pool.query(
+        `SELECT
         s.created_at,
         i.name AS item_name,
         s.quantity,
@@ -954,155 +1000,159 @@ router.get("/sales/report/pdf", requirePermission("sales_report"), async (req, r
           AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date >= $2::date
           AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date <= $3::date
       ORDER BY s.created_at ASC`,
-      [user_id, from, to],
-    );
+        [user_id, from, to],
+      );
 
-    const doc = new PDFDocument({ margin: 40, size: "A4" });
-    const salesColumns = [
-      { label: "Sl", x: 46, width: 24 },
-      { label: "Date", x: 74, width: 62 },
-      { label: "Item", x: 140, width: 160 },
-      { label: "Qty", x: 304, width: 36, align: "right" },
-      { label: "Rate", x: 344, width: 60, align: "right" },
-      { label: "GST", x: 408, width: 60, align: "right" },
-      { label: "Total", x: 472, width: 72, align: "right" },
-    ];
+      const doc = new PDFDocument({ margin: 40, size: "A4" });
+      const salesColumns = [
+        { label: "Sl", x: 46, width: 24 },
+        { label: "Date", x: 74, width: 62 },
+        { label: "Item", x: 140, width: 160 },
+        { label: "Qty", x: 304, width: 36, align: "right" },
+        { label: "Rate", x: 344, width: 60, align: "right" },
+        { label: "GST", x: 408, width: 60, align: "right" },
+        { label: "Total", x: 472, width: 72, align: "right" },
+      ];
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=sales_report_${from}_to_${to}.pdf`,
-    );
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=sales_report_${from}_to_${to}.pdf`,
+      );
 
-    doc.pipe(res);
+      doc.pipe(res);
 
-    drawPdfBanner(
-      doc,
-      "Sales Report",
-      shopName,
-      `Date range: ${from} to ${to}`,
-      `Generated: ${formatIstDate(new Date())}`,
-    );
+      drawPdfBanner(
+        doc,
+        "Sales Report",
+        shopName,
+        `Date range: ${from} to ${to}`,
+        `Generated: ${formatIstDate(new Date())}`,
+      );
 
-    const startX = 40;
-    drawPdfTableHeader(doc, salesColumns);
+      const startX = 40;
+      drawPdfTableHeader(doc, salesColumns);
 
-    // ---- Rows ----
-    let subtotal = 0;
-    let gstTotal = 0;
-    let grandTotal = 0;
+      // ---- Rows ----
+      let subtotal = 0;
+      let gstTotal = 0;
+      let grandTotal = 0;
 
-    result.rows.forEach((r, i) => {
-      const totalPrice = Number(r.total_price) || 0;
-      const gstAmount = Number(r.gst_amount) || 0;
-      const finalTotal = totalPrice + gstAmount;
-      // 🔒 Page overflow protection
-      if (doc.y > 720) {
-        doc.addPage();
-        drawPdfTableHeader(doc, salesColumns);
-      }
+      result.rows.forEach((r, i) => {
+        const totalPrice = Number(r.total_price) || 0;
+        const gstAmount = Number(r.gst_amount) || 0;
+        const finalTotal = totalPrice + gstAmount;
+        // 🔒 Page overflow protection
+        if (doc.y > 720) {
+          doc.addPage();
+          drawPdfTableHeader(doc, salesColumns);
+        }
 
-      const y = doc.y;
+        const y = doc.y;
 
-      // 👉 calculate dynamic height for item name
-      const itemHeight = doc.heightOfString(r.item_name || "", {
-        width: 160,
-        align: "left",
-      });
+        // 👉 calculate dynamic height for item name
+        const itemHeight = doc.heightOfString(r.item_name || "", {
+          width: 160,
+          align: "left",
+        });
 
-      if (i % 2 === 0) {
-        doc.save();
+        if (i % 2 === 0) {
+          doc.save();
+          doc
+            .rect(40, y - 2, 515, Math.max(itemHeight, 18) + 6)
+            .fill(PDF_THEME.rowAlt);
+          doc.restore();
+        }
+
+        const saleDate = formatIstDate(r.created_at);
+        doc.fillColor(PDF_THEME.ink).font("Helvetica").fontSize(10);
+        doc.text(i + 1, startX, y, { width: 24 });
+        doc.text(saleDate, startX + 26, y, { width: 62 });
+        doc.text(r.item_name || "", startX + 92, y, { width: 160 });
+        doc.text(r.quantity, startX + 256, y, { width: 36, align: "right" });
+        doc.text(formatCurrency(r.selling_price), startX + 296, y, {
+          width: 60,
+          align: "right",
+        });
+        doc.text(formatCurrency(r.gst_amount), startX + 360, y, {
+          width: 60,
+          align: "right",
+        });
+        doc.text(formatCurrency(finalTotal), startX + 424, y, {
+          width: 72,
+          align: "right",
+        });
         doc
-          .rect(40, y - 2, 515, Math.max(itemHeight, 18) + 6)
-          .fill(PDF_THEME.rowAlt);
-        doc.restore();
-      }
+          .moveTo(40, y + Math.max(itemHeight, 18) + 2)
+          .lineTo(555, y + Math.max(itemHeight, 18) + 2)
+          .strokeColor(PDF_THEME.line)
+          .stroke();
 
-      const saleDate = formatIstDate(r.created_at);
-      doc.fillColor(PDF_THEME.ink).font("Helvetica").fontSize(10);
-      doc.text(i + 1, startX, y, { width: 24 });
-      doc.text(saleDate, startX + 26, y, { width: 62 });
-      doc.text(r.item_name || "", startX + 92, y, { width: 160 });
-      doc.text(r.quantity, startX + 256, y, { width: 36, align: "right" });
-      doc.text(formatCurrency(r.selling_price), startX + 296, y, {
-        width: 60,
-        align: "right",
+        // 👉 move y based on tallest content
+        doc.y = y + Math.max(itemHeight, 18) + 6;
+
+        subtotal += totalPrice;
+        gstTotal += gstAmount;
+        grandTotal += finalTotal;
       });
-      doc.text(formatCurrency(r.gst_amount), startX + 360, y, {
-        width: 60,
-        align: "right",
-      });
-      doc.text(formatCurrency(finalTotal), startX + 424, y, {
-        width: 72,
-        align: "right",
-      });
+
+      const summaryHeight = 88;
+      ensurePdfSpace(doc, summaryHeight + 12, () =>
+        drawPdfTableHeader(doc, salesColumns),
+      );
+
+      const summaryY = doc.y + 6;
+      doc.save();
       doc
-        .moveTo(40, y + Math.max(itemHeight, 18) + 2)
-        .lineTo(555, y + Math.max(itemHeight, 18) + 2)
-        .strokeColor(PDF_THEME.line)
-        .stroke();
+        .roundedRect(320, summaryY, 235, summaryHeight, 12)
+        .fillAndStroke("#f8fbff", PDF_THEME.line);
+      doc.restore();
 
-      // 👉 move y based on tallest content
-      doc.y = y + Math.max(itemHeight, 18) + 6;
-
-      subtotal += totalPrice;
-      gstTotal += gstAmount;
-      grandTotal += finalTotal;
-    });
-
-    const summaryHeight = 88;
-    ensurePdfSpace(doc, summaryHeight + 12, () =>
-      drawPdfTableHeader(doc, salesColumns),
-    );
-
-    const summaryY = doc.y + 6;
-    doc.save();
-    doc
-      .roundedRect(320, summaryY, 235, summaryHeight, 12)
-      .fillAndStroke("#f8fbff", PDF_THEME.line);
-    doc.restore();
-
-    doc.font("Helvetica-Bold").fontSize(11).fillColor(PDF_THEME.navy);
-    doc.text("Sales Summary", 336, summaryY + 12, { width: 180 });
-    [
-      ["Total Sale", grandTotal, true],
-      ["Total GST", gstTotal, false],
-      ["Subtotal", subtotal, false],
-    ].forEach(([label, value, highlight], index) => {
-      const rowY = summaryY + 32 + index * 16;
-      doc
-        .font(highlight ? "Helvetica-Bold" : "Helvetica")
-        .fontSize(10)
-        .fillColor(highlight ? PDF_THEME.navy : PDF_THEME.ink);
-      doc.text(label, 336, rowY, { width: 96 });
-      doc.text(`Rs. ${formatCurrency(value)}`, 430, rowY, {
-        width: 110,
-        align: "right",
+      doc.font("Helvetica-Bold").fontSize(11).fillColor(PDF_THEME.navy);
+      doc.text("Sales Summary", 336, summaryY + 12, { width: 180 });
+      [
+        ["Total Sale", grandTotal, true],
+        ["Total GST", gstTotal, false],
+        ["Subtotal", subtotal, false],
+      ].forEach(([label, value, highlight], index) => {
+        const rowY = summaryY + 32 + index * 16;
+        doc
+          .font(highlight ? "Helvetica-Bold" : "Helvetica")
+          .fontSize(10)
+          .fillColor(highlight ? PDF_THEME.navy : PDF_THEME.ink);
+        doc.text(label, 336, rowY, { width: 96 });
+        doc.text(`Rs. ${formatCurrency(value)}`, 430, rowY, {
+          width: 110,
+          align: "right",
+        });
       });
-    });
 
-    doc.fillColor(PDF_THEME.ink);
+      doc.fillColor(PDF_THEME.ink);
 
-    doc.end();
-  } catch (err) {
-    console.error("Sales PDF error:", err.message);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+      doc.end();
+    } catch (err) {
+      console.error("Sales PDF error:", err.message);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
+);
 
 // ----------------- SALES REPORT (EXCEL DOWNLOAD) -----------------
-router.get("/sales/report/excel", requirePermission("sales_report"), async (req, res) => {
-  try {
-    const user_id = getUserId(req);
-    const { from, to } = req.query;
-    const shopName = await getShopName(user_id);
+router.get(
+  "/sales/report/excel",
+  requirePermission("sales_report"),
+  async (req, res) => {
+    try {
+      const user_id = getUserId(req);
+      const { from, to } = req.query;
+      const shopName = await getShopName(user_id);
 
-    if (!from || !to) {
-      return res.status(400).json({ error: "Missing date range" });
-    }
+      if (!from || !to) {
+        return res.status(400).json({ error: "Missing date range" });
+      }
 
-    const result = await pool.query(
-      `SELECT
+      const result = await pool.query(
+        `SELECT
         s.created_at,
         i.name AS item_name,
         s.quantity,
@@ -1115,112 +1165,84 @@ router.get("/sales/report/excel", requirePermission("sales_report"), async (req,
           AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date >= $2::date
           AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date <= $3::date
       ORDER BY s.created_at ASC`,
-      [user_id, from, to],
-    );
+        [user_id, from, to],
+      );
 
-    const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet("Sales Report");
-    workbook.creator = "India Inventory Management";
-    workbook.created = new Date();
-    sheet.views = [{ state: "frozen", ySplit: 4 }];
-    sheet.pageSetup = {
-      orientation: "landscape",
-      fitToPage: true,
-      fitToWidth: 1,
-      margins: {
-        left: 0.3,
-        right: 0.3,
-        top: 0.5,
-        bottom: 0.5,
-        header: 0.2,
-        footer: 0.2,
-      },
-    };
-
-    sheet.columns = [
-      { header: "Sl No", key: "sl", width: 8 },
-      { header: "Date", key: "date", width: 15 },
-      { header: "Item Name", key: "item", width: 30 },
-      { header: "Quantity", key: "qty", width: 12 },
-      { header: "Rate", key: "rate", width: 12 },
-      { header: "GST", key: "gst", width: 12 },
-      { header: "Amount", key: "total", width: 14 },
-    ];
-
-    sheet.insertRow(1, [`Sales Report`]);
-    sheet.mergeCells("A1:G1");
-    sheet.getCell("A1").font = { size: 16, bold: true };
-    sheet.getCell("A1").alignment = { horizontal: "center" };
-    sheet.getCell("A1").fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FF17315D" },
-    };
-    sheet.getCell("A1").font = {
-      size: 16,
-      bold: true,
-      color: { argb: "FFFFFFFF" },
-    };
-
-    sheet.insertRow(2, [sanitizeExcelCell(shopName)]);
-    sheet.mergeCells("A2:G2");
-    sheet.getCell("A2").alignment = { horizontal: "center" };
-    sheet.getCell("A2").font = {
-      size: 12,
-      bold: true,
-      color: { argb: "FF17315D" },
-    };
-    sheet.getCell("A2").fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FFF8FBFF" },
-    };
-
-    sheet.insertRow(3, [
-      `From: ${from}   To: ${to}   |   Generated: ${formatIstDate(new Date())}`,
-    ]);
-    sheet.mergeCells("A3:G3");
-    sheet.getCell("A3").alignment = { horizontal: "center" };
-    sheet.getCell("A3").font = { italic: true, color: { argb: "FF475569" } };
-    sheet.autoFilter = "A4:G4";
-
-    const headerRow = sheet.getRow(4);
-    headerRow.font = { bold: true };
-    headerRow.alignment = { horizontal: "center" };
-    headerRow.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FFEFF6FF" },
-    };
-    headerRow.eachCell((cell) => {
-      cell.border = {
-        top: { style: "thin" },
-        bottom: { style: "thin" },
-        left: { style: "thin" },
-        right: { style: "thin" },
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet("Sales Report");
+      workbook.creator = "India Inventory Management";
+      workbook.created = new Date();
+      sheet.views = [{ state: "frozen", ySplit: 4 }];
+      sheet.pageSetup = {
+        orientation: "landscape",
+        fitToPage: true,
+        fitToWidth: 1,
+        margins: {
+          left: 0.3,
+          right: 0.3,
+          top: 0.5,
+          bottom: 0.5,
+          header: 0.2,
+          footer: 0.2,
+        },
       };
-    });
 
-    let subtotal = 0;
-    let gstTotal = 0;
-    let grandTotal = 0;
+      sheet.columns = [
+        { header: "Sl No", key: "sl", width: 8 },
+        { header: "Date", key: "date", width: 15 },
+        { header: "Item Name", key: "item", width: 30 },
+        { header: "Quantity", key: "qty", width: 12 },
+        { header: "Rate", key: "rate", width: 12 },
+        { header: "GST", key: "gst", width: 12 },
+        { header: "Amount", key: "total", width: 14 },
+      ];
 
-    result.rows.forEach((r, i) => {
-      const totalPrice = Number(r.total_price) || 0;
-      const gstAmount = Number(r.gst_amount) || 0;
-      const finalTotal = totalPrice + gstAmount;
-      const saleDate = formatIstDate(r.created_at);
-      const row = sheet.addRow({
-        sl: i + 1,
-        date: saleDate,
-        item: sanitizeExcelCell(r.item_name),
-        qty: r.quantity,
-        rate: Number(r.selling_price),
-        gst: gstAmount,
-        total: finalTotal,
-      });
+      sheet.insertRow(1, [`Sales Report`]);
+      sheet.mergeCells("A1:G1");
+      sheet.getCell("A1").font = { size: 16, bold: true };
+      sheet.getCell("A1").alignment = { horizontal: "center" };
+      sheet.getCell("A1").fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF17315D" },
+      };
+      sheet.getCell("A1").font = {
+        size: 16,
+        bold: true,
+        color: { argb: "FFFFFFFF" },
+      };
 
-      row.eachCell((cell) => {
+      sheet.insertRow(2, [sanitizeExcelCell(shopName)]);
+      sheet.mergeCells("A2:G2");
+      sheet.getCell("A2").alignment = { horizontal: "center" };
+      sheet.getCell("A2").font = {
+        size: 12,
+        bold: true,
+        color: { argb: "FF17315D" },
+      };
+      sheet.getCell("A2").fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFF8FBFF" },
+      };
+
+      sheet.insertRow(3, [
+        `From: ${from}   To: ${to}   |   Generated: ${formatIstDate(new Date())}`,
+      ]);
+      sheet.mergeCells("A3:G3");
+      sheet.getCell("A3").alignment = { horizontal: "center" };
+      sheet.getCell("A3").font = { italic: true, color: { argb: "FF475569" } };
+      sheet.autoFilter = "A4:G4";
+
+      const headerRow = sheet.getRow(4);
+      headerRow.font = { bold: true };
+      headerRow.alignment = { horizontal: "center" };
+      headerRow.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFEFF6FF" },
+      };
+      headerRow.eachCell((cell) => {
         cell.border = {
           top: { style: "thin" },
           bottom: { style: "thin" },
@@ -1228,82 +1250,111 @@ router.get("/sales/report/excel", requirePermission("sales_report"), async (req,
           right: { style: "thin" },
         };
       });
-      row.alignment = { vertical: "middle" };
-      row.getCell("A").alignment = { horizontal: "center" };
-      row.getCell("B").alignment = { horizontal: "center" };
-      row.getCell("C").alignment = { wrapText: true };
-      row.getCell("D").alignment = { horizontal: "right" };
-      row.getCell("E").alignment = { horizontal: "right" };
-      row.getCell("F").alignment = { horizontal: "right" };
-      row.getCell("G").alignment = { horizontal: "right" };
 
-      if (i % 2 === 1) {
+      let subtotal = 0;
+      let gstTotal = 0;
+      let grandTotal = 0;
+
+      result.rows.forEach((r, i) => {
+        const totalPrice = Number(r.total_price) || 0;
+        const gstAmount = Number(r.gst_amount) || 0;
+        const finalTotal = totalPrice + gstAmount;
+        const saleDate = formatIstDate(r.created_at);
+        const row = sheet.addRow({
+          sl: i + 1,
+          date: saleDate,
+          item: sanitizeExcelCell(r.item_name),
+          qty: r.quantity,
+          rate: Number(r.selling_price),
+          gst: gstAmount,
+          total: finalTotal,
+        });
+
         row.eachCell((cell) => {
-          cell.fill = {
-            type: "pattern",
-            pattern: "solid",
-            fgColor: { argb: "FFF8FBFF" },
+          cell.border = {
+            top: { style: "thin" },
+            bottom: { style: "thin" },
+            left: { style: "thin" },
+            right: { style: "thin" },
           };
         });
-      }
+        row.alignment = { vertical: "middle" };
+        row.getCell("A").alignment = { horizontal: "center" };
+        row.getCell("B").alignment = { horizontal: "center" };
+        row.getCell("C").alignment = { wrapText: true };
+        row.getCell("D").alignment = { horizontal: "right" };
+        row.getCell("E").alignment = { horizontal: "right" };
+        row.getCell("F").alignment = { horizontal: "right" };
+        row.getCell("G").alignment = { horizontal: "right" };
 
-      row.getCell(4).numFmt = "#,##0.00";
-      row.getCell(5).numFmt = "#,##0.00";
-      row.getCell(6).numFmt = "#,##0.00";
-      row.getCell(7).numFmt = "#,##0.00";
+        if (i % 2 === 1) {
+          row.eachCell((cell) => {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFF8FBFF" },
+            };
+          });
+        }
 
-      subtotal += totalPrice;
-      gstTotal += gstAmount;
-      grandTotal += finalTotal;
-    });
+        row.getCell(4).numFmt = "#,##0.00";
+        row.getCell(5).numFmt = "#,##0.00";
+        row.getCell(6).numFmt = "#,##0.00";
+        row.getCell(7).numFmt = "#,##0.00";
 
-    // ----------------- Summary -----------------
-    sheet.addRow([]);
-
-    [
-      { label: "Total Sale (Rs.)", value: grandTotal, fill: "FFE0F2FE" },
-      { label: "Total GST (Rs.)", value: gstTotal, fill: "FFF0F9FF" },
-      { label: "Subtotal (Rs.)", value: subtotal, fill: "FFF8FBFF" },
-    ].forEach(({ label, value, fill }) => {
-      const summaryRow = sheet.addRow({
-        item: label,
-        total: value,
+        subtotal += totalPrice;
+        gstTotal += gstAmount;
+        grandTotal += finalTotal;
       });
 
-      summaryRow.font = { bold: true };
-      summaryRow.fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: fill },
-      };
-      summaryRow.eachCell((cell) => {
-        cell.border = {
-          top: { style: "thin" },
-          bottom: { style: "thin" },
+      // ----------------- Summary -----------------
+      sheet.addRow([]);
+
+      [
+        { label: "Total Sale (Rs.)", value: grandTotal, fill: "FFE0F2FE" },
+        { label: "Total GST (Rs.)", value: gstTotal, fill: "FFF0F9FF" },
+        { label: "Subtotal (Rs.)", value: subtotal, fill: "FFF8FBFF" },
+      ].forEach(({ label, value, fill }) => {
+        const summaryRow = sheet.addRow({
+          item: label,
+          total: value,
+        });
+
+        summaryRow.font = { bold: true };
+        summaryRow.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: fill },
         };
+        summaryRow.eachCell((cell) => {
+          cell.border = {
+            top: { style: "thin" },
+            bottom: { style: "thin" },
+          };
+        });
+        summaryRow.getCell("G").numFmt = "#,##0.00";
+        summaryRow.getCell("C").alignment = { horizontal: "right" };
+        summaryRow.getCell("G").alignment = { horizontal: "right" };
       });
-      summaryRow.getCell("G").numFmt = "#,##0.00";
-      summaryRow.getCell("C").alignment = { horizontal: "right" };
-      summaryRow.getCell("G").alignment = { horizontal: "right" };
-    });
 
-    // ----------------- Response -----------------
-    res.setHeader(
-      "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    );
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=sales_report_${from}_to_${to}.xlsx`,
-    );
+      // ----------------- Response -----------------
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=sales_report_${from}_to_${to}.xlsx`,
+      );
 
-    await workbook.xlsx.write(res);
-    res.end();
-  } catch (err) {
-    console.error("Sales Excel error:", err.message);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (err) {
+      console.error("Sales Excel error:", err.message);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
+);
 
 async function fetchGstReportRows(userId, from, to) {
   const result = await pool.query(
@@ -1366,249 +1417,237 @@ router.get("/gst/report", requirePermission("gst_report"), async (req, res) => {
 });
 
 // ----------------- GST REPORT (PDF DOWNLOAD) -----------------
-router.get("/gst/report/pdf", requirePermission("gst_report"), async (req, res) => {
-  try {
-    const userId = getUserId(req);
-    const { from, to } = req.query;
-    const shopName = await getShopName(userId);
+router.get(
+  "/gst/report/pdf",
+  requirePermission("gst_report"),
+  async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { from, to } = req.query;
+      const shopName = await getShopName(userId);
 
-    if (!from || !to) {
-      return res.status(400).json({ error: "Missing date range" });
-    }
-
-    const rows = await fetchGstReportRows(userId, from, to);
-    const summary = summarizeGstRows(rows);
-    const doc = new PDFDocument({ margin: 40, size: "A4" });
-    const gstColumns = [
-      { label: "Date", x: 46, width: 64 },
-      { label: "Invoice No", x: 114, width: 112 },
-      { label: "Customer", x: 230, width: 120 },
-      { label: "Taxable", x: 354, width: 64, align: "right" },
-      { label: "GST", x: 422, width: 58, align: "right" },
-      { label: "Total", x: 484, width: 58, align: "right" },
-    ];
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=gst_report_${from}_to_${to}.pdf`,
-    );
-
-    doc.pipe(res);
-
-    drawPdfBanner(
-      doc,
-      "GST Report",
-      shopName,
-      `Invoice-wise GST from ${from} to ${to}`,
-      `Generated: ${formatIstDate(new Date())}`,
-    );
-
-    drawPdfTableHeader(doc, gstColumns);
-
-    rows.forEach((row, index) => {
-      if (doc.y > 720) {
-        doc.addPage();
-        drawPdfTableHeader(doc, gstColumns);
+      if (!from || !to) {
+        return res.status(400).json({ error: "Missing date range" });
       }
 
-      const y = doc.y;
-      const invoiceHeight = doc.heightOfString(row.invoice_no || "", {
-        width: 112,
-      });
-      const customerHeight = doc.heightOfString(row.customer_name || "", {
-        width: 120,
-      });
-      const rowHeight = Math.max(invoiceHeight, customerHeight, 18);
+      const rows = await fetchGstReportRows(userId, from, to);
+      const summary = summarizeGstRows(rows);
+      const doc = new PDFDocument({ margin: 40, size: "A4" });
+      const gstColumns = [
+        { label: "Date", x: 46, width: 64 },
+        { label: "Invoice No", x: 114, width: 112 },
+        { label: "Customer", x: 230, width: 120 },
+        { label: "Taxable", x: 354, width: 64, align: "right" },
+        { label: "GST", x: 422, width: 58, align: "right" },
+        { label: "Total", x: 484, width: 58, align: "right" },
+      ];
 
-      if (index % 2 === 0) {
-        doc.save();
-        doc.rect(40, y - 2, 515, rowHeight + 6).fill(PDF_THEME.rowAlt);
-        doc.restore();
-      }
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=gst_report_${from}_to_${to}.pdf`,
+      );
 
-      doc.fillColor(PDF_THEME.ink).font("Helvetica").fontSize(10);
-      doc.text(formatIstDate(row.created_at), 46, y, { width: 64 });
-      doc.text(row.invoice_no || "-", 114, y, { width: 112 });
-      doc.text(row.customer_name || "-", 230, y, { width: 120 });
-      doc.text(formatCurrency(row.taxable_amount), 354, y, {
-        width: 64,
-        align: "right",
-      });
-      doc.text(formatCurrency(row.gst_amount), 422, y, {
-        width: 58,
-        align: "right",
-      });
-      doc.text(formatCurrency(row.invoice_total), 484, y, {
-        width: 58,
-        align: "right",
+      doc.pipe(res);
+
+      drawPdfBanner(
+        doc,
+        "GST Report",
+        shopName,
+        `Invoice-wise GST from ${from} to ${to}`,
+        `Generated: ${formatIstDate(new Date())}`,
+      );
+
+      drawPdfTableHeader(doc, gstColumns);
+
+      rows.forEach((row, index) => {
+        if (doc.y > 720) {
+          doc.addPage();
+          drawPdfTableHeader(doc, gstColumns);
+        }
+
+        const y = doc.y;
+        const invoiceHeight = doc.heightOfString(row.invoice_no || "", {
+          width: 112,
+        });
+        const customerHeight = doc.heightOfString(row.customer_name || "", {
+          width: 120,
+        });
+        const rowHeight = Math.max(invoiceHeight, customerHeight, 18);
+
+        if (index % 2 === 0) {
+          doc.save();
+          doc.rect(40, y - 2, 515, rowHeight + 6).fill(PDF_THEME.rowAlt);
+          doc.restore();
+        }
+
+        doc.fillColor(PDF_THEME.ink).font("Helvetica").fontSize(10);
+        doc.text(formatIstDate(row.created_at), 46, y, { width: 64 });
+        doc.text(row.invoice_no || "-", 114, y, { width: 112 });
+        doc.text(row.customer_name || "-", 230, y, { width: 120 });
+        doc.text(formatCurrency(row.taxable_amount), 354, y, {
+          width: 64,
+          align: "right",
+        });
+        doc.text(formatCurrency(row.gst_amount), 422, y, {
+          width: 58,
+          align: "right",
+        });
+        doc.text(formatCurrency(row.invoice_total), 484, y, {
+          width: 58,
+          align: "right",
+        });
+
+        doc
+          .moveTo(40, y + rowHeight + 2)
+          .lineTo(555, y + rowHeight + 2)
+          .strokeColor(PDF_THEME.line)
+          .stroke();
+
+        doc.y = y + rowHeight + 6;
       });
 
+      const summaryHeight = 64;
+      ensurePdfSpace(doc, summaryHeight + 12, () =>
+        drawPdfTableHeader(doc, gstColumns),
+      );
+
+      const summaryY = doc.y + 6;
+      doc.save();
       doc
-        .moveTo(40, y + rowHeight + 2)
-        .lineTo(555, y + rowHeight + 2)
-        .strokeColor(PDF_THEME.line)
-        .stroke();
+        .roundedRect(304, summaryY, 251, summaryHeight, 14)
+        .fillAndStroke("#f8fbff", PDF_THEME.line);
+      doc.restore();
 
-      doc.y = y + rowHeight + 6;
-    });
+      doc.font("Helvetica-Bold").fontSize(11).fillColor(PDF_THEME.navy);
+      doc.text(`Invoices: ${summary.invoiceCount}`, 320, summaryY + 12, {
+        width: 100,
+      });
+      doc.text(
+        `GST: Rs. ${formatCurrency(summary.gstTotal)}`,
+        430,
+        summaryY + 12,
+        {
+          width: 108,
+          align: "right",
+        },
+      );
+      doc.text(
+        `Taxable: Rs. ${formatCurrency(summary.taxableTotal)}`,
+        320,
+        summaryY + 34,
+        {
+          width: 120,
+        },
+      );
+      doc.text(
+        `Total: Rs. ${formatCurrency(summary.grandTotal)}`,
+        430,
+        summaryY + 34,
+        {
+          width: 108,
+          align: "right",
+        },
+      );
 
-    const summaryHeight = 64;
-    ensurePdfSpace(doc, summaryHeight + 12, () =>
-      drawPdfTableHeader(doc, gstColumns),
-    );
-
-    const summaryY = doc.y + 6;
-    doc.save();
-    doc
-      .roundedRect(304, summaryY, 251, summaryHeight, 14)
-      .fillAndStroke("#f8fbff", PDF_THEME.line);
-    doc.restore();
-
-    doc.font("Helvetica-Bold").fontSize(11).fillColor(PDF_THEME.navy);
-    doc.text(`Invoices: ${summary.invoiceCount}`, 320, summaryY + 12, {
-      width: 100,
-    });
-    doc.text(
-      `GST: Rs. ${formatCurrency(summary.gstTotal)}`,
-      430,
-      summaryY + 12,
-      {
-        width: 108,
-        align: "right",
-      },
-    );
-    doc.text(
-      `Taxable: Rs. ${formatCurrency(summary.taxableTotal)}`,
-      320,
-      summaryY + 34,
-      {
-        width: 120,
-      },
-    );
-    doc.text(
-      `Total: Rs. ${formatCurrency(summary.grandTotal)}`,
-      430,
-      summaryY + 34,
-      {
-        width: 108,
-        align: "right",
-      },
-    );
-
-    doc.fillColor(PDF_THEME.ink);
-    doc.end();
-  } catch (err) {
-    console.error("GST PDF error:", err.message);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+      doc.fillColor(PDF_THEME.ink);
+      doc.end();
+    } catch (err) {
+      console.error("GST PDF error:", err.message);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
+);
 
 // ----------------- GST REPORT (EXCEL DOWNLOAD) -----------------
-router.get("/gst/report/excel", requirePermission("gst_report"), async (req, res) => {
-  try {
-    const userId = getUserId(req);
-    const { from, to } = req.query;
-    const shopName = await getShopName(userId);
+router.get(
+  "/gst/report/excel",
+  requirePermission("gst_report"),
+  async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { from, to } = req.query;
+      const shopName = await getShopName(userId);
 
-    if (!from || !to) {
-      return res.status(400).json({ error: "Missing date range" });
-    }
+      if (!from || !to) {
+        return res.status(400).json({ error: "Missing date range" });
+      }
 
-    const rows = await fetchGstReportRows(userId, from, to);
-    const summary = summarizeGstRows(rows);
-    const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet("GST Report");
-    workbook.creator = "India Inventory Management";
-    workbook.created = new Date();
-    sheet.views = [{ state: "frozen", ySplit: 4 }];
-    sheet.pageSetup = {
-      orientation: "landscape",
-      fitToPage: true,
-      fitToWidth: 1,
-      margins: {
-        left: 0.3,
-        right: 0.3,
-        top: 0.5,
-        bottom: 0.5,
-        header: 0.2,
-        footer: 0.2,
-      },
-    };
-
-    sheet.columns = [
-      { header: "Date", key: "date", width: 15 },
-      { header: "Invoice No", key: "invoice", width: 24 },
-      { header: "Customer", key: "customer", width: 24 },
-      { header: "Taxable Amount", key: "taxable", width: 16 },
-      { header: "GST Amount", key: "gst", width: 14 },
-      { header: "Invoice Total", key: "total", width: 16 },
-    ];
-
-    sheet.insertRow(1, ["GST Report"]);
-    sheet.mergeCells("A1:F1");
-    sheet.getCell("A1").fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FF17315D" },
-    };
-    sheet.getCell("A1").font = {
-      size: 16,
-      bold: true,
-      color: { argb: "FFFFFFFF" },
-    };
-    sheet.getCell("A1").alignment = { horizontal: "center" };
-
-    sheet.insertRow(2, [sanitizeExcelCell(shopName)]);
-    sheet.mergeCells("A2:F2");
-    sheet.getCell("A2").alignment = { horizontal: "center" };
-    sheet.getCell("A2").font = {
-      size: 12,
-      bold: true,
-      color: { argb: "FF17315D" },
-    };
-    sheet.getCell("A2").fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FFF8FBFF" },
-    };
-
-    sheet.insertRow(3, [
-      `Invoice-wise GST from ${from} to ${to}   |   Generated: ${formatIstDate(new Date())}`,
-    ]);
-    sheet.mergeCells("A3:F3");
-    sheet.getCell("A3").alignment = { horizontal: "center" };
-    sheet.getCell("A3").font = { italic: true, color: { argb: "FF475569" } };
-    sheet.autoFilter = "A4:F4";
-
-    const headerRow = sheet.getRow(4);
-    headerRow.font = { bold: true };
-    headerRow.alignment = { horizontal: "center" };
-    headerRow.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FFEFF6FF" },
-    };
-    headerRow.eachCell((cell) => {
-      cell.border = {
-        top: { style: "thin" },
-        bottom: { style: "thin" },
-        left: { style: "thin" },
-        right: { style: "thin" },
+      const rows = await fetchGstReportRows(userId, from, to);
+      const summary = summarizeGstRows(rows);
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet("GST Report");
+      workbook.creator = "India Inventory Management";
+      workbook.created = new Date();
+      sheet.views = [{ state: "frozen", ySplit: 4 }];
+      sheet.pageSetup = {
+        orientation: "landscape",
+        fitToPage: true,
+        fitToWidth: 1,
+        margins: {
+          left: 0.3,
+          right: 0.3,
+          top: 0.5,
+          bottom: 0.5,
+          header: 0.2,
+          footer: 0.2,
+        },
       };
-    });
 
-    rows.forEach((row, index) => {
-      const excelRow = sheet.addRow({
-        date: formatIstDate(row.created_at),
-        invoice: sanitizeExcelCell(row.invoice_no),
-        customer: sanitizeExcelCell(row.customer_name),
-        taxable: Number(row.taxable_amount) || 0,
-        gst: Number(row.gst_amount) || 0,
-        total: Number(row.invoice_total) || 0,
-      });
+      sheet.columns = [
+        { header: "Date", key: "date", width: 15 },
+        { header: "Invoice No", key: "invoice", width: 24 },
+        { header: "Customer", key: "customer", width: 24 },
+        { header: "Taxable Amount", key: "taxable", width: 16 },
+        { header: "GST Amount", key: "gst", width: 14 },
+        { header: "Invoice Total", key: "total", width: 16 },
+      ];
 
-      excelRow.eachCell((cell) => {
+      sheet.insertRow(1, ["GST Report"]);
+      sheet.mergeCells("A1:F1");
+      sheet.getCell("A1").fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF17315D" },
+      };
+      sheet.getCell("A1").font = {
+        size: 16,
+        bold: true,
+        color: { argb: "FFFFFFFF" },
+      };
+      sheet.getCell("A1").alignment = { horizontal: "center" };
+
+      sheet.insertRow(2, [sanitizeExcelCell(shopName)]);
+      sheet.mergeCells("A2:F2");
+      sheet.getCell("A2").alignment = { horizontal: "center" };
+      sheet.getCell("A2").font = {
+        size: 12,
+        bold: true,
+        color: { argb: "FF17315D" },
+      };
+      sheet.getCell("A2").fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFF8FBFF" },
+      };
+
+      sheet.insertRow(3, [
+        `Invoice-wise GST from ${from} to ${to}   |   Generated: ${formatIstDate(new Date())}`,
+      ]);
+      sheet.mergeCells("A3:F3");
+      sheet.getCell("A3").alignment = { horizontal: "center" };
+      sheet.getCell("A3").font = { italic: true, color: { argb: "FF475569" } };
+      sheet.autoFilter = "A4:F4";
+
+      const headerRow = sheet.getRow(4);
+      headerRow.font = { bold: true };
+      headerRow.alignment = { horizontal: "center" };
+      headerRow.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFEFF6FF" },
+      };
+      headerRow.eachCell((cell) => {
         cell.border = {
           top: { style: "thin" },
           bottom: { style: "thin" },
@@ -1617,72 +1656,92 @@ router.get("/gst/report/excel", requirePermission("gst_report"), async (req, res
         };
       });
 
-      excelRow.alignment = { vertical: "middle" };
-      excelRow.getCell("A").alignment = { horizontal: "center" };
-      excelRow.getCell("B").alignment = { wrapText: true };
-      excelRow.getCell("C").alignment = { wrapText: true };
-      excelRow.getCell("D").alignment = { horizontal: "right" };
-      excelRow.getCell("E").alignment = { horizontal: "right" };
-      excelRow.getCell("F").alignment = { horizontal: "right" };
+      rows.forEach((row, index) => {
+        const excelRow = sheet.addRow({
+          date: formatIstDate(row.created_at),
+          invoice: sanitizeExcelCell(row.invoice_no),
+          customer: sanitizeExcelCell(row.customer_name),
+          taxable: Number(row.taxable_amount) || 0,
+          gst: Number(row.gst_amount) || 0,
+          total: Number(row.invoice_total) || 0,
+        });
 
-      if (index % 2 === 1) {
         excelRow.eachCell((cell) => {
-          cell.fill = {
-            type: "pattern",
-            pattern: "solid",
-            fgColor: { argb: "FFF8FBFF" },
+          cell.border = {
+            top: { style: "thin" },
+            bottom: { style: "thin" },
+            left: { style: "thin" },
+            right: { style: "thin" },
           };
         });
-      }
 
-      excelRow.getCell(4).numFmt = "#,##0.00";
-      excelRow.getCell(5).numFmt = "#,##0.00";
-      excelRow.getCell(6).numFmt = "#,##0.00";
-    });
+        excelRow.alignment = { vertical: "middle" };
+        excelRow.getCell("A").alignment = { horizontal: "center" };
+        excelRow.getCell("B").alignment = { wrapText: true };
+        excelRow.getCell("C").alignment = { wrapText: true };
+        excelRow.getCell("D").alignment = { horizontal: "right" };
+        excelRow.getCell("E").alignment = { horizontal: "right" };
+        excelRow.getCell("F").alignment = { horizontal: "right" };
 
-    sheet.addRow([]);
+        if (index % 2 === 1) {
+          excelRow.eachCell((cell) => {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFF8FBFF" },
+            };
+          });
+        }
 
-    const totalRow = sheet.addRow({
-      customer: `Invoices: ${summary.invoiceCount}`,
-      taxable: summary.taxableTotal,
-      gst: summary.gstTotal,
-      total: summary.grandTotal,
-    });
-    totalRow.font = { bold: true };
-    totalRow.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FFE0F2FE" },
-    };
-    totalRow.eachCell((cell) => {
-      cell.border = {
-        top: { style: "thin" },
-        bottom: { style: "thin" },
+        excelRow.getCell(4).numFmt = "#,##0.00";
+        excelRow.getCell(5).numFmt = "#,##0.00";
+        excelRow.getCell(6).numFmt = "#,##0.00";
+      });
+
+      sheet.addRow([]);
+
+      const totalRow = sheet.addRow({
+        customer: `Invoices: ${summary.invoiceCount}`,
+        taxable: summary.taxableTotal,
+        gst: summary.gstTotal,
+        total: summary.grandTotal,
+      });
+      totalRow.font = { bold: true };
+      totalRow.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFE0F2FE" },
       };
-    });
-    totalRow.getCell("D").numFmt = "#,##0.00";
-    totalRow.getCell("E").numFmt = "#,##0.00";
-    totalRow.getCell("F").numFmt = "#,##0.00";
-    totalRow.getCell("D").alignment = { horizontal: "right" };
-    totalRow.getCell("E").alignment = { horizontal: "right" };
-    totalRow.getCell("F").alignment = { horizontal: "right" };
+      totalRow.eachCell((cell) => {
+        cell.border = {
+          top: { style: "thin" },
+          bottom: { style: "thin" },
+        };
+      });
+      totalRow.getCell("D").numFmt = "#,##0.00";
+      totalRow.getCell("E").numFmt = "#,##0.00";
+      totalRow.getCell("F").numFmt = "#,##0.00";
+      totalRow.getCell("D").alignment = { horizontal: "right" };
+      totalRow.getCell("E").alignment = { horizontal: "right" };
+      totalRow.getCell("F").alignment = { horizontal: "right" };
 
-    res.setHeader(
-      "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    );
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=gst_report_${from}_to_${to}.xlsx`,
-    );
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=gst_report_${from}_to_${to}.xlsx`,
+      );
 
-    await workbook.xlsx.write(res);
-    res.end();
-  } catch (err) {
-    console.error("GST Excel error:", err.message);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (err) {
+      console.error("GST Excel error:", err.message);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
+);
 
 // ------------------- CUSTOMER DEBTS -------------------
 
@@ -1870,64 +1929,72 @@ router.post("/debts", requirePermission("customer_due"), async (req, res) => {
 });
 
 // ----------------- CUSTOMER AUTOSUGGEST -----------------
-router.get("/debts/customers", requirePermission("customer_due"), async (req, res) => {
-  try {
-    const user_id = getUserId(req);
-    const { q } = req.query;
+router.get(
+  "/debts/customers",
+  requirePermission("customer_due"),
+  async (req, res) => {
+    try {
+      const user_id = getUserId(req);
+      const { q } = req.query;
 
-    let query = `
+      let query = `
       SELECT DISTINCT customer_name, customer_number
       FROM debts
       WHERE user_id = $1
     `;
-    let params = [user_id];
+      let params = [user_id];
 
-    if (q && q.trim()) {
-      query += `
+      if (q && q.trim()) {
+        query += `
         AND (
           customer_name ILIKE $2
           OR customer_number ILIKE $2
         )
       `;
-      params.push(`%${q.trim()}%`);
+        params.push(`%${q.trim()}%`);
+      }
+
+      query += ` ORDER BY customer_name ASC LIMIT 20`;
+
+      const result = await pool.query(query, params);
+      res.json(result.rows);
+    } catch (err) {
+      console.error("Customer dropdown error:", err);
+      res.status(500).json({ error: "Server error" });
     }
-
-    query += ` ORDER BY customer_name ASC LIMIT 20`;
-
-    const result = await pool.query(query, params);
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Customer dropdown error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+  },
+);
 
 // Full ledger
-router.get("/debts/:number", requirePermission("customer_due"), async (req, res) => {
-  try {
-    const user_id = getUserId(req);
-    const number = req.params.number;
+router.get(
+  "/debts/:number",
+  requirePermission("customer_due"),
+  async (req, res) => {
+    try {
+      const user_id = getUserId(req);
+      const number = req.params.number;
 
-    if (!/^\d{10}$/.test(number))
-      return res
-        .status(400)
-        .json({ error: "Customer number must be 10 digits" });
+      if (!/^\d{10}$/.test(number))
+        return res
+          .status(400)
+          .json({ error: "Customer number must be 10 digits" });
 
-    const result = await pool.query(
-      `SELECT id, customer_name, customer_number, total, credit, remark, created_at
+      const result = await pool.query(
+        `SELECT id, customer_name, customer_number, total, credit, remark, created_at
        FROM debts
        WHERE user_id=$1 AND customer_number=$2
        ORDER BY created_at ASC, id ASC`,
-      [user_id, number],
-    );
+        [user_id, number],
+      );
 
-    res.json(result.rows);
-  } catch (err) {
-    if (process.env.NODE_ENV !== "production")
-      console.error("Error in GET /debts/:number:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+      res.json(result.rows);
+    } catch (err) {
+      if (process.env.NODE_ENV !== "production")
+        console.error("Error in GET /debts/:number:", err);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
+);
 
 // Summary dues
 router.get("/debts", requirePermission("customer_due"), async (req, res) => {
@@ -2092,29 +2159,34 @@ router.use((err, req, res, next) => {
 });
 
 // ----------------- MONTHLY SALES + PROFIT TREND -----------------
-router.get("/sales/monthly-trend", requirePermission("sales_report"), async (req, res) => {
-  try {
-    const user_id = getUserId(req);
-    const rawYear = String(req.query.year || "all").trim().toLowerCase();
-    let selectedYear = null;
+router.get(
+  "/sales/monthly-trend",
+  requirePermission("sales_report"),
+  async (req, res) => {
+    try {
+      const user_id = getUserId(req);
+      const rawYear = String(req.query.year || "all")
+        .trim()
+        .toLowerCase();
+      let selectedYear = null;
 
-    if (rawYear && rawYear !== "all") {
-      const parsedYear = Number.parseInt(rawYear, 10);
-      const currentYear = getCurrentIstYear();
+      if (rawYear && rawYear !== "all") {
+        const parsedYear = Number.parseInt(rawYear, 10);
+        const currentYear = getCurrentIstYear();
 
-      if (
-        !Number.isInteger(parsedYear) ||
-        parsedYear < 2000 ||
-        parsedYear > currentYear
-      ) {
-        return res.status(400).json({ error: "Invalid year filter" });
+        if (
+          !Number.isInteger(parsedYear) ||
+          parsedYear < 2000 ||
+          parsedYear > currentYear
+        ) {
+          return res.status(400).json({ error: "Invalid year filter" });
+        }
+
+        selectedYear = parsedYear;
       }
 
-      selectedYear = parsedYear;
-    }
-
-    const result = await pool.query(
-      `
+      const result = await pool.query(
+        `
       WITH catalog_bounds AS (
         SELECT
           COALESCE(
@@ -2178,45 +2250,50 @@ router.get("/sales/monthly-trend", requirePermission("sales_report"), async (req
         ON sr.month_start = m.month_start
       ORDER BY m.month_start ASC
       `,
-      [user_id, selectedYear],
-    );
+        [user_id, selectedYear],
+      );
 
-    const currentYear = Number(result.rows[0]?.current_year) || getCurrentIstYear();
-    const firstAvailableYear =
-      Number(result.rows[0]?.first_available_year) || currentYear;
-    const availableYears = [];
+      const currentYear =
+        Number(result.rows[0]?.current_year) || getCurrentIstYear();
+      const firstAvailableYear =
+        Number(result.rows[0]?.first_available_year) || currentYear;
+      const availableYears = [];
 
-    for (let year = currentYear; year >= firstAvailableYear; year -= 1) {
-      availableYears.push(year);
+      for (let year = currentYear; year >= firstAvailableYear; year -= 1) {
+        availableYears.push(year);
+      }
+
+      res.json({
+        success: true,
+        mode: selectedYear ? "year" : "all",
+        year: selectedYear,
+        available_years: availableYears,
+        timeline: result.rows.map((row) => ({
+          month_label: row.month_label,
+          month_key: row.month_key,
+          month_start_date: row.month_start_date,
+          total_sales: row.total_sales,
+          total_profit: row.total_profit,
+        })),
+      });
+    } catch (err) {
+      console.error("Monthly trend error:", err);
+      res.status(500).json({ error: "Server error" });
     }
-
-    res.json({
-      success: true,
-      mode: selectedYear ? "year" : "all",
-      year: selectedYear,
-      available_years: availableYears,
-      timeline: result.rows.map((row) => ({
-        month_label: row.month_label,
-        month_key: row.month_key,
-        month_start_date: row.month_start_date,
-        total_sales: row.total_sales,
-        total_profit: row.total_profit,
-      })),
-    });
-  } catch (err) {
-    console.error("Monthly trend error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+  },
+);
 // ----------------- MONTHLY SALES + PROFIT TREND end -----------------
 
 // ----------------- LAST 13 MONTH SALES CHART -----------------
-router.get("/sales/last-13-months", requirePermission("sales_report"), async (req, res) => {
-  try {
-    const user_id = getUserId(req);
+router.get(
+  "/sales/last-13-months",
+  requirePermission("sales_report"),
+  async (req, res) => {
+    try {
+      const user_id = getUserId(req);
 
-    const result = await pool.query(
-      `
+      const result = await pool.query(
+        `
       WITH months AS (
         SELECT DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '12 months' 
                + (INTERVAL '1 month' * generate_series(0,12)) AS month_start
@@ -2231,15 +2308,16 @@ router.get("/sales/last-13-months", requirePermission("sales_report"), async (re
       GROUP BY m.month_start
       ORDER BY m.month_start ASC
       `,
-      [user_id],
-    );
+        [user_id],
+      );
 
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Last 13 months chart error:", err.message);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+      res.json(result.rows);
+    } catch (err) {
+      console.error("Last 13 months chart error:", err.message);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
+);
 // ----------------- LAST 13 MONTH SALES CHART end -----------------
 
 module.exports = router;

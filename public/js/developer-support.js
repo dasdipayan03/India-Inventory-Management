@@ -128,7 +128,9 @@
 
     if (response.status === 401) {
       window.location.replace("developer-login.html");
-      throw new Error(payload.error || payload.message || "Developer login required");
+      throw new Error(
+        payload.error || payload.message || "Developer login required",
+      );
     }
 
     if (!response.ok) {
@@ -139,9 +141,7 @@
   }
 
   function getConversationFilters() {
-    return Array.from(
-      dom.filterRow?.querySelectorAll("[data-filter]") || [],
-    );
+    return Array.from(dom.filterRow?.querySelectorAll("[data-filter]") || []);
   }
 
   function renderFilterState() {
@@ -200,7 +200,10 @@
     const query = getSearchQuery();
 
     return state.conversations.filter((conversation) => {
-      if (state.activeFilter === "needs_reply" && !(conversation.unreadForDeveloper > 0)) {
+      if (
+        state.activeFilter === "needs_reply" &&
+        !(conversation.unreadForDeveloper > 0)
+      ) {
         return false;
       }
 
@@ -325,7 +328,9 @@
           conversation.requesterRole === "staff"
             ? `Staff login • ${conversation.requesterIdentifier || "username unavailable"}`
             : `Owner login • ${conversation.requesterIdentifier || "email unavailable"}`;
-        const preview = String(conversation.lastMessageText || "No messages yet")
+        const preview = String(
+          conversation.lastMessageText || "No messages yet",
+        )
           .trim()
           .slice(0, 120);
         const statusClass =
@@ -482,7 +487,8 @@
         : "Open for reply";
 
     if (dom.threadTitle) {
-      dom.threadTitle.textContent = conversation.requesterName || "Unknown requester";
+      dom.threadTitle.textContent =
+        conversation.requesterName || "Unknown requester";
     }
 
     if (dom.threadLead) {
@@ -628,7 +634,10 @@
 
   async function updateConversationStatus(status) {
     if (!state.selectedConversationId) {
-      setComposerStatus("Select a conversation before updating its status.", "error");
+      setComposerStatus(
+        "Select a conversation before updating its status.",
+        "error",
+      );
       return;
     }
 
@@ -659,14 +668,22 @@
 
   async function submitReply() {
     if (!state.selectedConversationId) {
-      setComposerStatus("Select a conversation before sending a reply.", "error");
+      setComposerStatus(
+        "Select a conversation before sending a reply.",
+        "error",
+      );
       return;
     }
 
-    const message = String(dom.replyInput?.value || "").replace(/\r/g, "").trim();
+    const message = String(dom.replyInput?.value || "")
+      .replace(/\r/g, "")
+      .trim();
 
     if (!message) {
-      setComposerStatus("Write a reply before sending it to the user.", "error");
+      setComposerStatus(
+        "Write a reply before sending it to the user.",
+        "error",
+      );
       dom.replyInput?.focus();
       return;
     }
@@ -794,7 +811,9 @@
       });
     });
     dom.replySendBtn?.addEventListener("click", submitReply);
-    dom.markOpenBtn?.addEventListener("click", () => updateConversationStatus("open"));
+    dom.markOpenBtn?.addEventListener("click", () =>
+      updateConversationStatus("open"),
+    );
     dom.markClosedBtn?.addEventListener("click", () =>
       updateConversationStatus("closed"),
     );
@@ -811,9 +830,9 @@
       if (!filtered.some((item) => item.id === state.selectedConversationId)) {
         state.selectedConversationId = filtered[0]?.id || null;
         if (state.selectedConversationId) {
-          loadConversation(state.selectedConversationId, { silent: true }).catch(
-            () => {},
-          );
+          loadConversation(state.selectedConversationId, {
+            silent: true,
+          }).catch(() => {});
         } else {
           state.activeConversation = null;
           state.messages = [];
@@ -840,13 +859,15 @@
         renderFilterState();
 
         const filtered = getFilteredConversations();
-        if (!filtered.some((item) => item.id === state.selectedConversationId)) {
+        if (
+          !filtered.some((item) => item.id === state.selectedConversationId)
+        ) {
           state.selectedConversationId = filtered[0]?.id || null;
 
           if (state.selectedConversationId) {
-            loadConversation(state.selectedConversationId, { silent: true }).catch(
-              () => {},
-            );
+            loadConversation(state.selectedConversationId, {
+              silent: true,
+            }).catch(() => {});
           } else {
             state.activeConversation = null;
             state.messages = [];
@@ -862,8 +883,7 @@
     document.addEventListener("click", (event) => {
       const target = event.target;
       const insideSearch =
-        target instanceof Element &&
-        Boolean(target.closest(".search-shell"));
+        target instanceof Element && Boolean(target.closest(".search-shell"));
 
       if (!insideSearch) {
         hideConversationSearchDropdown();

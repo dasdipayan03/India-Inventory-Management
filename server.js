@@ -151,7 +151,9 @@ const allowedOrigins = new Set(buildAllowedOrigins());
 const nonceDirective = (_req, res) => `'nonce-${res.locals.cspNonce}'`;
 
 function normalizePathname(value) {
-  const pathname = String(value || "").split("?")[0].trim();
+  const pathname = String(value || "")
+    .split("?")[0]
+    .trim();
 
   if (!pathname || pathname === "/") {
     return "/";
@@ -200,7 +202,8 @@ function buildDbHealth() {
 
 function buildHealthPayload(kind) {
   const db = buildDbHealth();
-  const ok = kind === "liveness" ? !isShuttingDown : db.ready && !isShuttingDown;
+  const ok =
+    kind === "liveness" ? !isShuttingDown : db.ready && !isShuttingDown;
 
   return {
     status: ok ? "ok" : "degraded",
@@ -290,9 +293,11 @@ app.use((req, res, next) => {
     }
 
     logEvent(
-      res.statusCode >= 500 ? "error" : durationMs >= REQUEST_LOG_SLOW_MS
-        ? "warn"
-        : "info",
+      res.statusCode >= 500
+        ? "error"
+        : durationMs >= REQUEST_LOG_SLOW_MS
+          ? "warn"
+          : "info",
       "http_request",
       {
         requestId,

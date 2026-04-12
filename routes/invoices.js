@@ -52,19 +52,23 @@ function normalizeMobileNumber(value) {
 const INVOICE_PAYMENT_MODES = new Set(["cash", "upi", "bank", "mixed"]);
 
 function normalizeInvoicePaymentMode(value) {
-  const normalized = String(value || "").trim().toLowerCase();
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
   return INVOICE_PAYMENT_MODES.has(normalized) ? normalized : "cash";
 }
 
 function calculateSaleGstAmount(baseAmount, gstRate) {
   const normalizedBaseAmount = Number(baseAmount) || 0;
   const normalizedGstRate = Number(gstRate) || 0;
-  return Number(
-    ((normalizedBaseAmount * normalizedGstRate) / 100).toFixed(2),
-  );
+  return Number(((normalizedBaseAmount * normalizedGstRate) / 100).toFixed(2));
 }
 
-function buildInvoicePaymentSnapshot(totalAmount, amountPaidInput, paymentModeInput) {
+function buildInvoicePaymentSnapshot(
+  totalAmount,
+  amountPaidInput,
+  paymentModeInput,
+) {
   const normalizedTotal = Number(totalAmount) || 0;
 
   if (normalizedTotal <= 0) {
@@ -100,7 +104,11 @@ function buildInvoicePaymentSnapshot(totalAmount, amountPaidInput, paymentModeIn
   };
 }
 
-function buildInvoiceSettlementSnapshot(invoiceRow, paymentAmountInput, paymentModeInput) {
+function buildInvoiceSettlementSnapshot(
+  invoiceRow,
+  paymentAmountInput,
+  paymentModeInput,
+) {
   const currentPaid = Number(invoiceRow?.amount_paid || 0);
   const currentDue = Number(invoiceRow?.amount_due || 0);
   const amountInput = parsePositiveNumber(paymentAmountInput);
@@ -114,7 +122,9 @@ function buildInvoiceSettlementSnapshot(invoiceRow, paymentAmountInput, paymentM
   }
 
   if (amountInput - currentDue > 0.009) {
-    throw new Error("Payment amount cannot be greater than the outstanding due.");
+    throw new Error(
+      "Payment amount cannot be greater than the outstanding due.",
+    );
   }
 
   const nextAmountPaid = Number((currentPaid + amountInput).toFixed(2));
@@ -183,160 +193,172 @@ async function generateInvoiceNoWithClient(client, userId) {
 }
 
 /* ---------------------- GET: Preview Next Invoice ---------------------- */
-router.get("/invoices/new", authMiddleware, requirePermission("sale_invoice"), async (req, res) => {
-  const userId = getUserId(req);
-  const client = await pool.connect();
-  try {
-    const todayDate = new Date()
-      .toLocaleString("en-CA", { timeZone: "Asia/Kolkata" })
-      .slice(0, 10);
+router.get(
+  "/invoices/new",
+  authMiddleware,
+  requirePermission("sale_invoice"),
+  async (req, res) => {
+    const userId = getUserId(req);
+    const client = await pool.connect();
+    try {
+      const todayDate = new Date()
+        .toLocaleString("en-CA", { timeZone: "Asia/Kolkata" })
+        .slice(0, 10);
 
-    const datePart = todayDate.replace(/-/g, "");
-    const q = `SELECT next_no FROM user_invoice_counter WHERE user_id=$1 AND date_key=$2`;
-    const r = await client.query(q, [userId, todayDate]);
-    const nextNo = r.rowCount ? r.rows[0].next_no : 1;
+      const datePart = todayDate.replace(/-/g, "");
+      const q = `SELECT next_no FROM user_invoice_counter WHERE user_id=$1 AND date_key=$2`;
+      const r = await client.query(q, [userId, todayDate]);
+      const nextNo = r.rowCount ? r.rows[0].next_no : 1;
 
-    res.json({
-      success: true,
-      invoice_no: `INV-${datePart}-${userId}-${padSerial(nextNo)}`,
-      date: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
-    });
-  } catch (err) {
-    res.status(500).json({ success: false });
-  } finally {
-    client.release();
-  }
-});
+      res.json({
+        success: true,
+        invoice_no: `INV-${datePart}-${userId}-${padSerial(nextNo)}`,
+        date: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
+      });
+    } catch (err) {
+      res.status(500).json({ success: false });
+    } finally {
+      client.release();
+    }
+  },
+);
 
 /* ---------------------- POST: SAVE INVOICE (FINAL LOGIC) ---------------------- */
-router.post("/invoices", authMiddleware, requirePermission("sale_invoice"), async (req, res) => {
-  const userId = getUserId(req);
-  const {
-    customer_name,
-    contact,
-    address,
-    gst_no,
-    items,
-    payment_mode,
-    amount_paid,
-  } = req.body;
+router.post(
+  "/invoices",
+  authMiddleware,
+  requirePermission("sale_invoice"),
+  async (req, res) => {
+    const userId = getUserId(req);
+    const {
+      customer_name,
+      contact,
+      address,
+      gst_no,
+      items,
+      payment_mode,
+      amount_paid,
+    } = req.body;
 
-  if (!Array.isArray(items) || !items.length) {
-    return res.status(400).json({ success: false, message: "No items" });
-  }
+    if (!Array.isArray(items) || !items.length) {
+      return res.status(400).json({ success: false, message: "No items" });
+    }
 
-  const client = await pool.connect();
-  let lastRetryableError = null;
-  try {
-    for (let attempt = 1; attempt <= 3; attempt += 1) {
-      try {
-        await client.query("BEGIN");
+    const client = await pool.connect();
+    let lastRetryableError = null;
+    try {
+      for (let attempt = 1; attempt <= 3; attempt += 1) {
+        try {
+          await client.query("BEGIN");
 
-        const { invoiceNo } = await generateInvoiceNoWithClient(client, userId);
-        const customerName = normalizeDisplayText(customer_name) || null;
-        const customerContact = normalizeMobileNumber(contact);
-        const customerAddress = String(address || "").trim() || null;
-        const trimmedGstNo = String(gst_no || "").trim() || null;
+          const { invoiceNo } = await generateInvoiceNoWithClient(
+            client,
+            userId,
+          );
+          const customerName = normalizeDisplayText(customer_name) || null;
+          const customerContact = normalizeMobileNumber(contact);
+          const customerAddress = String(address || "").trim() || null;
+          const trimmedGstNo = String(gst_no || "").trim() || null;
 
-        /* ---- calculate ---- */
-        let subtotal = 0;
-        const computed = items.map((item, index) => {
-          const description = normalizeDisplayText(item.description);
-          const q = parseNonZeroNumber(item.quantity);
-          const r = parsePositiveNumber(item.rate);
+          /* ---- calculate ---- */
+          let subtotal = 0;
+          const computed = items.map((item, index) => {
+            const description = normalizeDisplayText(item.description);
+            const q = parseNonZeroNumber(item.quantity);
+            const r = parsePositiveNumber(item.rate);
 
-          if (!description || q === null || r === null) {
-            throw new Error(`Invalid invoice item at line ${index + 1}`);
-          }
+            if (!description || q === null || r === null) {
+              throw new Error(`Invalid invoice item at line ${index + 1}`);
+            }
 
-          const a = +(q * r).toFixed(2);
-          subtotal += a;
-          return {
-            description,
-            lookupKey: normalizeLookupText(description),
-            quantity: q,
-            rate: r,
-            amount: a,
-          };
-        });
-        subtotal = +subtotal.toFixed(2);
+            const a = +(q * r).toFixed(2);
+            subtotal += a;
+            return {
+              description,
+              lookupKey: normalizeLookupText(description),
+              quantity: q,
+              rate: r,
+              amount: a,
+            };
+          });
+          subtotal = +subtotal.toFixed(2);
 
-        const groupedStockNeed = new Map();
-        computed.forEach((line) => {
-          const existing = groupedStockNeed.get(line.lookupKey) || {
-            description: line.description,
-            quantity: 0,
-          };
-          existing.quantity += line.quantity;
-          groupedStockNeed.set(line.lookupKey, existing);
-        });
+          const groupedStockNeed = new Map();
+          computed.forEach((line) => {
+            const existing = groupedStockNeed.get(line.lookupKey) || {
+              description: line.description,
+              quantity: 0,
+            };
+            existing.quantity += line.quantity;
+            groupedStockNeed.set(line.lookupKey, existing);
+          });
 
-        const lockedStockByKey = new Map();
-        for (const lookupKey of Array.from(groupedStockNeed.keys()).sort()) {
-          const requirement = groupedStockNeed.get(lookupKey);
-          const itemRows = await client.query(
-            `
+          const lockedStockByKey = new Map();
+          for (const lookupKey of Array.from(groupedStockNeed.keys()).sort()) {
+            const requirement = groupedStockNeed.get(lookupKey);
+            const itemRows = await client.query(
+              `
               SELECT id, name, quantity, buying_rate
               FROM items
               WHERE user_id = $1 AND LOWER(TRIM(name)) = $2
               ORDER BY id ASC
               FOR UPDATE
             `,
-            [userId, lookupKey],
-          );
+              [userId, lookupKey],
+            );
 
-          if (!itemRows.rowCount) {
-            throw new Error(`Item not found: ${requirement.description}`);
+            if (!itemRows.rowCount) {
+              throw new Error(`Item not found: ${requirement.description}`);
+            }
+
+            const stockRows = itemRows.rows.map((row) => ({
+              id: row.id,
+              name: row.name,
+              available: Number(row.quantity || 0),
+              costPrice: Number(row.buying_rate || 0),
+            }));
+            const totalAvailable = stockRows.reduce(
+              (sum, row) => sum + row.available,
+              0,
+            );
+
+            if (
+              requirement.quantity > 0 &&
+              totalAvailable < requirement.quantity
+            ) {
+              throw new Error(
+                `Stock not sufficient for ${requirement.description}. Available: ${totalAvailable}`,
+              );
+            }
+
+            lockedStockByKey.set(lookupKey, stockRows);
           }
 
-          const stockRows = itemRows.rows.map((row) => ({
-            id: row.id,
-            name: row.name,
-            available: Number(row.quantity || 0),
-            costPrice: Number(row.buying_rate || 0),
-          }));
-          const totalAvailable = stockRows.reduce(
-            (sum, row) => sum + row.available,
-            0,
+          const gstR = await client.query(
+            `SELECT gst_rate FROM settings WHERE user_id=$1`,
+            [userId],
+          );
+          const gstRate = Number(gstR.rows[0]?.gst_rate || 18);
+          const gst_amount = +((subtotal * gstRate) / 100).toFixed(2);
+          const total_amount = +(subtotal + gst_amount).toFixed(2);
+          computed.forEach((item) => {
+            item.gstAmount = calculateSaleGstAmount(item.amount, gstRate);
+          });
+          const payment = buildInvoicePaymentSnapshot(
+            total_amount,
+            amount_paid,
+            payment_mode,
           );
 
-          if (requirement.quantity > 0 && totalAvailable < requirement.quantity) {
+          if (payment.amountDue > 0 && !/^\d{10}$/.test(customerContact)) {
             throw new Error(
-              `Stock not sufficient for ${requirement.description}. Available: ${totalAvailable}`,
+              "A valid 10-digit contact number is required for partial or due invoices.",
             );
           }
 
-          lockedStockByKey.set(lookupKey, stockRows);
-        }
-
-        const gstR = await client.query(
-          `SELECT gst_rate FROM settings WHERE user_id=$1`,
-          [userId],
-        );
-        const gstRate = Number(gstR.rows[0]?.gst_rate || 18);
-        const gst_amount = +((subtotal * gstRate) / 100).toFixed(2);
-        const total_amount = +(subtotal + gst_amount).toFixed(2);
-        computed.forEach((item) => {
-          item.gstAmount = calculateSaleGstAmount(item.amount, gstRate);
-        });
-        const payment = buildInvoicePaymentSnapshot(
-          total_amount,
-          amount_paid,
-          payment_mode,
-        );
-
-        if (
-          payment.amountDue > 0 &&
-          !/^\d{10}$/.test(customerContact)
-        ) {
-          throw new Error(
-            "A valid 10-digit contact number is required for partial or due invoices.",
-          );
-        }
-
-        /* ---- invoice ---- */
-        const inv = await client.query(
-          `
+          /* ---- invoice ---- */
+          const inv = await client.query(
+            `
               INSERT INTO invoices
               (
                 invoice_no,
@@ -357,142 +379,144 @@ router.post("/invoices", authMiddleware, requirePermission("sale_invoice"), asyn
               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
               RETURNING id
             `,
-          [
-            invoiceNo,
-            userId,
-            trimmedGstNo,
-            customerName,
-            customerContact || null,
-            customerAddress,
-            subtotal,
-            gst_amount,
-            total_amount,
-            payment.paymentMode,
-            payment.paymentStatus,
-            payment.amountPaid,
-            payment.amountDue,
-            new Date(),
-          ],
-        );
+            [
+              invoiceNo,
+              userId,
+              trimmedGstNo,
+              customerName,
+              customerContact || null,
+              customerAddress,
+              subtotal,
+              gst_amount,
+              total_amount,
+              payment.paymentMode,
+              payment.paymentStatus,
+              payment.amountPaid,
+              payment.amountDue,
+              new Date(),
+            ],
+          );
 
-        const invoiceId = inv.rows[0].id;
+          const invoiceId = inv.rows[0].id;
 
-        /* ---- invoice_items + stock + sales ---- */
-        const stockAdjustments = new Map();
-        for (const it of computed) {
-          await client.query(
-            `
+          /* ---- invoice_items + stock + sales ---- */
+          const stockAdjustments = new Map();
+          for (const it of computed) {
+            await client.query(
+              `
                   INSERT INTO invoice_items
                   (invoice_id,description,quantity,rate,amount)
                   VALUES ($1,$2,$3,$4,$5)
             `,
-            [invoiceId, it.description, it.quantity, it.rate, it.amount],
-          );
-
-          const stockRows = lockedStockByKey.get(it.lookupKey) || [];
-
-          if (it.quantity < 0) {
-            const targetStockRow = stockRows[0];
-            const returnedQty = Math.abs(it.quantity);
-
-            if (!targetStockRow) {
-              throw new Error(`Stock allocation failed for ${it.description}`);
-            }
-
-            targetStockRow.available += returnedQty;
-            stockAdjustments.set(
-              targetStockRow.id,
-              (stockAdjustments.get(targetStockRow.id) || 0) - returnedQty,
+              [invoiceId, it.description, it.quantity, it.rate, it.amount],
             );
 
-            const saleBaseAmount = +((-returnedQty) * it.rate).toFixed(2);
+            const stockRows = lockedStockByKey.get(it.lookupKey) || [];
 
-            await client.query(
-              `
+            if (it.quantity < 0) {
+              const targetStockRow = stockRows[0];
+              const returnedQty = Math.abs(it.quantity);
+
+              if (!targetStockRow) {
+                throw new Error(
+                  `Stock allocation failed for ${it.description}`,
+                );
+              }
+
+              targetStockRow.available += returnedQty;
+              stockAdjustments.set(
+                targetStockRow.id,
+                (stockAdjustments.get(targetStockRow.id) || 0) - returnedQty,
+              );
+
+              const saleBaseAmount = +(-returnedQty * it.rate).toFixed(2);
+
+              await client.query(
+                `
                     INSERT INTO sales
                     (user_id, item_id, quantity, cost_price, selling_price, total_price, gst_amount)
                     VALUES ($1, $2, $3, $4, $5, $6, $7)
                     `,
-              [
-                userId,
-                targetStockRow.id,
-                -returnedQty,
-                targetStockRow.costPrice,
-                it.rate,
-                saleBaseAmount,
-                it.gstAmount,
-              ],
-            );
+                [
+                  userId,
+                  targetStockRow.id,
+                  -returnedQty,
+                  targetStockRow.costPrice,
+                  it.rate,
+                  saleBaseAmount,
+                  it.gstAmount,
+                ],
+              );
 
-            continue;
-          }
-
-          let remainingQty = it.quantity;
-          let allocatedGstAmount = 0;
-
-          for (const stockRow of stockRows) {
-            if (remainingQty <= 0) {
-              break;
-            }
-
-            if (stockRow.available <= 0) {
               continue;
             }
 
-            const consumedQty = Math.min(remainingQty, stockRow.available);
-            stockRow.available -= consumedQty;
-            remainingQty -= consumedQty;
-            const saleBaseAmount = +(consumedQty * it.rate).toFixed(2);
-            const isLastSplit = remainingQty <= 0;
-            const saleGstAmount = isLastSplit
-              ? Number((it.gstAmount - allocatedGstAmount).toFixed(2))
-              : calculateSaleGstAmount(saleBaseAmount, gstRate);
-            allocatedGstAmount = Number(
-              (allocatedGstAmount + saleGstAmount).toFixed(2),
-            );
+            let remainingQty = it.quantity;
+            let allocatedGstAmount = 0;
 
-            stockAdjustments.set(
-              stockRow.id,
-              (stockAdjustments.get(stockRow.id) || 0) + consumedQty,
-            );
+            for (const stockRow of stockRows) {
+              if (remainingQty <= 0) {
+                break;
+              }
 
-            await client.query(
-              `
+              if (stockRow.available <= 0) {
+                continue;
+              }
+
+              const consumedQty = Math.min(remainingQty, stockRow.available);
+              stockRow.available -= consumedQty;
+              remainingQty -= consumedQty;
+              const saleBaseAmount = +(consumedQty * it.rate).toFixed(2);
+              const isLastSplit = remainingQty <= 0;
+              const saleGstAmount = isLastSplit
+                ? Number((it.gstAmount - allocatedGstAmount).toFixed(2))
+                : calculateSaleGstAmount(saleBaseAmount, gstRate);
+              allocatedGstAmount = Number(
+                (allocatedGstAmount + saleGstAmount).toFixed(2),
+              );
+
+              stockAdjustments.set(
+                stockRow.id,
+                (stockAdjustments.get(stockRow.id) || 0) + consumedQty,
+              );
+
+              await client.query(
+                `
                     INSERT INTO sales
                     (user_id, item_id, quantity, cost_price, selling_price, total_price, gst_amount)
                     VALUES ($1, $2, $3, $4, $5, $6, $7)
                     `,
-              [
-                userId,
-                stockRow.id,
-                consumedQty,
-                stockRow.costPrice,
-                it.rate,
-                saleBaseAmount,
-                saleGstAmount,
-              ],
-            );
+                [
+                  userId,
+                  stockRow.id,
+                  consumedQty,
+                  stockRow.costPrice,
+                  it.rate,
+                  saleBaseAmount,
+                  saleGstAmount,
+                ],
+              );
+            }
+
+            if (remainingQty > 0) {
+              throw new Error(`Stock allocation failed for ${it.description}`);
+            }
           }
 
-          if (remainingQty > 0) {
-            throw new Error(`Stock allocation failed for ${it.description}`);
-          }
-        }
-
-        for (const [itemId, deductedQty] of stockAdjustments.entries()) {
-          await client.query(
-            `
+          for (const [itemId, deductedQty] of stockAdjustments.entries()) {
+            await client.query(
+              `
               UPDATE items
               SET quantity = quantity - $1, updated_at = NOW()
               WHERE id = $2 AND user_id = $3
             `,
-            [deductedQty, itemId, userId],
-          );
-        }
+              [deductedQty, itemId, userId],
+            );
+          }
 
-        if (payment.amountDue > 0) {
-          await client.query(
-            `
+          if (payment.amountDue > 0) {
+            await client.query(
+              `
               INSERT INTO debts (
                 user_id,
                 invoice_id,
@@ -504,65 +528,72 @@ router.post("/invoices", authMiddleware, requirePermission("sale_invoice"), asyn
               )
               VALUES ($1, $2, $3, $4, $5, $6, $7)
             `,
-            [
-              userId,
-              invoiceId,
-              customerName || `Customer ${customerContact}`,
-              customerContact,
-              total_amount,
-              payment.amountPaid,
-              `Invoice ${invoiceNo} | ${payment.paymentStatus} via ${payment.paymentMode}`,
-            ],
-          );
-        }
+              [
+                userId,
+                invoiceId,
+                customerName || `Customer ${customerContact}`,
+                customerContact,
+                total_amount,
+                payment.amountPaid,
+                `Invoice ${invoiceNo} | ${payment.paymentStatus} via ${payment.paymentMode}`,
+              ],
+            );
+          }
 
-        await client.query("COMMIT");
-        return res.json({
-          success: true,
-          invoice_no: invoiceNo,
-          date: new Date().toISOString(),
-          payment_status: payment.paymentStatus,
-          amount_due: payment.amountDue,
-        });
-      } catch (err) {
-        await client.query("ROLLBACK");
-
-        if (isRetryableInvoiceWriteError(err) && attempt < 3) {
-          lastRetryableError = err;
-          continue;
-        }
-
-        if (
-          err.message.includes("Stock not sufficient") ||
-          err.message.includes("Item not found") ||
-          err.message.includes("Invalid invoice item") ||
-          err.message.includes("Stock allocation failed") ||
-          err.message.includes("contact number is required")
-        ) {
-          return res.status(400).json({ success: false, message: err.message });
-        }
-
-        if (isRetryableInvoiceWriteError(err)) {
-          return res.status(409).json({
-            success: false,
-            message: "Could not reserve a unique invoice number. Please try again.",
+          await client.query("COMMIT");
+          return res.json({
+            success: true,
+            invoice_no: invoiceNo,
+            date: new Date().toISOString(),
+            payment_status: payment.paymentStatus,
+            amount_due: payment.amountDue,
           });
+        } catch (err) {
+          await client.query("ROLLBACK");
+
+          if (isRetryableInvoiceWriteError(err) && attempt < 3) {
+            lastRetryableError = err;
+            continue;
+          }
+
+          if (
+            err.message.includes("Stock not sufficient") ||
+            err.message.includes("Item not found") ||
+            err.message.includes("Invalid invoice item") ||
+            err.message.includes("Stock allocation failed") ||
+            err.message.includes("contact number is required")
+          ) {
+            return res
+              .status(400)
+              .json({ success: false, message: err.message });
+          }
+
+          if (isRetryableInvoiceWriteError(err)) {
+            return res.status(409).json({
+              success: false,
+              message:
+                "Could not reserve a unique invoice number. Please try again.",
+            });
+          }
+
+          return res
+            .status(500)
+            .json({ success: false, message: "Server error" });
         }
-
-        return res.status(500).json({ success: false, message: "Server error" });
       }
-    }
 
-    if (lastRetryableError) {
-      return res.status(409).json({
-        success: false,
-        message: "Could not reserve a unique invoice number. Please try again.",
-      });
+      if (lastRetryableError) {
+        return res.status(409).json({
+          success: false,
+          message:
+            "Could not reserve a unique invoice number. Please try again.",
+        });
+      }
+    } finally {
+      client.release();
     }
-  } finally {
-    client.release();
-  }
-});
+  },
+);
 
 //---------- invoice search dropdown -----------//
 router.get(
@@ -572,7 +603,9 @@ router.get(
   async (req, res) => {
     try {
       const userId = getUserId(req);
-      const rawQuery = String(req.query.q || "").trim().toLowerCase();
+      const rawQuery = String(req.query.q || "")
+        .trim()
+        .toLowerCase();
       const limit = Math.min(
         Math.max(Number.parseInt(req.query.limit, 10) || 10, 1),
         20,
@@ -585,7 +618,9 @@ router.get(
         const textFilterIndex = params.length;
 
         filters.push(`LOWER(i.invoice_no) LIKE $${textFilterIndex}`);
-        filters.push(`LOWER(COALESCE(i.customer_name, '')) LIKE $${textFilterIndex}`);
+        filters.push(
+          `LOWER(COALESCE(i.customer_name, '')) LIKE $${textFilterIndex}`,
+        );
         filters.push(`LOWER(COALESCE(i.contact, '')) LIKE $${textFilterIndex}`);
 
         const numericQuery = rawQuery.replace(/\D/g, "");
@@ -629,52 +664,65 @@ router.get(
   },
 );
 
-router.get("/invoices/numbers", authMiddleware, requirePermission("sale_invoice"), async (req, res) => {
-  const userId = getUserId(req);
-  const { rows } = await pool.query(
-    `SELECT invoice_no
+router.get(
+  "/invoices/numbers",
+  authMiddleware,
+  requirePermission("sale_invoice"),
+  async (req, res) => {
+    const userId = getUserId(req);
+    const { rows } = await pool.query(
+      `SELECT invoice_no
          FROM invoices
          WHERE user_id = $1
          ORDER BY date DESC
          LIMIT 50`,
-    [userId],
-  );
+      [userId],
+    );
 
-  res.json(rows.map((r) => r.invoice_no));
-});
+    res.json(rows.map((r) => r.invoice_no));
+  },
+);
 
 /* ---------------------- GET: All Invoices List ---------------------- */
-router.get("/invoices", authMiddleware, requirePermission("sale_invoice"), async (req, res) => {
-  try {
-    const rawQuery = String(req.query.q || "").trim().toLowerCase();
-    const limit = Math.min(
-      Math.max(Number.parseInt(req.query.limit, 10) || 100, 1),
-      200,
-    );
-    const params = [getUserId(req)];
-    const filters = [];
+router.get(
+  "/invoices",
+  authMiddleware,
+  requirePermission("sale_invoice"),
+  async (req, res) => {
+    try {
+      const rawQuery = String(req.query.q || "")
+        .trim()
+        .toLowerCase();
+      const limit = Math.min(
+        Math.max(Number.parseInt(req.query.limit, 10) || 100, 1),
+        200,
+      );
+      const params = [getUserId(req)];
+      const filters = [];
 
-    if (rawQuery) {
-      params.push(`%${rawQuery}%`);
-      const textFilterIndex = params.length;
+      if (rawQuery) {
+        params.push(`%${rawQuery}%`);
+        const textFilterIndex = params.length;
 
-      filters.push(`LOWER(i.invoice_no) LIKE $${textFilterIndex}`);
-      filters.push(`LOWER(COALESCE(i.customer_name, '')) LIKE $${textFilterIndex}`);
-      filters.push(`LOWER(COALESCE(i.contact, '')) LIKE $${textFilterIndex}`);
-
-      const numericQuery = rawQuery.replace(/\D/g, "");
-      if (numericQuery) {
-        params.push(`%${numericQuery}%`);
-        const dateFilterIndex = params.length;
+        filters.push(`LOWER(i.invoice_no) LIKE $${textFilterIndex}`);
         filters.push(
-          `TO_CHAR(i.date AT TIME ZONE 'Asia/Kolkata', 'YYYYMMDD') LIKE $${dateFilterIndex}`,
+          `LOWER(COALESCE(i.customer_name, '')) LIKE $${textFilterIndex}`,
         );
-      }
-    }
+        filters.push(`LOWER(COALESCE(i.contact, '')) LIKE $${textFilterIndex}`);
 
-    const whereClause = filters.length ? `AND (${filters.join(" OR ")})` : "";
-    const { rows } = await pool.query(
-      `
+        const numericQuery = rawQuery.replace(/\D/g, "");
+        if (numericQuery) {
+          params.push(`%${numericQuery}%`);
+          const dateFilterIndex = params.length;
+          filters.push(
+            `TO_CHAR(i.date AT TIME ZONE 'Asia/Kolkata', 'YYYYMMDD') LIKE $${dateFilterIndex}`,
+          );
+        }
+      }
+
+      const whereClause = filters.length ? `AND (${filters.join(" OR ")})` : "";
+      const { rows } = await pool.query(
+        `
             SELECT
                 i.date,
                 i.invoice_no,
@@ -694,21 +742,26 @@ router.get("/invoices", authMiddleware, requirePermission("sale_invoice"), async
             ORDER BY i.date DESC, i.id DESC
             LIMIT ${limit}
             `,
-      params,
-    );
+        params,
+      );
 
-    res.json({ success: true, invoices: rows });
-  } catch (err) {
-    console.error("All invoices fetch error:", err);
-    res.status(500).json({ success: false });
-  }
-});
+      res.json({ success: true, invoices: rows });
+    } catch (err) {
+      console.error("All invoices fetch error:", err);
+      res.status(500).json({ success: false });
+    }
+  },
+);
 
 /* ---------------------- GET: Invoice Details ---------------------- */
-router.get("/invoices/:invoiceNo", authMiddleware, requirePermission("sale_invoice"), async (req, res) => {
-  const userId = getUserId(req);
-  const { rows } = await pool.query(
-    `
+router.get(
+  "/invoices/:invoiceNo",
+  authMiddleware,
+  requirePermission("sale_invoice"),
+  async (req, res) => {
+    const userId = getUserId(req);
+    const { rows } = await pool.query(
+      `
       SELECT i.*, COALESCE(json_agg(ii.*)
       FILTER (WHERE ii.id IS NOT NULL),'[]') AS items
       FROM invoices i
@@ -716,25 +769,26 @@ router.get("/invoices/:invoiceNo", authMiddleware, requirePermission("sale_invoi
       WHERE i.user_id=$2 AND i.invoice_no=$1
       GROUP BY i.id
     `,
-    [req.params.invoiceNo, userId],
-  );
+      [req.params.invoiceNo, userId],
+    );
 
-  if (!rows[0]) return res.status(404).json({ success: false });
+    if (!rows[0]) return res.status(404).json({ success: false });
 
-  const invoice = rows[0];
-  const settlements = await pool.query(
-    `
+    const invoice = rows[0];
+    const settlements = await pool.query(
+      `
       SELECT id, total, credit, remark, created_at
       FROM debts
       WHERE user_id = $1 AND invoice_id = $2
       ORDER BY created_at ASC, id ASC
     `,
-    [userId, invoice.id],
-  );
+      [userId, invoice.id],
+    );
 
-  invoice.collections = settlements.rows;
-  res.json({ success: true, invoice });
-});
+    invoice.collections = settlements.rows;
+    res.json({ success: true, invoice });
+  },
+);
 
 router.post(
   "/invoices/:invoiceNo/payment",
@@ -788,7 +842,12 @@ router.post(
         });
       }
 
-      await lockScopedResource(client, userId, "customer-debt", customerContact);
+      await lockScopedResource(
+        client,
+        userId,
+        "customer-debt",
+        customerContact,
+      );
 
       let paymentSnapshot;
       try {
@@ -840,7 +899,8 @@ router.post(
         [
           userId,
           invoice.id,
-          normalizeDisplayText(invoice.customer_name) || `Customer ${customerContact}`,
+          normalizeDisplayText(invoice.customer_name) ||
+            `Customer ${customerContact}`,
           customerContact,
           0,
           paymentSnapshot.amountReceived,
@@ -979,11 +1039,15 @@ router.get(
           timeZone: "Asia/Kolkata",
         });
       const formatInvoiceStatus = (value) => {
-        const normalized = String(value || "paid").trim().toLowerCase();
+        const normalized = String(value || "paid")
+          .trim()
+          .toLowerCase();
         return normalized.charAt(0).toUpperCase() + normalized.slice(1);
       };
       const formatInvoiceMode = (value) => {
-        const normalized = String(value || "cash").trim().toLowerCase();
+        const normalized = String(value || "cash")
+          .trim()
+          .toLowerCase();
         if (normalized === "upi") {
           return "UPI";
         }
@@ -994,7 +1058,9 @@ router.get(
       const paymentRows = settlements.filter(
         (row) => Number(row.credit || 0) > 0,
       );
-      const openingEntry = settlements.find((row) => Number(row.total || 0) > 0);
+      const openingEntry = settlements.find(
+        (row) => Number(row.total || 0) > 0,
+      );
       const openingPaid = Number(openingEntry?.credit || 0);
       const laterPaid = paymentRows.reduce((sum, row) => {
         if (Number(row.total || 0) > 0) {
@@ -1025,13 +1091,10 @@ router.get(
             width: 240,
           });
 
-        doc
-          .font("Helvetica-Bold")
-          .fontSize(16)
-          .text("INVOICE", 420, 56, {
-            width: 110,
-            align: "center",
-          });
+        doc.font("Helvetica-Bold").fontSize(16).text("INVOICE", 420, 56, {
+          width: 110,
+          align: "center",
+        });
       }
 
       function drawInvoiceInfo(startY) {
@@ -1151,12 +1214,13 @@ router.get(
       /* ================= TABLE ROWS ================= */
       (Array.isArray(inv.items) ? inv.items : []).forEach((item) => {
         const itemName = String(item.description || "-");
-        const rowHeight = Math.max(
-          16,
-          doc.heightOfString(itemName, {
-            width: 240,
-          }),
-        ) + 2;
+        const rowHeight =
+          Math.max(
+            16,
+            doc.heightOfString(itemName, {
+              width: 240,
+            }),
+          ) + 2;
 
         y = ensureTableSpace(y, rowHeight + 10);
 
@@ -1253,7 +1317,9 @@ router.get(
       });
 
       if (lastPayment) {
-        const lastTxnText = `Last Txn: ${new Date(lastPayment.created_at).toLocaleDateString("en-IN", {
+        const lastTxnText = `Last Txn: ${new Date(
+          lastPayment.created_at,
+        ).toLocaleDateString("en-IN", {
           timeZone: "Asia/Kolkata",
         })}`;
         doc.font("Helvetica").fontSize(8.3).fillColor(colors.muted);
@@ -1280,7 +1346,9 @@ router.get(
         .stroke();
 
       doc.font("Helvetica-Bold").fontSize(12.5).fillColor(colors.ink);
-      doc.text("Total:", amountBlockX, y + 89, { width: amountLabelWidth + 10 });
+      doc.text("Total:", amountBlockX, y + 89, {
+        width: amountLabelWidth + 10,
+      });
       doc.text(formatPdfMoney(inv.total_amount), amountBlockX + 56, y + 89, {
         width: 90,
         align: "right",
@@ -1359,22 +1427,31 @@ router.post("/shop-info", authMiddleware, requireOwner, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error("Shop info save error:", error);
-    res.status(500).json({ success: false, message: "Failed to save shop info" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to save shop info" });
   }
 });
 
-router.get("/shop-info", authMiddleware, requirePermission("sale_invoice"), async (req, res) => {
-  try {
-    const userId = getUserId(req);
-    const { rows } = await pool.query(
-      `SELECT shop_name,shop_address,gst_no,gst_rate FROM settings WHERE user_id=$1`,
-      [userId],
-    );
-    res.json({ success: true, settings: rows[0] || {} });
-  } catch (error) {
-    console.error("Shop info load error:", error);
-    res.status(500).json({ success: false, message: "Failed to load shop info" });
-  }
-});
+router.get(
+  "/shop-info",
+  authMiddleware,
+  requirePermission("sale_invoice"),
+  async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { rows } = await pool.query(
+        `SELECT shop_name,shop_address,gst_no,gst_rate FROM settings WHERE user_id=$1`,
+        [userId],
+      );
+      res.json({ success: true, settings: rows[0] || {} });
+    } catch (error) {
+      console.error("Shop info load error:", error);
+      res
+        .status(500)
+        .json({ success: false, message: "Failed to load shop info" });
+    }
+  },
+);
 
 module.exports = router;

@@ -1,5 +1,7 @@
 function normalizeLookupText(value) {
-  return String(value ?? "").trim().toLowerCase();
+  return String(value ?? "")
+    .trim()
+    .toLowerCase();
 }
 
 function normalizeDisplayText(value) {
