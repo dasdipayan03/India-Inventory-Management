@@ -118,7 +118,7 @@ The system is owner-centric:
 | [`../public/`](../public)         | HTML pages, frontend JS, images                                                            |
 | [`../utils/`](../utils)           | shared backend helpers such as advisory locking and structured runtime logging             |
 | [`../migrations/`](../migrations) | SQL schema and migration history                                                           |
-| [`../docs/`](.)                   | project documentation, including this merged file, the detailed flow chart, and the manual functional test checklist |
+| [`../docs/`](.)                   | project documentation, including this merged file, the detailed flow chart, and the public marketing kit |
 
 ### Key backend files
 
