@@ -2,7 +2,7 @@
 
 Last verified against this repository: `2026-04-12`
 
-This document maps every tracked source file in the repository and shows how the files connect at runtime.
+This document maps the runtime-relevant app files in the repository and shows how they connect in practice.
 
 ## 1. Repository-Wide File Dependency Chart
 
@@ -45,10 +45,8 @@ flowchart TD
     Logo["public/images/app_logo.png<br/>brand asset"]
   end
 
-  subgraph SchemaDocs["Schema and support docs"]
+  subgraph DataModel["Database schema reference"]
     Schema["migrations/full_updated_schema.sql<br/>schema snapshot"]
-    FullDoc["docs/COMPLETE_PROJECT_DOCUMENTATION.md<br/>full architecture reference"]
-    TestDoc["docs/MANUAL FUNCTIONAL TEST LIST.md<br/>manual regression checklist"]
   end
 
   PackageLock --> PackageJson
@@ -112,15 +110,6 @@ flowchart TD
   InvoicePage --> InventoryRoute
   InvoicePage --> InvoiceRoute
 
-  FullDoc -. documents .-> Server
-  FullDoc -. documents .-> DB
-  FullDoc -. documents .-> InventoryRoute
-  FullDoc -. documents .-> BusinessRoute
-  FullDoc -. documents .-> InvoiceRoute
-  TestDoc -. validates .-> LoginPage
-  TestDoc -. validates .-> ResetPage
-  TestDoc -. validates .-> IndexPage
-  TestDoc -. validates .-> InvoicePage
 ```
 
 ## 2. Backend Runtime Flow
@@ -197,33 +186,31 @@ flowchart LR
 
 ## 4. File Role Catalog
 
-| Path | Main role | Primary connections |
-| --- | --- | --- |
-| `package.json` | Declares Node runtime, start script, and app dependencies | Drives `server.js`, route files, `db.js`, PDF/Excel/auth libs |
-| `package-lock.json` | Pins exact dependency versions | Supports deterministic install from `package.json` |
-| `railway.json` | Railway deployment instructions | Starts `server.js`, checks `/health`, restarts on failure |
-| `server.js` | Main app bootstrap | Uses `db.js`, `runtime-log.js`, mounts all route files, serves HTML pages |
-| `db.js` | Global PostgreSQL pool and readiness state | Queried by all route files, logged by `runtime-log.js`, informed by schema SQL |
-| `middleware/auth.js` | JWT/session verification and permission guard | Used by all protected route files, imports shared permission contract |
-| `utils/runtime-log.js` | Structured JSON logging | Used by `server.js` and `db.js` for startup/request/error/shutdown logs |
-| `utils/concurrency.js` | Advisory lock helper and shared text normalization | Used by write-heavy route files to avoid duplicate concurrent writes |
-| `routes/auth.js` | Owner registration, login, staff login, session, logout, password reset, staff management | Uses `db.js`, `middleware/auth.js`, shared permission contract |
-| `routes/inventory.js` | Stock entry, stock defaults, sales reports, GST, debts, dashboard, trends | Uses `db.js`, `middleware/auth.js`, `utils/concurrency.js` |
-| `routes/business.js` | Supplier search, purchase save, purchase report, supplier ledger, repayments, expenses | Uses `db.js`, `middleware/auth.js`, `utils/concurrency.js` |
-| `routes/invoices.js` | Invoice number preview, invoice save, invoice PDF, invoice lookup, payments, shop info | Uses `db.js`, `middleware/auth.js`, `utils/concurrency.js` |
-| `public/login.html` | Public entry page for owner login, staff login, registration, forgot password | Inline JS calls `routes/auth.js` endpoints |
-| `public/reset.html` | Password reset page | Inline JS posts to `routes/auth.js` reset endpoint |
-| `public/index.html` | Dashboard HTML layout | Loads `permission-contract.js`, `app-core.js`, `app-shell.js`, `dashboard.js` |
-| `public/invoice.html` | Invoice workspace HTML | Loads shared JS files and contains its own inline invoice controller |
-| `public/js/permission-contract.js` | Shared owner/staff permission map | Loaded by frontend and imported by backend Node files |
-| `public/js/app-core.js` | Frontend app-wide config and access helper registry | Builds `window.InventoryApp` from permission contract |
-| `public/js/app-shell.js` | Shared sidebar shell and mobile navigation behavior | Renders sidebar for dashboard and invoice pages |
-| `public/js/dashboard.js` | Dashboard page controller for stock, purchases, dues, expenses, staff, reports | Uses `window.InventoryApp`, `window.InventoryAppShell`, and backend APIs |
-| `public/js/chart.min.js` | Chart rendering library | Lazily loaded by `dashboard.js` when sales charts are needed |
-| `public/images/app_logo.png` | Brand/logo asset | Used by `login.html` and available to other pages |
-| `migrations/full_updated_schema.sql` | Full schema snapshot | Reference source for DB structure alongside runtime patching in `db.js` |
-| `docs/COMPLETE_PROJECT_DOCUMENTATION.md` | Project-wide architecture and maintenance doc | Describes server, DB, routes, runtime behavior |
-| `docs/MANUAL FUNCTIONAL TEST LIST.md` | Manual test checklist | Covers login, dashboard, invoice, health, and business flows |
+| Path                                 | Main role                                                                                 | Primary connections                                                            |
+| ------------------------------------ | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `package.json`                       | Declares Node runtime, start script, and app dependencies                                 | Drives `server.js`, route files, `db.js`, PDF/Excel/auth libs                  |
+| `package-lock.json`                  | Pins exact dependency versions                                                            | Supports deterministic install from `package.json`                             |
+| `railway.json`                       | Railway deployment instructions                                                           | Starts `server.js`, checks `/health`, restarts on failure                      |
+| `server.js`                          | Main app bootstrap                                                                        | Uses `db.js`, `runtime-log.js`, mounts all route files, serves HTML pages      |
+| `db.js`                              | Global PostgreSQL pool and readiness state                                                | Queried by all route files, logged by `runtime-log.js`, informed by schema SQL |
+| `middleware/auth.js`                 | JWT/session verification and permission guard                                             | Used by all protected route files, imports shared permission contract          |
+| `utils/runtime-log.js`               | Structured JSON logging                                                                   | Used by `server.js` and `db.js` for startup/request/error/shutdown logs        |
+| `utils/concurrency.js`               | Advisory lock helper and shared text normalization                                        | Used by write-heavy route files to avoid duplicate concurrent writes           |
+| `routes/auth.js`                     | Owner registration, login, staff login, session, logout, password reset, staff management | Uses `db.js`, `middleware/auth.js`, shared permission contract                 |
+| `routes/inventory.js`                | Stock entry, stock defaults, sales reports, GST, debts, dashboard, trends                 | Uses `db.js`, `middleware/auth.js`, `utils/concurrency.js`                     |
+| `routes/business.js`                 | Supplier search, purchase save, purchase report, supplier ledger, repayments, expenses    | Uses `db.js`, `middleware/auth.js`, `utils/concurrency.js`                     |
+| `routes/invoices.js`                 | Invoice number preview, invoice save, invoice PDF, invoice lookup, payments, shop info    | Uses `db.js`, `middleware/auth.js`, `utils/concurrency.js`                     |
+| `public/login.html`                  | Public entry page for owner login, staff login, registration, forgot password             | Inline JS calls `routes/auth.js` endpoints                                     |
+| `public/reset.html`                  | Password reset page                                                                       | Inline JS posts to `routes/auth.js` reset endpoint                             |
+| `public/index.html`                  | Dashboard HTML layout                                                                     | Loads `permission-contract.js`, `app-core.js`, `app-shell.js`, `dashboard.js`  |
+| `public/invoice.html`                | Invoice workspace HTML                                                                    | Loads shared JS files and contains its own inline invoice controller           |
+| `public/js/permission-contract.js`   | Shared owner/staff permission map                                                         | Loaded by frontend and imported by backend Node files                          |
+| `public/js/app-core.js`              | Frontend app-wide config and access helper registry                                       | Builds `window.InventoryApp` from permission contract                          |
+| `public/js/app-shell.js`             | Shared sidebar shell and mobile navigation behavior                                       | Renders sidebar for dashboard and invoice pages                                |
+| `public/js/dashboard.js`             | Dashboard page controller for stock, purchases, dues, expenses, staff, reports            | Uses `window.InventoryApp`, `window.InventoryAppShell`, and backend APIs       |
+| `public/js/chart.min.js`             | Chart rendering library                                                                   | Lazily loaded by `dashboard.js` when sales charts are needed                   |
+| `public/images/app_logo.png`         | Brand/logo asset                                                                          | Used by `login.html` and available to other pages                              |
+| `migrations/full_updated_schema.sql` | Full schema snapshot                                                                      | Reference source for DB structure alongside runtime patching in `db.js`        |
 
 ## 5. Highest-Value Cross-File Relationships
 
