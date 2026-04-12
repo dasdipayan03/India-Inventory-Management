@@ -162,10 +162,10 @@
       availableToAll: true,
       iconClass: "fa-solid fa-headset",
       label: "Chat Support",
-      eyebrow: "Customer Case Support",
+      eyebrow: "Customer Care Support",
       title: "Chat Support",
       description:
-        "Send a private message to customer case support, track replies in one thread, and keep support tied to your current login.",
+        "Send a private message to customer care support, track replies in one thread, and keep support tied to your current login.",
       badge: "Support",
     },
   ];

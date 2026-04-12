@@ -1434,7 +1434,7 @@ function renderSupportThread() {
     const label = isClosed
       ? "Closed until you send again"
       : conversation
-        ? "Open with customer case support"
+        ? "Open with customer care support"
         : "Waiting to start";
 
     dom.supportStatusPill.className = toneClass;
@@ -1445,15 +1445,10 @@ function renderSupportThread() {
   }
 
   if (dom.supportThreadIdPill) {
-    dom.supportThreadIdPill.innerHTML = conversation
-      ? `
-        <i class="fa-solid fa-shield-halved"></i>
-        Thread #${escapeHtml(conversation.id)}
-      `
-      : `
-        <i class="fa-solid fa-lock"></i>
-        Private thread
-      `;
+    dom.supportThreadIdPill.innerHTML = `
+      <i class="fa-solid fa-lock"></i>
+      Private support thread
+    `;
   }
 
   if (dom.supportLastUpdatedPill) {
@@ -1470,7 +1465,7 @@ function renderSupportThread() {
 
   if (!conversation || !messages.length) {
     renderSupportEmptyState(
-      "Send the first message with your issue, and customer case support replies will appear here in the same private timeline.",
+      "Send the first message with your issue, and customer care support replies will appear here in the same private timeline.",
     );
     return;
   }
@@ -1521,11 +1516,11 @@ async function loadSupportThread(options = {}) {
 
     if (state.supportConversation) {
       setSupportComposerStatus(
-        "This thread stays linked to your current login and customer case support.",
+        "This thread stays linked to your current login and customer care support.",
       );
     } else {
       setSupportComposerStatus(
-        "Messages stay private to this login and the customer case support inbox.",
+        "Messages stay private to this login and the customer care support inbox.",
       );
     }
 
@@ -1566,7 +1561,7 @@ async function submitSupportMessage() {
 
   if (!message) {
     setSupportComposerStatus(
-      "Write a short message before sending it to customer case support.",
+      "Write a short message before sending it to customer care support.",
       "error",
     );
     dom.supportMessageInput.focus();
@@ -1582,7 +1577,7 @@ async function submitSupportMessage() {
     return;
   }
 
-  setSupportComposerStatus("Sending your message to customer case support...");
+  setSupportComposerStatus("Sending your message to customer care support...");
 
   try {
     await withButtonState(
@@ -1599,7 +1594,7 @@ async function submitSupportMessage() {
     dom.supportMessageInput.value = "";
     await loadSupportThread({ silent: true });
     setSupportComposerStatus(
-      "Your message was sent. Customer case support can reply in this same thread.",
+      "Your message was sent. Customer care support can reply in this same thread.",
       "success",
     );
   } catch (error) {
