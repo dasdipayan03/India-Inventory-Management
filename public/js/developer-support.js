@@ -22,6 +22,9 @@
     statUnreadThreads: document.getElementById("statUnreadThreads"),
     statOpenThreads: document.getElementById("statOpenThreads"),
     conversationSearch: document.getElementById("conversationSearch"),
+    conversationSearchDropdown: document.getElementById(
+      "conversationSearchDropdown",
+    ),
     filterRow: document.getElementById("filterRow"),
     conversationList: document.getElementById("conversationList"),
     detailList: document.getElementById("detailList"),
@@ -156,6 +159,43 @@
       .toLowerCase();
   }
 
+  function buildConversationSearchValue(conversation) {
+    return [
+      conversation?.requesterName,
+      conversation?.requesterIdentifier,
+      conversation?.ownerName,
+    ]
+      .map((entry) => String(entry || "").trim())
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  function getConversationSearchMeta(conversation) {
+    const requesterMeta =
+      conversation?.requesterRole === "staff"
+        ? `Staff login - ${conversation?.requesterIdentifier || "username unavailable"}`
+        : `Owner login - ${conversation?.requesterIdentifier || "email unavailable"}`;
+
+    return [
+      requesterMeta,
+      conversation?.ownerName ? `Owner: ${conversation.ownerName}` : "",
+      conversation?.lastMessageAt
+        ? `Updated ${formatDateTime(conversation.lastMessageAt)}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join(" | ");
+  }
+
+  function hideConversationSearchDropdown() {
+    if (!dom.conversationSearchDropdown) {
+      return;
+    }
+
+    dom.conversationSearchDropdown.hidden = true;
+    dom.conversationSearchDropdown.innerHTML = "";
+  }
+
   function getFilteredConversations() {
     const query = getSearchQuery();
 
@@ -189,6 +229,53 @@
 
       return haystack.includes(query);
     });
+  }
+
+  function renderConversationSearchDropdown() {
+    if (!dom.conversationSearchDropdown || !dom.conversationSearch) {
+      return;
+    }
+
+    const shouldShow = document.activeElement === dom.conversationSearch;
+    if (!shouldShow) {
+      hideConversationSearchDropdown();
+      return;
+    }
+
+    const matches = getFilteredConversations().slice(0, 8);
+
+    if (!matches.length) {
+      dom.conversationSearchDropdown.innerHTML = `
+        <div class="search-dropdown__empty">
+          No matching support threads for this search.
+        </div>
+      `;
+      dom.conversationSearchDropdown.hidden = false;
+      return;
+    }
+
+    dom.conversationSearchDropdown.innerHTML = matches
+      .map((conversation) => {
+        const isActive = conversation.id === state.selectedConversationId;
+
+        return `
+          <button
+            class="search-option${isActive ? " is-active" : ""}"
+            type="button"
+            data-conversation-id="${escapeHtml(conversation.id)}"
+          >
+            <span class="search-option__title">
+              ${escapeHtml(conversation.requesterName || "Unknown requester")}
+            </span>
+            <span class="search-option__meta">
+              ${escapeHtml(getConversationSearchMeta(conversation))}
+            </span>
+          </button>
+        `;
+      })
+      .join("");
+
+    dom.conversationSearchDropdown.hidden = false;
   }
 
   function updateHeroStats() {
@@ -477,6 +564,7 @@
 
     renderFilterState();
     renderConversationList();
+    renderConversationSearchDropdown();
 
     if (state.selectedConversationId && options.skipDetailLoad !== true) {
       await loadConversation(state.selectedConversationId, { silent: true });
@@ -506,6 +594,7 @@
       state.activeConversation = data?.conversation || null;
       state.messages = Array.isArray(data?.messages) ? data.messages : [];
       renderConversationList();
+      renderConversationSearchDropdown();
       renderThread();
 
       if (!options.silent) {
@@ -678,6 +767,32 @@
     dom.refreshInboxBtn?.addEventListener("click", refreshInbox);
     dom.developerLogoutBtn?.addEventListener("click", logoutDeveloper);
     dom.conversationList?.addEventListener("click", handleQueueClick);
+    dom.conversationSearchDropdown?.addEventListener("click", (event) => {
+      const option = event.target.closest("[data-conversation-id]");
+      if (!option || !dom.conversationSearchDropdown?.contains(option)) {
+        return;
+      }
+
+      const conversationId = Number(option.dataset.conversationId);
+      const conversation = state.conversations.find(
+        (item) => item.id === conversationId,
+      );
+
+      if (!conversationId || !conversation) {
+        return;
+      }
+
+      state.selectedConversationId = conversationId;
+      dom.conversationSearch.value = buildConversationSearchValue(conversation);
+      renderConversationList();
+      hideConversationSearchDropdown();
+      loadConversation(conversationId, { silent: true }).catch((error) => {
+        setPageStatus(
+          error.message || "Support thread could not be opened right now.",
+          "error",
+        );
+      });
+    });
     dom.replySendBtn?.addEventListener("click", submitReply);
     dom.markOpenBtn?.addEventListener("click", () => updateConversationStatus("open"));
     dom.markClosedBtn?.addEventListener("click", () =>
@@ -706,6 +821,17 @@
         }
       }
       renderConversationList();
+      renderConversationSearchDropdown();
+    });
+
+    dom.conversationSearch?.addEventListener("focus", () => {
+      renderConversationSearchDropdown();
+    });
+
+    dom.conversationSearch?.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        hideConversationSearchDropdown();
+      }
     });
 
     getConversationFilters().forEach((button) => {
@@ -729,7 +855,19 @@
         }
 
         renderConversationList();
+        renderConversationSearchDropdown();
       });
+    });
+
+    document.addEventListener("click", (event) => {
+      const target = event.target;
+      const insideSearch =
+        target instanceof Element &&
+        Boolean(target.closest(".search-shell"));
+
+      if (!insideSearch) {
+        hideConversationSearchDropdown();
+      }
     });
 
     document.addEventListener("visibilitychange", () => {
