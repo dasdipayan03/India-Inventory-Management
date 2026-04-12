@@ -1,0 +1,17 @@
+{
+  "name": "India Inventory Management",
+  "short_name": "India Inventory",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#17324a",
+  "theme_color": "#17324a",
+  "icons": [
+    {
+      "src": "/images/app_logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
