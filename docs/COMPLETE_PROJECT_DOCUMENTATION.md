@@ -1,6 +1,6 @@
 # India Inventory Management Documentation
 
-Last verified against this repository: `2026-03-29`
+Last verified against this repository: `2026-04-12`
 
 This is the single merged documentation file for the project. It replaces the earlier split project doc and database schema doc.
 
@@ -103,8 +103,8 @@ The system is owner-centric:
 ### Data and schema
 
 - SQL schema snapshots in [`migrations/full_updated_schema.sql`](../migrations/full_updated_schema.sql)
-- incremental migrations in [`migrations/20260321_business_workflow_finance.sql`](../migrations/20260321_business_workflow_finance.sql) and [`migrations/20260321_invoice_due_settlement.sql`](../migrations/20260321_invoice_due_settlement.sql)
 - startup compatibility patching in [`db.js`](../db.js)
+- future incremental SQL migrations belong in [`migrations/`](../migrations) when schema changes need to be tracked separately
 
 ## 4. Repository Map
 
@@ -118,7 +118,7 @@ The system is owner-centric:
 | [`../public/`](../public)         | HTML pages, frontend JS, images                                                            |
 | [`../utils/`](../utils)           | shared backend helpers such as advisory locking and structured runtime logging             |
 | [`../migrations/`](../migrations) | SQL schema and migration history                                                           |
-| [`../docs/`](.)                   | project documentation, including this merged file and the manual functional test checklist |
+| [`../docs/`](.)                   | project documentation, including this merged file, the detailed flow chart, and the manual functional test checklist |
 
 ### Key backend files
 
@@ -441,7 +441,7 @@ Route handlers in this file cover registration, owner login, staff login, logout
 
 #### `routes/inventory.js` function inventory
 
-Route handlers in this file cover stock defaults, stock entry, item reporting, low-stock analysis, sales reports, GST reports, customer dues, dashboard cards, and trend APIs.
+Route handlers in this file cover stock defaults, stock entry, item reporting, low-stock analysis, reorder planning, slow-moving stock analysis, sales reports, GST reports, customer dues, dashboard cards, and trend APIs.
 
 | Function | Purpose |
 | -------- | ------- |
@@ -561,7 +561,7 @@ Nested PDF helper functions such as `drawHeader()` and `drawTableHeader()` live 
 - stock defaults and stock entry: `updateProfitPreview`, `updateSellingRate`, `applySharedProfitPercent`, `saveProfitPercentDefault`, `loadProfitPercentDefault`, `addStock`
 - purchase workflow: `purchaseRows`, `updatePurchaseSummary`, `addPurchaseItemRow`, `loadPurchaseReport`, `openPurchaseDetail`, `submitPurchaseRepayment`, `searchSupplierLedger`, `submitPurchase`
 - expense workflow: `renderExpenseReport`, `loadExpenseReport`, `submitExpense`
-- report/export workflow: `renderItemReport`, `loadItemReport`, `loadLowStock`, `renderSalesReport`, `loadSalesReport`, `loadGstReport`, `downloadItemReportPDF`, `downloadSalesPDF`, `downloadSalesExcel`, `downloadGstPDF`, `downloadGstExcel`
+- report/export workflow: `renderItemReport`, `loadItemReport`, `loadLowStock`, `renderReorderPlanner`, `renderSlowMovingPlanner`, `renderSalesReport`, `loadSalesReport`, `loadGstReport`, `downloadItemReportPDF`, `downloadSalesPDF`, `downloadSalesExcel`, `downloadGstPDF`, `downloadGstExcel`
 - due ledger workflow: `getDueFormSnapshot`, `updateCustomerDuePreview`, `searchLedger`, `showAllDues`, `refreshCurrentDueView`, `submitDebt`
 - dashboard analytics: `loadDashboardOverview`, `loadBusinessTrend`, `renderBusinessTrend`, `loadLast13MonthsChart`, `renderLast13MonthsChart`, `loadSalesNetProfitCard`
 - staff/owner workflow: `renderStaffPermissionGrid`, `readStaffPermissionSelection`, `setStaffPermissionSelection`, `renderStaffList`, `loadStaffAccounts`, `createStaffAccount`
@@ -777,6 +777,7 @@ All endpoints below are mounted under either `/api/auth` or `/api`.
 | `GET`  | `/api/items/report`              | stock report rows                 |
 | `GET`  | `/api/items/low-stock`           | low stock list                    |
 | `GET`  | `/api/items/reorder-suggestions` | reorder planner                   |
+| `GET`  | `/api/items/slow-moving`         | slow-moving stock planner         |
 | `GET`  | `/api/items/report/pdf`          | stock report PDF                  |
 | `GET`  | `/api/sales/report`              | sales report rows                 |
 | `GET`  | `/api/sales/report/pdf`          | sales report PDF                  |
@@ -828,9 +829,8 @@ All endpoints below are mounted under either `/api/auth` or `/api`.
 Primary schema references:
 
 - [`../migrations/full_updated_schema.sql`](../migrations/full_updated_schema.sql)
-- [`../migrations/20260321_business_workflow_finance.sql`](../migrations/20260321_business_workflow_finance.sql)
-- [`../migrations/20260321_invoice_due_settlement.sql`](../migrations/20260321_invoice_due_settlement.sql)
 - runtime compatibility patching in [`../db.js`](../db.js)
+- any future incremental migration files added under [`../migrations/`](../migrations)
 
 ### 12.2 Ownership model
 
