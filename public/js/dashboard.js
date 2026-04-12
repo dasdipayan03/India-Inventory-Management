@@ -1434,7 +1434,7 @@ function renderSupportThread() {
     const label = isClosed
       ? "Closed until you send again"
       : conversation
-        ? "Open with developer support"
+        ? "Open with customer case support"
         : "Waiting to start";
 
     dom.supportStatusPill.className = toneClass;
@@ -1470,7 +1470,7 @@ function renderSupportThread() {
 
   if (!conversation || !messages.length) {
     renderSupportEmptyState(
-      "Send the first message with your issue, and developer replies will appear here in the same private timeline.",
+      "Send the first message with your issue, and customer case support replies will appear here in the same private timeline.",
     );
     return;
   }
@@ -1521,11 +1521,11 @@ async function loadSupportThread(options = {}) {
 
     if (state.supportConversation) {
       setSupportComposerStatus(
-        "This thread stays linked to your current login and developer support.",
+        "This thread stays linked to your current login and customer case support.",
       );
     } else {
       setSupportComposerStatus(
-        "Messages stay private to this login and the developer support inbox.",
+        "Messages stay private to this login and the customer case support inbox.",
       );
     }
 
@@ -1566,7 +1566,7 @@ async function submitSupportMessage() {
 
   if (!message) {
     setSupportComposerStatus(
-      "Write a short message before sending it to developer support.",
+      "Write a short message before sending it to customer case support.",
       "error",
     );
     dom.supportMessageInput.focus();
@@ -1582,7 +1582,7 @@ async function submitSupportMessage() {
     return;
   }
 
-  setSupportComposerStatus("Sending your message to developer support...");
+  setSupportComposerStatus("Sending your message to customer case support...");
 
   try {
     await withButtonState(
@@ -1599,7 +1599,7 @@ async function submitSupportMessage() {
     dom.supportMessageInput.value = "";
     await loadSupportThread({ silent: true });
     setSupportComposerStatus(
-      "Your message was sent. Developer support can reply in this same thread.",
+      "Your message was sent. Customer case support can reply in this same thread.",
       "success",
     );
   } catch (error) {

@@ -162,10 +162,10 @@
       availableToAll: true,
       iconClass: "fa-solid fa-headset",
       label: "Chat Support",
-      eyebrow: "Developer Help Desk",
+      eyebrow: "Customer Case Support",
       title: "Chat Support",
       description:
-        "Send a private message to the app developer, track replies in one thread, and keep support tied to your current login.",
+        "Send a private message to customer case support, track replies in one thread, and keep support tied to your current login.",
       badge: "Support",
     },
   ];
