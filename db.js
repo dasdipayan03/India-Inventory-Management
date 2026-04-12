@@ -13,6 +13,7 @@
  *  This file runs once when the server starts.
  * =========================================================
  */
+const bcrypt = require("bcrypt");
 const { Pool } = require("pg");
 const { logEvent } = require("./utils/runtime-log");
 
@@ -31,6 +32,10 @@ function shouldUseSsl(databaseUrl) {
 function readPositiveInt(value, fallback) {
   const parsed = Number.parseInt(value, 10);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
 }
 
 // =========================================================
@@ -220,6 +225,66 @@ async function ensureSchemaCompatibility() {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS developer_admins (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(120) NOT NULL,
+      email VARCHAR(120) UNIQUE NOT NULL,
+      password_hash VARCHAR(255) NOT NULL,
+      is_active BOOLEAN NOT NULL DEFAULT TRUE,
+      last_login_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS support_conversations (
+      id SERIAL PRIMARY KEY,
+      owner_user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      requester_actor_id INT NOT NULL,
+      requester_role VARCHAR(20) NOT NULL,
+      requester_name VARCHAR(120) NOT NULL,
+      requester_identifier VARCHAR(120),
+      status VARCHAR(20) NOT NULL DEFAULT 'open',
+      unread_for_user INT NOT NULL DEFAULT 0,
+      unread_for_developer INT NOT NULL DEFAULT 0,
+      last_message_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      CONSTRAINT support_conversations_requester_role_check CHECK (
+        requester_role IN ('owner', 'staff')
+      ),
+      CONSTRAINT support_conversations_status_check CHECK (
+        status IN ('open', 'closed')
+      ),
+      CONSTRAINT support_conversations_unique_requester UNIQUE (
+        owner_user_id,
+        requester_actor_id,
+        requester_role
+      )
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS support_messages (
+      id SERIAL PRIMARY KEY,
+      conversation_id INT NOT NULL REFERENCES support_conversations(id) ON DELETE CASCADE,
+      sender_type VARCHAR(20) NOT NULL,
+      sender_actor_id INT NOT NULL,
+      sender_role VARCHAR(30) NOT NULL,
+      sender_name VARCHAR(120) NOT NULL,
+      message_text TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      CONSTRAINT support_messages_sender_type_check CHECK (
+        sender_type IN ('user', 'developer')
+      ),
+      CONSTRAINT support_messages_message_not_blank CHECK (
+        char_length(trim(message_text)) > 0
+      )
+    )
+  `);
+
+  await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_items_user_name
       ON items (user_id, LOWER(TRIM(name)))
   `);
@@ -324,6 +389,68 @@ async function ensureSchemaCompatibility() {
     CREATE INDEX IF NOT EXISTS idx_debts_invoice_id
       ON debts (invoice_id)
   `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_developer_admins_email_lookup
+      ON developer_admins (LOWER(email))
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_support_conversations_owner_lookup
+      ON support_conversations (owner_user_id, requester_actor_id, requester_role)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_support_conversations_queue
+      ON support_conversations (status, last_message_at DESC, id DESC)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_support_conversations_unread_queue
+      ON support_conversations (unread_for_developer, last_message_at DESC)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_support_messages_conversation_created
+      ON support_messages (conversation_id, created_at ASC, id ASC)
+  `);
+
+  const supportAdminEmail = normalizeEmail(process.env.SUPPORT_ADMIN_EMAIL);
+  const supportAdminPasswordHash = String(
+    process.env.SUPPORT_ADMIN_PASSWORD_HASH || "",
+  ).trim();
+  const supportAdminPassword = String(process.env.SUPPORT_ADMIN_PASSWORD || "");
+  const supportAdminName =
+    String(process.env.SUPPORT_ADMIN_NAME || "Developer Support")
+      .replace(/\s+/g, " ")
+      .trim() || "Developer Support";
+
+  if (supportAdminEmail && (supportAdminPasswordHash || supportAdminPassword)) {
+    const passwordHash =
+      supportAdminPasswordHash || (await bcrypt.hash(supportAdminPassword, 12));
+
+    await pool.query(
+      `
+        INSERT INTO developer_admins (
+          name,
+          email,
+          password_hash,
+          is_active,
+          last_login_at,
+          created_at,
+          updated_at
+        )
+        VALUES ($1, $2, $3, TRUE, NULL, NOW(), NOW())
+        ON CONFLICT (email)
+        DO UPDATE SET
+          name = EXCLUDED.name,
+          password_hash = EXCLUDED.password_hash,
+          is_active = TRUE,
+          updated_at = NOW()
+      `,
+      [supportAdminName, supportAdminEmail, passwordHash],
+    );
+  }
 }
 
 // =========================================================

@@ -156,6 +156,18 @@
         "Create up to two staff accounts, keep credentials organized, and control who can work inside the shop workspace.",
       badge: "Team",
     },
+    {
+      kind: "section",
+      sectionId: "supportChatSection",
+      availableToAll: true,
+      iconClass: "fa-solid fa-headset",
+      label: "Chat Support",
+      eyebrow: "Developer Help Desk",
+      title: "Chat Support",
+      description:
+        "Send a private message to the app developer, track replies in one thread, and keep support tied to your current login.",
+      badge: "Support",
+    },
   ];
 
   function escapeHtml(value) {
@@ -249,6 +261,11 @@
   function canAccessSection(user, sectionId) {
     if (sectionId === "staffAccessSection") {
       return isOwnerUser(user);
+    }
+
+    const item = sidebarItems.find((entry) => entry.sectionId === sectionId);
+    if (item?.availableToAll) {
+      return true;
     }
 
     const permission = sectionPermissionMap[sectionId];

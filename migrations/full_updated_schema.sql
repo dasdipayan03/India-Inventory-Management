@@ -37,6 +37,69 @@ CREATE TABLE IF NOT EXISTS staff_accounts (
 );
 
 -- =====================================================
+-- DEVELOPER SUPPORT ADMINS TABLE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS developer_admins (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(120) NOT NULL,
+  email VARCHAR(120) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  last_login_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- =====================================================
+-- SUPPORT CONVERSATIONS TABLE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS support_conversations (
+  id SERIAL PRIMARY KEY,
+  owner_user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  requester_actor_id INT NOT NULL,
+  requester_role VARCHAR(20) NOT NULL,
+  requester_name VARCHAR(120) NOT NULL,
+  requester_identifier VARCHAR(120),
+  status VARCHAR(20) NOT NULL DEFAULT 'open',
+  unread_for_user INT NOT NULL DEFAULT 0,
+  unread_for_developer INT NOT NULL DEFAULT 0,
+  last_message_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT support_conversations_requester_role_check CHECK (
+    requester_role IN ('owner', 'staff')
+  ),
+  CONSTRAINT support_conversations_status_check CHECK (
+    status IN ('open', 'closed')
+  ),
+  CONSTRAINT support_conversations_unique_requester UNIQUE (
+    owner_user_id,
+    requester_actor_id,
+    requester_role
+  )
+);
+
+-- =====================================================
+-- SUPPORT MESSAGES TABLE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS support_messages (
+  id SERIAL PRIMARY KEY,
+  conversation_id INT NOT NULL REFERENCES support_conversations(id) ON DELETE CASCADE,
+  sender_type VARCHAR(20) NOT NULL,
+  sender_actor_id INT NOT NULL,
+  sender_role VARCHAR(30) NOT NULL,
+  sender_name VARCHAR(120) NOT NULL,
+  message_text TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT support_messages_sender_type_check CHECK (
+    sender_type IN ('user', 'developer')
+  ),
+  CONSTRAINT support_messages_message_not_blank CHECK (
+    char_length(TRIM(message_text)) > 0
+  )
+);
+
+-- =====================================================
 -- ITEMS TABLE
 -- =====================================================
 CREATE TABLE IF NOT EXISTS items (
@@ -302,6 +365,18 @@ BEFORE UPDATE ON invoices
 FOR EACH ROW
 EXECUTE FUNCTION update_timestamp();
 
+DROP TRIGGER IF EXISTS update_developer_admins_timestamp ON developer_admins;
+CREATE TRIGGER update_developer_admins_timestamp
+BEFORE UPDATE ON developer_admins
+FOR EACH ROW
+EXECUTE FUNCTION update_timestamp();
+
+DROP TRIGGER IF EXISTS update_support_conversations_timestamp ON support_conversations;
+CREATE TRIGGER update_support_conversations_timestamp
+BEFORE UPDATE ON support_conversations
+FOR EACH ROW
+EXECUTE FUNCTION update_timestamp();
+
 -- =====================================================
 -- PERFORMANCE INDEXES
 -- =====================================================
@@ -316,6 +391,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_staff_accounts_username_unique
 
 CREATE INDEX IF NOT EXISTS idx_staff_accounts_owner_user_id
   ON staff_accounts(owner_user_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_developer_admins_email_unique
+  ON developer_admins(email);
+
+CREATE INDEX IF NOT EXISTS idx_developer_admins_email_lookup
+  ON developer_admins (LOWER(email));
 
 CREATE INDEX IF NOT EXISTS idx_items_user_id
   ON items(user_id);
@@ -344,6 +425,18 @@ CREATE INDEX IF NOT EXISTS idx_invoices_user_id
 CREATE INDEX IF NOT EXISTS idx_invoices_user_contact_due_date
   ON invoices (user_id, contact, date ASC)
   WHERE amount_due > 0;
+
+CREATE INDEX IF NOT EXISTS idx_support_conversations_owner_lookup
+  ON support_conversations (owner_user_id, requester_actor_id, requester_role);
+
+CREATE INDEX IF NOT EXISTS idx_support_conversations_queue
+  ON support_conversations (status, last_message_at DESC, id DESC);
+
+CREATE INDEX IF NOT EXISTS idx_support_conversations_unread_queue
+  ON support_conversations (unread_for_developer, last_message_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_support_messages_conversation_created
+  ON support_messages (conversation_id, created_at ASC, id ASC);
 
 -- =====================================================
 -- OPTIONAL TIMEZONE FIX NOTES

@@ -409,6 +409,7 @@ app.use("/api/auth", require("./routes/auth"));
 app.use("/api", require("./routes/inventory"));
 app.use("/api", require("./routes/business"));
 app.use("/api", require("./routes/invoices"));
+app.use("/api", require("./routes/support"));
 
 // =========================================================
 // ❤️ HEALTH CHECK ROUTE (Railway stability)
@@ -473,6 +474,22 @@ app.get("/invoice.html", (req, res) => {
 
 app.get("/reset.html", (req, res) => {
   sendHtmlTemplate(res, "reset.html");
+});
+
+app.get("/developer-login", (req, res) => {
+  sendHtmlTemplate(res, "developer-login.html");
+});
+
+app.get("/developer-login.html", (req, res) => {
+  sendHtmlTemplate(res, "developer-login.html");
+});
+
+app.get("/developer-support", (req, res) => {
+  sendHtmlTemplate(res, "developer-support.html");
+});
+
+app.get("/developer-support.html", (req, res) => {
+  sendHtmlTemplate(res, "developer-support.html");
 });
 
 app.use(

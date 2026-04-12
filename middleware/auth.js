@@ -25,6 +25,8 @@ const STAFF_SESSION_CACHE_TTL_MS = 15 * 1000;
 const STAFF_SESSION_CACHE_MAX_ENTRIES = 200;
 const STAFF_ROLE = "staff";
 const OWNER_ROLE = "owner";
+const DEVELOPER_SUPPORT_ROLE = "developer_support";
+const DEVELOPER_SUPPORT_COOKIE_NAME = "developer_support_token";
 const staffSessionCache = new Map();
 
 function normalizeSessionRole(value) {
@@ -211,6 +213,80 @@ async function authMiddleware(req, res, next) {
   }
 }
 
+async function loadDeveloperSession(developerId) {
+  const result = await pool.query(
+    `
+      SELECT id, name, email, is_active
+      FROM developer_admins
+      WHERE id = $1
+      LIMIT 1
+    `,
+    [developerId],
+  );
+
+  if (!result.rowCount) {
+    return null;
+  }
+
+  const developer = result.rows[0];
+  return {
+    id: developer.id,
+    name: developer.name,
+    email: developer.email,
+    isActive: Boolean(developer.is_active),
+  };
+}
+
+async function developerAuthMiddleware(req, res, next) {
+  try {
+    let token = null;
+
+    if (req.cookies && req.cookies[DEVELOPER_SUPPORT_COOKIE_NAME]) {
+      token = req.cookies[DEVELOPER_SUPPORT_COOKIE_NAME];
+    }
+
+    const header = req.headers.authorization;
+    if (!token && header && header.startsWith("Bearer ")) {
+      token = header.split(" ")[1];
+    }
+
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (String(decoded.role || "").trim().toLowerCase() !== DEVELOPER_SUPPORT_ROLE) {
+      return res.status(401).json({ error: "Invalid or expired token" });
+    }
+
+    const developerId = Number(decoded.developerId || decoded.id);
+    if (!Number.isInteger(developerId) || developerId <= 0) {
+      return res.status(401).json({ error: "Invalid or expired token" });
+    }
+
+    const developer = await loadDeveloperSession(developerId);
+    if (!developer || !developer.isActive) {
+      return res.status(401).json({ error: "Invalid or expired token" });
+    }
+
+    req.developer = {
+      ...decoded,
+      id: developerId,
+      developerId,
+      role: DEVELOPER_SUPPORT_ROLE,
+      accountType: DEVELOPER_SUPPORT_ROLE,
+      name: developer.name,
+      email: developer.email,
+    };
+    return next();
+  } catch (error) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("Developer JWT verification failed:", error.message);
+    }
+    return res.status(401).json({ error: "Invalid or expired token" });
+  }
+}
+
 function getUserId(req) {
   const ownerId = Number(req.user?.ownerId || req.user?.id);
   if (!ownerId) {
@@ -225,6 +301,14 @@ function getActorId(req) {
     throw new Error("Missing actor ID in request context");
   }
   return actorId;
+}
+
+function getDeveloperId(req) {
+  const developerId = Number(req.developer?.developerId || req.developer?.id);
+  if (!developerId) {
+    throw new Error("Missing developer ID in request context");
+  }
+  return developerId;
 }
 
 function isOwnerSession(req) {
@@ -286,14 +370,27 @@ function allowRoles(...roles) {
   };
 }
 
+function requireDeveloperSupport(req, res, next) {
+  if (!req.developer) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  next();
+}
+
 module.exports = {
+  DEVELOPER_SUPPORT_COOKIE_NAME,
+  DEVELOPER_SUPPORT_ROLE,
   allowRoles,
   authMiddleware,
+  developerAuthMiddleware,
+  getDeveloperId,
   getActorId,
   getUserId,
   hasPermission,
   invalidateStaffSessionCache,
   isOwnerSession,
+  requireDeveloperSupport,
   requireOwner,
   requirePermission,
 };

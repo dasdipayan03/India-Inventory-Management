@@ -1,0 +1,919 @@
+<!doctype html>
+<html lang="en" data-csp-nonce="__CSP_NONCE__">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Developer Support Inbox</title>
+    <link rel="icon" type="image/png" href="/images/app_logo.png" />
+    <link rel="apple-touch-icon" href="/images/app_logo.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    />
+    <style nonce="__CSP_NONCE__">
+      :root {
+        --ink-strong: #10213f;
+        --ink-main: #27406b;
+        --ink-soft: #5f7496;
+        --line: rgba(117, 142, 180, 0.18);
+        --surface: rgba(255, 255, 255, 0.88);
+        --navy: #17315d;
+        --cyan: #0ea5e9;
+        --cyan-strong: #0284c7;
+        --teal: #14b8a6;
+        --danger: #dc2626;
+        --success: #16a34a;
+        --amber: #d97706;
+        --shadow-xl: 0 32px 70px rgba(17, 29, 58, 0.16);
+        --shadow-lg: 0 18px 38px rgba(17, 29, 58, 0.1);
+        --shadow-md: 0 12px 24px rgba(17, 29, 58, 0.08);
+        --radius-xl: 28px;
+        --radius-lg: 22px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      html {
+        color-scheme: light;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        min-height: 100dvh;
+        font-family: "Segoe UI Variable", "Segoe UI", sans-serif;
+        color: var(--ink-main);
+        background:
+          radial-gradient(
+            circle at top left,
+            rgba(20, 184, 166, 0.16),
+            transparent 24%
+          ),
+          radial-gradient(
+            circle at top right,
+            rgba(14, 165, 233, 0.22),
+            transparent 26%
+          ),
+          linear-gradient(180deg, #eef6ff 0%, #f7fbff 38%, #f4f9ff 100%);
+      }
+
+      a,
+      button,
+      input,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .workspace {
+        width: min(calc(100% - 28px), 1360px);
+        margin: 14px auto 42px;
+      }
+
+      .topbar,
+      .hero-card,
+      .queue-card,
+      .thread-card,
+      .detail-card,
+      .footer-card {
+        border: 1px solid rgba(255, 255, 255, 0.74);
+        background: var(--surface);
+        box-shadow: var(--shadow-lg);
+        backdrop-filter: blur(18px);
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 16px 20px;
+        border-radius: var(--radius-xl);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        color: var(--ink-main);
+        text-decoration: none;
+      }
+
+      .brand-mark {
+        width: 54px;
+        height: 54px;
+      }
+
+      .brand-mark img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      .brand-copy {
+        display: grid;
+        gap: 4px;
+      }
+
+      .brand-copy strong {
+        color: var(--ink-strong);
+        font-size: 14px;
+      }
+
+      .brand-copy span {
+        color: var(--ink-soft);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .topbar-chip,
+      .summary-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(14, 165, 233, 0.08);
+        color: var(--cyan-strong);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .ghost-btn,
+      .primary-btn,
+      .danger-btn,
+      .filter-btn {
+        min-height: 44px;
+        padding: 0 16px;
+        border-radius: 14px;
+        font-size: 13px;
+        font-weight: 800;
+        transition: 0.2s ease;
+      }
+
+      .ghost-btn,
+      .filter-btn {
+        border: 1px solid rgba(22, 151, 208, 0.18);
+        background: rgba(22, 151, 208, 0.05);
+        color: var(--cyan-strong);
+      }
+
+      .primary-btn {
+        border: 0;
+        background: linear-gradient(135deg, var(--cyan), #35b5e8);
+        color: #ffffff;
+        box-shadow: 0 12px 28px rgba(14, 165, 233, 0.22);
+      }
+
+      .danger-btn {
+        border: 1px solid rgba(220, 38, 38, 0.16);
+        background: rgba(220, 38, 38, 0.08);
+        color: var(--danger);
+      }
+
+      .filter-btn.is-active {
+        background: linear-gradient(
+          135deg,
+          rgba(14, 165, 233, 0.16),
+          rgba(20, 184, 166, 0.16)
+        );
+        border-color: rgba(14, 165, 233, 0.3);
+        box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.08);
+      }
+
+      .hero-card {
+        display: grid;
+        gap: 18px;
+        margin-top: 18px;
+        padding: 28px;
+        border-radius: var(--radius-xl);
+        background:
+          radial-gradient(
+            circle at top right,
+            rgba(14, 165, 233, 0.15),
+            transparent 28%
+          ),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(245, 250, 255, 0.88));
+      }
+
+      .hero-kicker {
+        display: inline-flex;
+        width: fit-content;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(14, 165, 233, 0.1);
+        color: var(--cyan-strong);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .hero-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+      }
+
+      .hero-head h1 {
+        margin: 12px 0 0;
+        color: var(--ink-strong);
+        font-size: clamp(24px, 4vw, 42px);
+        line-height: 1.02;
+        letter-spacing: -0.05em;
+      }
+
+      .hero-head p {
+        margin: 14px 0 0;
+        max-width: 62ch;
+        color: var(--ink-soft);
+        font-size: 15px;
+        line-height: 1.8;
+      }
+
+      .hero-summary {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .hero-stat {
+        padding: 18px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(117, 142, 180, 0.14);
+        box-shadow: var(--shadow-md);
+      }
+
+      .hero-stat span {
+        display: block;
+        color: var(--ink-soft);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .hero-stat strong {
+        display: block;
+        margin-top: 10px;
+        color: var(--ink-strong);
+        font-size: 30px;
+        line-height: 1;
+      }
+
+      .hero-stat small {
+        display: block;
+        margin-top: 8px;
+        color: var(--ink-soft);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .workspace-grid {
+        display: grid;
+        grid-template-columns: minmax(330px, 0.9fr) minmax(0, 1.4fr);
+        gap: 18px;
+        margin-top: 18px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 18px;
+      }
+
+      .queue-card,
+      .thread-card,
+      .detail-card,
+      .footer-card {
+        border-radius: var(--radius-xl);
+      }
+
+      .queue-card,
+      .thread-card,
+      .detail-card {
+        padding: 24px;
+      }
+
+      .panel-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+
+      .panel-kicker {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--cyan-strong);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .panel-heading h2,
+      .panel-heading h3 {
+        margin: 0;
+        color: var(--ink-strong);
+        font-size: 26px;
+        letter-spacing: -0.04em;
+      }
+
+      .panel-heading p {
+        margin: 10px 0 0;
+        color: var(--ink-soft);
+        font-size: 14px;
+        line-height: 1.7;
+      }
+
+      .search-input,
+      .reply-input {
+        width: 100%;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.96);
+        color: var(--ink-main);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      }
+
+      .search-input {
+        min-height: 48px;
+        padding: 0 16px;
+      }
+
+      .reply-input {
+        min-height: 128px;
+        padding: 14px 16px;
+        resize: vertical;
+      }
+
+      .search-input:focus,
+      .reply-input:focus {
+        outline: none;
+        border-color: rgba(14, 165, 233, 0.42);
+        box-shadow:
+          0 0 0 4px rgba(14, 165, 233, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      }
+
+      .filter-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 14px 0 18px;
+      }
+
+      .queue-list {
+        display: grid;
+        gap: 12px;
+        max-height: 760px;
+        overflow-y: auto;
+        padding-right: 4px;
+        scrollbar-width: thin;
+      }
+
+      .queue-item {
+        width: 100%;
+        border: 1px solid rgba(117, 142, 180, 0.14);
+        border-radius: 22px;
+        padding: 16px;
+        background: rgba(255, 255, 255, 0.74);
+        color: inherit;
+        text-align: left;
+        box-shadow: var(--shadow-md);
+      }
+
+      .queue-item.is-active {
+        border-color: rgba(14, 165, 233, 0.24);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.96),
+          rgba(239, 248, 255, 0.92)
+        );
+      }
+
+      .queue-item__top,
+      .queue-item__bottom {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .queue-item__title {
+        display: grid;
+        gap: 4px;
+      }
+
+      .queue-item__title strong {
+        color: var(--ink-strong);
+        font-size: 15px;
+      }
+
+      .queue-item__title span,
+      .queue-item__preview,
+      .queue-empty p,
+      .thread-empty p,
+      .status-note {
+        color: var(--ink-soft);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .status-note[data-tone="success"] {
+        color: var(--success);
+      }
+
+      .status-note[data-tone="error"] {
+        color: var(--danger);
+      }
+
+      .queue-item__preview {
+        margin: 12px 0;
+      }
+
+      .queue-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 34px;
+        min-height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: rgba(217, 119, 6, 0.12);
+        color: var(--amber);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .queue-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .queue-status--open {
+        color: var(--success);
+        background: rgba(22, 163, 74, 0.12);
+      }
+
+      .queue-status--closed {
+        color: var(--amber);
+        background: rgba(217, 119, 6, 0.12);
+      }
+
+      .queue-empty,
+      .thread-empty {
+        display: grid;
+        gap: 10px;
+        place-items: center;
+        min-height: 240px;
+        padding: 28px;
+        border: 1px dashed rgba(117, 142, 180, 0.24);
+        border-radius: 22px;
+        background: rgba(247, 251, 255, 0.72);
+        text-align: center;
+      }
+
+      .queue-empty i,
+      .thread-empty i {
+        width: 52px;
+        height: 52px;
+        display: grid;
+        place-items: center;
+        border-radius: 18px;
+        background: rgba(14, 165, 233, 0.1);
+        color: var(--cyan-strong);
+        font-size: 20px;
+      }
+
+      .queue-empty strong,
+      .thread-empty strong {
+        color: var(--ink-strong);
+        font-size: 18px;
+      }
+
+      .thread-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .summary-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 18px 0;
+      }
+
+      .thread-stream {
+        display: grid;
+        gap: 14px;
+        max-height: 540px;
+        min-height: 320px;
+        overflow-y: auto;
+        padding-right: 4px;
+        margin-bottom: 18px;
+        scrollbar-width: thin;
+      }
+
+      .thread-message {
+        display: grid;
+        gap: 8px;
+        justify-items: start;
+      }
+
+      .thread-message--developer {
+        justify-items: end;
+      }
+
+      .thread-message__meta {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--ink-soft);
+        font-size: 12px;
+      }
+
+      .thread-message__bubble {
+        max-width: min(100%, 580px);
+        padding: 15px 16px;
+        border-radius: 20px;
+        box-shadow: var(--shadow-md);
+        line-height: 1.7;
+        font-size: 14px;
+      }
+
+      .thread-message__bubble p {
+        margin: 0;
+      }
+
+      .thread-message--user .thread-message__bubble {
+        color: var(--ink-main);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.96),
+          rgba(245, 249, 255, 0.9)
+        );
+        border: 1px solid rgba(117, 142, 180, 0.18);
+        border-bottom-left-radius: 8px;
+      }
+
+      .thread-message--developer .thread-message__bubble {
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--cyan-strong), #0f766e);
+        border-bottom-right-radius: 8px;
+      }
+
+      .reply-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      .composer-status {
+        margin: 0;
+        color: var(--ink-soft);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .composer-status[data-tone="success"] {
+        color: var(--success);
+      }
+
+      .composer-status[data-tone="error"] {
+        color: var(--danger);
+      }
+
+      .detail-list {
+        display: grid;
+        gap: 12px;
+        margin: 0;
+      }
+
+      .detail-list div {
+        display: grid;
+        gap: 4px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: rgba(247, 251, 255, 0.78);
+        border: 1px solid rgba(117, 142, 180, 0.14);
+      }
+
+      .detail-list span {
+        color: var(--ink-soft);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .detail-list strong {
+        color: var(--ink-strong);
+        font-size: 15px;
+      }
+
+      .detail-list small {
+        color: var(--ink-soft);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .footer-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        margin-top: 18px;
+        padding: 16px 20px;
+      }
+
+      .footer-card span {
+        color: var(--ink-soft);
+        font-size: 13px;
+      }
+
+      @media (max-width: 1100px) {
+        .workspace-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .hero-summary {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .workspace {
+          width: min(calc(100% - 18px), 1360px);
+        }
+
+        .topbar,
+        .hero-head,
+        .footer-card,
+        .reply-row {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .queue-card,
+        .thread-card,
+        .detail-card,
+        .hero-card {
+          padding: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="workspace">
+      <header class="topbar">
+        <a class="brand" href="developer-support.html" aria-label="Developer support home">
+          <span class="brand-mark">
+            <img src="/images/app_logo.png" alt="" />
+          </span>
+          <span class="brand-copy">
+            <strong>India Inventory Management</strong>
+            <span>Developer support inbox</span>
+          </span>
+        </a>
+
+        <div class="topbar-actions">
+          <span id="developerIdentityChip" class="topbar-chip">
+            <i class="fa-solid fa-user-shield"></i>
+            Developer session
+          </span>
+          <button id="refreshInboxBtn" class="ghost-btn" type="button">
+            <i class="fa-solid fa-rotate-right"></i>
+            Refresh Inbox
+          </button>
+          <button id="developerLogoutBtn" class="danger-btn" type="button">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            Logout
+          </button>
+        </div>
+      </header>
+
+      <section class="hero-card">
+        <span class="hero-kicker">
+          <i class="fa-solid fa-headset"></i>
+          Developer-managed support queue
+        </span>
+
+        <div class="hero-head">
+          <div>
+            <h1>Review user support threads without touching shop accounts.</h1>
+            <p>
+              This inbox is dedicated to developer support. Each conversation is
+              scoped to one login, so owners and staff only see their own
+              messages and the replies you send from here.
+            </p>
+          </div>
+          <p id="pageStatus" class="status-note">
+            The inbox refreshes quietly while you stay inside this page.
+          </p>
+        </div>
+
+        <div class="hero-summary">
+          <article class="hero-stat">
+            <span>Total Threads</span>
+            <strong id="statTotalThreads">0</strong>
+            <small>Every private support conversation linked to users.</small>
+          </article>
+          <article class="hero-stat">
+            <span>Need Reply</span>
+            <strong id="statUnreadThreads">0</strong>
+            <small>Threads with unread user messages for developer review.</small>
+          </article>
+          <article class="hero-stat">
+            <span>Open Threads</span>
+            <strong id="statOpenThreads">0</strong>
+            <small>Conversations currently marked open inside the queue.</small>
+          </article>
+        </div>
+      </section>
+
+      <section class="workspace-grid">
+        <div class="stack">
+          <aside class="queue-card">
+            <div class="panel-heading">
+              <div>
+                <span class="panel-kicker">Conversation Queue</span>
+                <h2>Support threads</h2>
+                <p>
+                  Filter the inbox, scan recent previews, and open the next
+                  conversation that needs a reply.
+                </p>
+              </div>
+            </div>
+
+            <input
+              id="conversationSearch"
+              class="search-input"
+              type="search"
+              placeholder="Search by requester, owner, email, username, or preview"
+            />
+
+            <div class="filter-row" id="filterRow">
+              <button class="filter-btn is-active" type="button" data-filter="needs_reply">
+                Needs Reply
+              </button>
+              <button class="filter-btn" type="button" data-filter="open">Open</button>
+              <button class="filter-btn" type="button" data-filter="all">All</button>
+              <button class="filter-btn" type="button" data-filter="closed">Closed</button>
+            </div>
+
+            <div id="conversationList" class="queue-list">
+              <div class="queue-empty">
+                <i class="fa-solid fa-inbox"></i>
+                <strong>Support queue is empty</strong>
+                <p>User support conversations will appear here as soon as they send a message.</p>
+              </div>
+            </div>
+          </aside>
+
+          <aside class="detail-card">
+            <div class="panel-heading">
+              <div>
+                <span class="panel-kicker">Conversation Detail</span>
+                <h3>Requester snapshot</h3>
+                <p>Quick context for the selected support thread.</p>
+              </div>
+            </div>
+
+            <div id="detailList" class="detail-list">
+              <div>
+                <span>Requester</span>
+                <strong>Select a conversation</strong>
+              </div>
+              <div>
+                <span>Owner Account</span>
+                <strong>Conversation details will appear here</strong>
+              </div>
+              <div>
+                <span>Status</span>
+                <strong>Waiting for selection</strong>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <section class="thread-card">
+          <div class="panel-heading">
+            <div>
+              <span class="panel-kicker">Thread Workspace</span>
+              <h2 id="threadTitle">Select a support conversation</h2>
+              <p id="threadLead">
+                Open a thread from the queue to read the full message history and send a reply.
+              </p>
+            </div>
+          </div>
+
+          <div class="thread-toolbar">
+            <div class="summary-strip">
+              <span id="threadStatusPill" class="summary-pill">
+                <i class="fa-solid fa-circle-nodes"></i>
+                No thread selected
+              </span>
+              <span id="threadOwnerPill" class="summary-pill">
+                <i class="fa-solid fa-building"></i>
+                Owner info pending
+              </span>
+              <span id="threadUpdatedPill" class="summary-pill">
+                <i class="fa-solid fa-clock"></i>
+                Waiting for activity
+              </span>
+            </div>
+
+            <div class="topbar-actions">
+              <button id="markOpenBtn" class="ghost-btn" type="button">
+                <i class="fa-solid fa-unlock"></i>
+                Mark Open
+              </button>
+              <button id="markClosedBtn" class="ghost-btn" type="button">
+                <i class="fa-solid fa-lock"></i>
+                Mark Closed
+              </button>
+            </div>
+          </div>
+
+          <div id="threadMessages" class="thread-stream">
+            <div class="thread-empty">
+              <i class="fa-solid fa-comments"></i>
+              <strong>No support thread selected</strong>
+              <p>Choose a conversation from the queue to open the full history here.</p>
+            </div>
+          </div>
+
+          <div class="panel-heading">
+            <div>
+              <span class="panel-kicker">Reply Composer</span>
+              <h3>Send developer response</h3>
+              <p>Replies will appear in the user's private support thread.</p>
+            </div>
+          </div>
+
+          <div class="stack">
+            <textarea
+              id="replyInput"
+              class="reply-input"
+              placeholder="Write a clear reply, next step, or troubleshooting instruction for the user."
+            ></textarea>
+
+            <div class="reply-row">
+              <p id="composerStatus" class="composer-status" data-tone="info">
+                Select a thread first, then reply from the dedicated developer support identity.
+              </p>
+              <button id="replySendBtn" class="primary-btn" type="button">
+                <i class="fa-solid fa-paper-plane"></i>
+                Send Reply
+              </button>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <footer class="footer-card">
+        <span>Developer support replies stay separate from owner and staff login sessions.</span>
+        <span>&copy; <span id="currentYear"></span> India Inventory Management</span>
+      </footer>
+    </div>
+
+    <script src="js/developer-support.js"></script>
+  </body>
+</html>

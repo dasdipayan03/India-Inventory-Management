@@ -572,6 +572,148 @@
         grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.25fr);
       }
 
+      .support-section-grid {
+        grid-template-columns: minmax(320px, 0.86fr) minmax(0, 1.14fr);
+      }
+
+      .support-guide-list {
+        margin: 18px 0 0;
+        padding-left: 18px;
+        color: inherit;
+      }
+
+      .support-guide-list li + li {
+        margin-top: 10px;
+      }
+
+      .support-thread {
+        display: grid;
+        gap: 14px;
+        max-height: 520px;
+        min-height: 320px;
+        overflow-y: auto;
+        padding: 4px;
+        margin-bottom: 18px;
+        scrollbar-width: thin;
+      }
+
+      .support-thread-empty {
+        display: grid;
+        gap: 10px;
+        place-items: center;
+        min-height: 280px;
+        padding: 28px;
+        border: 1px dashed rgba(117, 142, 180, 0.28);
+        border-radius: 22px;
+        background: rgba(247, 251, 255, 0.72);
+        text-align: center;
+      }
+
+      .support-thread-empty i {
+        width: 54px;
+        height: 54px;
+        display: grid;
+        place-items: center;
+        border-radius: 18px;
+        background: rgba(14, 165, 233, 0.1);
+        color: var(--cyan-strong);
+        font-size: 20px;
+      }
+
+      .support-thread-empty strong {
+        color: var(--ink-strong);
+        font-size: 17px;
+      }
+
+      .support-thread-empty p {
+        margin: 0;
+        max-width: 42ch;
+        color: var(--ink-soft);
+        font-size: 14px;
+        line-height: 1.7;
+      }
+
+      .support-message {
+        display: grid;
+        gap: 8px;
+        justify-items: start;
+      }
+
+      .support-message--user {
+        justify-items: end;
+      }
+
+      .support-message__meta {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--ink-soft);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .support-message__bubble {
+        max-width: min(100%, 520px);
+        padding: 15px 16px;
+        border-radius: 20px;
+        box-shadow: var(--shadow-md);
+        line-height: 1.7;
+        font-size: 14px;
+      }
+
+      .support-message__bubble p {
+        margin: 0;
+        color: inherit;
+      }
+
+      .support-message--user .support-message__bubble {
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--cyan-strong), #0f766e);
+        border-bottom-right-radius: 8px;
+      }
+
+      .support-message--developer .support-message__bubble {
+        color: var(--ink-main);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.96),
+          rgba(245, 249, 255, 0.9)
+        );
+        border: 1px solid rgba(117, 142, 180, 0.18);
+        border-bottom-left-radius: 8px;
+      }
+
+      .support-message-input {
+        min-height: 130px;
+        resize: vertical;
+      }
+
+      .support-compose-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      .support-compose-note {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .support-compose-note[data-tone="success"] {
+        color: var(--success);
+      }
+
+      .support-compose-note[data-tone="error"] {
+        color: var(--danger);
+      }
+
+      .support-refresh-btn {
+        white-space: nowrap;
+      }
+
       .chart-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2131,6 +2273,7 @@
         .section-grid--inventory,
         .section-grid--dues,
         .section-grid--expense,
+        .support-section-grid,
         .purchase-detail-layout,
         .chart-grid {
           grid-template-columns: 1fr;
@@ -2142,6 +2285,10 @@
 
         .due-ledger-actions {
           justify-content: flex-start;
+        }
+
+        .support-compose-row {
+          align-items: flex-start;
         }
       }
 
@@ -5037,6 +5184,116 @@
               </table>
             </div>
           </section>
+        </div>
+
+        <div id="supportChatSection" class="form-section">
+          <div class="section-grid support-section-grid">
+            <section class="panel-card panel-card--highlight">
+              <div class="panel-heading">
+                <div>
+                  <span class="panel-kicker">Private Help Desk</span>
+                  <h4>Message developer support from this same workspace</h4>
+                  <p class="panel-subtitle">
+                    Use this thread when you need help with access, workflow
+                    issues, bugs, or onboarding questions. Replies from the app
+                    developer will stay linked to this login only.
+                  </p>
+                </div>
+                <div class="panel-card__icon">
+                  <i class="fa-solid fa-headset"></i>
+                </div>
+              </div>
+
+              <ul class="support-guide-list">
+                <li>Explain what happened and which page or step you were on.</li>
+                <li>For account issues, mention the registered email or staff username.</li>
+                <li>When you send a new message, this thread reopens automatically.</li>
+                <li>Only your own login can see this support history and developer replies.</li>
+              </ul>
+            </section>
+
+            <section class="panel-card panel-card--surface">
+              <div class="panel-heading">
+                <div>
+                  <span class="panel-kicker">Support Thread</span>
+                  <h4>Your chat with developer support</h4>
+                  <p class="panel-subtitle">
+                    Keep one clear thread for this login so follow-up replies
+                    stay easy to track.
+                  </p>
+                </div>
+                <button
+                  id="supportRefreshBtn"
+                  class="btn btn-secondary support-refresh-btn"
+                  type="button"
+                >
+                  <i class="fa-solid fa-rotate-right"></i>
+                  Refresh
+                </button>
+              </div>
+
+              <div class="summary-strip mb-3">
+                <span
+                  id="supportStatusPill"
+                  class="summary-pill summary-pill--neutral"
+                >
+                  <i class="fa-solid fa-circle-nodes"></i>
+                  Waiting to start
+                </span>
+                <span id="supportThreadIdPill" class="summary-pill">
+                  <i class="fa-solid fa-lock"></i>
+                  Private thread
+                </span>
+                <span id="supportLastUpdatedPill" class="summary-pill">
+                  <i class="fa-solid fa-clock"></i>
+                  No messages yet
+                </span>
+              </div>
+
+              <div id="supportThreadBody" class="support-thread">
+                <div class="support-thread-empty">
+                  <i class="fa-solid fa-comment-dots"></i>
+                  <strong>Start your support thread</strong>
+                  <p>
+                    Send the first message with your issue, and developer
+                    replies will appear here in the same private timeline.
+                  </p>
+                </div>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-12">
+                  <label class="form-label small" for="supportMessageInput"
+                    >Write a message</label
+                  >
+                  <textarea
+                    id="supportMessageInput"
+                    class="form-control support-message-input"
+                    placeholder="Describe the issue, what you expected, and anything that may help the developer reproduce it."
+                  ></textarea>
+                </div>
+
+                <div class="col-12 support-compose-row">
+                  <p
+                    id="supportComposerStatus"
+                    class="support-compose-note"
+                    data-tone="muted"
+                  >
+                    Messages stay private to this login and the developer
+                    support inbox.
+                  </p>
+                  <button
+                    id="supportSendBtn"
+                    class="btn btn-primary"
+                    type="button"
+                  >
+                    <i class="fa-solid fa-paper-plane"></i>
+                    Send Message
+                  </button>
+                </div>
+              </div>
+            </section>
+          </div>
         </div>
 
         <div id="staffAccessSection" class="form-section">

@@ -38,6 +38,10 @@ const state = {
   profitSaveTimer: null,
   lastSavedProfitPercent: null,
   sessionUser: null,
+  supportConversation: null,
+  supportMessages: [],
+  supportLoadRequestId: 0,
+  supportPollTimer: null,
 };
 
 const STAFF_PERMISSION_OPTIONS = appConfig.staffPermissionOptions || [];
@@ -155,6 +159,22 @@ function formatDate(value) {
     day: "2-digit",
     month: "short",
     year: "numeric",
+    timeZone: "Asia/Kolkata",
+  });
+}
+
+function formatDateTime(value) {
+  if (!value) {
+    return "-";
+  }
+
+  return new Date(value).toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
     timeZone: "Asia/Kolkata",
   });
 }
@@ -412,6 +432,10 @@ function getAccessibleSectionIds() {
 
 function getFirstAccessibleSection() {
   return getAccessibleSectionIds()[0] || null;
+}
+
+function getActiveSectionId() {
+  return document.querySelector(".form-section.active")?.id || "";
 }
 
 async function ensureChartLibrary() {
@@ -686,6 +710,14 @@ function cacheElements() {
     expenseSearchInput: document.getElementById("expenseSearchInput"),
     loadExpenseReportBtn: document.getElementById("loadExpenseReportBtn"),
     expenseReportBody: document.getElementById("expenseReportBody"),
+    supportRefreshBtn: document.getElementById("supportRefreshBtn"),
+    supportStatusPill: document.getElementById("supportStatusPill"),
+    supportThreadIdPill: document.getElementById("supportThreadIdPill"),
+    supportLastUpdatedPill: document.getElementById("supportLastUpdatedPill"),
+    supportThreadBody: document.getElementById("supportThreadBody"),
+    supportMessageInput: document.getElementById("supportMessageInput"),
+    supportComposerStatus: document.getElementById("supportComposerStatus"),
+    supportSendBtn: document.getElementById("supportSendBtn"),
     staffName: document.getElementById("staffName"),
     staffUsername: document.getElementById("staffUsername"),
     staffPassword: document.getElementById("staffPassword"),
@@ -1346,8 +1378,271 @@ function setActiveSection(sectionId) {
     loadExpenseReport({ silent: true });
   }
 
+  if (sectionId === "supportChatSection") {
+    void loadSupportThread({ silent: true });
+  }
+
   if (isMobileLayout()) {
     sidebarController?.close();
+  }
+}
+
+function formatSupportMessageText(value) {
+  return escapeHtml(value || "").replace(/\n/g, "<br />");
+}
+
+function setSupportComposerStatus(message, tone = "muted") {
+  if (!dom.supportComposerStatus) {
+    return;
+  }
+
+  dom.supportComposerStatus.textContent = message;
+  dom.supportComposerStatus.dataset.tone = tone;
+}
+
+function renderSupportEmptyState(message, title = "Start your support thread") {
+  if (!dom.supportThreadBody) {
+    return;
+  }
+
+  dom.supportThreadBody.innerHTML = `
+    <div class="support-thread-empty">
+      <i class="fa-solid fa-comment-dots"></i>
+      <strong>${escapeHtml(title)}</strong>
+      <p>${escapeHtml(message)}</p>
+    </div>
+  `;
+}
+
+function renderSupportThread() {
+  if (!dom.supportThreadBody) {
+    return;
+  }
+
+  const conversation = state.supportConversation;
+  const messages = Array.isArray(state.supportMessages)
+    ? state.supportMessages
+    : [];
+
+  if (dom.supportStatusPill) {
+    const isClosed = conversation?.status === "closed";
+    const toneClass = isClosed
+      ? "summary-pill summary-pill--warn"
+      : conversation
+        ? "summary-pill summary-pill--success"
+        : "summary-pill summary-pill--neutral";
+    const label = isClosed
+      ? "Closed until you send again"
+      : conversation
+        ? "Open with developer support"
+        : "Waiting to start";
+
+    dom.supportStatusPill.className = toneClass;
+    dom.supportStatusPill.innerHTML = `
+      <i class="fa-solid fa-circle-nodes"></i>
+      ${escapeHtml(label)}
+    `;
+  }
+
+  if (dom.supportThreadIdPill) {
+    dom.supportThreadIdPill.innerHTML = conversation
+      ? `
+        <i class="fa-solid fa-shield-halved"></i>
+        Thread #${escapeHtml(conversation.id)}
+      `
+      : `
+        <i class="fa-solid fa-lock"></i>
+        Private thread
+      `;
+  }
+
+  if (dom.supportLastUpdatedPill) {
+    dom.supportLastUpdatedPill.innerHTML = conversation?.lastMessageAt
+      ? `
+        <i class="fa-solid fa-clock"></i>
+        Updated ${escapeHtml(formatDateTime(conversation.lastMessageAt))}
+      `
+      : `
+        <i class="fa-solid fa-clock"></i>
+        No messages yet
+      `;
+  }
+
+  if (!conversation || !messages.length) {
+    renderSupportEmptyState(
+      "Send the first message with your issue, and developer replies will appear here in the same private timeline.",
+    );
+    return;
+  }
+
+  dom.supportThreadBody.innerHTML = messages
+    .map((message) => {
+      const isUser = message.senderType === "user";
+      const roleClass = isUser
+        ? "support-message support-message--user"
+        : "support-message support-message--developer";
+      const senderLabel = isUser
+        ? "You"
+        : message.senderName || "Developer Support";
+
+      return `
+        <article class="${roleClass}">
+          <div class="support-message__meta">
+            <strong>${escapeHtml(senderLabel)}</strong>
+            <span>${escapeHtml(formatDateTime(message.createdAt))}</span>
+          </div>
+          <div class="support-message__bubble">
+            <p>${formatSupportMessageText(message.text)}</p>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+
+  dom.supportThreadBody.scrollTop = dom.supportThreadBody.scrollHeight;
+}
+
+async function loadSupportThread(options = {}) {
+  if (!dom.supportThreadBody || !state.sessionUser) {
+    return null;
+  }
+
+  const requestId = ++state.supportLoadRequestId;
+
+  try {
+    const data = await fetchJSON("/support/thread");
+    if (requestId !== state.supportLoadRequestId) {
+      return data;
+    }
+
+    state.supportConversation = data?.conversation || null;
+    state.supportMessages = Array.isArray(data?.messages) ? data.messages : [];
+    renderSupportThread();
+
+    if (state.supportConversation) {
+      setSupportComposerStatus(
+        "This thread stays linked to your current login and developer support.",
+      );
+    } else {
+      setSupportComposerStatus(
+        "Messages stay private to this login and the developer support inbox.",
+      );
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Support thread load failed:", error);
+
+    if (requestId !== state.supportLoadRequestId) {
+      return null;
+    }
+
+    state.supportConversation = null;
+    state.supportMessages = [];
+    renderSupportEmptyState(
+      "We could not load your support thread right now. Please try refreshing again.",
+      "Support thread unavailable",
+    );
+
+    if (!options.silent) {
+      setSupportComposerStatus(
+        "Support messages could not be loaded right now.",
+        "error",
+      );
+    }
+
+    return null;
+  }
+}
+
+async function submitSupportMessage() {
+  if (!dom.supportMessageInput || !dom.supportSendBtn) {
+    return;
+  }
+
+  const message = String(dom.supportMessageInput.value || "")
+    .replace(/\r/g, "")
+    .trim();
+
+  if (!message) {
+    setSupportComposerStatus(
+      "Write a short message before sending it to developer support.",
+      "error",
+    );
+    dom.supportMessageInput.focus();
+    return;
+  }
+
+  if (message.length > 2000) {
+    setSupportComposerStatus(
+      "Support messages can be up to 2000 characters long.",
+      "error",
+    );
+    dom.supportMessageInput.focus();
+    return;
+  }
+
+  setSupportComposerStatus("Sending your message to developer support...");
+
+  try {
+    await withButtonState(
+      dom.supportSendBtn,
+      '<i class="fa-solid fa-spinner fa-spin"></i> Sending...',
+      async () => {
+        await fetchJSON("/support/messages", {
+          method: "POST",
+          body: JSON.stringify({ message }),
+        });
+      },
+    );
+
+    dom.supportMessageInput.value = "";
+    await loadSupportThread({ silent: true });
+    setSupportComposerStatus(
+      "Your message was sent. Developer support can reply in this same thread.",
+      "success",
+    );
+  } catch (error) {
+    console.error("Support message send failed:", error);
+    setSupportComposerStatus(
+      error.message || "We could not send the support message right now.",
+      "error",
+    );
+  }
+}
+
+function bindSupportEvents() {
+  if (!dom.supportSendBtn || !dom.supportMessageInput) {
+    return;
+  }
+
+  dom.supportRefreshBtn?.addEventListener("click", () => {
+    loadSupportThread();
+  });
+
+  dom.supportSendBtn.addEventListener("click", submitSupportMessage);
+
+  dom.supportMessageInput.addEventListener("keydown", (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+      event.preventDefault();
+      submitSupportMessage();
+    }
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && getActiveSectionId() === "supportChatSection") {
+      void loadSupportThread({ silent: true });
+    }
+  });
+
+  if (!state.supportPollTimer) {
+    state.supportPollTimer = window.setInterval(() => {
+      if (document.hidden || getActiveSectionId() !== "supportChatSection") {
+        return;
+      }
+
+      void loadSupportThread({ silent: true });
+    }, 20000);
   }
 }
 
@@ -6387,6 +6682,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   bindReportEvents();
   bindCustomerDueEvents();
   bindExpenseEvents();
+  bindSupportEvents();
   bindStaffEvents();
   updateCurrentDateLabel();
   hidePreviousBuyingRate();
