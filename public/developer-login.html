@@ -318,6 +318,10 @@
         text-transform: uppercase;
       }
 
+      .input-shell {
+        position: relative;
+      }
+
       .field input {
         width: 100%;
         min-height: 54px;
@@ -336,6 +340,31 @@
         box-shadow:
           0 0 0 4px rgba(22, 151, 208, 0.12),
           inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      }
+
+      .input-shell.has-action input {
+        padding-right: 54px;
+      }
+
+      .password-toggle {
+        position: absolute;
+        top: 50%;
+        right: 10px;
+        width: 36px;
+        height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: 12px;
+        background: rgba(22, 151, 208, 0.08);
+        color: var(--sky-strong);
+        transform: translateY(-50%);
+      }
+
+      .password-toggle:hover,
+      .password-toggle.active {
+        background: rgba(22, 151, 208, 0.14);
       }
 
       .submit-btn {
@@ -505,31 +534,43 @@
           <form id="developerLoginForm" class="login-form" novalidate>
             <div class="field">
               <label for="developerEmail">Developer Email</label>
-              <input
-                id="developerEmail"
-                name="email"
-                type="email"
-                inputmode="email"
-                autocomplete="username"
-                autocapitalize="none"
-                autocorrect="off"
-                spellcheck="false"
-                placeholder="developer@example.com"
-              />
+              <div class="input-shell">
+                <input
+                  id="developerEmail"
+                  name="email"
+                  type="email"
+                  inputmode="email"
+                  autocomplete="username"
+                  autocapitalize="none"
+                  autocorrect="off"
+                  spellcheck="false"
+                  placeholder="developer@example.com"
+                />
+              </div>
             </div>
 
             <div class="field">
               <label for="developerPassword">Password</label>
-              <input
-                id="developerPassword"
-                name="password"
-                type="password"
-                autocomplete="current-password"
-                autocapitalize="none"
-                autocorrect="off"
-                spellcheck="false"
-                placeholder="Developer support password"
-              />
+              <div class="input-shell has-action">
+                <input
+                  id="developerPassword"
+                  name="password"
+                  type="password"
+                  autocomplete="current-password"
+                  autocapitalize="none"
+                  autocorrect="off"
+                  spellcheck="false"
+                  placeholder="Developer support password"
+                />
+                <button
+                  type="button"
+                  class="password-toggle"
+                  data-toggle-password="developerPassword"
+                  aria-label="Show password"
+                >
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+              </div>
             </div>
 
             <button id="developerLoginBtn" class="submit-btn" type="submit">

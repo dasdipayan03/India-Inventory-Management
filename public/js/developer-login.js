@@ -124,6 +124,32 @@
       dom.currentYear.textContent = String(new Date().getFullYear());
     }
 
+    document.querySelectorAll("[data-toggle-password]").forEach((toggle) => {
+      const targetInput = document.getElementById(toggle.dataset.togglePassword);
+      const icon = toggle.querySelector("i");
+
+      if (!targetInput || !icon) {
+        return;
+      }
+
+      const syncToggleState = () => {
+        const isHidden = targetInput.type === "password";
+        icon.classList.toggle("fa-eye", isHidden);
+        icon.classList.toggle("fa-eye-slash", !isHidden);
+        toggle.classList.toggle("active", !isHidden);
+        toggle.setAttribute(
+          "aria-label",
+          isHidden ? "Show password" : "Hide password",
+        );
+      };
+
+      syncToggleState();
+      toggle.addEventListener("click", () => {
+        targetInput.type = targetInput.type === "password" ? "text" : "password";
+        syncToggleState();
+      });
+    });
+
     dom.form?.addEventListener("submit", handleSubmit);
     checkExistingSession();
   });
