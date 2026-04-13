@@ -1,4 +1,5 @@
 (function initDeveloperSupportPage() {
+  const DEVELOPER_TOKEN_STORAGE_KEY = "developer_support_token";
   const apiBase = window.location.origin.includes("localhost")
     ? "http://localhost:4000/api"
     : "/api";
@@ -117,8 +118,32 @@
     dom.refreshInboxBtn.setAttribute("aria-busy", isLoading ? "true" : "false");
   }
 
+  function getStoredDeveloperToken() {
+    try {
+      return String(
+        window.sessionStorage.getItem(DEVELOPER_TOKEN_STORAGE_KEY) || "",
+      ).trim();
+    } catch (_error) {
+      return "";
+    }
+  }
+
+  function clearStoredDeveloperToken() {
+    try {
+      window.sessionStorage.removeItem(DEVELOPER_TOKEN_STORAGE_KEY);
+    } catch (_error) {
+      // Ignore storage failures and continue.
+    }
+  }
+
   async function requestJSON(path, options = {}) {
     const headers = { ...(options.headers || {}) };
+    const storedToken = getStoredDeveloperToken();
+
+    if (storedToken && !headers.Authorization) {
+      headers.Authorization = `Bearer ${storedToken}`;
+    }
+
     if (options.body && !headers["Content-Type"]) {
       headers["Content-Type"] = "application/json";
     }
@@ -142,6 +167,7 @@
     }
 
     if (response.status === 401) {
+      clearStoredDeveloperToken();
       window.location.replace("developer-login.html");
       throw new Error(
         payload.error || payload.message || "Developer login required",
@@ -767,6 +793,7 @@
     } catch (_error) {
       // Redirect to login either way so the developer can recover quickly.
     } finally {
+      clearStoredDeveloperToken();
       window.location.replace("developer-login.html");
     }
   }

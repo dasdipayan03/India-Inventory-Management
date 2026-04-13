@@ -370,6 +370,7 @@ router.post(
       return res.json({
         message: "Developer login successful",
         developer: session,
+        token,
       });
     } catch (error) {
       console.error("Developer login error:", error.message);

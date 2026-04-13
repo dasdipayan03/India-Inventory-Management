@@ -1,4 +1,5 @@
 (function initDeveloperLoginPage() {
+  const DEVELOPER_TOKEN_STORAGE_KEY = "developer_support_token";
   const apiBase = window.location.origin.includes("localhost")
     ? "http://localhost:4000/api"
     : "/api";
@@ -21,8 +22,36 @@
     dom.status.dataset.tone = tone;
   }
 
+  function getStoredDeveloperToken() {
+    try {
+      return String(
+        window.sessionStorage.getItem(DEVELOPER_TOKEN_STORAGE_KEY) || "",
+      ).trim();
+    } catch (_error) {
+      return "";
+    }
+  }
+
+  function storeDeveloperToken(token) {
+    try {
+      if (token) {
+        window.sessionStorage.setItem(DEVELOPER_TOKEN_STORAGE_KEY, token);
+      } else {
+        window.sessionStorage.removeItem(DEVELOPER_TOKEN_STORAGE_KEY);
+      }
+    } catch (_error) {
+      // Ignore storage failures and continue with cookie-based auth only.
+    }
+  }
+
   async function requestJSON(path, options = {}) {
     const headers = { ...(options.headers || {}) };
+    const storedToken = getStoredDeveloperToken();
+
+    if (storedToken && !headers.Authorization) {
+      headers.Authorization = `Bearer ${storedToken}`;
+    }
+
     if (options.body && !headers["Content-Type"]) {
       headers["Content-Type"] = "application/json";
     }
@@ -97,7 +126,11 @@
       await requestJSON("/developer-auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
+      }).then((payload) => {
+        storeDeveloperToken(payload?.token || "");
       });
+
+      await requestJSON("/developer-auth/me");
 
       setStatus(
         "Developer login successful. Redirecting to the inbox...",
@@ -107,6 +140,14 @@
         window.location.replace("developer-support.html");
       }, 250);
     } catch (error) {
+      if (
+        String(error?.message || "")
+          .trim()
+          .toLowerCase()
+          .includes("invalid developer credentials")
+      ) {
+        storeDeveloperToken("");
+      }
       setStatus(
         error.message || "Developer login could not be completed right now.",
         "error",
