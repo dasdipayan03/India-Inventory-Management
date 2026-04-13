@@ -107,6 +107,16 @@
     }
   }
 
+  function setRefreshInboxLoading(isLoading) {
+    if (!dom.refreshInboxBtn) {
+      return;
+    }
+
+    dom.refreshInboxBtn.classList.toggle("is-loading", Boolean(isLoading));
+    dom.refreshInboxBtn.disabled = Boolean(isLoading);
+    dom.refreshInboxBtn.setAttribute("aria-busy", isLoading ? "true" : "false");
+  }
+
   async function requestJSON(path, options = {}) {
     const headers = { ...(options.headers || {}) };
     if (options.body && !headers["Content-Type"]) {
@@ -619,7 +629,13 @@
     }
   }
 
-  async function refreshInbox() {
+  async function refreshInbox(options = {}) {
+    const shouldAnimate = options.showRefreshAnimation === true;
+
+    if (shouldAnimate) {
+      setRefreshInboxLoading(true);
+    }
+
     try {
       setPageStatus("Refreshing the support inbox...");
       await loadConversations();
@@ -629,6 +645,10 @@
         error.message || "Support inbox could not be refreshed right now.",
         "error",
       );
+    } finally {
+      if (shouldAnimate) {
+        setRefreshInboxLoading(false);
+      }
     }
   }
 
@@ -781,7 +801,9 @@
   }
 
   function bindEvents() {
-    dom.refreshInboxBtn?.addEventListener("click", refreshInbox);
+    dom.refreshInboxBtn?.addEventListener("click", () =>
+      refreshInbox({ showRefreshAnimation: true }),
+    );
     dom.developerLogoutBtn?.addEventListener("click", logoutDeveloper);
     dom.conversationList?.addEventListener("click", handleQueueClick);
     dom.conversationSearchDropdown?.addEventListener("click", (event) => {

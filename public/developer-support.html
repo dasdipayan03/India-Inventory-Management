@@ -202,6 +202,24 @@
         box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.08);
       }
 
+      .ghost-btn.is-loading i {
+        animation: developer-refresh-spin 0.9s linear infinite;
+      }
+
+      .ghost-btn.is-loading {
+        opacity: 0.92;
+      }
+
+      @keyframes developer-refresh-spin {
+        from {
+          transform: rotate(0deg);
+        }
+
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
       .hero-card {
         display: grid;
         gap: 18px;
