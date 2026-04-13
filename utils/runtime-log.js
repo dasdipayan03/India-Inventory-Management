@@ -1,3 +1,31 @@
+const REDACTED_VALUE = "[REDACTED]";
+const sensitiveKeyFragments = [
+  "password",
+  "token",
+  "secret",
+  "authorization",
+  "cookie",
+  "apikey",
+  "api_key",
+  "accesskey",
+  "access_key",
+  "jwt",
+];
+
+function isSensitiveKey(key) {
+  const normalizedKey = String(key || "")
+    .trim()
+    .toLowerCase();
+
+  if (!normalizedKey) {
+    return false;
+  }
+
+  return sensitiveKeyFragments.some((fragment) =>
+    normalizedKey.includes(fragment),
+  );
+}
+
 function normalizeError(error) {
   if (!error) {
     return null;
@@ -56,6 +84,11 @@ function sanitizeValue(value, depth = 0) {
     const sanitized = {};
 
     for (const [key, entry] of Object.entries(value)) {
+      if (isSensitiveKey(key)) {
+        sanitized[key] = REDACTED_VALUE;
+        continue;
+      }
+
       const normalizedEntry = sanitizeValue(entry, depth + 1);
       if (normalizedEntry !== undefined) {
         sanitized[key] = normalizedEntry;

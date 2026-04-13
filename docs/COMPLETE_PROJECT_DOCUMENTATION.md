@@ -1,6 +1,6 @@
 # India Inventory Management Documentation
 
-Last verified against this repository: `2026-04-12`
+Last verified against this repository: `2026-04-13`
 
 This is the single merged documentation file for the project. It replaces the earlier split project doc and database schema doc.
 
@@ -37,10 +37,13 @@ This document is meant to be the current source of truth for:
 Important current-state notes:
 
 - Authentication is cookie-based. The frontend uses `credentials: "include"` and bootstraps sessions through `/api/auth/me`.
+- Developer support authentication is also cookie-based through `/api/developer-auth/*`; the browser no longer stores a readable developer JWT in session storage.
 - `localStorage` is still used for UI state and invoice draft storage, but not as the primary auth token store.
 - HTML pages are served through [`server.js`](../server.js), which injects a CSP nonce into inline scripts and styles.
 - Database schema truth comes from the SQL files in [`migrations/`](../migrations) plus runtime compatibility patches in [`db.js`](../db.js).
+- The app now includes an owner/staff support chat plus dedicated developer support login and inbox pages backed by [`../routes/support.js`](../routes/support.js).
 - Runtime health and readiness now expose structured JSON payloads through `/health`, `/api/health`, `/healthz`, `/ready`, `/readyz`, `/live`, and `/livez`.
+- Structured runtime logs now redact password, token, authorization, cookie, and access-key fields before emitting JSON.
 - Deployment healthcheck and start-command defaults are now pinned in [`../railway.json`](../railway.json), and lifecycle/request logging is centralized through [`../utils/runtime-log.js`](../utils/runtime-log.js).
 
 ## 2. Project Snapshot
@@ -51,6 +54,8 @@ Main business modules:
 
 - owner registration and login
 - staff login with page-level permissions
+- owner/staff support chat with a developer inbox
+- developer support account registration and login
 - stock entry and stock defaults
 - purchase entry with supplier ledger and supplier repayment tracking
 - sales invoice creation with PDF generation
@@ -128,6 +133,7 @@ The system is owner-centric:
 | [`../db.js`](../db.js)                               | DB connection pool, readiness state, SSL selection, startup schema patching               |
 | [`../middleware/auth.js`](../middleware/auth.js)     | JWT verification, role resolution, permission checks                                      |
 | [`../routes/auth.js`](../routes/auth.js)             | register/login/logout, forgot/reset password, staff management, `/me`                     |
+| [`../routes/support.js`](../routes/support.js)       | developer auth, owner/staff support chat, developer inbox, conversation status updates    |
 | [`../routes/inventory.js`](../routes/inventory.js)   | stock, stock reports, sales reports, GST reports, dashboard overview, customer dues       |
 | [`../routes/business.js`](../routes/business.js)     | suppliers, purchases, purchase repayment, expenses                                        |
 | [`../routes/invoices.js`](../routes/invoices.js)     | invoice numbering, invoice save, history, payment settlement, PDF, shop info              |
@@ -140,9 +146,13 @@ The system is owner-centric:
 | File                                                                         | Role                                                                                 |
 | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | [`../public/login.html`](../public/login.html)                               | landing page, owner login/register, staff login, forgot password                     |
+| [`../public/developer-login.html`](../public/developer-login.html)           | developer account login/register page for the support inbox                          |
+| [`../public/developer-support.html`](../public/developer-support.html)       | developer support queue and threaded reply workspace                                  |
 | [`../public/index.html`](../public/index.html)                               | main dashboard shell with stock, purchase, reports, due, expense, and staff sections |
 | [`../public/invoice.html`](../public/invoice.html)                           | sale and invoice workspace, invoice history, PDF actions, shop profile               |
 | [`../public/reset.html`](../public/reset.html)                               | reset password page                                                                  |
+| [`../public/js/developer-login.js`](../public/js/developer-login.js)         | developer login/register controller                                                   |
+| [`../public/js/developer-support.js`](../public/js/developer-support.js)     | developer inbox queue, thread, reply, and status update controller                    |
 | [`../public/js/dashboard.js`](../public/js/dashboard.js)                     | main dashboard logic and report UI orchestration                                     |
 | [`../public/js/app-core.js`](../public/js/app-core.js)                       | shared constants, permission descriptions, app bootstrap helpers                     |
 | [`../public/js/app-shell.js`](../public/js/app-shell.js)                     | reusable sidebar shell and page navigation                                           |
@@ -152,11 +162,12 @@ The system is owner-centric:
 
 ```mermaid
 flowchart LR
-  Browser["Browser pages<br/>login.html | index.html | invoice.html | reset.html"]
-  SharedJS["Shared frontend modules<br/>app-core.js | app-shell.js | permission-contract.js | dashboard.js"]
+  Browser["Browser pages<br/>login.html | developer-login.html | developer-support.html | index.html | invoice.html | reset.html"]
+  SharedJS["Shared frontend modules<br/>app-core.js | app-shell.js | permission-contract.js | dashboard.js | developer-login.js | developer-support.js"]
   Server["Express app<br/>server.js"]
   AuthMW["Auth middleware<br/>cookie/session + permission resolution"]
   AuthRoutes["routes/auth.js"]
+  SupportRoutes["routes/support.js"]
   InventoryRoutes["routes/inventory.js"]
   BusinessRoutes["routes/business.js"]
   InvoiceRoutes["routes/invoices.js"]
@@ -171,12 +182,14 @@ flowchart LR
   DeployCfg -. deploy defaults .-> Server
   Server --> AuthMW
   Server --> AuthRoutes
+  Server --> SupportRoutes
   Server --> InventoryRoutes
   Server --> BusinessRoutes
   Server --> InvoiceRoutes
   Server --> RuntimeLog
   AuthMW --> DB
   AuthRoutes --> DB
+  SupportRoutes --> DB
   InventoryRoutes --> DB
   BusinessRoutes --> DB
   InvoiceRoutes --> DB
@@ -185,10 +198,10 @@ flowchart LR
 
 ### Request flow in practice
 
-1. Browser requests `login.html`, `index.html`, `invoice.html`, or `reset.html`.
+1. Browser requests `login.html`, `developer-login.html`, `developer-support.html`, `index.html`, `invoice.html`, or `reset.html`.
 2. [`server.js`](../server.js) serves those pages through `sendHtmlTemplate(...)`, replacing `__CSP_NONCE__` placeholders.
 3. Frontend scripts call `/api/...` endpoints with `credentials: "include"`.
-4. [`middleware/auth.js`](../middleware/auth.js) resolves the current session and staff permissions.
+4. [`middleware/auth.js`](../middleware/auth.js) resolves the current owner/staff session or developer support session as needed.
 5. The matching route file runs business logic and queries PostgreSQL.
 6. Health endpoints can report readiness or liveness without crossing the authenticated route stack.
 7. PDF and Excel exports are generated directly inside route handlers.
@@ -200,6 +213,8 @@ flowchart LR
 | Page                                               | What it does                                                                           |
 | -------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | [`../public/login.html`](../public/login.html)     | auth entrypoint for owner and staff, forgot password entry, existing-session redirect  |
+| [`../public/developer-login.html`](../public/developer-login.html) | developer account login/register screen for the support inbox                |
+| [`../public/developer-support.html`](../public/developer-support.html) | developer queue and threaded support reply workspace                         |
 | [`../public/index.html`](../public/index.html)     | multi-section dashboard for stock, purchases, reports, dues, expenses, and staff owner controls |
 | [`../public/invoice.html`](../public/invoice.html) | invoice builder, draft restore, payment summary, invoice lookup, invoice PDF actions   |
 | [`../public/reset.html`](../public/reset.html)     | password reset submission using email + token from URL hash                            |
@@ -232,6 +247,16 @@ flowchart LR
   - loads and submits stock, purchase, report, due, expense, and staff data
   - handles popups, section switching, and report export actions
 
+- [`../public/js/developer-login.js`](../public/js/developer-login.js)
+  - handles developer sign-in and optional developer account creation
+  - normalizes the private developer setup key before submission
+  - verifies an existing developer session through `/api/developer-auth/me`
+
+- [`../public/js/developer-support.js`](../public/js/developer-support.js)
+  - loads the developer inbox queue and threaded conversation state
+  - sends replies, changes conversation status, and refreshes queue counters
+  - escapes requester and message content before writing HTML into the inbox UI
+
 ### Frontend storage usage
 
 Current frontend storage behavior:
@@ -239,6 +264,9 @@ Current frontend storage behavior:
 - auth/session:
   - primary auth is cookie-based
   - the app checks `/api/auth/me` instead of relying on a persisted browser token
+- developer support:
+  - developer pages also use cookie-based auth with `credentials: "include"`
+  - developer login no longer depends on a readable token in session or local storage
 - `localStorage`:
   - `activeSection` for dashboard section persistence
   - `defaultProfitPercent` cache
@@ -260,6 +288,7 @@ Current frontend storage behavior:
 - applying `helmet`, compression, cookie parsing, JSON parsing, and rate limiting
 - skipping health routes from the API rate limiter
 - registering route files
+- mounting [`../routes/support.js`](../routes/support.js) before auth-locked `/api` routers so public developer auth routes do not get intercepted by owner/staff auth guards
 - serving HTML pages through nonce-aware template injection
 - exposing readiness routes:
   - `/health`
@@ -304,7 +333,10 @@ Compatibility patching currently ensures:
 - invoice payment columns on `invoices`
 - `debts.invoice_id`
 - creation of `suppliers`, `purchases`, `purchase_items`, `expenses`
+- creation of `developer_admins`, `support_conversations`, and `support_messages`
 - supporting indexes for those newer tables
+- duplicate/invalid developer admin rows are reconciled before enforcing the normalized email unique index
+- optional developer support bootstrap via `SUPPORT_ADMIN_*` environment variables
 
 ### `middleware/auth.js`
 
@@ -312,16 +344,20 @@ Compatibility patching currently ensures:
 
 - reads the session token from the `token` cookie
 - supports `Authorization: Bearer ...` as a fallback
+- reads the developer support session from the `developer_support_token` cookie for developer-only routes
 - verifies the JWT using `JWT_SECRET`
 - resolves active staff permissions from the database with a short in-memory cache
+- verifies active developer inbox sessions through `developerAuthMiddleware`
 - uses a staff-session cache with:
   - TTL: `15` seconds
   - max entries: `200`
 - invalidates cached staff session data when staff login, permission updates, or staff deletion occurs
 - exposes helpers:
   - `authMiddleware`
+  - `developerAuthMiddleware`
   - `getUserId(req)`
   - `getActorId(req)`
+  - `getDeveloperId(req)`
   - `requireOwner`
   - `requirePermission(...)`
   - `allowRoles(...)`
@@ -406,13 +442,17 @@ Important scope note:
 | `invalidateStaffSessionCache(staffId)` | removes one staff session from cache after permission or status changes |
 | `loadStaffSession(staffId)` | reloads current staff metadata and permissions from PostgreSQL |
 | `authMiddleware(req, res, next)` | validates the JWT cookie/header and attaches normalized session context to `req.user` |
+| `loadDeveloperSession(developerId)` | reloads one developer support account from PostgreSQL |
+| `developerAuthMiddleware(req, res, next)` | validates the developer support JWT cookie/header and attaches `req.developer` |
 | `getUserId(req)` | returns the owner-scoped `user_id` used by all business queries |
 | `getActorId(req)` | returns the acting account ID for audit-aware flows |
+| `getDeveloperId(req)` | returns the current developer support account ID |
 | `isOwnerSession(req)` | checks whether the current session belongs to the owner |
 | `hasPermission(req, ...permissions)` | checks whether the current session satisfies at least one requested permission |
 | `requireOwner(req, res, next)` | blocks non-owner sessions from owner-only routes |
 | `requirePermission(...permissions)` | returns middleware that enforces one or more page permissions |
 | `allowRoles(...roles)` | returns middleware that allows only a selected set of roles |
+| `requireDeveloperSupport(req, res, next)` | blocks requests that do not carry a developer support session |
 
 #### `routes/auth.js` function inventory
 
@@ -496,6 +536,34 @@ Route handlers in this file cover invoice preview, invoice creation, invoice sea
 
 Nested PDF helper functions such as `drawHeader()` and `drawTableHeader()` live inside the invoice PDF route because they are only used for that single response path.
 
+#### `routes/support.js` function inventory
+
+Route handlers in this file cover developer registration/login, owner or staff support-thread messaging, developer inbox views, reply posting, and conversation status changes.
+
+| Function | Purpose |
+| -------- | ------- |
+| `getSessionCookieOptions()` | returns shared cookie flags for developer support login/logout |
+| `markSensitiveResponse(res)` | marks support and developer-auth responses as `no-store` |
+| `normalizeEmail(value)` | canonicalizes developer email values to lowercase |
+| `normalizeName(value)` | trims and collapses whitespace for names |
+| `normalizeDeveloperAccessKey(value)` | normalizes the developer setup key by removing invisible/mobile copy-paste characters |
+| `normalizeSupportMessage(value)` | trims support message text and removes carriage returns |
+| `normalizeConversationStatus(value)` | constrains conversation status to `open` or `closed` |
+| `signDeveloperSession(payload)` | signs the developer support JWT |
+| `setDeveloperSessionCookie(res, token)` | writes the developer support cookie |
+| `clearDeveloperSessionCookie(res)` | clears the current developer support cookie |
+| `serializeDeveloperSession(admin)` | reshapes a developer admin row into a frontend-safe session object |
+| `getRequesterContext(req)` | resolves owner/staff sender identity for support-thread writes |
+| `serializeSupportConversation(row)` | normalizes support conversation rows for the frontend |
+| `serializeSupportMessage(row)` | normalizes support message rows for the frontend |
+| `getDeveloperByEmail(email)` | loads one developer admin account by normalized email |
+| `createDeveloperAccount({ name, email, passwordHash })` | inserts a new developer admin row |
+| `getRequesterConversation(client, requester)` | loads the owner/staff support thread for the current requester |
+| `upsertRequesterConversation(client, requester)` | finds or creates the per-requester support conversation |
+| `loadConversationMessages(client, conversationId)` | loads the message list for one support thread |
+| `loadDeveloperConversationById(client, conversationId)` | loads one support conversation for the developer inbox |
+| `loadDeveloperConversationList(client)` | loads the developer inbox queue ordered by unread/latest activity |
+
 #### `utils/concurrency.js` function inventory
 
 | Function | Purpose |
@@ -567,6 +635,20 @@ Nested PDF helper functions such as `drawHeader()` and `drawTableHeader()` live 
 - staff/owner workflow: `renderStaffPermissionGrid`, `readStaffPermissionSelection`, `setStaffPermissionSelection`, `renderStaffList`, `loadStaffAccounts`, `createStaffAccount`
 - event wiring: `bindPopupEvents`, `bindInventoryEvents`, `bindPurchaseEvents`, `bindReportEvents`, `bindCustomerDueEvents`, `bindExpenseEvents`, `bindStaffEvents`
 
+#### Developer support frontend workflow map
+
+- [`../public/js/developer-login.js`](../public/js/developer-login.js):
+  - login/register state: `setMode`, `setStatus`, `handleLoginSubmit`, `handleRegisterSubmit`
+  - input normalization: `normalizeName`, `normalizeEmail`, `normalizeDeveloperAccessKey`
+  - shared request helper: `requestJSON`
+  - page boot: `checkExistingSession`, `bindPasswordToggles`, `bindModeSwitch`
+- [`../public/js/developer-support.js`](../public/js/developer-support.js):
+  - shared request helper: `requestJSON`
+  - queue/search rendering: `renderFilterState`, `getFilteredConversations`, `renderConversationSearchDropdown`, `renderConversationList`
+  - thread rendering: `renderDetailCard`, `renderThread`, `renderThreadEmpty`
+  - developer actions: `loadConversations`, `loadConversation`, `refreshInbox`, `submitReply`, `updateConversationStatus`, `logoutDeveloper`
+  - page lifecycle: `bootstrapPage` plus a quiet polling interval that refreshes the active inbox
+
 ## 8. Auth, Session, and Permission Model
 
 ### Session model
@@ -581,6 +663,15 @@ Nested PDF helper functions such as `drawHeader()` and `drawTableHeader()` live 
   - max age: 1 day
 - Password reset links use `BASE_URL` when available.
 - In production, password reset flow effectively requires `BASE_URL` to be configured.
+
+### Developer support session model
+
+- Developer account registration happens through `POST /api/developer-auth/register`.
+- Developer inbox login happens through `POST /api/developer-auth/login`.
+- On success, [`routes/support.js`](../routes/support.js) signs a JWT and stores it in an `httpOnly` cookie named `developer_support_token`.
+- Developer inbox pages verify access through `GET /api/developer-auth/me`.
+- Current first-party developer pages do not persist a readable developer token in browser storage.
+- The developer registration key can be configured through `DEVELOPER_REGISTRATION_KEY`, with the current code keeping the older built-in fallback for backward compatibility.
 
 ### Client bootstrap
 
@@ -621,7 +712,9 @@ Current hardening that is visible in the codebase:
 - password reset tokens are hashed before being stored in `users.reset_token`
 - reset links place the token in the URL hash, so the token is not sent back to the server as a query parameter during initial page load
 - auth-sensitive responses mark `Cache-Control: no-store`
+- developer support login now relies on the `developer_support_token` cookie rather than returning a browser-readable token in the response body
 - Excel export sanitizes formula-like cell values in [`../routes/inventory.js`](../routes/inventory.js)
+- invoice PDF downloads now rely on the authenticated cookie-based fetch path used by the first-party frontend
 - every response gets an `X-Request-Id` header
 - health endpoints emit `Cache-Control: no-store`
 - runtime emits structured JSON logs for:
@@ -631,12 +724,8 @@ Current hardening that is visible in the codebase:
   - shutdown
   - uncaught process errors
   - slow requests, 5xx responses, and optionally all requests
+- structured logs redact password, token, authorization, cookie, and access-key fields before serialization
 - graceful shutdown uses explicit server timeouts and closes the PostgreSQL pool before exit
-
-One legacy compatibility detail still exists:
-
-- [`../routes/invoices.js`](../routes/invoices.js) still accepts `?token=` for the invoice PDF route and turns it into an authorization header before `authMiddleware`.
-- Current first-party frontend uses cookies, so this query-token path should be treated as backward compatibility only.
 
 ## 10. Main Business Workflows
 
@@ -745,6 +834,29 @@ dashboard report sections
   -> purchase and expense reports in dashboard UI
 ```
 
+### Support chat flow
+
+```text
+index.html support chat section
+  -> GET /api/support/thread
+  -> POST /api/support/messages
+  -> support_conversations row is created or reused per owner/staff requester
+  -> support_messages rows store the full thread
+  -> unread_for_developer increments until a developer opens the thread
+```
+
+### Developer support inbox flow
+
+```text
+developer-login.html
+  -> POST /api/developer-auth/login or /api/developer-auth/register
+  -> developer_support_token cookie set on login
+  -> GET /api/developer-auth/me confirms active developer session
+  -> developer-support.html loads /api/developer-support/conversations
+  -> developer replies via /api/developer-support/conversations/:conversationId/reply
+  -> conversation status updates via /api/developer-support/conversations/:conversationId/status
+```
+
 ## 11. API Route Map
 
 All endpoints below are mounted under either `/api/auth` or `/api`.
@@ -822,6 +934,21 @@ All endpoints below are mounted under either `/api/auth` or `/api`.
 | `POST` | `/api/shop-info`                   | save owner shop profile               |
 | `GET`  | `/api/shop-info`                   | load shop profile for invoice page    |
 
+### 11.5 Support routes from `routes/support.js`
+
+| Method  | Path                                                        | Purpose                                                |
+| ------- | ----------------------------------------------------------- | ------------------------------------------------------ |
+| `POST`  | `/api/developer-auth/register`                              | create a developer support account                     |
+| `POST`  | `/api/developer-auth/login`                                 | developer support login                                |
+| `GET`   | `/api/developer-auth/me`                                    | return normalized current developer session            |
+| `POST`  | `/api/developer-auth/logout`                                | clear developer support session cookie                 |
+| `GET`   | `/api/support/thread`                                       | load the current owner/staff support thread            |
+| `POST`  | `/api/support/messages`                                     | send an owner/staff support message                    |
+| `GET`   | `/api/developer-support/conversations`                      | load the developer inbox queue                         |
+| `GET`   | `/api/developer-support/conversations/:conversationId/messages` | load one developer inbox thread                     |
+| `POST`  | `/api/developer-support/conversations/:conversationId/reply`    | send a developer reply                              |
+| `PATCH` | `/api/developer-support/conversations/:conversationId/status`   | update a conversation between `open` and `closed`   |
+
 ## 12. Database Schema
 
 ### 12.1 Schema source of truth
@@ -875,6 +1002,9 @@ erDiagram
 | ---------------------- | ---------------------------------------------- | ---------------------- |
 | `users`                | owner accounts                                 | auth                   |
 | `staff_accounts`       | staff credentials and page permissions         | auth/staff             |
+| `developer_admins`     | developer support login accounts               | developer support auth |
+| `support_conversations` | per-requester support thread headers          | support                |
+| `support_messages`     | threaded support chat messages                 | support                |
 | `settings`             | shop profile, GST defaults, profit defaults    | invoice/settings/stock |
 | `items`                | current stock master                           | inventory              |
 | `sales`                | item-level sales movement history              | sales/reporting        |
@@ -935,6 +1065,79 @@ Key columns:
 Notes:
 
 - max 2 staff accounts per owner is enforced in app logic, not with a DB constraint
+
+#### `developer_admins`
+
+Purpose:
+
+- stores developer support login accounts
+- supports developer inbox login and optional registration
+- keeps only one active normalized email identity after startup reconciliation
+
+Key columns:
+
+- `id`
+- `name`
+- `email`
+- `password_hash`
+- `is_active`
+- `last_login_at`
+- `created_at`
+- `updated_at`
+
+Notes:
+
+- startup compatibility logic archives duplicates and enforces a normalized unique index on `LOWER(BTRIM(email))`
+- `SUPPORT_ADMIN_*` environment variables can create or refresh a bootstrap developer account
+
+#### `support_conversations`
+
+Purpose:
+
+- stores the thread header for each owner/staff requester
+- tracks unread counters and conversation status for the developer inbox
+
+Key columns:
+
+- `id`
+- `owner_user_id`
+- `requester_actor_id`
+- `requester_role`
+- `requester_name`
+- `requester_identifier`
+- `status`
+- `unread_for_user`
+- `unread_for_developer`
+- `last_message_at`
+- `created_at`
+- `updated_at`
+
+Notes:
+
+- one requester gets one thread per owner via the unique `(owner_user_id, requester_actor_id, requester_role)` constraint
+- `status` is limited to `open` or `closed`
+
+#### `support_messages`
+
+Purpose:
+
+- stores individual support-thread messages from either the requester or the developer team
+
+Key columns:
+
+- `id`
+- `conversation_id`
+- `sender_type`
+- `sender_actor_id`
+- `sender_role`
+- `sender_name`
+- `message_text`
+- `created_at`
+
+Notes:
+
+- `sender_type` is constrained to `user` or `developer`
+- blank messages are blocked by a DB check constraint and by route validation
 
 #### `settings`
 
@@ -1555,6 +1758,12 @@ Runtime compatibility patching in [`../db.js`](../db.js) exists so older databas
 | `BASE_URL`                   | recommended, effectively required in production | public app base URL, also used in reset links                    |
 | `MAIL_RELAY_URL`             | optional                                        | outbound mail relay endpoint                                     |
 | `MAIL_RELAY_KEY`             | optional                                        | credential for mail relay                                        |
+| `DEVELOPER_REGISTRATION_KEY` | recommended                                     | private setup key used by `/api/developer-auth/register`         |
+| `SUPPORT_ADMIN_BOOTSTRAP`    | optional                                        | when truthy, enables startup bootstrap/update of a developer admin |
+| `SUPPORT_ADMIN_EMAIL`        | optional                                        | email address for the bootstrap developer admin                  |
+| `SUPPORT_ADMIN_PASSWORD_HASH` | optional                                       | pre-hashed bcrypt password for the bootstrap developer admin     |
+| `SUPPORT_ADMIN_PASSWORD`     | optional                                        | plain-text bootstrap password, hashed at startup if no hash is supplied |
+| `SUPPORT_ADMIN_NAME`         | optional                                        | display name for the bootstrap developer admin                   |
 | `JSON_BODY_LIMIT`            | optional                                        | JSON request body size limit for Express                         |
 | `URLENCODED_BODY_LIMIT`      | optional                                        | URL-encoded request body size limit for Express                  |
 | `ENABLE_DEBUG_ROUTES`        | optional                                        | enable `/debug-env` and `/debug-db` in non-production            |
@@ -1598,6 +1807,18 @@ Edit:
 - [`../routes/invoices.js`](../routes/invoices.js)
 - [`../middleware/auth.js`](../middleware/auth.js) if auth behavior also changes
 
+### If you want to change support chat or developer portal behavior
+
+Edit:
+
+- [`../routes/support.js`](../routes/support.js)
+- [`../middleware/auth.js`](../middleware/auth.js)
+- [`../public/index.html`](../public/index.html) for the owner/staff support chat card
+- [`../public/developer-login.html`](../public/developer-login.html)
+- [`../public/developer-support.html`](../public/developer-support.html)
+- [`../public/js/developer-login.js`](../public/js/developer-login.js)
+- [`../public/js/developer-support.js`](../public/js/developer-support.js)
+
 ### If you want to change database schema
 
 Edit:
@@ -1622,6 +1843,8 @@ Edit:
 flowchart TB
   subgraph Frontend["Frontend pages and shared modules"]
     Login["public/login.html<br/>register | owner login | staff login | forgot password"]
+    DevLogin["public/developer-login.html<br/>developer login | developer register"]
+    DevSupport["public/developer-support.html<br/>developer inbox | replies | status updates"]
     Dashboard["public/index.html<br/>stock | purchases | reports | dues | expenses | staff"]
     Invoice["public/invoice.html<br/>invoice builder | history | payment collection | PDF"]
     Reset["public/reset.html<br/>password reset"]
@@ -1629,12 +1852,15 @@ flowchart TB
     AppShell["public/js/app-shell.js<br/>sidebar shell | page navigation"]
     Permissions["public/js/permission-contract.js<br/>permission keys shared by frontend and backend"]
     DashJS["public/js/dashboard.js<br/>dashboard UI orchestration"]
+    DevLoginJS["public/js/developer-login.js<br/>developer auth UI controller"]
+    DevSupportJS["public/js/developer-support.js<br/>developer inbox controller"]
   end
 
   subgraph Server["Express backend"]
     Entry["server.js<br/>health routes | request IDs | CORS | CSP nonce | helmet | compression | HTML template serving"]
-    AuthMW["middleware/auth.js<br/>cookie-first JWT auth | staff permission reload"]
+    AuthMW["middleware/auth.js<br/>cookie-first JWT auth | staff permission reload | developer support auth"]
     AuthAPI["routes/auth.js<br/>register | login | reset | staff CRUD | me"]
+    SupportAPI["routes/support.js<br/>developer auth | support thread | developer inbox"]
     InventoryAPI["routes/inventory.js<br/>stock | reports | GST | debts | overview"]
     BusinessAPI["routes/business.js<br/>suppliers | purchases | repayments | expenses"]
     InvoiceAPI["routes/invoices.js<br/>invoice save | history | settlement | PDF | shop info"]
@@ -1647,6 +1873,9 @@ flowchart TB
   subgraph Database["PostgreSQL tables"]
     Users["users"]
     Staff["staff_accounts"]
+    Developers["developer_admins"]
+    SupportThreads["support_conversations"]
+    SupportMessages["support_messages"]
     Settings["settings"]
     Items["items"]
     Sales["sales"]
@@ -1661,6 +1890,8 @@ flowchart TB
   end
 
   Login --> AppCore
+  DevLogin --> DevLoginJS
+  DevSupport --> DevSupportJS
   Dashboard --> AppCore
   Dashboard --> AppShell
   Dashboard --> DashJS
@@ -1671,18 +1902,24 @@ flowchart TB
   AppCore --> Entry
   AppShell --> Entry
   DashJS --> Entry
+  DevLoginJS --> Entry
+  DevSupportJS --> Entry
   Login -->|"POST /api/auth/*"| Entry
+  DevLogin -->|"POST /api/developer-auth/*"| Entry
+  DevSupport -->|"GET/POST/PATCH /api/developer-support/*"| Entry
   Dashboard -->|"GET/POST /api/*"| Entry
   Invoice -->|"GET/POST /api/invoices* and /api/shop-info"| Entry
   Reset -->|"POST /api/auth/reset-password"| Entry
 
   Entry --> AuthMW
   Entry --> AuthAPI
+  Entry --> SupportAPI
   Entry --> InventoryAPI
   Entry --> BusinessAPI
   Entry --> InvoiceAPI
   Entry --> RuntimeLog
   AuthAPI --> DBFile
+  SupportAPI --> DBFile
   InventoryAPI --> DBFile
   BusinessAPI --> DBFile
   InvoiceAPI --> DBFile
@@ -1694,6 +1931,9 @@ flowchart TB
 
   DBFile --> Users
   DBFile --> Staff
+  DBFile --> Developers
+  DBFile --> SupportThreads
+  DBFile --> SupportMessages
   DBFile --> Settings
   DBFile --> Items
   DBFile --> Sales
@@ -1707,6 +1947,7 @@ flowchart TB
   DBFile --> Counter
 
   Users --> Staff
+  Users --> SupportThreads
   Users --> Settings
   Users --> Items
   Users --> Sales
@@ -1721,6 +1962,8 @@ flowchart TB
   Items --> Sales
   Invoices --> InvoiceItems
   Invoices -. optional settlement link .-> Debts
+  Developers --> SupportMessages
+  SupportThreads --> SupportMessages
 ```
 
 ## 16. Final Summary
@@ -1730,7 +1973,8 @@ This codebase is organized around a single owner-scoped business workspace:
 - frontend pages are static HTML with shared vanilla JS modules
 - Express route files are grouped by business domain
 - PostgreSQL stores all operational data for stock, invoices, purchases, dues, expenses, and staff control
-- authentication is cookie-based, with staff permissions enforced on both frontend and backend
+- authentication is cookie-based for owner, staff, and developer support flows, with staff permissions enforced on both frontend and backend
+- the support system adds owner/staff requester threads plus a dedicated developer inbox backed by `developer_admins`, `support_conversations`, and `support_messages`
 - runtime behavior now includes structured lifecycle/request logging plus readiness/liveness health endpoints
 - deployment defaults for Railway are codified in [`../railway.json`](../railway.json)
 - this document now contains both a reusable function catalogue and a schema-level table dictionary in addition to the higher-level architecture notes

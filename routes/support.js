@@ -18,7 +18,9 @@ const router = express.Router();
 const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const MESSAGE_MAX_LENGTH = 2000;
 const DEVELOPER_MIN_PASSWORD_LENGTH = 6;
-const DEVELOPER_REGISTRATION_KEY = "IIMDD@1999";
+const DEVELOPER_REGISTRATION_KEY = String(
+  process.env.DEVELOPER_REGISTRATION_KEY || "IIMDD@1999",
+).trim();
 const conversationStatusValues = new Set(["open", "closed"]);
 
 if (!process.env.JWT_SECRET) {
@@ -501,7 +503,6 @@ router.post(
       return res.json({
         message: "Developer login successful",
         developer: session,
-        token,
       });
     } catch (error) {
       console.error("Developer login error:", error.message);

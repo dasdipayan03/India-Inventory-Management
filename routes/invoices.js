@@ -947,14 +947,7 @@ router.post(
 router.get(
   "/invoices/:invoiceNo/pdf",
 
-  // 🔹 Token from URL support
-  (req, res, next) => {
-    if (req.query.token) {
-      req.headers.authorization = "Bearer " + req.query.token;
-    }
-    next();
-  },
-
+  // Cookie-based auth only; first-party frontend downloads PDFs with credentials.
   authMiddleware,
   requirePermission("sale_invoice"),
 

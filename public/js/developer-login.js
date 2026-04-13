@@ -1,5 +1,4 @@
 (function initDeveloperLoginPage() {
-  const DEVELOPER_TOKEN_STORAGE_KEY = "developer_support_token";
   const apiBase = window.location.origin.includes("localhost")
     ? "http://localhost:4000/api"
     : "/api";
@@ -79,28 +78,6 @@
     return normalizedValue.replace(/[\s\u200B-\u200D\u2060\uFEFF]+/g, "");
   }
 
-  function getStoredDeveloperToken() {
-    try {
-      return String(
-        window.sessionStorage.getItem(DEVELOPER_TOKEN_STORAGE_KEY) || "",
-      ).trim();
-    } catch (_error) {
-      return "";
-    }
-  }
-
-  function storeDeveloperToken(token) {
-    try {
-      if (token) {
-        window.sessionStorage.setItem(DEVELOPER_TOKEN_STORAGE_KEY, token);
-      } else {
-        window.sessionStorage.removeItem(DEVELOPER_TOKEN_STORAGE_KEY);
-      }
-    } catch (_error) {
-      // Ignore storage failures and continue with cookie-based auth only.
-    }
-  }
-
   function clearRegisterAccessKey() {
     if (dom.registerKey) {
       dom.registerKey.value = "";
@@ -163,11 +140,6 @@
 
   async function requestJSON(path, options = {}) {
     const headers = { ...(options.headers || {}) };
-    const storedToken = getStoredDeveloperToken();
-
-    if (storedToken && !headers.Authorization) {
-      headers.Authorization = `Bearer ${storedToken}`;
-    }
 
     if (options.body && !headers["Content-Type"]) {
       headers["Content-Type"] = "application/json";
@@ -189,10 +161,6 @@
       payload = await response.json();
     } catch (_error) {
       payload = {};
-    }
-
-    if (response.status === 401) {
-      storeDeveloperToken("");
     }
 
     if (!response.ok) {
@@ -242,12 +210,11 @@
         "Checking developer credentials and opening the support inbox...",
       );
 
-      const payload = await requestJSON("/developer-auth/login", {
+      await requestJSON("/developer-auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
 
-      storeDeveloperToken(payload?.token || "");
       await requestJSON("/developer-auth/me");
 
       setStatus(
@@ -258,15 +225,6 @@
         window.location.replace("developer-support.html");
       }, 250);
     } catch (error) {
-      if (
-        String(error?.message || "")
-          .trim()
-          .toLowerCase()
-          .includes("invalid developer credentials")
-      ) {
-        storeDeveloperToken("");
-      }
-
       setStatus(
         error.message || "Developer login could not be completed right now.",
         "error",
