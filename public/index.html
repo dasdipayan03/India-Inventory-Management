@@ -714,6 +714,24 @@
         white-space: nowrap;
       }
 
+      .support-refresh-btn.is-loading i {
+        animation: support-refresh-spin 0.9s linear infinite;
+      }
+
+      .support-refresh-btn.is-loading {
+        opacity: 0.92;
+      }
+
+      @keyframes support-refresh-spin {
+        from {
+          transform: rotate(0deg);
+        }
+
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
       .chart-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));

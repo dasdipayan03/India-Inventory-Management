@@ -1497,12 +1497,27 @@ function renderSupportThread() {
   dom.supportThreadBody.scrollTop = dom.supportThreadBody.scrollHeight;
 }
 
+function setSupportRefreshLoading(isLoading) {
+  if (!dom.supportRefreshBtn) {
+    return;
+  }
+
+  dom.supportRefreshBtn.classList.toggle("is-loading", Boolean(isLoading));
+  dom.supportRefreshBtn.disabled = Boolean(isLoading);
+  dom.supportRefreshBtn.setAttribute("aria-busy", isLoading ? "true" : "false");
+}
+
 async function loadSupportThread(options = {}) {
   if (!dom.supportThreadBody || !state.sessionUser) {
     return null;
   }
 
   const requestId = ++state.supportLoadRequestId;
+  const shouldAnimateRefresh = options.showRefreshAnimation === true;
+
+  if (shouldAnimateRefresh) {
+    setSupportRefreshLoading(true);
+  }
 
   try {
     const data = await fetchJSON("/support/thread");
@@ -1547,6 +1562,10 @@ async function loadSupportThread(options = {}) {
     }
 
     return null;
+  } finally {
+    if (shouldAnimateRefresh) {
+      setSupportRefreshLoading(false);
+    }
   }
 }
 
@@ -1612,7 +1631,7 @@ function bindSupportEvents() {
   }
 
   dom.supportRefreshBtn?.addEventListener("click", () => {
-    loadSupportThread();
+    loadSupportThread({ showRefreshAnimation: true });
   });
 
   dom.supportSendBtn.addEventListener("click", submitSupportMessage);
