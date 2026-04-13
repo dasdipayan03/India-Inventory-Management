@@ -742,10 +742,18 @@ async function fetchJSON(path, options = {}) {
     headers["Content-Type"] = "application/json";
   }
 
-  const response = await fetch(`${apiBase}${path}`, {
+  const requestOptions = {
     ...options,
     credentials: "include",
     headers: authHeaders(headers),
+  };
+
+  if (String(path || "").startsWith("/support")) {
+    requestOptions.cache = "no-store";
+  }
+
+  const response = await fetch(`${apiBase}${path}`, {
+    ...requestOptions,
   });
 
   let payload = {};
@@ -1656,7 +1664,7 @@ function bindSupportEvents() {
       }
 
       void loadSupportThread({ silent: true });
-    }, 20000);
+    }, 5000);
   }
 }
 

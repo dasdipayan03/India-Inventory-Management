@@ -27,10 +27,15 @@
       headers["Content-Type"] = "application/json";
     }
 
-    const response = await fetch(`${apiBase}${path}`, {
+    const requestOptions = {
       ...options,
       credentials: "include",
       headers,
+      cache: "no-store",
+    };
+
+    const response = await fetch(`${apiBase}${path}`, {
+      ...requestOptions,
     });
 
     let payload = {};

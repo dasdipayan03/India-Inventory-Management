@@ -123,10 +123,15 @@
       headers["Content-Type"] = "application/json";
     }
 
-    const response = await fetch(`${apiBase}${path}`, {
+    const requestOptions = {
       ...options,
       credentials: "include",
       headers,
+      cache: "no-store",
+    };
+
+    const response = await fetch(`${apiBase}${path}`, {
+      ...requestOptions,
     });
 
     let payload = {};
@@ -934,7 +939,7 @@
         } catch (_error) {
           // Quiet polling keeps the current UI stable until a manual refresh.
         }
-      }, 15000);
+      }, 5000);
     }
   }
 

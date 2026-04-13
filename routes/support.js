@@ -372,6 +372,7 @@ router.get("/support/thread", authMiddleware, async (req, res) => {
   const client = await pool.connect();
 
   try {
+    markSensitiveResponse(res);
     const requester = getRequesterContext(req);
     await client.query("BEGIN");
 
@@ -422,6 +423,7 @@ router.post("/support/messages", authMiddleware, async (req, res) => {
   const client = await pool.connect();
 
   try {
+    markSensitiveResponse(res);
     const requester = getRequesterContext(req);
     const message = normalizeSupportMessage(req.body.message);
 
@@ -518,6 +520,7 @@ router.get(
     const client = await pool.connect();
 
     try {
+      markSensitiveResponse(res);
       const conversations = await loadDeveloperConversationList(client);
       return res.json({ conversations });
     } catch (error) {
@@ -536,6 +539,7 @@ router.get(
     const client = await pool.connect();
 
     try {
+      markSensitiveResponse(res);
       const conversationId = Number.parseInt(req.params.conversationId, 10);
 
       if (!Number.isInteger(conversationId) || conversationId <= 0) {
@@ -593,6 +597,7 @@ router.post(
     const client = await pool.connect();
 
     try {
+      markSensitiveResponse(res);
       const developerId = getDeveloperId(req);
       const conversationId = Number.parseInt(req.params.conversationId, 10);
       const message = normalizeSupportMessage(req.body.message);
@@ -695,6 +700,7 @@ router.patch(
     const client = await pool.connect();
 
     try {
+      markSensitiveResponse(res);
       const conversationId = Number.parseInt(req.params.conversationId, 10);
       const status = normalizeConversationStatus(req.body.status);
 
