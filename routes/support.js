@@ -36,6 +36,18 @@ const developerLoginLimiter = rateLimit({
   },
 });
 
+router.use(async (_req, res, next) => {
+  try {
+    await pool.readyPromise;
+    return next();
+  } catch (error) {
+    console.error("Support routes unavailable while database is starting:", error.message);
+    return res.status(503).json({
+      error: "Support service is starting. Please try again in a moment.",
+    });
+  }
+});
+
 function getSessionCookieOptions() {
   return {
     httpOnly: true,
@@ -157,11 +169,22 @@ async function getDeveloperByEmail(email) {
     `
       SELECT id, name, email, password_hash, is_active
       FROM developer_admins
-      WHERE LOWER(email) = LOWER($1)
-      LIMIT 1
+      WHERE LOWER(BTRIM(email)) = $1
+      ORDER BY
+        is_active DESC,
+        updated_at DESC NULLS LAST,
+        last_login_at DESC NULLS LAST,
+        id DESC
+      LIMIT 2
     `,
     [email],
   );
+
+  if (result.rowCount > 1) {
+    console.warn(
+      `Multiple developer_admins rows matched normalized email "${email}". Using the newest active row.`,
+    );
+  }
 
   return result.rows[0] || null;
 }

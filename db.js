@@ -40,6 +40,13 @@ function normalizeEmail(value) {
     .toLowerCase();
 }
 
+function buildArchivedDeveloperEmail(normalizedEmail, id) {
+  const safeEmail = String(normalizedEmail || "developer@example.com")
+    .replace(/[^a-z0-9@._+-]/gi, "")
+    .trim();
+  return `archived+${id}.${safeEmail}`;
+}
+
 // =========================================================
 // ENVIRONMENT VARIABLE CHECK
 // Ensures DATABASE_URL exists before server starts.
@@ -400,6 +407,112 @@ async function ensureSchemaCompatibility() {
       ON developer_admins (LOWER(email))
   `);
 
+  async function reconcileDeveloperAdmins() {
+    const developers = await pool.query(`
+      SELECT
+        id,
+        email,
+        is_active,
+        last_login_at,
+        updated_at,
+        LOWER(BTRIM(email)) AS normalized_email
+      FROM developer_admins
+      ORDER BY
+        LOWER(BTRIM(email)) ASC,
+        is_active DESC,
+        updated_at DESC NULLS LAST,
+        last_login_at DESC NULLS LAST,
+        id DESC
+    `);
+
+    const groupedDevelopers = new Map();
+
+    for (const row of developers.rows) {
+      const normalizedEmail = String(row.normalized_email || "").trim();
+      if (!normalizedEmail) {
+        await pool.query(
+          `
+            UPDATE developer_admins
+            SET email = $2,
+                is_active = FALSE,
+                updated_at = NOW()
+            WHERE id = $1
+          `,
+          [row.id, buildArchivedDeveloperEmail("developer@example.com", row.id)],
+        );
+
+        logEvent("warn", "developer_admin_invalid_email_archived", {
+          developerId: row.id,
+          previousEmail: row.email,
+        });
+        continue;
+      }
+
+      if (!groupedDevelopers.has(normalizedEmail)) {
+        groupedDevelopers.set(normalizedEmail, []);
+      }
+
+      groupedDevelopers.get(normalizedEmail).push(row);
+    }
+
+    for (const [normalizedEmail, rows] of groupedDevelopers.entries()) {
+      const primary = rows[0];
+      if (!primary) {
+        continue;
+      }
+
+      if (primary.email !== normalizedEmail) {
+        await pool.query(
+          `
+            UPDATE developer_admins
+            SET email = $2,
+                updated_at = NOW()
+            WHERE id = $1
+          `,
+          [primary.id, normalizedEmail],
+        );
+      }
+
+      if (rows.length <= 1) {
+        continue;
+      }
+
+      const archivedIds = [];
+      for (const duplicate of rows.slice(1)) {
+        const archivedEmail = buildArchivedDeveloperEmail(
+          normalizedEmail,
+          duplicate.id,
+        );
+
+        await pool.query(
+          `
+            UPDATE developer_admins
+            SET email = $2,
+                is_active = FALSE,
+                updated_at = NOW()
+            WHERE id = $1
+          `,
+          [duplicate.id, archivedEmail],
+        );
+
+        archivedIds.push(duplicate.id);
+      }
+
+      logEvent("warn", "developer_admin_duplicates_archived", {
+        normalizedEmail,
+        keptId: primary.id,
+        archivedIds,
+      });
+    }
+
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_developer_admins_email_normalized_unique
+        ON developer_admins (LOWER(BTRIM(email)))
+    `);
+  }
+
+  await reconcileDeveloperAdmins();
+
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_support_conversations_owner_lookup
       ON support_conversations (owner_user_id, requester_actor_id, requester_role)
@@ -433,28 +546,58 @@ async function ensureSchemaCompatibility() {
   if (supportAdminEmail && (supportAdminPasswordHash || supportAdminPassword)) {
     const passwordHash =
       supportAdminPasswordHash || (await bcrypt.hash(supportAdminPassword, 12));
-
-    await pool.query(
+    const existingSupportAdmin = await pool.query(
       `
-        INSERT INTO developer_admins (
-          name,
-          email,
-          password_hash,
-          is_active,
-          last_login_at,
-          created_at,
-          updated_at
-        )
-        VALUES ($1, $2, $3, TRUE, NULL, NOW(), NOW())
-        ON CONFLICT (email)
-        DO UPDATE SET
-          name = EXCLUDED.name,
-          password_hash = EXCLUDED.password_hash,
-          is_active = TRUE,
-          updated_at = NOW()
+        SELECT id
+        FROM developer_admins
+        WHERE LOWER(BTRIM(email)) = $1
+        ORDER BY
+          is_active DESC,
+          updated_at DESC NULLS LAST,
+          last_login_at DESC NULLS LAST,
+          id DESC
+        LIMIT 1
       `,
-      [supportAdminName, supportAdminEmail, passwordHash],
+      [supportAdminEmail],
     );
+
+    if (existingSupportAdmin.rowCount) {
+      await pool.query(
+        `
+          UPDATE developer_admins
+          SET name = $2,
+              email = $3,
+              password_hash = $4,
+              is_active = TRUE,
+              updated_at = NOW()
+          WHERE id = $1
+        `,
+        [
+          existingSupportAdmin.rows[0].id,
+          supportAdminName,
+          supportAdminEmail,
+          passwordHash,
+        ],
+      );
+    } else {
+      await pool.query(
+        `
+          INSERT INTO developer_admins (
+            name,
+            email,
+            password_hash,
+            is_active,
+            last_login_at,
+            created_at,
+            updated_at
+          )
+          VALUES ($1, $2, $3, TRUE, NULL, NOW(), NOW())
+        `,
+        [supportAdminName, supportAdminEmail, passwordHash],
+      );
+    }
+
+    await reconcileDeveloperAdmins();
   }
 }
 

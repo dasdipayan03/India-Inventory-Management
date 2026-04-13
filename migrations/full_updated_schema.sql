@@ -392,11 +392,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_staff_accounts_username_unique
 CREATE INDEX IF NOT EXISTS idx_staff_accounts_owner_user_id
   ON staff_accounts(owner_user_id);
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_developer_admins_email_unique
-  ON developer_admins(email);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_developer_admins_email_normalized_unique
+  ON developer_admins (LOWER(BTRIM(email)));
 
 CREATE INDEX IF NOT EXISTS idx_developer_admins_email_lookup
-  ON developer_admins (LOWER(email));
+  ON developer_admins (LOWER(BTRIM(email)));
 
 CREATE INDEX IF NOT EXISTS idx_items_user_id
   ON items(user_id);
