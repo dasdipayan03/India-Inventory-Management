@@ -305,6 +305,33 @@
         margin-top: 22px;
       }
 
+      .mode-switch {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .mode-btn {
+        min-height: 48px;
+        border: 1px solid rgba(22, 151, 208, 0.16);
+        border-radius: 14px;
+        background: rgba(22, 151, 208, 0.05);
+        color: var(--sky-strong);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .mode-btn.is-active {
+        border-color: rgba(22, 151, 208, 0.26);
+        background: linear-gradient(
+          135deg,
+          rgba(22, 151, 208, 0.16),
+          rgba(20, 184, 166, 0.12)
+        );
+        box-shadow: inset 0 0 0 1px rgba(22, 151, 208, 0.08);
+      }
+
       .field {
         display: grid;
         gap: 8px;
@@ -365,6 +392,13 @@
       .password-toggle:hover,
       .password-toggle.active {
         background: rgba(22, 151, 208, 0.14);
+      }
+
+      .field-hint {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
       }
 
       .submit-btn {
@@ -521,14 +555,35 @@
         </article>
 
         <aside class="login-card">
-          <h2>Developer support login</h2>
-          <p>
+          <h2 id="developerAccessTitle">Developer support login</h2>
+          <p id="developerAccessLead">
             Sign in with the developer admin credentials stored for the support
             portal. Successful login will open the support inbox.
           </p>
 
           <div id="developerStatus" class="status-banner" data-tone="info">
             Use the developer admin email and password configured for support.
+          </div>
+
+          <div class="mode-switch" role="tablist" aria-label="Developer access">
+            <button
+              id="developerLoginModeBtn"
+              class="mode-btn is-active"
+              type="button"
+              data-developer-mode="login"
+              aria-pressed="true"
+            >
+              Login
+            </button>
+            <button
+              id="developerRegisterModeBtn"
+              class="mode-btn"
+              type="button"
+              data-developer-mode="register"
+              aria-pressed="false"
+            >
+              Create Account
+            </button>
           </div>
 
           <form id="developerLoginForm" class="login-form" novalidate>
@@ -579,7 +634,128 @@
             </button>
           </form>
 
-          <p class="support-note">
+          <form
+            id="developerRegisterForm"
+            class="login-form"
+            novalidate
+            hidden
+          >
+            <div class="field">
+              <label for="developerRegisterName">Developer Name</label>
+              <div class="input-shell">
+                <input
+                  id="developerRegisterName"
+                  name="name"
+                  type="text"
+                  autocomplete="name"
+                  autocapitalize="words"
+                  placeholder="Enter developer name"
+                />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="developerRegisterEmail">Developer Email</label>
+              <div class="input-shell">
+                <input
+                  id="developerRegisterEmail"
+                  name="registerEmail"
+                  type="email"
+                  inputmode="email"
+                  autocomplete="email"
+                  autocapitalize="none"
+                  autocorrect="off"
+                  spellcheck="false"
+                  placeholder="developer@example.com"
+                />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="developerRegisterPassword">Create Password</label>
+              <div class="input-shell has-action">
+                <input
+                  id="developerRegisterPassword"
+                  name="registerPassword"
+                  type="password"
+                  autocomplete="new-password"
+                  autocapitalize="none"
+                  autocorrect="off"
+                  spellcheck="false"
+                  placeholder="Create developer password"
+                />
+                <button
+                  type="button"
+                  class="password-toggle"
+                  data-toggle-password="developerRegisterPassword"
+                  aria-label="Show password"
+                >
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="developerRegisterConfirmPassword"
+                >Confirm Password</label
+              >
+              <div class="input-shell has-action">
+                <input
+                  id="developerRegisterConfirmPassword"
+                  name="registerConfirmPassword"
+                  type="password"
+                  autocomplete="new-password"
+                  autocapitalize="none"
+                  autocorrect="off"
+                  spellcheck="false"
+                  placeholder="Confirm developer password"
+                />
+                <button
+                  type="button"
+                  class="password-toggle"
+                  data-toggle-password="developerRegisterConfirmPassword"
+                  aria-label="Show password"
+                >
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="developerRegisterKey">Developer Access Key</label>
+              <div class="input-shell has-action">
+                <input
+                  id="developerRegisterKey"
+                  name="developerAccessKey"
+                  type="password"
+                  autocomplete="off"
+                  autocapitalize="none"
+                  autocorrect="off"
+                  spellcheck="false"
+                  placeholder="Enter private developer setup key"
+                />
+                <button
+                  type="button"
+                  class="password-toggle"
+                  data-toggle-password="developerRegisterKey"
+                  aria-label="Show password"
+                >
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+              </div>
+              <p class="field-hint">
+                This page checks the key only when you submit the form and does
+                not save it in app storage.
+              </p>
+            </div>
+
+            <button id="developerRegisterBtn" class="submit-btn" type="submit">
+              <i class="fa-solid fa-user-plus"></i>
+              Create Developer Account
+            </button>
+          </form>
+
+          <p id="developerSupportNote" class="support-note">
             If you already have an active developer session, this page will send
             you directly to the support inbox.
           </p>

@@ -17,6 +17,8 @@ const router = express.Router();
 
 const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const MESSAGE_MAX_LENGTH = 2000;
+const DEVELOPER_MIN_PASSWORD_LENGTH = 6;
+const DEVELOPER_REGISTRATION_KEY = "IIMDD@1999";
 const conversationStatusValues = new Set(["open", "closed"]);
 
 if (!process.env.JWT_SECRET) {
@@ -33,6 +35,18 @@ const developerLoginLimiter = rateLimit({
   message: {
     error:
       "Too many developer login attempts. Please wait 15 minutes and try again.",
+  },
+});
+
+const developerRegisterLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: {
+    error:
+      "Too many developer account creation attempts. Please wait 15 minutes and try again.",
   },
 });
 
@@ -65,6 +79,12 @@ function normalizeEmail(value) {
   return String(value || "")
     .trim()
     .toLowerCase();
+}
+
+function normalizeName(value) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function normalizeSupportMessage(value) {
@@ -185,6 +205,26 @@ async function getDeveloperByEmail(email) {
       `Multiple developer_admins rows matched normalized email "${email}". Using the newest active row.`,
     );
   }
+
+  return result.rows[0] || null;
+}
+
+async function createDeveloperAccount({ name, email, passwordHash }) {
+  const result = await pool.query(
+    `
+      INSERT INTO developer_admins (
+        name,
+        email,
+        password_hash,
+        is_active,
+        created_at,
+        updated_at
+      )
+      VALUES ($1, $2, $3, TRUE, NOW(), NOW())
+      RETURNING id, name, email, is_active
+    `,
+    [name, email, passwordHash],
+  );
 
   return result.rows[0] || null;
 }
@@ -322,6 +362,83 @@ async function loadDeveloperConversationList(client) {
 
   return result.rows.map(serializeSupportConversation);
 }
+
+router.post(
+  "/developer-auth/register",
+  developerRegisterLimiter,
+  async (req, res) => {
+    try {
+      markSensitiveResponse(res);
+
+      const name = normalizeName(req.body.name);
+      const email = normalizeEmail(req.body.email);
+      const password = String(req.body.password || "");
+      const confirmPassword = String(
+        req.body.confirmPassword || req.body.confirm_password || "",
+      );
+      const accessKey = String(
+        req.body.accessKey || req.body.developerKey || "",
+      ).trim();
+
+      if (!name || !email || !password || !confirmPassword || !accessKey) {
+        return res.status(400).json({
+          error:
+            "Name, email, password, confirm password, and developer key are required",
+        });
+      }
+
+      if (name.length < 2) {
+        return res
+          .status(400)
+          .json({ error: "Developer name must be at least 2 characters" });
+      }
+
+      if (password.length < DEVELOPER_MIN_PASSWORD_LENGTH) {
+        return res.status(400).json({
+          error: `Password must be at least ${DEVELOPER_MIN_PASSWORD_LENGTH} characters`,
+        });
+      }
+
+      if (password !== confirmPassword) {
+        return res
+          .status(400)
+          .json({ error: "Confirm password must match the password above" });
+      }
+
+      if (accessKey !== DEVELOPER_REGISTRATION_KEY) {
+        return res.status(403).json({ error: "Invalid developer access key" });
+      }
+
+      const existingDeveloper = await getDeveloperByEmail(email);
+      if (existingDeveloper) {
+        return res
+          .status(400)
+          .json({ error: "Developer account already exists for this email" });
+      }
+
+      const passwordHash = await bcrypt.hash(password, 12);
+      const developer = await createDeveloperAccount({
+        name,
+        email,
+        passwordHash,
+      });
+
+      return res.status(201).json({
+        message: "Developer account created. You can now sign in.",
+        developer: developer ? serializeDeveloperSession(developer) : null,
+      });
+    } catch (error) {
+      if (error && error.code === "23505") {
+        return res
+          .status(400)
+          .json({ error: "Developer account already exists for this email" });
+      }
+
+      console.error("Developer registration error:", error.message);
+      return res.status(500).json({ error: "Server error" });
+    }
+  },
+);
 
 router.post(
   "/developer-auth/login",
