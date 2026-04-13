@@ -411,10 +411,10 @@ app.use(helmet.referrerPolicy({ policy: "same-origin" }));
 // 📡 API ROUTES REGISTRATION
 // =========================================================
 app.use("/api/auth", require("./routes/auth"));
+app.use("/api", require("./routes/support"));
 app.use("/api", require("./routes/inventory"));
 app.use("/api", require("./routes/business"));
 app.use("/api", require("./routes/invoices"));
-app.use("/api", require("./routes/support"));
 
 // =========================================================
 // ❤️ HEALTH CHECK ROUTE (Railway stability)
