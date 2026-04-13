@@ -87,6 +87,17 @@ function normalizeName(value) {
     .trim();
 }
 
+function normalizeDeveloperAccessKey(value) {
+  const rawValue = String(value || "");
+  const normalizedValue =
+    typeof rawValue.normalize === "function"
+      ? rawValue.normalize("NFKC")
+      : rawValue;
+
+  // Mobile copy/paste can introduce invisible characters or full-width forms.
+  return normalizedValue.replace(/[\s\u200B-\u200D\u2060\uFEFF]+/g, "");
+}
+
 function normalizeSupportMessage(value) {
   return String(value || "")
     .replace(/\r/g, "")
@@ -376,9 +387,12 @@ router.post(
       const confirmPassword = String(
         req.body.confirmPassword || req.body.confirm_password || "",
       );
-      const accessKey = String(
+      const accessKey = normalizeDeveloperAccessKey(
         req.body.accessKey || req.body.developerKey || "",
-      ).trim();
+      );
+      const developerRegistrationKey = normalizeDeveloperAccessKey(
+        DEVELOPER_REGISTRATION_KEY,
+      );
 
       if (!name || !email || !password || !confirmPassword || !accessKey) {
         return res.status(400).json({
@@ -405,7 +419,7 @@ router.post(
           .json({ error: "Confirm password must match the password above" });
       }
 
-      if (accessKey !== DEVELOPER_REGISTRATION_KEY) {
+      if (accessKey !== developerRegistrationKey) {
         return res.status(403).json({ error: "Invalid developer access key" });
       }
 

@@ -68,6 +68,17 @@
       .toLowerCase();
   }
 
+  function normalizeDeveloperAccessKey(value) {
+    const rawValue = String(value || "");
+    const normalizedValue =
+      typeof rawValue.normalize === "function"
+        ? rawValue.normalize("NFKC")
+        : rawValue;
+
+    // Mobile copy/paste can add invisible characters even when the key looks correct.
+    return normalizedValue.replace(/[\s\u200B-\u200D\u2060\uFEFF]+/g, "");
+  }
+
   function getStoredDeveloperToken() {
     try {
       return String(
@@ -275,10 +286,14 @@
     const email = normalizeEmail(dom.registerEmail?.value || "");
     const password = String(dom.registerPassword?.value || "");
     const confirmPassword = String(dom.registerConfirmPassword?.value || "");
-    const accessKey = String(dom.registerKey?.value || "").trim();
+    const accessKey = normalizeDeveloperAccessKey(dom.registerKey?.value || "");
 
     if (dom.registerName) {
       dom.registerName.value = name;
+    }
+
+    if (dom.registerKey) {
+      dom.registerKey.value = accessKey;
     }
 
     if (!name || !email || !password || !confirmPassword || !accessKey) {
@@ -361,11 +376,21 @@
       );
       dom.loginPassword?.focus();
     } catch (error) {
+      const message = String(error?.message || "").trim();
+      const isInvalidAccessKey = message
+        .toLowerCase()
+        .includes("invalid developer access key");
+
       setStatus(
-        error.message ||
-          "Developer account could not be created right now.",
+        isInvalidAccessKey
+          ? "Developer access key did not match. If you're on mobile, type it once manually to avoid hidden copy/paste characters."
+          : message || "Developer account could not be created right now.",
         "error",
       );
+
+      if (isInvalidAccessKey) {
+        dom.registerKey?.focus();
+      }
     } finally {
       clearRegisterAccessKey();
 
