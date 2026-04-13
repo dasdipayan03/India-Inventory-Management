@@ -40,6 +40,14 @@ function normalizeEmail(value) {
     .toLowerCase();
 }
 
+function isTruthyEnvFlag(value) {
+  return ["1", "true", "yes", "on"].includes(
+    String(value || "")
+      .trim()
+      .toLowerCase(),
+  );
+}
+
 function buildArchivedDeveloperEmail(normalizedEmail, id) {
   const safeEmail = String(normalizedEmail || "developer@example.com")
     .replace(/[^a-z0-9@._+-]/gi, "")
@@ -538,12 +546,19 @@ async function ensureSchemaCompatibility() {
     process.env.SUPPORT_ADMIN_PASSWORD_HASH || "",
   ).trim();
   const supportAdminPassword = String(process.env.SUPPORT_ADMIN_PASSWORD || "");
+  const supportAdminBootstrapEnabled = isTruthyEnvFlag(
+    process.env.SUPPORT_ADMIN_BOOTSTRAP,
+  );
   const supportAdminName =
     String(process.env.SUPPORT_ADMIN_NAME || "Developer Support")
       .replace(/\s+/g, " ")
       .trim() || "Developer Support";
 
-  if (supportAdminEmail && (supportAdminPasswordHash || supportAdminPassword)) {
+  if (
+    supportAdminBootstrapEnabled &&
+    supportAdminEmail &&
+    (supportAdminPasswordHash || supportAdminPassword)
+  ) {
     const passwordHash =
       supportAdminPasswordHash || (await bcrypt.hash(supportAdminPassword, 12));
     const existingSupportAdmin = await pool.query(
@@ -598,6 +613,13 @@ async function ensureSchemaCompatibility() {
     }
 
     await reconcileDeveloperAdmins();
+  } else if (
+    !supportAdminBootstrapEnabled &&
+    (supportAdminEmail || supportAdminPasswordHash || supportAdminPassword)
+  ) {
+    logEvent("info", "developer_admin_bootstrap_skipped", {
+      reason: "SUPPORT_ADMIN_BOOTSTRAP is not enabled",
+    });
   }
 }
 
