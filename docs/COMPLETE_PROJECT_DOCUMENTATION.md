@@ -113,33 +113,33 @@ The system is owner-centric:
 
 ## 4. Repository Map
 
-| Path                              | Purpose                                                                                    |
-| --------------------------------- | ------------------------------------------------------------------------------------------ |
-| [`../server.js`](../server.js)    | app bootstrap, middleware, request logging, health/readiness routes, and HTML serving      |
-| [`../db.js`](../db.js)            | PostgreSQL pool setup, readiness state, and schema compatibility patches                   |
-| [`../railway.json`](../railway.json) | Railway deployment config: start command, healthcheck path, timeout, restart policy    |
-| [`../middleware/`](../middleware) | auth and access control middleware                                                         |
-| [`../routes/`](../routes)         | route files grouped by business domain                                                     |
-| [`../public/`](../public)         | HTML pages, frontend JS, images                                                            |
-| [`../utils/`](../utils)           | shared backend helpers such as advisory locking and structured runtime logging             |
-| [`../migrations/`](../migrations) | SQL schema and migration history                                                           |
-| [`../docs/`](.)                   | project documentation, including this merged file, the detailed flow chart, and the public marketing kit |
+| Path                                 | Purpose                                                                                                  |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| [`../server.js`](../server.js)       | app bootstrap, middleware, request logging, health/readiness routes, and HTML serving                    |
+| [`../db.js`](../db.js)               | PostgreSQL pool setup, readiness state, and schema compatibility patches                                 |
+| [`../railway.json`](../railway.json) | Railway deployment config: start command, healthcheck path, timeout, restart policy                      |
+| [`../middleware/`](../middleware)    | auth and access control middleware                                                                       |
+| [`../routes/`](../routes)            | route files grouped by business domain                                                                   |
+| [`../public/`](../public)            | HTML pages, frontend JS, images                                                                          |
+| [`../utils/`](../utils)              | shared backend helpers such as advisory locking and structured runtime logging                           |
+| [`../migrations/`](../migrations)    | SQL schema and migration history                                                                         |
+| [`../docs/`](.)                      | project documentation, including this merged file, the detailed flow chart, and the public marketing kit |
 
 ### Key backend files
 
-| File                                                 | Role                                                                                      |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| File                                                 | Role                                                                                                       |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | [`../server.js`](../server.js)                       | Express entrypoint, request logging, CSP nonce injection, CORS policy, health/debug routes, static serving |
-| [`../db.js`](../db.js)                               | DB connection pool, readiness state, SSL selection, startup schema patching               |
-| [`../middleware/auth.js`](../middleware/auth.js)     | JWT verification, role resolution, permission checks                                      |
-| [`../routes/auth.js`](../routes/auth.js)             | register/login/logout, forgot/reset password, staff management, `/me`                     |
-| [`../routes/support.js`](../routes/support.js)       | developer auth, owner/staff support chat, developer inbox, conversation status updates    |
-| [`../routes/inventory.js`](../routes/inventory.js)   | stock, stock reports, sales reports, GST reports, dashboard overview, customer dues       |
-| [`../routes/business.js`](../routes/business.js)     | suppliers, purchases, purchase repayment, expenses                                        |
-| [`../routes/invoices.js`](../routes/invoices.js)     | invoice numbering, invoice save, history, payment settlement, PDF, shop info              |
-| [`../utils/concurrency.js`](../utils/concurrency.js) | normalization helpers and owner-scoped advisory locks                                     |
-| [`../utils/runtime-log.js`](../utils/runtime-log.js) | structured JSON log serializer used by server and DB lifecycle logging                    |
-| [`../railway.json`](../railway.json)                 | Railway config-as-code for runtime start and healthcheck defaults                         |
+| [`../db.js`](../db.js)                               | DB connection pool, readiness state, SSL selection, startup schema patching                                |
+| [`../middleware/auth.js`](../middleware/auth.js)     | JWT verification, role resolution, permission checks                                                       |
+| [`../routes/auth.js`](../routes/auth.js)             | register/login/logout, forgot/reset password, staff management, `/me`                                      |
+| [`../routes/support.js`](../routes/support.js)       | developer auth, owner/staff support chat, developer inbox, conversation status updates                     |
+| [`../routes/inventory.js`](../routes/inventory.js)   | stock, stock reports, sales reports, GST reports, dashboard overview, customer dues                        |
+| [`../routes/business.js`](../routes/business.js)     | suppliers, purchases, purchase repayment, expenses                                                         |
+| [`../routes/invoices.js`](../routes/invoices.js)     | invoice numbering, invoice save, history, payment settlement, PDF, shop info                               |
+| [`../utils/concurrency.js`](../utils/concurrency.js) | normalization helpers and owner-scoped advisory locks                                                      |
+| [`../utils/runtime-log.js`](../utils/runtime-log.js) | structured JSON log serializer used by server and DB lifecycle logging                                     |
+| [`../railway.json`](../railway.json)                 | Railway config-as-code for runtime start and healthcheck defaults                                          |
 
 ### Key frontend files
 
@@ -147,12 +147,12 @@ The system is owner-centric:
 | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | [`../public/login.html`](../public/login.html)                               | landing page, owner login/register, staff login, forgot password                     |
 | [`../public/developer-login.html`](../public/developer-login.html)           | developer account login/register page for the support inbox                          |
-| [`../public/developer-support.html`](../public/developer-support.html)       | developer support queue and threaded reply workspace                                  |
+| [`../public/developer-support.html`](../public/developer-support.html)       | developer support queue and threaded reply workspace                                 |
 | [`../public/index.html`](../public/index.html)                               | main dashboard shell with stock, purchase, reports, due, expense, and staff sections |
 | [`../public/invoice.html`](../public/invoice.html)                           | sale and invoice workspace, invoice history, PDF actions, shop profile               |
 | [`../public/reset.html`](../public/reset.html)                               | reset password page                                                                  |
-| [`../public/js/developer-login.js`](../public/js/developer-login.js)         | developer login/register controller                                                   |
-| [`../public/js/developer-support.js`](../public/js/developer-support.js)     | developer inbox queue, thread, reply, and status update controller                    |
+| [`../public/js/developer-login.js`](../public/js/developer-login.js)         | developer login/register controller                                                  |
+| [`../public/js/developer-support.js`](../public/js/developer-support.js)     | developer inbox queue, thread, reply, and status update controller                   |
 | [`../public/js/dashboard.js`](../public/js/dashboard.js)                     | main dashboard logic and report UI orchestration                                     |
 | [`../public/js/app-core.js`](../public/js/app-core.js)                       | shared constants, permission descriptions, app bootstrap helpers                     |
 | [`../public/js/app-shell.js`](../public/js/app-shell.js)                     | reusable sidebar shell and page navigation                                           |
@@ -210,14 +210,14 @@ flowchart LR
 
 ### Page responsibilities
 
-| Page                                               | What it does                                                                           |
-| -------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| [`../public/login.html`](../public/login.html)     | auth entrypoint for owner and staff, forgot password entry, existing-session redirect  |
-| [`../public/developer-login.html`](../public/developer-login.html) | developer account login/register screen for the support inbox                |
-| [`../public/developer-support.html`](../public/developer-support.html) | developer queue and threaded support reply workspace                         |
-| [`../public/index.html`](../public/index.html)     | multi-section dashboard for stock, purchases, reports, dues, expenses, and staff owner controls |
-| [`../public/invoice.html`](../public/invoice.html) | invoice builder, draft restore, payment summary, invoice lookup, invoice PDF actions   |
-| [`../public/reset.html`](../public/reset.html)     | password reset submission using email + token from URL hash                            |
+| Page                                                                   | What it does                                                                                    |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| [`../public/login.html`](../public/login.html)                         | auth entrypoint for owner and staff, forgot password entry, existing-session redirect           |
+| [`../public/developer-login.html`](../public/developer-login.html)     | developer account login/register screen for the support inbox                                   |
+| [`../public/developer-support.html`](../public/developer-support.html) | developer queue and threaded support reply workspace                                            |
+| [`../public/index.html`](../public/index.html)                         | multi-section dashboard for stock, purchases, reports, dues, expenses, and staff owner controls |
+| [`../public/invoice.html`](../public/invoice.html)                     | invoice builder, draft restore, payment summary, invoice lookup, invoice PDF actions            |
+| [`../public/reset.html`](../public/reset.html)                         | password reset submission using email + token from URL hash                                     |
 
 ### Shared frontend module roles
 
@@ -403,136 +403,136 @@ Important scope note:
 
 #### `server.js` function inventory
 
-| Function | Purpose |
-| -------- | ------- |
-| `readPositiveInt(value, fallback)` | parses positive integer env values such as request timeout and slow-log threshold |
-| `normalizeOrigin(value)` | normalizes a raw URL into a clean `origin` for CORS checks |
-| `buildAllowedOrigins()` | builds the final CORS allowlist from `CORS_ALLOWED_ORIGINS`, `BASE_URL`, or localhost defaults |
-| `nonceDirective(_req, res)` | returns the CSP nonce directive used by `helmet` |
-| `normalizePathname(value)` | strips query strings and trailing slashes from incoming paths |
-| `getRequestPath(req)` | derives a canonical path string from the Express request |
-| `isHealthRoutePath(pathname)` | identifies readiness/liveness routes for special logging rules |
-| `roundTo(value, decimals)` | rounds numeric values used in health and timing payloads |
-| `getMemoryUsageMb()` | returns current Node.js memory usage in MB |
-| `buildDbHealth()` | reads DB readiness and last-error state from the shared pool |
-| `buildHealthPayload(kind)` | assembles the JSON body returned by readiness/liveness endpoints |
-| `sendHealthResponse(res, kind)` | sends a no-cache health payload with the correct HTTP status |
-| `getHtmlTemplate(fileName)` | reads and caches HTML templates from `public/` |
-| `applyHtmlCacheHeaders(res)` | forces HTML responses to bypass browser/proxy caching |
-| `setStaticAssetCacheHeaders(res, filePath)` | applies cache rules for images, fonts, and other static assets |
-| `sendHtmlTemplate(res, fileName, statusCode)` | injects the CSP nonce into cached HTML and sends it |
-| `shutdown(signal)` | performs graceful server shutdown for `SIGTERM` and `SIGINT` |
+| Function                                      | Purpose                                                                                        |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `readPositiveInt(value, fallback)`            | parses positive integer env values such as request timeout and slow-log threshold              |
+| `normalizeOrigin(value)`                      | normalizes a raw URL into a clean `origin` for CORS checks                                     |
+| `buildAllowedOrigins()`                       | builds the final CORS allowlist from `CORS_ALLOWED_ORIGINS`, `BASE_URL`, or localhost defaults |
+| `nonceDirective(_req, res)`                   | returns the CSP nonce directive used by `helmet`                                               |
+| `normalizePathname(value)`                    | strips query strings and trailing slashes from incoming paths                                  |
+| `getRequestPath(req)`                         | derives a canonical path string from the Express request                                       |
+| `isHealthRoutePath(pathname)`                 | identifies readiness/liveness routes for special logging rules                                 |
+| `roundTo(value, decimals)`                    | rounds numeric values used in health and timing payloads                                       |
+| `getMemoryUsageMb()`                          | returns current Node.js memory usage in MB                                                     |
+| `buildDbHealth()`                             | reads DB readiness and last-error state from the shared pool                                   |
+| `buildHealthPayload(kind)`                    | assembles the JSON body returned by readiness/liveness endpoints                               |
+| `sendHealthResponse(res, kind)`               | sends a no-cache health payload with the correct HTTP status                                   |
+| `getHtmlTemplate(fileName)`                   | reads and caches HTML templates from `public/`                                                 |
+| `applyHtmlCacheHeaders(res)`                  | forces HTML responses to bypass browser/proxy caching                                          |
+| `setStaticAssetCacheHeaders(res, filePath)`   | applies cache rules for images, fonts, and other static assets                                 |
+| `sendHtmlTemplate(res, fileName, statusCode)` | injects the CSP nonce into cached HTML and sends it                                            |
+| `shutdown(signal)`                            | performs graceful server shutdown for `SIGTERM` and `SIGINT`                                   |
 
 #### `db.js` function inventory
 
-| Function | Purpose |
-| -------- | ------- |
-| `shouldUseSsl(databaseUrl)` | auto-decides whether PostgreSQL SSL should be enabled |
-| `readPositiveInt(value, fallback)` | parses positive integer pool-tuning env values |
-| `ensureSchemaCompatibility()` | applies runtime schema patching so older databases can satisfy current code expectations |
-| `initializeDatabase()` | tests connectivity, runs compatibility patching, and updates exported readiness state |
+| Function                           | Purpose                                                                                  |
+| ---------------------------------- | ---------------------------------------------------------------------------------------- |
+| `shouldUseSsl(databaseUrl)`        | auto-decides whether PostgreSQL SSL should be enabled                                    |
+| `readPositiveInt(value, fallback)` | parses positive integer pool-tuning env values                                           |
+| `ensureSchemaCompatibility()`      | applies runtime schema patching so older databases can satisfy current code expectations |
+| `initializeDatabase()`             | tests connectivity, runs compatibility patching, and updates exported readiness state    |
 
 #### `middleware/auth.js` function inventory
 
-| Function | Purpose |
-| -------- | ------- |
-| `getStaffSessionCacheKey(staffId)` | normalizes a staff ID into a safe cache key |
-| `getCachedStaffSession(staffId)` | returns a non-expired cached staff session if available |
-| `setCachedStaffSession(staffId, sessionData)` | writes a staff session into the in-memory cache with TTL enforcement |
-| `invalidateStaffSessionCache(staffId)` | removes one staff session from cache after permission or status changes |
-| `loadStaffSession(staffId)` | reloads current staff metadata and permissions from PostgreSQL |
-| `authMiddleware(req, res, next)` | validates the JWT cookie/header and attaches normalized session context to `req.user` |
-| `loadDeveloperSession(developerId)` | reloads one developer support account from PostgreSQL |
-| `developerAuthMiddleware(req, res, next)` | validates the developer support JWT cookie/header and attaches `req.developer` |
-| `getUserId(req)` | returns the owner-scoped `user_id` used by all business queries |
-| `getActorId(req)` | returns the acting account ID for audit-aware flows |
-| `getDeveloperId(req)` | returns the current developer support account ID |
-| `isOwnerSession(req)` | checks whether the current session belongs to the owner |
-| `hasPermission(req, ...permissions)` | checks whether the current session satisfies at least one requested permission |
-| `requireOwner(req, res, next)` | blocks non-owner sessions from owner-only routes |
-| `requirePermission(...permissions)` | returns middleware that enforces one or more page permissions |
-| `allowRoles(...roles)` | returns middleware that allows only a selected set of roles |
-| `requireDeveloperSupport(req, res, next)` | blocks requests that do not carry a developer support session |
+| Function                                      | Purpose                                                                               |
+| --------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `getStaffSessionCacheKey(staffId)`            | normalizes a staff ID into a safe cache key                                           |
+| `getCachedStaffSession(staffId)`              | returns a non-expired cached staff session if available                               |
+| `setCachedStaffSession(staffId, sessionData)` | writes a staff session into the in-memory cache with TTL enforcement                  |
+| `invalidateStaffSessionCache(staffId)`        | removes one staff session from cache after permission or status changes               |
+| `loadStaffSession(staffId)`                   | reloads current staff metadata and permissions from PostgreSQL                        |
+| `authMiddleware(req, res, next)`              | validates the JWT cookie/header and attaches normalized session context to `req.user` |
+| `loadDeveloperSession(developerId)`           | reloads one developer support account from PostgreSQL                                 |
+| `developerAuthMiddleware(req, res, next)`     | validates the developer support JWT cookie/header and attaches `req.developer`        |
+| `getUserId(req)`                              | returns the owner-scoped `user_id` used by all business queries                       |
+| `getActorId(req)`                             | returns the acting account ID for audit-aware flows                                   |
+| `getDeveloperId(req)`                         | returns the current developer support account ID                                      |
+| `isOwnerSession(req)`                         | checks whether the current session belongs to the owner                               |
+| `hasPermission(req, ...permissions)`          | checks whether the current session satisfies at least one requested permission        |
+| `requireOwner(req, res, next)`                | blocks non-owner sessions from owner-only routes                                      |
+| `requirePermission(...permissions)`           | returns middleware that enforces one or more page permissions                         |
+| `allowRoles(...roles)`                        | returns middleware that allows only a selected set of roles                           |
+| `requireDeveloperSupport(req, res, next)`     | blocks requests that do not carry a developer support session                         |
 
 #### `routes/auth.js` function inventory
 
 Route handlers in this file cover registration, owner login, staff login, logout, password reset, staff CRUD, and current-session lookup.
 
-| Function | Purpose |
-| -------- | ------- |
-| `normalizeBaseUrl(value)` | validates and normalizes the configured public base URL |
-| `resolvePublicBaseUrl(req)` | resolves the effective app base URL for password reset links |
-| `getSessionCookieOptions()` | returns shared cookie flags for login and logout |
-| `hashResetToken(token)` | hashes raw reset tokens before storing them in the database |
-| `markSensitiveResponse(res)` | marks auth-sensitive responses as `no-store` |
-| `normalizeName(value)` | trims and de-duplicates whitespace in person names |
-| `normalizeEmail(value)` | canonicalizes email values to lowercase |
-| `normalizeMobileNumber(value)` | converts mobile numbers into the app's 10-digit format |
-| `isValidMobileNumber(value)` | validates the normalized mobile format |
-| `normalizeUsername(value)` | strips spaces and lowercases staff usernames |
-| `signSession(payload)` | signs the JWT used for owner and staff sessions |
-| `setSessionCookie(res, token)` | writes the signed session token into the `token` cookie |
-| `clearSessionCookie(res)` | clears the current login cookie |
-| `buildOwnerSession(user)` | creates the normalized owner session payload |
-| `buildStaffSession(staff)` | creates the normalized staff session payload with permissions |
-| `toClientUser(session)` | reshapes a server session into the frontend-safe user object |
-| `getOwnersByIdentifier(identifier)` | looks up owner accounts by email or mobile number |
-| `getStaffByUsername(username)` | looks up one staff account plus owner metadata |
+| Function                            | Purpose                                                       |
+| ----------------------------------- | ------------------------------------------------------------- |
+| `normalizeBaseUrl(value)`           | validates and normalizes the configured public base URL       |
+| `resolvePublicBaseUrl(req)`         | resolves the effective app base URL for password reset links  |
+| `getSessionCookieOptions()`         | returns shared cookie flags for login and logout              |
+| `hashResetToken(token)`             | hashes raw reset tokens before storing them in the database   |
+| `markSensitiveResponse(res)`        | marks auth-sensitive responses as `no-store`                  |
+| `normalizeName(value)`              | trims and de-duplicates whitespace in person names            |
+| `normalizeEmail(value)`             | canonicalizes email values to lowercase                       |
+| `normalizeMobileNumber(value)`      | converts mobile numbers into the app's 10-digit format        |
+| `isValidMobileNumber(value)`        | validates the normalized mobile format                        |
+| `normalizeUsername(value)`          | strips spaces and lowercases staff usernames                  |
+| `signSession(payload)`              | signs the JWT used for owner and staff sessions               |
+| `setSessionCookie(res, token)`      | writes the signed session token into the `token` cookie       |
+| `clearSessionCookie(res)`           | clears the current login cookie                               |
+| `buildOwnerSession(user)`           | creates the normalized owner session payload                  |
+| `buildStaffSession(staff)`          | creates the normalized staff session payload with permissions |
+| `toClientUser(session)`             | reshapes a server session into the frontend-safe user object  |
+| `getOwnersByIdentifier(identifier)` | looks up owner accounts by email or mobile number             |
+| `getStaffByUsername(username)`      | looks up one staff account plus owner metadata                |
 
 #### `routes/inventory.js` function inventory
 
 Route handlers in this file cover stock defaults, stock entry, item reporting, low-stock analysis, reorder planning, slow-moving stock analysis, sales reports, GST reports, customer dues, dashboard cards, and trend APIs.
 
-| Function | Purpose |
-| -------- | ------- |
-| `formatCurrency(value)` | formats numeric values for report output using Indian number formatting |
-| `formatIstDate(value)` | formats a timestamp in the `Asia/Kolkata` timezone |
-| `safeFilePart(value)` | sanitizes user input for downloadable file names |
-| `sanitizeExcelCell(value)` | prevents formula injection in Excel exports |
-| `parseNonNegativeNumber(value)` | validates non-negative numeric input |
-| `getShopName(userId)` | resolves the current owner's shop name from `settings` |
-| `drawPdfBanner(doc, title, shopName, subtitle, rightText)` | renders the shared PDF report header block |
-| `drawPdfTableHeader(doc, columns)` | renders the shared PDF table header row |
-| `ensurePdfSpace(doc, heightNeeded, onNewPage)` | adds a new PDF page before content would overflow |
-| `getLowStockStatus(daysLeft)` | maps days-of-cover values into low-stock severity labels |
-| `getReorderPriority(daysLeft)` | maps days-of-cover values into reorder priority labels |
-| `getSlowMovingPriority(sold30Days, daysCover)` | classifies slow-moving inventory rows |
-| `getSlowMovingFocusNote(sold30Days, daysCover)` | writes the operator-facing message for slow-moving items |
-| `fetchGstReportRows(userId, from, to)` | loads invoice-based GST rows for the selected date range |
-| `summarizeGstRows(rows)` | aggregates GST totals for report summaries |
+| Function                                                   | Purpose                                                                 |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `formatCurrency(value)`                                    | formats numeric values for report output using Indian number formatting |
+| `formatIstDate(value)`                                     | formats a timestamp in the `Asia/Kolkata` timezone                      |
+| `safeFilePart(value)`                                      | sanitizes user input for downloadable file names                        |
+| `sanitizeExcelCell(value)`                                 | prevents formula injection in Excel exports                             |
+| `parseNonNegativeNumber(value)`                            | validates non-negative numeric input                                    |
+| `getShopName(userId)`                                      | resolves the current owner's shop name from `settings`                  |
+| `drawPdfBanner(doc, title, shopName, subtitle, rightText)` | renders the shared PDF report header block                              |
+| `drawPdfTableHeader(doc, columns)`                         | renders the shared PDF table header row                                 |
+| `ensurePdfSpace(doc, heightNeeded, onNewPage)`             | adds a new PDF page before content would overflow                       |
+| `getLowStockStatus(daysLeft)`                              | maps days-of-cover values into low-stock severity labels                |
+| `getReorderPriority(daysLeft)`                             | maps days-of-cover values into reorder priority labels                  |
+| `getSlowMovingPriority(sold30Days, daysCover)`             | classifies slow-moving inventory rows                                   |
+| `getSlowMovingFocusNote(sold30Days, daysCover)`            | writes the operator-facing message for slow-moving items                |
+| `fetchGstReportRows(userId, from, to)`                     | loads invoice-based GST rows for the selected date range                |
+| `summarizeGstRows(rows)`                                   | aggregates GST totals for report summaries                              |
 
 #### `routes/business.js` function inventory
 
 Route handlers in this file cover supplier lookup, purchase entry, purchase reporting, supplier ledger views, repayment capture, and expenses.
 
-| Function | Purpose |
-| -------- | ------- |
-| `parseNonNegativeNumber(value)` | validates numeric inputs that may be zero |
-| `parsePositiveNumber(value)` | validates numeric inputs that must be greater than zero |
-| `normalizeMobileNumber(value)` | canonicalizes supplier mobile numbers |
-| `normalizePaymentMode(value, fallback)` | constrains purchase/expense payment modes to supported values |
-| `parseDateInput(value)` | normalizes a raw date into `YYYY-MM-DD` form |
-| `toIstStartTimestamp(value)` | converts a date into an IST day-start timestamp |
-| `toIstDateRange(from, to)` | returns an inclusive IST date-range object for reports |
-| `buildPaymentSnapshot(subtotal, paidInput, fallbackMode)` | computes purchase payment status, paid amount, and due amount |
-| `findOrCreateSupplier(client, userId, payload)` | performs locked supplier lookup/create/update inside a transaction |
+| Function                                                  | Purpose                                                            |
+| --------------------------------------------------------- | ------------------------------------------------------------------ |
+| `parseNonNegativeNumber(value)`                           | validates numeric inputs that may be zero                          |
+| `parsePositiveNumber(value)`                              | validates numeric inputs that must be greater than zero            |
+| `normalizeMobileNumber(value)`                            | canonicalizes supplier mobile numbers                              |
+| `normalizePaymentMode(value, fallback)`                   | constrains purchase/expense payment modes to supported values      |
+| `parseDateInput(value)`                                   | normalizes a raw date into `YYYY-MM-DD` form                       |
+| `toIstStartTimestamp(value)`                              | converts a date into an IST day-start timestamp                    |
+| `toIstDateRange(from, to)`                                | returns an inclusive IST date-range object for reports             |
+| `buildPaymentSnapshot(subtotal, paidInput, fallbackMode)` | computes purchase payment status, paid amount, and due amount      |
+| `findOrCreateSupplier(client, userId, payload)`           | performs locked supplier lookup/create/update inside a transaction |
 
 #### `routes/invoices.js` function inventory
 
 Route handlers in this file cover invoice preview, invoice creation, invoice search/history, invoice detail, due settlement, PDF export, and shop profile settings.
 
-| Function | Purpose |
-| -------- | ------- |
-| `padSerial(n)` | zero-pads the daily invoice serial number |
-| `parsePositiveNumber(value)` | validates payment inputs that must be greater than zero |
-| `parseNonZeroNumber(value)` | validates invoice quantity inputs that may be positive or negative but not zero |
-| `parseNonNegativeNumber(value)` | validates invoice payment inputs that may be zero |
-| `normalizeMobileNumber(value)` | canonicalizes customer contact numbers |
-| `normalizeInvoicePaymentMode(value)` | constrains invoice payment modes to supported values |
-| `buildInvoicePaymentSnapshot(totalAmount, amountPaidInput, paymentModeInput)` | computes initial invoice payment totals and status |
-| `buildInvoiceSettlementSnapshot(invoiceRow, paymentAmountInput, paymentModeInput)` | computes the next payment state when collecting an outstanding due |
-| `isRetryableInvoiceWriteError(error)` | identifies PostgreSQL errors that justify retrying invoice creation |
-| `generateInvoiceNoWithClient(client, userId)` | allocates the next owner-scoped invoice number using `user_invoice_counter` |
+| Function                                                                           | Purpose                                                                         |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `padSerial(n)`                                                                     | zero-pads the daily invoice serial number                                       |
+| `parsePositiveNumber(value)`                                                       | validates payment inputs that must be greater than zero                         |
+| `parseNonZeroNumber(value)`                                                        | validates invoice quantity inputs that may be positive or negative but not zero |
+| `parseNonNegativeNumber(value)`                                                    | validates invoice payment inputs that may be zero                               |
+| `normalizeMobileNumber(value)`                                                     | canonicalizes customer contact numbers                                          |
+| `normalizeInvoicePaymentMode(value)`                                               | constrains invoice payment modes to supported values                            |
+| `buildInvoicePaymentSnapshot(totalAmount, amountPaidInput, paymentModeInput)`      | computes initial invoice payment totals and status                              |
+| `buildInvoiceSettlementSnapshot(invoiceRow, paymentAmountInput, paymentModeInput)` | computes the next payment state when collecting an outstanding due              |
+| `isRetryableInvoiceWriteError(error)`                                              | identifies PostgreSQL errors that justify retrying invoice creation             |
+| `generateInvoiceNoWithClient(client, userId)`                                      | allocates the next owner-scoped invoice number using `user_invoice_counter`     |
 
 Nested PDF helper functions such as `drawHeader()` and `drawTableHeader()` live inside the invoice PDF route because they are only used for that single response path.
 
@@ -540,85 +540,85 @@ Nested PDF helper functions such as `drawHeader()` and `drawTableHeader()` live 
 
 Route handlers in this file cover developer registration/login, owner or staff support-thread messaging, developer inbox views, reply posting, and conversation status changes.
 
-| Function | Purpose |
-| -------- | ------- |
-| `getSessionCookieOptions()` | returns shared cookie flags for developer support login/logout |
-| `markSensitiveResponse(res)` | marks support and developer-auth responses as `no-store` |
-| `normalizeEmail(value)` | canonicalizes developer email values to lowercase |
-| `normalizeName(value)` | trims and collapses whitespace for names |
-| `normalizeDeveloperAccessKey(value)` | normalizes the developer setup key by removing invisible/mobile copy-paste characters |
-| `normalizeSupportMessage(value)` | trims support message text and removes carriage returns |
-| `normalizeConversationStatus(value)` | constrains conversation status to `open` or `closed` |
-| `signDeveloperSession(payload)` | signs the developer support JWT |
-| `setDeveloperSessionCookie(res, token)` | writes the developer support cookie |
-| `clearDeveloperSessionCookie(res)` | clears the current developer support cookie |
-| `serializeDeveloperSession(admin)` | reshapes a developer admin row into a frontend-safe session object |
-| `getRequesterContext(req)` | resolves owner/staff sender identity for support-thread writes |
-| `serializeSupportConversation(row)` | normalizes support conversation rows for the frontend |
-| `serializeSupportMessage(row)` | normalizes support message rows for the frontend |
-| `getDeveloperByEmail(email)` | loads one developer admin account by normalized email |
-| `createDeveloperAccount({ name, email, passwordHash })` | inserts a new developer admin row |
-| `getRequesterConversation(client, requester)` | loads the owner/staff support thread for the current requester |
-| `upsertRequesterConversation(client, requester)` | finds or creates the per-requester support conversation |
-| `loadConversationMessages(client, conversationId)` | loads the message list for one support thread |
-| `loadDeveloperConversationById(client, conversationId)` | loads one support conversation for the developer inbox |
-| `loadDeveloperConversationList(client)` | loads the developer inbox queue ordered by unread/latest activity |
+| Function                                                | Purpose                                                                               |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `getSessionCookieOptions()`                             | returns shared cookie flags for developer support login/logout                        |
+| `markSensitiveResponse(res)`                            | marks support and developer-auth responses as `no-store`                              |
+| `normalizeEmail(value)`                                 | canonicalizes developer email values to lowercase                                     |
+| `normalizeName(value)`                                  | trims and collapses whitespace for names                                              |
+| `normalizeDeveloperAccessKey(value)`                    | normalizes the developer setup key by removing invisible/mobile copy-paste characters |
+| `normalizeSupportMessage(value)`                        | trims support message text and removes carriage returns                               |
+| `normalizeConversationStatus(value)`                    | constrains conversation status to `open` or `closed`                                  |
+| `signDeveloperSession(payload)`                         | signs the developer support JWT                                                       |
+| `setDeveloperSessionCookie(res, token)`                 | writes the developer support cookie                                                   |
+| `clearDeveloperSessionCookie(res)`                      | clears the current developer support cookie                                           |
+| `serializeDeveloperSession(admin)`                      | reshapes a developer admin row into a frontend-safe session object                    |
+| `getRequesterContext(req)`                              | resolves owner/staff sender identity for support-thread writes                        |
+| `serializeSupportConversation(row)`                     | normalizes support conversation rows for the frontend                                 |
+| `serializeSupportMessage(row)`                          | normalizes support message rows for the frontend                                      |
+| `getDeveloperByEmail(email)`                            | loads one developer admin account by normalized email                                 |
+| `createDeveloperAccount({ name, email, passwordHash })` | inserts a new developer admin row                                                     |
+| `getRequesterConversation(client, requester)`           | loads the owner/staff support thread for the current requester                        |
+| `upsertRequesterConversation(client, requester)`        | finds or creates the per-requester support conversation                               |
+| `loadConversationMessages(client, conversationId)`      | loads the message list for one support thread                                         |
+| `loadDeveloperConversationById(client, conversationId)` | loads one support conversation for the developer inbox                                |
+| `loadDeveloperConversationList(client)`                 | loads the developer inbox queue ordered by unread/latest activity                     |
 
 #### `utils/concurrency.js` function inventory
 
-| Function | Purpose |
-| -------- | ------- |
-| `normalizeLookupText(value)` | normalizes lookup strings for case-insensitive locking and querying |
-| `normalizeDisplayText(value)` | collapses whitespace while preserving user-facing capitalization |
-| `hashTextToInt(value)` | hashes text into a deterministic 32-bit integer lock key |
+| Function                                                     | Purpose                                                                       |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| `normalizeLookupText(value)`                                 | normalizes lookup strings for case-insensitive locking and querying           |
+| `normalizeDisplayText(value)`                                | collapses whitespace while preserving user-facing capitalization              |
+| `hashTextToInt(value)`                                       | hashes text into a deterministic 32-bit integer lock key                      |
 | `lockScopedResource(client, ownerId, namespace, resourceId)` | acquires an owner-scoped PostgreSQL advisory lock for the current transaction |
 
 #### `utils/runtime-log.js` function inventory
 
-| Function | Purpose |
-| -------- | ------- |
-| `normalizeError(error)` | converts native `Error` objects into JSON-safe log metadata |
-| `sanitizeValue(value, depth)` | recursively sanitizes log metadata and limits deep nesting |
-| `logEvent(level, event, meta)` | writes structured JSON logs to `stdout` or `stderr` |
+| Function                       | Purpose                                                     |
+| ------------------------------ | ----------------------------------------------------------- |
+| `normalizeError(error)`        | converts native `Error` objects into JSON-safe log metadata |
+| `sanitizeValue(value, depth)`  | recursively sanitizes log metadata and limits deep nesting  |
+| `logEvent(level, event, meta)` | writes structured JSON logs to `stdout` or `stderr`         |
 
 #### `public/js/permission-contract.js` function inventory
 
-| Function | Purpose |
-| -------- | ------- |
-| `createPermissionContract()` | constructs the shared permission configuration object used by backend and frontend |
-| `normalizePermissions(values)` | deduplicates and validates permission keys against the supported contract |
+| Function                       | Purpose                                                                            |
+| ------------------------------ | ---------------------------------------------------------------------------------- |
+| `createPermissionContract()`   | constructs the shared permission configuration object used by backend and frontend |
+| `normalizePermissions(values)` | deduplicates and validates permission keys against the supported contract          |
 
 #### `public/js/app-core.js` function inventory
 
-| Function | Purpose |
-| -------- | ------- |
-| `bootstrapInventoryApp(global)` | initializes the shared frontend application contract and publishes `window.InventoryApp` |
-| `escapeHtml(value)` | safely escapes HTML before injecting text into the DOM |
-| `normalizePermissions(values)` | normalizes permission arrays using the shared contract when available |
-| `getPermissionOption(permission)` | returns the UI metadata for one permission key |
-| `formatPermissionSummary(permissions, options)` | converts permission arrays into a short human-readable summary |
-| `clearStoredSession()` | removes legacy session artifacts from `localStorage` |
-| `isMobileLayout()` | checks whether the UI is currently in mobile layout |
-| `isOwnerUser(user)` | identifies owner sessions on the client side |
-| `getUserPermissions(user)` | returns the current permission set for a user |
-| `canAccessPermission(user, ...permissions)` | answers whether a user can access a given permission area |
-| `canAccessSection(user, sectionId)` | maps a dashboard section ID to the correct permission check |
+| Function                                        | Purpose                                                                                  |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `bootstrapInventoryApp(global)`                 | initializes the shared frontend application contract and publishes `window.InventoryApp` |
+| `escapeHtml(value)`                             | safely escapes HTML before injecting text into the DOM                                   |
+| `normalizePermissions(values)`                  | normalizes permission arrays using the shared contract when available                    |
+| `getPermissionOption(permission)`               | returns the UI metadata for one permission key                                           |
+| `formatPermissionSummary(permissions, options)` | converts permission arrays into a short human-readable summary                           |
+| `clearStoredSession()`                          | removes legacy session artifacts from `localStorage`                                     |
+| `isMobileLayout()`                              | checks whether the UI is currently in mobile layout                                      |
+| `isOwnerUser(user)`                             | identifies owner sessions on the client side                                             |
+| `getUserPermissions(user)`                      | returns the current permission set for a user                                            |
+| `canAccessPermission(user, ...permissions)`     | answers whether a user can access a given permission area                                |
+| `canAccessSection(user, sectionId)`             | maps a dashboard section ID to the correct permission check                              |
 
 #### `public/js/app-shell.js` function inventory
 
-| Function | Purpose |
-| -------- | ------- |
-| `bootstrapInventoryShell(global)` | initializes the reusable sidebar shell controller |
-| `syncAndroidSidebarGestureLock(isLocked)` | coordinates sidebar gesture locking with the Android wrapper bridge |
-| `ensureStyles()` | injects sidebar CSS once into the document head |
-| `ensureShell()` | creates or reuses the sidebar/toggle DOM shell |
-| `syncFooterText()` | refreshes footer text from the current app contract |
-| `buildMetaAttributes(item)` | converts sidebar metadata into `data-*` attributes |
-| `buildDashboardButton(item)` | renders one dashboard navigation button |
-| `buildInvoiceButton(item)` | renders the invoice-page navigation button |
-| `getElements()` | returns cached references to the shell's core DOM nodes |
-| `renderSidebar(pageType)` | rebuilds the sidebar markup for the current page type |
-| `setupSidebar(pageType, options)` | wires sidebar rendering, open/close behavior, scroll locking, and selection callbacks |
+| Function                                  | Purpose                                                                               |
+| ----------------------------------------- | ------------------------------------------------------------------------------------- |
+| `bootstrapInventoryShell(global)`         | initializes the reusable sidebar shell controller                                     |
+| `syncAndroidSidebarGestureLock(isLocked)` | coordinates sidebar gesture locking with the Android wrapper bridge                   |
+| `ensureStyles()`                          | injects sidebar CSS once into the document head                                       |
+| `ensureShell()`                           | creates or reuses the sidebar/toggle DOM shell                                        |
+| `syncFooterText()`                        | refreshes footer text from the current app contract                                   |
+| `buildMetaAttributes(item)`               | converts sidebar metadata into `data-*` attributes                                    |
+| `buildDashboardButton(item)`              | renders one dashboard navigation button                                               |
+| `buildInvoiceButton(item)`                | renders the invoice-page navigation button                                            |
+| `getElements()`                           | returns cached references to the shell's core DOM nodes                               |
+| `renderSidebar(pageType)`                 | rebuilds the sidebar markup for the current page type                                 |
+| `setupSidebar(pageType, options)`         | wires sidebar rendering, open/close behavior, scroll locking, and selection callbacks |
 
 #### `public/js/dashboard.js` workflow map
 
@@ -936,18 +936,18 @@ All endpoints below are mounted under either `/api/auth` or `/api`.
 
 ### 11.5 Support routes from `routes/support.js`
 
-| Method  | Path                                                        | Purpose                                                |
-| ------- | ----------------------------------------------------------- | ------------------------------------------------------ |
-| `POST`  | `/api/developer-auth/register`                              | create a developer support account                     |
-| `POST`  | `/api/developer-auth/login`                                 | developer support login                                |
-| `GET`   | `/api/developer-auth/me`                                    | return normalized current developer session            |
-| `POST`  | `/api/developer-auth/logout`                                | clear developer support session cookie                 |
-| `GET`   | `/api/support/thread`                                       | load the current owner/staff support thread            |
-| `POST`  | `/api/support/messages`                                     | send an owner/staff support message                    |
-| `GET`   | `/api/developer-support/conversations`                      | load the developer inbox queue                         |
-| `GET`   | `/api/developer-support/conversations/:conversationId/messages` | load one developer inbox thread                     |
-| `POST`  | `/api/developer-support/conversations/:conversationId/reply`    | send a developer reply                              |
-| `PATCH` | `/api/developer-support/conversations/:conversationId/status`   | update a conversation between `open` and `closed`   |
+| Method  | Path                                                            | Purpose                                           |
+| ------- | --------------------------------------------------------------- | ------------------------------------------------- |
+| `POST`  | `/api/developer-auth/register`                                  | create a developer support account                |
+| `POST`  | `/api/developer-auth/login`                                     | developer support login                           |
+| `GET`   | `/api/developer-auth/me`                                        | return normalized current developer session       |
+| `POST`  | `/api/developer-auth/logout`                                    | clear developer support session cookie            |
+| `GET`   | `/api/support/thread`                                           | load the current owner/staff support thread       |
+| `POST`  | `/api/support/messages`                                         | send an owner/staff support message               |
+| `GET`   | `/api/developer-support/conversations`                          | load the developer inbox queue                    |
+| `GET`   | `/api/developer-support/conversations/:conversationId/messages` | load one developer inbox thread                   |
+| `POST`  | `/api/developer-support/conversations/:conversationId/reply`    | send a developer reply                            |
+| `PATCH` | `/api/developer-support/conversations/:conversationId/status`   | update a conversation between `open` and `closed` |
 
 ## 12. Database Schema
 
@@ -998,24 +998,24 @@ erDiagram
 
 ### 12.4 Table summary
 
-| Table                  | Purpose                                        | Main feature area      |
-| ---------------------- | ---------------------------------------------- | ---------------------- |
-| `users`                | owner accounts                                 | auth                   |
-| `staff_accounts`       | staff credentials and page permissions         | auth/staff             |
-| `developer_admins`     | developer support login accounts               | developer support auth |
-| `support_conversations` | per-requester support thread headers          | support                |
-| `support_messages`     | threaded support chat messages                 | support                |
-| `settings`             | shop profile, GST defaults, profit defaults    | invoice/settings/stock |
-| `items`                | current stock master                           | inventory              |
-| `sales`                | item-level sales movement history              | sales/reporting        |
-| `debts`                | customer due ledger and invoice settlement log | dues                   |
-| `suppliers`            | supplier master data                           | purchases              |
-| `purchases`            | purchase header records                        | purchases              |
-| `purchase_items`       | purchase line items                            | purchases              |
-| `expenses`             | expense ledger                                 | finance                |
-| `invoices`             | invoice header records                         | billing                |
-| `invoice_items`        | invoice line items                             | billing                |
-| `user_invoice_counter` | per-user daily invoice serial counter          | billing                |
+| Table                   | Purpose                                        | Main feature area      |
+| ----------------------- | ---------------------------------------------- | ---------------------- |
+| `users`                 | owner accounts                                 | auth                   |
+| `staff_accounts`        | staff credentials and page permissions         | auth/staff             |
+| `developer_admins`      | developer support login accounts               | developer support auth |
+| `support_conversations` | per-requester support thread headers           | support                |
+| `support_messages`      | threaded support chat messages                 | support                |
+| `settings`              | shop profile, GST defaults, profit defaults    | invoice/settings/stock |
+| `items`                 | current stock master                           | inventory              |
+| `sales`                 | item-level sales movement history              | sales/reporting        |
+| `debts`                 | customer due ledger and invoice settlement log | dues                   |
+| `suppliers`             | supplier master data                           | purchases              |
+| `purchases`             | purchase header records                        | purchases              |
+| `purchase_items`        | purchase line items                            | purchases              |
+| `expenses`              | expense ledger                                 | finance                |
+| `invoices`              | invoice header records                         | billing                |
+| `invoice_items`         | invoice line items                             | billing                |
+| `user_invoice_counter`  | per-user daily invoice serial counter          | billing                |
 
 ### 12.5 Detailed table guide
 
@@ -1382,19 +1382,19 @@ The dictionary below reflects the current effective schema from [`../migrations/
 
 #### `users`
 
-| Column | Type | Null | Default | Details |
-| ------ | ---- | ---- | ------- | ------- |
-| `id` | `SERIAL` | no | sequence | primary key |
-| `name` | `VARCHAR(50)` | no | none | owner display name |
-| `email` | `VARCHAR(100)` | no | none | unique login identifier |
-| `mobile_number` | `VARCHAR(10)` | yes | none | optional 10-digit mobile number |
-| `password_hash` | `VARCHAR(255)` | no | none | bcrypt hash |
-| `is_verified` | `BOOLEAN` | yes | `FALSE` | currently not central to active auth flow |
-| `verify_token` | `VARCHAR(255)` | yes | none | legacy email verification token |
-| `reset_token` | `VARCHAR(255)` | yes | none | hashed password reset token |
-| `reset_token_expires` | `TIMESTAMP` | yes | none | reset token expiry |
-| `created_at` | `TIMESTAMPTZ` | yes | `NOW()` | creation timestamp |
-| `updated_at` | `TIMESTAMPTZ` | yes | `NOW()` | updated by trigger |
+| Column                | Type           | Null | Default  | Details                                   |
+| --------------------- | -------------- | ---- | -------- | ----------------------------------------- |
+| `id`                  | `SERIAL`       | no   | sequence | primary key                               |
+| `name`                | `VARCHAR(50)`  | no   | none     | owner display name                        |
+| `email`               | `VARCHAR(100)` | no   | none     | unique login identifier                   |
+| `mobile_number`       | `VARCHAR(10)`  | yes  | none     | optional 10-digit mobile number           |
+| `password_hash`       | `VARCHAR(255)` | no   | none     | bcrypt hash                               |
+| `is_verified`         | `BOOLEAN`      | yes  | `FALSE`  | currently not central to active auth flow |
+| `verify_token`        | `VARCHAR(255)` | yes  | none     | legacy email verification token           |
+| `reset_token`         | `VARCHAR(255)` | yes  | none     | hashed password reset token               |
+| `reset_token_expires` | `TIMESTAMP`    | yes  | none     | reset token expiry                        |
+| `created_at`          | `TIMESTAMPTZ`  | yes  | `NOW()`  | creation timestamp                        |
+| `updated_at`          | `TIMESTAMPTZ`  | yes  | `NOW()`  | updated by trigger                        |
 
 Constraints, indexes, and triggers:
 
@@ -1406,17 +1406,17 @@ Constraints, indexes, and triggers:
 
 #### `staff_accounts`
 
-| Column | Type | Null | Default | Details |
-| ------ | ---- | ---- | ------- | ------- |
-| `id` | `SERIAL` | no | sequence | primary key |
-| `owner_user_id` | `INT` | no | none | foreign key to `users.id` with `ON DELETE CASCADE` |
-| `name` | `VARCHAR(80)` | no | none | staff display name |
-| `username` | `VARCHAR(50)` | no | none | staff login identifier |
-| `password_hash` | `VARCHAR(255)` | no | none | bcrypt hash |
-| `page_permissions` | `TEXT[]` | no | `ARRAY['add_stock', 'sale_invoice']::TEXT[]` | page-level access contract |
-| `is_active` | `BOOLEAN` | no | `TRUE` | staff availability flag |
-| `created_at` | `TIMESTAMPTZ` | yes | `NOW()` | creation timestamp |
-| `updated_at` | `TIMESTAMPTZ` | yes | `NOW()` | updated by trigger |
+| Column             | Type           | Null | Default                                      | Details                                            |
+| ------------------ | -------------- | ---- | -------------------------------------------- | -------------------------------------------------- |
+| `id`               | `SERIAL`       | no   | sequence                                     | primary key                                        |
+| `owner_user_id`    | `INT`          | no   | none                                         | foreign key to `users.id` with `ON DELETE CASCADE` |
+| `name`             | `VARCHAR(80)`  | no   | none                                         | staff display name                                 |
+| `username`         | `VARCHAR(50)`  | no   | none                                         | staff login identifier                             |
+| `password_hash`    | `VARCHAR(255)` | no   | none                                         | bcrypt hash                                        |
+| `page_permissions` | `TEXT[]`       | no   | `ARRAY['add_stock', 'sale_invoice']::TEXT[]` | page-level access contract                         |
+| `is_active`        | `BOOLEAN`      | no   | `TRUE`                                       | staff availability flag                            |
+| `created_at`       | `TIMESTAMPTZ`  | yes  | `NOW()`                                      | creation timestamp                                 |
+| `updated_at`       | `TIMESTAMPTZ`  | yes  | `NOW()`                                      | updated by trigger                                 |
 
 Constraints, indexes, and triggers:
 
@@ -1429,15 +1429,15 @@ Constraints, indexes, and triggers:
 
 #### `settings`
 
-| Column | Type | Null | Default | Details |
-| ------ | ---- | ---- | ------- | ------- |
-| `id` | `SERIAL` | no | sequence | primary key |
-| `user_id` | `INT` | no | none | unique foreign key to `users.id` with `ON DELETE CASCADE` |
-| `shop_name` | `VARCHAR(150)` | yes | none | invoice and report branding |
-| `shop_address` | `TEXT` | yes | none | invoice header address |
-| `gst_no` | `VARCHAR(20)` | yes | none | business GST number |
-| `gst_rate` | `NUMERIC(5,2)` | no | `18.00` | default GST rate for invoices |
-| `default_profit_percent` | `NUMERIC(8,2)` | no | `30.00` | shared stock/purchase default margin |
+| Column                   | Type           | Null | Default  | Details                                                   |
+| ------------------------ | -------------- | ---- | -------- | --------------------------------------------------------- |
+| `id`                     | `SERIAL`       | no   | sequence | primary key                                               |
+| `user_id`                | `INT`          | no   | none     | unique foreign key to `users.id` with `ON DELETE CASCADE` |
+| `shop_name`              | `VARCHAR(150)` | yes  | none     | invoice and report branding                               |
+| `shop_address`           | `TEXT`         | yes  | none     | invoice header address                                    |
+| `gst_no`                 | `VARCHAR(20)`  | yes  | none     | business GST number                                       |
+| `gst_rate`               | `NUMERIC(5,2)` | no   | `18.00`  | default GST rate for invoices                             |
+| `default_profit_percent` | `NUMERIC(8,2)` | no   | `30.00`  | shared stock/purchase default margin                      |
 
 Constraints, indexes, and triggers:
 
@@ -1448,16 +1448,16 @@ Constraints, indexes, and triggers:
 
 #### `items`
 
-| Column | Type | Null | Default | Details |
-| ------ | ---- | ---- | ------- | ------- |
-| `id` | `SERIAL` | no | sequence | primary key |
-| `user_id` | `INT` | no | none | foreign key to `users.id` with `ON DELETE CASCADE` |
-| `name` | `VARCHAR(255)` | no | none | item name |
-| `quantity` | `NUMERIC(12,2)` | yes | `0` | current quantity on hand |
-| `buying_rate` | `NUMERIC(10,2)` | yes | `0` | latest cost basis snapshot |
-| `selling_rate` | `NUMERIC(10,2)` | yes | `0` | latest sale rate snapshot |
-| `created_at` | `TIMESTAMPTZ` | yes | `NOW()` | creation timestamp |
-| `updated_at` | `TIMESTAMPTZ` | yes | `NOW()` | updated by trigger |
+| Column         | Type            | Null | Default  | Details                                            |
+| -------------- | --------------- | ---- | -------- | -------------------------------------------------- |
+| `id`           | `SERIAL`        | no   | sequence | primary key                                        |
+| `user_id`      | `INT`           | no   | none     | foreign key to `users.id` with `ON DELETE CASCADE` |
+| `name`         | `VARCHAR(255)`  | no   | none     | item name                                          |
+| `quantity`     | `NUMERIC(12,2)` | yes  | `0`      | current quantity on hand                           |
+| `buying_rate`  | `NUMERIC(10,2)` | yes  | `0`      | latest cost basis snapshot                         |
+| `selling_rate` | `NUMERIC(10,2)` | yes  | `0`      | latest sale rate snapshot                          |
+| `created_at`   | `TIMESTAMPTZ`   | yes  | `NOW()`  | creation timestamp                                 |
+| `updated_at`   | `TIMESTAMPTZ`   | yes  | `NOW()`  | updated by trigger                                 |
 
 Constraints, indexes, and triggers:
 
@@ -1469,16 +1469,16 @@ Constraints, indexes, and triggers:
 
 #### `sales`
 
-| Column | Type | Null | Default | Details |
-| ------ | ---- | ---- | ------- | ------- |
-| `id` | `SERIAL` | no | sequence | primary key |
-| `user_id` | `INT` | no | none | foreign key to `users.id` with `ON DELETE CASCADE` |
-| `item_id` | `INT` | no | none | foreign key to `items.id` with `ON DELETE CASCADE` |
-| `quantity` | `NUMERIC(12,2)` | no | none | sold quantity; negative quantity is possible for return-style entries |
-| `cost_price` | `NUMERIC(10,2)` | no | `0` | stored cost basis for margin reporting |
-| `selling_price` | `NUMERIC(10,2)` | no | none | unit selling rate |
-| `total_price` | `NUMERIC(12,2)` | no | none | line total |
-| `created_at` | `TIMESTAMPTZ` | yes | `NOW()` | sale timestamp |
+| Column          | Type            | Null | Default  | Details                                                               |
+| --------------- | --------------- | ---- | -------- | --------------------------------------------------------------------- |
+| `id`            | `SERIAL`        | no   | sequence | primary key                                                           |
+| `user_id`       | `INT`           | no   | none     | foreign key to `users.id` with `ON DELETE CASCADE`                    |
+| `item_id`       | `INT`           | no   | none     | foreign key to `items.id` with `ON DELETE CASCADE`                    |
+| `quantity`      | `NUMERIC(12,2)` | no   | none     | sold quantity; negative quantity is possible for return-style entries |
+| `cost_price`    | `NUMERIC(10,2)` | no   | `0`      | stored cost basis for margin reporting                                |
+| `selling_price` | `NUMERIC(10,2)` | no   | none     | unit selling rate                                                     |
+| `total_price`   | `NUMERIC(12,2)` | no   | none     | line total                                                            |
+| `created_at`    | `TIMESTAMPTZ`   | yes  | `NOW()`  | sale timestamp                                                        |
 
 Constraints, indexes, and triggers:
 
@@ -1489,19 +1489,19 @@ Constraints, indexes, and triggers:
 
 #### `debts`
 
-| Column | Type | Null | Default | Details |
-| ------ | ---- | ---- | ------- | ------- |
-| `id` | `SERIAL` | no | sequence | primary key |
-| `user_id` | `INT` | no | none | foreign key to `users.id` with `ON DELETE CASCADE` |
-| `customer_name` | `VARCHAR(100)` | no | none | customer display name |
-| `customer_number` | `VARCHAR(10)` | no | none | 10-digit customer mobile number |
-| `total` | `NUMERIC(12,2)` | yes | `0` | debit amount added to the ledger |
-| `credit` | `NUMERIC(12,2)` | yes | `0` | amount collected against the ledger row |
-| `balance` | `NUMERIC(12,2)` | generated | `GENERATED ALWAYS AS (total - credit)` | stored generated balance |
-| `remark` | `TEXT` | yes | none | free-text note |
-| `invoice_id` | `INT` | yes | none | optional foreign key to `invoices.id` with `ON DELETE SET NULL` |
-| `created_at` | `TIMESTAMPTZ` | yes | `NOW()` | creation timestamp |
-| `updated_at` | `TIMESTAMPTZ` | yes | `NOW()` | updated by trigger |
+| Column            | Type            | Null      | Default                                | Details                                                         |
+| ----------------- | --------------- | --------- | -------------------------------------- | --------------------------------------------------------------- |
+| `id`              | `SERIAL`        | no        | sequence                               | primary key                                                     |
+| `user_id`         | `INT`           | no        | none                                   | foreign key to `users.id` with `ON DELETE CASCADE`              |
+| `customer_name`   | `VARCHAR(100)`  | no        | none                                   | customer display name                                           |
+| `customer_number` | `VARCHAR(10)`   | no        | none                                   | 10-digit customer mobile number                                 |
+| `total`           | `NUMERIC(12,2)` | yes       | `0`                                    | debit amount added to the ledger                                |
+| `credit`          | `NUMERIC(12,2)` | yes       | `0`                                    | amount collected against the ledger row                         |
+| `balance`         | `NUMERIC(12,2)` | generated | `GENERATED ALWAYS AS (total - credit)` | stored generated balance                                        |
+| `remark`          | `TEXT`          | yes       | none                                   | free-text note                                                  |
+| `invoice_id`      | `INT`           | yes       | none                                   | optional foreign key to `invoices.id` with `ON DELETE SET NULL` |
+| `created_at`      | `TIMESTAMPTZ`   | yes       | `NOW()`                                | creation timestamp                                              |
+| `updated_at`      | `TIMESTAMPTZ`   | yes       | `NOW()`                                | updated by trigger                                              |
 
 Constraints, indexes, and triggers:
 
@@ -1513,15 +1513,15 @@ Constraints, indexes, and triggers:
 
 #### `suppliers`
 
-| Column | Type | Null | Default | Details |
-| ------ | ---- | ---- | ------- | ------- |
-| `id` | `SERIAL` | no | sequence | primary key |
-| `user_id` | `INT` | no | none | foreign key to `users.id` with `ON DELETE CASCADE` |
-| `name` | `VARCHAR(120)` | no | none | supplier name |
-| `mobile_number` | `VARCHAR(10)` | yes | none | optional supplier contact number |
-| `address` | `TEXT` | yes | none | supplier address |
-| `created_at` | `TIMESTAMPTZ` | yes | `NOW()` | creation timestamp |
-| `updated_at` | `TIMESTAMPTZ` | yes | `NOW()` | updated by trigger |
+| Column          | Type           | Null | Default  | Details                                            |
+| --------------- | -------------- | ---- | -------- | -------------------------------------------------- |
+| `id`            | `SERIAL`       | no   | sequence | primary key                                        |
+| `user_id`       | `INT`          | no   | none     | foreign key to `users.id` with `ON DELETE CASCADE` |
+| `name`          | `VARCHAR(120)` | no   | none     | supplier name                                      |
+| `mobile_number` | `VARCHAR(10)`  | yes  | none     | optional supplier contact number                   |
+| `address`       | `TEXT`         | yes  | none     | supplier address                                   |
+| `created_at`    | `TIMESTAMPTZ`  | yes  | `NOW()`  | creation timestamp                                 |
+| `updated_at`    | `TIMESTAMPTZ`  | yes  | `NOW()`  | updated by trigger                                 |
 
 Constraints, indexes, and triggers:
 
@@ -1533,21 +1533,21 @@ Constraints, indexes, and triggers:
 
 #### `purchases`
 
-| Column | Type | Null | Default | Details |
-| ------ | ---- | ---- | ------- | ------- |
-| `id` | `SERIAL` | no | sequence | primary key |
-| `user_id` | `INT` | no | none | foreign key to `users.id` with `ON DELETE CASCADE` |
-| `supplier_id` | `INT` | no | none | foreign key to `suppliers.id` with `ON DELETE CASCADE` |
-| `bill_no` | `VARCHAR(80)` | yes | none | supplier bill/reference number |
-| `purchase_date` | `TIMESTAMPTZ` | yes | `NOW()` | purchase timestamp |
-| `subtotal` | `NUMERIC(12,2)` | no | `0` | purchase amount before payment split |
-| `amount_paid` | `NUMERIC(12,2)` | no | `0` | amount already paid |
-| `amount_due` | `NUMERIC(12,2)` | no | `0` | remaining supplier due |
-| `payment_mode` | `VARCHAR(20)` | no | `'cash'` | payment channel |
-| `payment_status` | `VARCHAR(20)` | no | `'paid'` | `paid`, `partial`, or `due` style state |
-| `note` | `TEXT` | yes | none | optional operator note |
-| `created_at` | `TIMESTAMPTZ` | yes | `NOW()` | creation timestamp |
-| `updated_at` | `TIMESTAMPTZ` | yes | `NOW()` | updated by trigger |
+| Column           | Type            | Null | Default  | Details                                                |
+| ---------------- | --------------- | ---- | -------- | ------------------------------------------------------ |
+| `id`             | `SERIAL`        | no   | sequence | primary key                                            |
+| `user_id`        | `INT`           | no   | none     | foreign key to `users.id` with `ON DELETE CASCADE`     |
+| `supplier_id`    | `INT`           | no   | none     | foreign key to `suppliers.id` with `ON DELETE CASCADE` |
+| `bill_no`        | `VARCHAR(80)`   | yes  | none     | supplier bill/reference number                         |
+| `purchase_date`  | `TIMESTAMPTZ`   | yes  | `NOW()`  | purchase timestamp                                     |
+| `subtotal`       | `NUMERIC(12,2)` | no   | `0`      | purchase amount before payment split                   |
+| `amount_paid`    | `NUMERIC(12,2)` | no   | `0`      | amount already paid                                    |
+| `amount_due`     | `NUMERIC(12,2)` | no   | `0`      | remaining supplier due                                 |
+| `payment_mode`   | `VARCHAR(20)`   | no   | `'cash'` | payment channel                                        |
+| `payment_status` | `VARCHAR(20)`   | no   | `'paid'` | `paid`, `partial`, or `due` style state                |
+| `note`           | `TEXT`          | yes  | none     | optional operator note                                 |
+| `created_at`     | `TIMESTAMPTZ`   | yes  | `NOW()`  | creation timestamp                                     |
+| `updated_at`     | `TIMESTAMPTZ`   | yes  | `NOW()`  | updated by trigger                                     |
 
 Constraints, indexes, and triggers:
 
@@ -1558,15 +1558,15 @@ Constraints, indexes, and triggers:
 
 #### `purchase_items`
 
-| Column | Type | Null | Default | Details |
-| ------ | ---- | ---- | ------- | ------- |
-| `id` | `SERIAL` | no | sequence | primary key |
-| `purchase_id` | `INT` | no | none | foreign key to `purchases.id` with `ON DELETE CASCADE` |
-| `item_name` | `VARCHAR(200)` | no | none | line-level item name snapshot |
-| `quantity` | `NUMERIC(12,2)` | no | `0` | purchased quantity |
-| `buying_rate` | `NUMERIC(12,2)` | no | `0` | line buying rate |
-| `selling_rate` | `NUMERIC(12,2)` | no | `0` | suggested selling rate snapshot |
-| `line_total` | `NUMERIC(12,2)` | no | `0` | line amount |
+| Column         | Type            | Null | Default  | Details                                                |
+| -------------- | --------------- | ---- | -------- | ------------------------------------------------------ |
+| `id`           | `SERIAL`        | no   | sequence | primary key                                            |
+| `purchase_id`  | `INT`           | no   | none     | foreign key to `purchases.id` with `ON DELETE CASCADE` |
+| `item_name`    | `VARCHAR(200)`  | no   | none     | line-level item name snapshot                          |
+| `quantity`     | `NUMERIC(12,2)` | no   | `0`      | purchased quantity                                     |
+| `buying_rate`  | `NUMERIC(12,2)` | no   | `0`      | line buying rate                                       |
+| `selling_rate` | `NUMERIC(12,2)` | no   | `0`      | suggested selling rate snapshot                        |
+| `line_total`   | `NUMERIC(12,2)` | no   | `0`      | line amount                                            |
 
 Constraints, indexes, and triggers:
 
@@ -1577,18 +1577,18 @@ Constraints, indexes, and triggers:
 
 #### `expenses`
 
-| Column | Type | Null | Default | Details |
-| ------ | ---- | ---- | ------- | ------- |
-| `id` | `SERIAL` | no | sequence | primary key |
-| `user_id` | `INT` | no | none | foreign key to `users.id` with `ON DELETE CASCADE` |
-| `title` | `VARCHAR(160)` | no | none | expense label |
-| `category` | `VARCHAR(80)` | no | none | expense category |
-| `amount` | `NUMERIC(12,2)` | no | `0` | expense amount |
-| `payment_mode` | `VARCHAR(20)` | no | `'cash'` | payment channel |
-| `expense_date` | `TIMESTAMPTZ` | yes | `NOW()` | business expense timestamp |
-| `note` | `TEXT` | yes | none | optional note |
-| `created_at` | `TIMESTAMPTZ` | yes | `NOW()` | creation timestamp |
-| `updated_at` | `TIMESTAMPTZ` | yes | `NOW()` | updated by trigger |
+| Column         | Type            | Null | Default  | Details                                            |
+| -------------- | --------------- | ---- | -------- | -------------------------------------------------- |
+| `id`           | `SERIAL`        | no   | sequence | primary key                                        |
+| `user_id`      | `INT`           | no   | none     | foreign key to `users.id` with `ON DELETE CASCADE` |
+| `title`        | `VARCHAR(160)`  | no   | none     | expense label                                      |
+| `category`     | `VARCHAR(80)`   | no   | none     | expense category                                   |
+| `amount`       | `NUMERIC(12,2)` | no   | `0`      | expense amount                                     |
+| `payment_mode` | `VARCHAR(20)`   | no   | `'cash'` | payment channel                                    |
+| `expense_date` | `TIMESTAMPTZ`   | yes  | `NOW()`  | business expense timestamp                         |
+| `note`         | `TEXT`          | yes  | none     | optional note                                      |
+| `created_at`   | `TIMESTAMPTZ`   | yes  | `NOW()`  | creation timestamp                                 |
+| `updated_at`   | `TIMESTAMPTZ`   | yes  | `NOW()`  | updated by trigger                                 |
 
 Constraints, indexes, and triggers:
 
@@ -1599,25 +1599,25 @@ Constraints, indexes, and triggers:
 
 #### `invoices`
 
-| Column | Type | Null | Default | Details |
-| ------ | ---- | ---- | ------- | ------- |
-| `id` | `SERIAL` | no | sequence | primary key |
-| `user_id` | `INT` | no | none | foreign key to `users.id` with `ON DELETE CASCADE` |
-| `invoice_no` | `VARCHAR(40)` | no | none | unique invoice identifier |
-| `gst_no` | `VARCHAR(20)` | yes | none | invoice-specific GST number snapshot |
-| `customer_name` | `VARCHAR(150)` | yes | none | billed customer name |
-| `contact` | `VARCHAR(20)` | yes | none | customer contact |
-| `address` | `TEXT` | yes | none | billing address |
-| `date` | `TIMESTAMPTZ` | yes | `NOW()` | invoice timestamp |
-| `subtotal` | `NUMERIC(12,2)` | yes | `0` | amount before GST |
-| `gst_amount` | `NUMERIC(12,2)` | yes | `0` | tax amount |
-| `total_amount` | `NUMERIC(12,2)` | yes | `0` | final invoice total |
-| `payment_mode` | `VARCHAR(20)` | no | `'cash'` | current payment mode |
-| `payment_status` | `VARCHAR(20)` | no | `'paid'` | current payment state |
-| `amount_paid` | `NUMERIC(12,2)` | no | `0` | cumulative received amount |
-| `amount_due` | `NUMERIC(12,2)` | no | `0` | outstanding amount |
-| `created_at` | `TIMESTAMPTZ` | yes | `NOW()` | creation timestamp |
-| `updated_at` | `TIMESTAMPTZ` | yes | `NOW()` | updated by trigger |
+| Column           | Type            | Null | Default  | Details                                            |
+| ---------------- | --------------- | ---- | -------- | -------------------------------------------------- |
+| `id`             | `SERIAL`        | no   | sequence | primary key                                        |
+| `user_id`        | `INT`           | no   | none     | foreign key to `users.id` with `ON DELETE CASCADE` |
+| `invoice_no`     | `VARCHAR(40)`   | no   | none     | unique invoice identifier                          |
+| `gst_no`         | `VARCHAR(20)`   | yes  | none     | invoice-specific GST number snapshot               |
+| `customer_name`  | `VARCHAR(150)`  | yes  | none     | billed customer name                               |
+| `contact`        | `VARCHAR(20)`   | yes  | none     | customer contact                                   |
+| `address`        | `TEXT`          | yes  | none     | billing address                                    |
+| `date`           | `TIMESTAMPTZ`   | yes  | `NOW()`  | invoice timestamp                                  |
+| `subtotal`       | `NUMERIC(12,2)` | yes  | `0`      | amount before GST                                  |
+| `gst_amount`     | `NUMERIC(12,2)` | yes  | `0`      | tax amount                                         |
+| `total_amount`   | `NUMERIC(12,2)` | yes  | `0`      | final invoice total                                |
+| `payment_mode`   | `VARCHAR(20)`   | no   | `'cash'` | current payment mode                               |
+| `payment_status` | `VARCHAR(20)`   | no   | `'paid'` | current payment state                              |
+| `amount_paid`    | `NUMERIC(12,2)` | no   | `0`      | cumulative received amount                         |
+| `amount_due`     | `NUMERIC(12,2)` | no   | `0`      | outstanding amount                                 |
+| `created_at`     | `TIMESTAMPTZ`   | yes  | `NOW()`  | creation timestamp                                 |
+| `updated_at`     | `TIMESTAMPTZ`   | yes  | `NOW()`  | updated by trigger                                 |
 
 Constraints, indexes, and triggers:
 
@@ -1630,14 +1630,14 @@ Constraints, indexes, and triggers:
 
 #### `invoice_items`
 
-| Column | Type | Null | Default | Details |
-| ------ | ---- | ---- | ------- | ------- |
-| `id` | `SERIAL` | no | sequence | primary key |
-| `invoice_id` | `INT` | no | none | foreign key to `invoices.id` with `ON DELETE CASCADE` |
-| `description` | `VARCHAR(200)` | yes | none | line description/item name snapshot |
-| `quantity` | `NUMERIC(12,2)` | yes | `0` | line quantity |
-| `rate` | `NUMERIC(12,2)` | yes | `0` | line rate |
-| `amount` | `NUMERIC(12,2)` | yes | `0` | line total |
+| Column        | Type            | Null | Default  | Details                                               |
+| ------------- | --------------- | ---- | -------- | ----------------------------------------------------- |
+| `id`          | `SERIAL`        | no   | sequence | primary key                                           |
+| `invoice_id`  | `INT`           | no   | none     | foreign key to `invoices.id` with `ON DELETE CASCADE` |
+| `description` | `VARCHAR(200)`  | yes  | none     | line description/item name snapshot                   |
+| `quantity`    | `NUMERIC(12,2)` | yes  | `0`      | line quantity                                         |
+| `rate`        | `NUMERIC(12,2)` | yes  | `0`      | line rate                                             |
+| `amount`      | `NUMERIC(12,2)` | yes  | `0`      | line total                                            |
 
 Constraints, indexes, and triggers:
 
@@ -1648,12 +1648,12 @@ Constraints, indexes, and triggers:
 
 #### `user_invoice_counter`
 
-| Column | Type | Null | Default | Details |
-| ------ | ---- | ---- | ------- | ------- |
-| `user_id` | `INT` | no | none | foreign key to `users.id` with `ON DELETE CASCADE` |
-| `date_key` | `DATE` | no | none | per-day invoice bucket |
-| `next_no` | `INTEGER` | no | `1` | next serial to allocate |
-| `created_at` | `TIMESTAMPTZ` | yes | `NOW()` | first creation timestamp |
+| Column       | Type          | Null | Default | Details                                            |
+| ------------ | ------------- | ---- | ------- | -------------------------------------------------- |
+| `user_id`    | `INT`         | no   | none    | foreign key to `users.id` with `ON DELETE CASCADE` |
+| `date_key`   | `DATE`        | no   | none    | per-day invoice bucket                             |
+| `next_no`    | `INTEGER`     | no   | `1`     | next serial to allocate                            |
+| `created_at` | `TIMESTAMPTZ` | yes  | `NOW()` | first creation timestamp                           |
 
 Constraints, indexes, and triggers:
 
@@ -1742,33 +1742,33 @@ Runtime compatibility patching in [`../db.js`](../db.js) exists so older databas
 
 ## 13. Environment Variables
 
-| Variable                     | Required                                        | Purpose                                                          |
-| ---------------------------- | ----------------------------------------------- | ---------------------------------------------------------------- |
-| `DATABASE_URL`               | yes                                             | PostgreSQL connection string                                     |
-| `DB_SSL`                     | optional                                        | force SSL on or off; otherwise auto-detected from `DATABASE_URL` |
-| `PG_POOL_MAX`                | optional                                        | maximum PostgreSQL pool size                                     |
-| `PG_CONNECTION_TIMEOUT_MS`   | optional                                        | DB connect timeout in milliseconds                               |
-| `PG_IDLE_TIMEOUT_MS`         | optional                                        | DB idle timeout in milliseconds                                  |
-| `PG_KEEP_ALIVE_DELAY_MS`     | optional                                        | initial keep-alive delay for DB connections                      |
-| `PG_MAX_USES`                | optional                                        | recycle DB connections after this many uses                      |
-| `JWT_SECRET`                 | yes                                             | signing key for session JWTs                                     |
-| `PORT`                       | optional                                        | HTTP port; defaults to `8080`                                    |
-| `NODE_ENV`                   | optional                                        | production/development behavior                                  |
-| `CORS_ALLOWED_ORIGINS`       | recommended                                     | comma-separated allowlist for cross-origin requests              |
-| `BASE_URL`                   | recommended, effectively required in production | public app base URL, also used in reset links                    |
-| `MAIL_RELAY_URL`             | optional                                        | outbound mail relay endpoint                                     |
-| `MAIL_RELAY_KEY`             | optional                                        | credential for mail relay                                        |
-| `DEVELOPER_REGISTRATION_KEY` | recommended                                     | private setup key used by `/api/developer-auth/register`         |
-| `SUPPORT_ADMIN_BOOTSTRAP`    | optional                                        | when truthy, enables startup bootstrap/update of a developer admin |
-| `SUPPORT_ADMIN_EMAIL`        | optional                                        | email address for the bootstrap developer admin                  |
-| `SUPPORT_ADMIN_PASSWORD_HASH` | optional                                       | pre-hashed bcrypt password for the bootstrap developer admin     |
-| `SUPPORT_ADMIN_PASSWORD`     | optional                                        | plain-text bootstrap password, hashed at startup if no hash is supplied |
-| `SUPPORT_ADMIN_NAME`         | optional                                        | display name for the bootstrap developer admin                   |
-| `JSON_BODY_LIMIT`            | optional                                        | JSON request body size limit for Express                         |
-| `URLENCODED_BODY_LIMIT`      | optional                                        | URL-encoded request body size limit for Express                  |
-| `ENABLE_DEBUG_ROUTES`        | optional                                        | enable `/debug-env` and `/debug-db` in non-production            |
-| `ENABLE_REQUEST_LOGS`        | optional                                        | log every request instead of only slow/error requests            |
-| `REQUEST_LOG_SLOW_MS`        | optional                                        | mark requests slower than this threshold for logging             |
+| Variable                      | Required                                        | Purpose                                                                 |
+| ----------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------- |
+| `DATABASE_URL`                | yes                                             | PostgreSQL connection string                                            |
+| `DB_SSL`                      | optional                                        | force SSL on or off; otherwise auto-detected from `DATABASE_URL`        |
+| `PG_POOL_MAX`                 | optional                                        | maximum PostgreSQL pool size                                            |
+| `PG_CONNECTION_TIMEOUT_MS`    | optional                                        | DB connect timeout in milliseconds                                      |
+| `PG_IDLE_TIMEOUT_MS`          | optional                                        | DB idle timeout in milliseconds                                         |
+| `PG_KEEP_ALIVE_DELAY_MS`      | optional                                        | initial keep-alive delay for DB connections                             |
+| `PG_MAX_USES`                 | optional                                        | recycle DB connections after this many uses                             |
+| `JWT_SECRET`                  | yes                                             | signing key for session JWTs                                            |
+| `PORT`                        | optional                                        | HTTP port; defaults to `8080`                                           |
+| `NODE_ENV`                    | optional                                        | production/development behavior                                         |
+| `CORS_ALLOWED_ORIGINS`        | recommended                                     | comma-separated allowlist for cross-origin requests                     |
+| `BASE_URL`                    | recommended, effectively required in production | public app base URL, also used in reset links                           |
+| `MAIL_RELAY_URL`              | optional                                        | outbound mail relay endpoint                                            |
+| `MAIL_RELAY_KEY`              | optional                                        | credential for mail relay                                               |
+| `DEVELOPER_REGISTRATION_KEY`  | recommended                                     | private setup key used by `/api/developer-auth/register`                |
+| `SUPPORT_ADMIN_BOOTSTRAP`     | optional                                        | when truthy, enables startup bootstrap/update of a developer admin      |
+| `SUPPORT_ADMIN_EMAIL`         | optional                                        | email address for the bootstrap developer admin                         |
+| `SUPPORT_ADMIN_PASSWORD_HASH` | optional                                        | pre-hashed bcrypt password for the bootstrap developer admin            |
+| `SUPPORT_ADMIN_PASSWORD`      | optional                                        | plain-text bootstrap password, hashed at startup if no hash is supplied |
+| `SUPPORT_ADMIN_NAME`          | optional                                        | display name for the bootstrap developer admin                          |
+| `JSON_BODY_LIMIT`             | optional                                        | JSON request body size limit for Express                                |
+| `URLENCODED_BODY_LIMIT`       | optional                                        | URL-encoded request body size limit for Express                         |
+| `ENABLE_DEBUG_ROUTES`         | optional                                        | enable `/debug-env` and `/debug-db` in non-production                   |
+| `ENABLE_REQUEST_LOGS`         | optional                                        | log every request instead of only slow/error requests                   |
+| `REQUEST_LOG_SLOW_MS`         | optional                                        | mark requests slower than this threshold for logging                    |
 
 ## 14. Maintenance Guide
 

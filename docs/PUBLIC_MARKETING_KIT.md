@@ -1,281 +1,403 @@
 # India Inventory Management Public Marketing Kit
 
-Last verified against this repository: `2026-04-12`
+Last verified against this repository: `2026-04-14`
 
-This document is a public-facing marketing pack for `India Inventory Management`.
-It is written so the content can be reused for:
+This file is written in simple English.
+It is made for shop owners, local stores, and people who do not want heavy business English.
+You can use this content for:
 
-- LinkedIn launch posts
-- product introduction PDFs
-- website or landing-page copy
-- investor, client, or stakeholder overview
-- sales demos and public marketing material
+- Facebook posts
+- Instagram posts
+- LinkedIn posts
+- WhatsApp promotion
+- brochure or leaflet copy
+- website copy
+- demo intro text
 
-All feature claims below are based on the current codebase in this repository.
+All feature claims below are based on the current code in this repository.
 
-## 1. Product Identity
-
-### Product name
+## 1. Product Name
 
 India Inventory Management
 
-### One-line positioning
+## 2. Simple Product Line
 
-A practical retail operations platform for managing stock, billing, GST visibility, expenses, customer dues, supplier purchases, and staff access from one workspace.
+One simple system to manage stock, billing, GST, dues, expenses, and staff for your shop.
 
-### Elevator pitch
+## 3. What This App Does
 
-India Inventory Management helps shop owners and growing retail teams run day-to-day operations without depending on scattered notebooks, spreadsheets, or disconnected tools. From stock entry and supplier purchases to invoice generation, payment follow-up, GST reporting, and staff page access control, the app brings the core workflow into one system.
+India Inventory Management helps shop owners run daily work from one dashboard.
+Instead of using notebooks, paper bills, and many files, the shop can manage daily work in one place.
 
-## 2. Public Product Overview
+With this app, a business can:
 
-India Inventory Management is a business web app built for small shops, local retailers, and growing stores that need a simpler way to manage operations.
+- add stock
+- track current stock
+- see low-stock items
+- get reorder suggestions
+- check slow-moving stock
+- save supplier purchases
+- track supplier due
+- make invoices
+- download invoice PDF
+- check invoice history
+- collect later payments for due invoices
+- track customer due
+- see sales and GST reports
+- download report PDF and Excel files
+- save expenses
+- view profit numbers
+- give staff only the page access they need
+- send support messages from inside the dashboard
 
-The platform brings together:
+## 4. Current Project Highlights
 
-- stock entry and stock monitoring
-- supplier purchase entry and payable tracking
-- invoice creation with PDF download
-- sales records and invoice history
-- customer due and payment settlement
-- GST reporting and exports
-- expense tracking and net profit visibility
-- owner and staff login with page-level access control
+These are good public points to mention right now:
 
-Instead of switching between paper records, manual calculations, and different files, the business can work from one organized dashboard.
+- owner login and staff login
+- staff page access control
+- stock entry with buying rate, selling rate, and profit margin
+- stock default setting for faster entry
+- low-stock alert section
+- reorder planning section
+- slow-moving stock section
+- supplier ledger and supplier payment tracking
+- invoice number generation
+- invoice PDF download
+- invoice search by number, customer, contact, or date
+- due payment collection from old invoices
+- GST report with invoice-wise data
+- report export in PDF and Excel
+- expense tracking with summary
+- support chat inside the app
 
-## 3. Problems It Solves
+## 5. Problems It Solves
 
-Many retail businesses still struggle with:
+Many small shops face these problems:
 
-- stock quantity getting out of sync with billing
-- supplier dues being hard to track
-- customer due follow-up not staying organized
-- GST and sales reports taking manual effort
-- staff getting more access than they should
-- invoices being created without clean history or settlement tracking
-- expenses and profit not being visible in one place
+- stock count does not match billing
+- due money is hard to follow
+- supplier payment is easy to forget
+- GST work takes too much manual time
+- expenses are not written in one place
+- staff should not see every page
+- too much work depends on notebook and manual calculation
 
-India Inventory Management is designed to reduce that operational friction and create a cleaner daily workflow.
+This app is made to reduce that daily confusion.
 
-## 4. Core Feature Highlights
+## 6. Best For
 
-### Inventory and stock control
+This product is a good fit for:
 
-- add new stock with buying rate, selling rate, quantity, and profit margin
-- maintain stock defaults for faster entry
-- monitor low-stock items
-- review stock reports and item visibility
-- generate stock PDF reports
+- small shop owners
+- local retail stores
+- wholesale counters
+- owner-plus-staff businesses
+- shops that want billing and stock in one system
+- businesses that want simple daily reports
 
-### Purchase and supplier management
+## 7. Main Benefits For Shop Owners
 
-- save purchase entries with supplier details
-- auto-update stock from purchase records
-- track supplier due amounts
-- search supplier ledger and repayment history
-- review purchase reports over custom date ranges
+- saves daily time
+- reduces manual mistakes
+- keeps bills, stock, dues, and expenses in one place
+- helps you follow customer and supplier payments
+- makes GST report work easier
+- gives the owner more control
+- lets staff work with limited access
+- gives quick support from inside the app
 
-### Billing and invoice workflow
+## 8. What Benefits A Shop Owner Gets
 
-- generate structured invoices
-- maintain invoice numbering automatically
-- save invoice items and sales entries together
-- download system-generated invoice PDFs
-- search invoice history by invoice number, customer, contact, or date
-- collect later payments against previous invoices
+If a shop owner uses this system, these are the direct benefits:
 
-### Customer due management
+- Faster daily work: stock, billing, dues, expenses, and reports stay in one dashboard.
+- Less notebook work: fewer paper notes, fewer manual calculations, and less confusion.
+- Better stock control: the owner can see low-stock items before stock finishes.
+- Smarter buying: reorder suggestions help the owner buy the right items at the right time.
+- Less blocked money: slow-moving stock view helps the owner see which items are not moving well.
+- Better due follow-up: customer due and later payments stay organized in one place.
+- Better supplier control: supplier purchases and supplier due are easier to follow.
+- Faster billing: invoices can be created quickly and PDF bills can be downloaded.
+- Easier GST and reports: sales, stock, and GST reports are already in the system.
+- Better staff control: staff can get only the pages they need for their work.
+- Better owner visibility: expenses and profit numbers are easier to check.
+- Quick help when needed: support messages can be sent from inside the dashboard.
 
-- save manual due entries
-- link invoice dues with settlement activity
-- keep customer follow-up data organized
-- update due balances when payments are received
+## 9. Simple Market Comparison
 
-### Reporting and visibility
+This table is for simple market positioning only.
+It is not a full technical benchmark.
+External product details can change over time.
+Checked on `2026-04-14` using official public pages.
 
-- sales report with GST values
-- GST report with invoice-wise summary
-- PDF and Excel export support for reports
-- dashboard overview for stock, due balance, supplier due, and profit indicators
-- expense report with total expense and category summary
+| Point                      | India Inventory Management                                        | TallyPrime                                                           | Zoho Inventory                                                                           |
+| -------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Main focus                 | Simple daily shop work in one dashboard                           | Accounting, GST, billing, inventory, and compliance                  | Cloud inventory, warehousing, order flow, and multichannel selling                       |
+| Good fit                   | Small shops and local stores that want simple daily control       | Businesses that want strong accounting and GST workflow              | Businesses that need multi-warehouse, shipping, or online sales workflow                 |
+| Stock planning             | Low-stock alerts, reorder suggestions, and slow-moving stock view | Reorder levels, low-stock alerts, stock valuation, and stock reports | Reorder points, low-stock notifications, replenishment, and multi-warehouse tracking     |
+| Billing                    | Invoice creation, PDF bill download, and due collection           | GST billing, payment tracking, e-Invoicing, and e-Way bills          | Invoicing, sales orders, and order fulfillment flow                                      |
+| Purchase and supplier side | Purchase entry, supplier ledger, and supplier due tracking        | Inventory and purchase workflow with payables and receivables        | Purchase orders, purchase receives, and vendor payments                                  |
+| Team access                | Owner and staff login with page-based access                      | User roles, owner/admin access, and controlled user permissions      | Predefined and custom user roles with module permissions                                 |
+| Accounting side            | Expense tracking and profit visibility inside the shop workflow   | Strong integrated accounting with inventory and compliance           | Inventory-first product; official pages highlight accounting integration with Zoho Books |
+| Best simple message        | Best when the owner wants one easy dashboard for daily shop work  | Best when accounting and compliance come first                       | Best when warehouse, shipping, and online selling come first                             |
 
-### Team access control
+### Simple positioning line
 
-- owner account with full operational visibility
-- staff login with page-based permissions
-- controlled access to stock, purchase, invoice, reports, due, and expense sections
+If the buyer wants a simple retail dashboard for daily shop work, India Inventory Management is easier to explain.
+If the buyer wants accounting and GST depth first, TallyPrime is a strong market option.
+If the buyer wants multi-warehouse or online selling flow first, Zoho Inventory is a strong market option.
 
-## 5. Ideal Users
+## 10. Ready Short Descriptions
 
-This product is best suited for:
+### One-line version
 
-- small retail shops
-- growing local stores
-- wholesalers with daily stock movement
-- owner-operated businesses
-- teams that need limited staff access
-- businesses that want billing, reporting, and inventory in one place
-
-## 6. Business Value Proposition
-
-India Inventory Management creates value by helping businesses:
-
-- reduce manual operational work
-- keep stock and sales activity aligned
-- improve invoice and payment tracking
-- maintain better GST reporting readiness
-- track supplier and customer balances with less confusion
-- see expense and profit signals in a more structured way
-- give staff only the access they need
-
-## 7. Why This Product Is Useful In The Market
-
-Many inventory tools are either too basic for real billing workflow or too heavy for small businesses.
-
-India Inventory Management stands out as a practical middle ground:
-
-- focused on daily business operations, not just stock counts
-- includes invoice, dues, supplier flow, GST, and expense visibility
-- suitable for owner-plus-staff business structure
-- designed for real usage instead of feature overload
-- report exports and invoice PDFs support day-to-day business communication
-
-## 8. Short Public Descriptions
+India Inventory Management helps shops manage stock, bills, GST, dues, expenses, and staff from one simple dashboard.
 
 ### Short version
 
-India Inventory Management is a retail operations web app that helps businesses manage stock, invoices, supplier purchases, GST, expenses, dues, and staff access from one dashboard.
+India Inventory Management is made for small shops and growing stores. It helps you add stock, save purchases, make invoices, download PDF bills, track customer due, track supplier due, check GST reports, save expenses, and control staff access from one place.
 
-### Medium version
+### Website or brochure version
 
-India Inventory Management is built for small shops and growing retail teams that want better control over stock, billing, purchases, reports, and staff activity. The system combines inventory tracking, invoice generation, PDF downloads, GST reporting, due management, supplier ledger visibility, and expense tracking in one practical workspace.
+India Inventory Management is a simple business app for shop owners. It brings stock, billing, GST, customer due, supplier due, expenses, reports, and staff access into one system. It helps reduce manual work and gives the owner better daily control.
 
-### Brochure or website version
+## 11. Simple Social Media Post Drafts
 
-India Inventory Management is a complete operational workspace for retail businesses that need more control without adding complexity. It helps owners manage stock intake, purchases, invoice billing, customer dues, supplier payments, GST reports, expenses, and staff permissions in one place. The result is a cleaner workflow, better reporting visibility, and stronger day-to-day control over business activity.
+### Post 1
 
-## 9. LinkedIn Launch Post Draft
+Running a shop becomes hard when stock, bills, dues, and GST are kept in different places.
 
-### Option 1: Founder-style product announcement
+`India Inventory Management` brings these daily tasks into one simple dashboard.
 
-I built `India Inventory Management` to solve a very practical business problem:
-many small and growing retail businesses still manage stock, invoices, dues, and reports across notebooks, spreadsheets, and disconnected tools.
+You can:
 
-This web app brings those core workflows into one workspace.
+- add stock
+- save purchases
+- make bills
+- download invoice PDF
+- track customer due
+- track supplier due
+- check GST reports
+- save expenses
+- control staff access
 
-With India Inventory Management, a business can:
+Good for small shops, local stores, and growing retail businesses.
 
-- manage stock entry and stock visibility
-- record supplier purchases and due amounts
-- generate invoices and download PDF copies
-- track customer dues and receive later payments
-- review sales and GST reports
-- monitor expenses and profit visibility
-- control staff access by page permissions
+Message us if you want a demo.
 
-The goal was simple: build something practical, usable, and relevant for day-to-day shop operations.
+### Post 2
 
-If you work with retail workflows, billing systems, or small business software, I would love your feedback.
+`India Inventory Management` is built for shop owners who want simple daily control.
 
-#webapp #inventorymanagement #retailtech #billingsoftware #gst #smallbusiness #saas #productdevelopment
+Stock, billing, GST, supplier due, customer due, expenses, and staff access can all be managed from one system.
 
-### Option 2: Product-focused LinkedIn post
+It also includes low-stock alerts, reorder suggestions, invoice PDF download, and support chat inside the dashboard.
 
-Introducing `India Inventory Management`:
-a retail operations platform designed to help businesses manage inventory, billing, GST, expenses, customer dues, supplier purchases, and staff access from one organized dashboard.
+If you want to see the workflow, contact us.
 
-Key capabilities include:
+### Post 3
 
-- stock and purchase management
-- invoice generation with PDF download
-- invoice history and due settlement
-- GST, sales, and stock reports
-- expense tracking and profit visibility
-- owner and staff login with controlled page access
+One simple system for your shop.
 
-This product is built for shops and retail teams that need a practical system for daily operations instead of scattered manual processes.
+`Stock | Billing | GST | Dues | Expenses | Staff`
 
-If you want to explore, collaborate, or give feedback, feel free to connect.
+India Inventory Management helps you work faster and keep records clean.
 
-#inventory #retailsoftware #webapplication #businessautomation #gstreporting #startupbuild
+Demo available.
 
-### Option 3: Short launch caption
+### Post 4
 
-Built `India Inventory Management` to make daily retail operations simpler.
-Stock, purchases, invoices, GST, dues, expenses, and staff access now live in one workspace instead of scattered manual records.
+Still using notebook, manual calculation, and scattered files for daily shop work?
 
-Open to feedback, demos, and collaboration.
+Try `India Inventory Management`.
 
-### Option 4: Bangla-friendly romanized caption
+It helps you manage stock, invoices, dues, GST reports, expenses, and staff access in one place.
 
-Ami build korechi `India Inventory Management` jeta small shop ar growing retail business-er daily operations ke aro organized korte help kore.
+Best for shops that want simple work, less confusion, and better control.
 
-Stock entry, supplier purchase, invoice PDF, GST report, customer due, expense tracking, ar staff access control ekhon ek workspace-e manage kora jay.
+### Short WhatsApp message
 
-Jodi retail workflow, billing system, ba small business software niye kaj koren, tahole apnar feedback welcome.
+India Inventory Management helps shops manage stock, bills, GST, dues, expenses, and staff in one place. It also has low-stock alerts, invoice PDF, and due tracking. Message us if you want a demo.
 
-## 10. Public Marketing Copy For Posters, Brochures, Or PDF
+### Suggested hashtags
 
-### Headline options
+`#InventoryManagement #BillingSoftware #RetailSoftware #ShopManagement #GST #SmallBusiness`
 
-- Run Inventory, Billing, And Business Reports From One Place
-- A Smarter Daily Operations Workspace For Retail Businesses
-- Stock, Invoices, GST, Expenses, And Dues In One Practical System
-- Built For Shops That Need Control Without Complexity
+## 12. Ready Leaflet Copy
 
-### Subheadline options
+### Leaflet A: Square social media post
 
-- Manage stock, purchases, invoices, customer dues, GST reports, and staff access from one dashboard.
-- Replace scattered manual records with a cleaner retail operations workflow.
-- Give owners visibility and give staff only the access they need.
+Use this for a Facebook or Instagram post image.
 
-### CTA options
+**Main headline**
 
-- Request a demo
-- See the workflow
-- Explore the product
-- Talk about deployment
-- Get early access
+Run Your Shop In One Simple System
 
-## 11. Demo Talking Points
+**Second line**
 
-Use this order during a public demo or sales conversation:
+Stock, Billing, GST, Dues, Expenses, And Staff In One Place
 
-1. Start with dashboard overview to show stock, due balance, supplier due, and business health visibility.
-2. Show stock entry and explain how buying rate, selling rate, and profit margin are managed.
-3. Show purchase entry and how supplier data plus stock update stay connected.
-4. Show invoice creation, invoice numbering, and PDF generation.
-5. Show invoice history and receive-payment flow for due settlement.
-6. Show GST report and exports.
-7. Show expense tracking and net profit visibility.
-8. Finish with staff permission control to show business-safe delegation.
+**Feature lines**
 
-## 12. Suggested Screenshots For Marketing
+- Add stock and track low-stock items
+- Save supplier purchases and supplier due
+- Make invoices and download PDF bills
+- Track customer due and later payments
+- Check GST, sales, and stock reports
+- Save expenses and see profit numbers
+- Give staff only the access they need
 
-If you want stronger public presentation, use screenshots of:
+**Bottom line**
 
-- login page
-- dashboard overview cards
+Best for small shops, local stores, and growing retail businesses
+
+**CTA line**
+
+Book a demo today
+
+**Contact line**
+
+Call / WhatsApp: `[Add number]`
+Website: `[Add website]`
+
+### Leaflet B: Poster or brochure copy
+
+**Headline**
+
+Easy Shop Management For Daily Business
+
+**Subheadline**
+
+Manage stock, bills, GST, dues, expenses, and staff from one dashboard
+
+**Body copy**
+
+India Inventory Management helps shop owners work in a better way.
+You can save stock, make invoices, track customer due, track supplier due, check GST reports, save expenses, and control staff access from one place.
+
+**Quick points**
+
+- Low-stock alert
+- Reorder suggestions
+- Invoice PDF download
+- Due payment tracking
+- GST report
+- Expense summary
+- Staff access control
+- In-app support chat
+
+**Footer CTA**
+
+Talk to us for demo or setup
+
+## 13. Copy-Paste Leaflet Layout
+
+Use this text block if you want a ready layout for Canva or any designer tool.
+
+```text
+INDIA INVENTORY MANAGEMENT
+
+Run Your Shop In One Simple System
+
+Stock
+Billing
+GST
+Customer Due
+Supplier Due
+Expenses
+Low-Stock Alert
+Invoice PDF
+Staff Access
+
+Made for small shops and growing stores
+
+Book a Demo
+Call / WhatsApp: [Your Number]
+Website: [Your Website]
+```
+
+## 14. Simple Design Guide For A Nice Social Post
+
+- use one clear dashboard or invoice screenshot
+- keep the headline big and easy to read
+- use short words like Stock, Billing, GST, Dues, Expenses
+- keep the background clean and bright
+- do not add too much text in one image
+- keep one strong CTA at the bottom, like `Book a Demo`
+- add phone or WhatsApp number clearly
+
+## 15. Caption To Use With The Leaflet
+
+### Caption option 1
+
+Shop work is easier when stock, bills, dues, and GST are managed in one place.
+
+India Inventory Management helps shop owners:
+
+- manage stock
+- make invoices
+- download PDF bills
+- track customer due
+- track supplier due
+- see GST reports
+- save expenses
+- control staff access
+
+Message us for a demo.
+
+### Caption option 2
+
+Simple shop management for daily business.
+
+India Inventory Management brings stock, billing, GST, dues, expenses, and staff access into one dashboard.
+
+Good for small shops, local retailers, and wholesale counters.
+
+## 16. Headline And CTA Options
+
+### Headline ideas
+
+- Run Your Shop In One Simple System
+- Stock, Billing, GST, And Dues In One Place
+- Easy Daily Management For Your Shop
+- One Dashboard For Stock, Bills, And Reports
+- Better Shop Control With Less Manual Work
+
+### CTA ideas
+
+- Book a demo
+- See the system
+- Ask for setup
+- Message for details
+- Start using one simple dashboard
+
+## 17. Screenshot Plan For Marketing
+
+Use 3 to 6 clear screenshots like these:
+
+- dashboard overview
+- low-stock and reorder section
 - stock entry section
-- purchase and supplier ledger section
-- invoice builder
+- purchase and supplier section
+- invoice page
 - invoice history
 - GST report
 - expense summary
-- staff access control section
+- staff access section
+- support chat section
 
-## 13. Customization Checklist Before Posting
+## 18. What To Change Before Posting
 
-Before publishing this publicly, replace or add:
+Before public posting, replace these items:
 
 - your name or company name
-- live product URL
-- contact email or demo booking link
-- 3 to 6 real screenshots
-- one short founder note about why you built it
-- one line on who should use it first
+- live website link
+- phone or WhatsApp number
+- demo booking link
+- real product screenshots
+- one line about where people can contact you
 
-## 14. Suggested Closing Line
+## 19. Simple Closing Line
 
-If your business needs a practical way to manage stock, billing, GST, dues, and daily retail operations from one system, India Inventory Management is built for exactly that workflow.
+If you want one simple system for stock, billing, GST, dues, expenses, and staff control, India Inventory Management is ready for your daily shop work.

@@ -229,7 +229,7 @@ flowchart LR
 | `public/developer-login.html`        | Developer account login/register page                                                     | Loads `public/js/developer-login.js`, calls `routes/support.js` auth endpoints |
 | `public/developer-support.html`      | Developer inbox UI                                                                        | Loads `public/js/developer-support.js`, calls `routes/support.js` inbox APIs   |
 | `public/reset.html`                  | Password reset page                                                                       | Inline JS posts to `routes/auth.js` reset endpoint                             |
-| `public/index.html`                  | Dashboard HTML layout including support chat section                                      | Loads `permission-contract.js`, `app-core.js`, `app-shell.js`, `dashboard.js` |
+| `public/index.html`                  | Dashboard HTML layout including support chat section                                      | Loads `permission-contract.js`, `app-core.js`, `app-shell.js`, `dashboard.js`  |
 | `public/invoice.html`                | Invoice workspace HTML                                                                    | Loads shared JS files and contains its own inline invoice controller           |
 | `public/js/permission-contract.js`   | Shared owner/staff permission map                                                         | Loaded by frontend and imported by backend Node files                          |
 | `public/js/app-core.js`              | Frontend app-wide config and access helper registry                                       | Builds `window.InventoryApp` from permission contract                          |
