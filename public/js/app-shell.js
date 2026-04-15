@@ -127,7 +127,7 @@
 
     .sidebar__brand h2 {
       margin: 0;
-      font-size: 23px;
+      font-size: 21px;
       line-height: 1.05;
       font-weight: 800;
       letter-spacing: -0.03em;
@@ -135,7 +135,7 @@
 
     .sidebar__brand p {
       margin: 10px 0 0;
-      font-size: 13px;
+      font-size: 12px;
       line-height: 1.6;
       color: rgba(226, 232, 240, 0.76);
     }
