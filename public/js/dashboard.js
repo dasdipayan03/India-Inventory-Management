@@ -709,6 +709,7 @@ function cacheElements() {
     expenseFromDate: document.getElementById("expenseFromDate"),
     expenseToDate: document.getElementById("expenseToDate"),
     expenseSearchInput: document.getElementById("expenseSearchInput"),
+    expenseSearchDropdown: document.getElementById("expenseSearchDropdown"),
     loadExpenseReportBtn: document.getElementById("loadExpenseReportBtn"),
     expenseReportBody: document.getElementById("expenseReportBody"),
     supportRefreshBtn: document.getElementById("supportRefreshBtn"),
@@ -5333,6 +5334,18 @@ async function loadCustomerSuggestions(query) {
   }
 }
 
+async function loadExpenseSuggestions(query) {
+  try {
+    const rows = await fetchJSON(
+      `/expenses/suggestions?q=${encodeURIComponent(query)}`,
+    );
+    return Array.isArray(rows) ? rows : [];
+  } catch (error) {
+    console.error("Expense suggestions failed:", error);
+    return [];
+  }
+}
+
 function renderCustomerDropdown(listEl, customers, onSelect) {
   if (!customers.length) {
     hideElement(listEl);
@@ -5369,6 +5382,45 @@ function renderCustomerDropdown(listEl, customers, onSelect) {
     onSelect({
       name: decodeURIComponent(item.dataset.name),
       number: decodeURIComponent(item.dataset.number),
+    });
+    hideElement(listEl);
+  };
+}
+
+function renderExpenseDropdown(listEl, entries, onSelect) {
+  if (!entries.length) {
+    hideElement(listEl);
+    listEl.innerHTML = "";
+    listEl.onclick = null;
+    return;
+  }
+
+  listEl.innerHTML = entries
+    .map((entry) => {
+      const value = escapeHtml(entry.value || "");
+      const type = escapeHtml(entry.type || "Match");
+
+      return `
+        <div
+          class="dropdown-item dropdown-item--customer"
+          data-value="${encodeURIComponent(entry.value || "")}"
+        >
+          <span class="dropdown-item__title">${value}</span>
+          <span class="dropdown-item__meta">${type} match</span>
+        </div>
+      `;
+    })
+    .join("");
+
+  showElement(listEl);
+  listEl.onclick = (event) => {
+    const item = event.target.closest(".dropdown-item");
+    if (!item || !listEl.contains(item)) {
+      return;
+    }
+
+    onSelect({
+      value: decodeURIComponent(item.dataset.value),
     });
     hideElement(listEl);
   };
@@ -6714,6 +6766,24 @@ function bindExpenseEvents() {
     return;
   }
 
+  const runExpenseSearchSuggestions = debounce(async () => {
+    const query = dom.expenseSearchInput.value.trim();
+
+    if (!query) {
+      hideElement(dom.expenseSearchDropdown);
+      return;
+    }
+
+    const entries = await loadExpenseSuggestions(query);
+    if (dom.expenseSearchInput.value.trim() !== query) {
+      return;
+    }
+
+    renderExpenseDropdown(dom.expenseSearchDropdown, entries, ({ value }) => {
+      dom.expenseSearchInput.value = value;
+    });
+  }, 180);
+
   [dom.expenseFromDate, dom.expenseToDate].forEach((input) =>
     input.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
@@ -6723,10 +6793,24 @@ function bindExpenseEvents() {
     }),
   );
 
+  dom.expenseSearchInput.addEventListener("input", () => {
+    runExpenseSearchSuggestions();
+  });
+
   dom.expenseSearchInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
+      hideElement(dom.expenseSearchDropdown);
       loadExpenseReport();
+    }
+  });
+
+  document.addEventListener("click", (event) => {
+    if (
+      !dom.expenseSearchInput.contains(event.target) &&
+      !dom.expenseSearchDropdown.contains(event.target)
+    ) {
+      hideElement(dom.expenseSearchDropdown);
     }
   });
 

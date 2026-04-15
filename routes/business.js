@@ -968,6 +968,50 @@ router.post(
 );
 
 router.get(
+  "/expenses/suggestions",
+  requirePermission("expense_tracking"),
+  async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const rawQuery = String(req.query.q || "").trim();
+
+      if (!rawQuery) {
+        return res.json([]);
+      }
+
+      const result = await pool.query(
+        `
+        SELECT value, type
+        FROM (
+          SELECT DISTINCT TRIM(e.title) AS value, 'Title' AS type, 1 AS sort_order
+          FROM expenses e
+          WHERE e.user_id = $1
+            AND TRIM(COALESCE(e.title, '')) <> ''
+            AND e.title ILIKE $2
+
+          UNION
+
+          SELECT DISTINCT TRIM(e.category) AS value, 'Category' AS type, 2 AS sort_order
+          FROM expenses e
+          WHERE e.user_id = $1
+            AND TRIM(COALESCE(e.category, '')) <> ''
+            AND e.category ILIKE $2
+        ) suggestions
+        ORDER BY sort_order ASC, value ASC
+        LIMIT 12
+      `,
+        [userId, `%${rawQuery}%`],
+      );
+
+      res.json(result.rows);
+    } catch (error) {
+      console.error("Expense suggestions error:", error);
+      res.status(500).json({ error: "Failed to load expense suggestions" });
+    }
+  },
+);
+
+router.get(
   "/expenses/report",
   requirePermission("expense_tracking"),
   async (req, res) => {
