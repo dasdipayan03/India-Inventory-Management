@@ -452,28 +452,21 @@
 
       .due-summary-strip {
         justify-content: flex-start;
+        gap: 8px;
       }
 
-      .due-ledger-strip {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: start;
-        gap: 10px;
-      }
-
-      .due-ledger-strip__meta {
+      .due-summary-strip .summary-pill {
         min-width: 0;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
+        max-width: 100%;
       }
 
-      .due-ledger-strip__action {
+      .due-ledger-table__action-row {
         display: flex;
         justify-content: flex-end;
+        margin-bottom: 12px;
       }
 
-      .due-ledger-strip__action .btn {
+      .due-ledger-table__action-row .btn {
         min-height: 40px;
         padding: 0 14px;
         white-space: nowrap;
@@ -2505,9 +2498,15 @@
           white-space: normal;
         }
 
-        .due-ledger-strip__action .btn {
+        .due-ledger-table__action-row .btn {
           min-height: 38px;
           padding: 0 12px;
+          font-size: 11px;
+        }
+
+        .due-summary-strip .summary-pill {
+          gap: 6px;
+          padding: 8px 11px;
           font-size: 11px;
         }
 
@@ -3062,8 +3061,13 @@
           font-size: 10px;
         }
 
-        .due-ledger-strip__action .btn {
+        .due-ledger-table__action-row .btn {
           padding: 0 10px;
+          font-size: 10px;
+        }
+
+        .due-summary-strip .summary-pill {
+          padding: 8px 10px;
           font-size: 10px;
         }
 
@@ -5176,6 +5180,11 @@
                 <span class="summary-pill" id="dueLedgerFocusPill">
                   No customer selected
                 </span>
+                <span
+                  class="summary-pill summary-pill--warn"
+                  id="dueLedgerStatPill"
+                  hidden
+                ></span>
                 <span
                   class="summary-pill summary-pill--neutral"
                   id="dueLedgerHintPill"

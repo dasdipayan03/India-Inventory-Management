@@ -21,7 +21,9 @@ const state = {
   currentLedgerNumber: "",
   currentLedgerName: "",
   currentLedgerOutstanding: 0,
+  currentLedgerEntryCount: 0,
   dueSummaryCustomerCount: 0,
+  dueSummaryOutstanding: 0,
   supplierLedgerMode: "empty",
   currentSupplierId: null,
   currentPurchaseDetailId: null,
@@ -679,6 +681,7 @@ function cacheElements() {
     refreshDueLedgerBtn: document.getElementById("refreshDueLedgerBtn"),
     dueLedgerViewPill: document.getElementById("dueLedgerViewPill"),
     dueLedgerFocusPill: document.getElementById("dueLedgerFocusPill"),
+    dueLedgerStatPill: document.getElementById("dueLedgerStatPill"),
     dueLedgerHintPill: document.getElementById("dueLedgerHintPill"),
     ledgerTable: document.getElementById("ledgerTable"),
     expenseTitle: document.getElementById("expenseTitle"),
@@ -1041,17 +1044,19 @@ function updateDueWorkspaceMeta() {
   let viewLabel = "Ready";
   let viewPillClass = "summary-pill summary-pill--success";
   let focusPillText = "No customer selected";
+  let statPillText = "";
   let hintPillText = "Search a customer or load the full ledger summary.";
 
   if (isLedgerView) {
     viewLabel = "Customer Ledger";
     viewPillClass = "summary-pill summary-pill--warn";
     focusPillText = `${state.currentLedgerName || "Customer"} - ${state.currentLedgerNumber}`;
-    hintPillText =
-      "Invoice-linked collections and manual ledger entries are shown together.";
+    statPillText = `Outstanding: ${formatCurrency(state.currentLedgerOutstanding)}`;
+    hintPillText = `${formatCount(state.currentLedgerEntryCount)} timeline entr${state.currentLedgerEntryCount === 1 ? "y" : "ies"}`;
   } else if (state.ledgerMode === "summary") {
     viewLabel = "All Customers";
     focusPillText = `${formatCount(summaryCount)} customer${summaryCount === 1 ? "" : "s"} loaded`;
+    statPillText = `Outstanding: ${formatCurrency(state.dueSummaryOutstanding)}`;
     hintPillText = "Click a row to open full ledger details.";
   }
 
@@ -1062,6 +1067,11 @@ function updateDueWorkspaceMeta() {
 
   if (dom.dueLedgerFocusPill) {
     dom.dueLedgerFocusPill.textContent = focusPillText;
+  }
+
+  if (dom.dueLedgerStatPill) {
+    dom.dueLedgerStatPill.hidden = !statPillText;
+    dom.dueLedgerStatPill.textContent = statPillText;
   }
 
   if (dom.dueLedgerHintPill) {
@@ -5385,6 +5395,7 @@ function renderEmptyLedger(message) {
   state.currentLedgerNumber = "";
   state.currentLedgerName = "";
   state.currentLedgerOutstanding = 0;
+  state.currentLedgerEntryCount = 0;
   updateDueWorkspaceMeta();
 }
 
@@ -5393,6 +5404,7 @@ function updateDueOverviewFromRows(rows) {
     return sum + (Number(row.balance) || 0);
   }, 0);
   state.dueSummaryCustomerCount = rows.length;
+  state.dueSummaryOutstanding = totalBalance;
   dom.statDueBalance.textContent = formatCurrency(totalBalance);
   dom.statDueNote.textContent = rows.length
     ? `${formatCount(rows.length)} customer${rows.length === 1 ? "" : "s"} currently have pending balances.`
@@ -5415,7 +5427,6 @@ function renderLedgerTable(rows, mode = "summary") {
   let totalOutstanding = 0;
   let tableHead = "";
   let tableBody = "";
-  let summaryLabel = "";
   let ledgerActionHtml = "";
 
   if (mode === "summary") {
@@ -5423,6 +5434,7 @@ function renderLedgerTable(rows, mode = "summary") {
     state.currentLedgerNumber = "";
     state.currentLedgerName = "";
     state.currentLedgerOutstanding = 0;
+    state.currentLedgerEntryCount = 0;
 
     tableHead = `
       <thead>
@@ -5485,7 +5497,6 @@ function renderLedgerTable(rows, mode = "summary") {
     });
 
     updateDueOverviewFromRows(rows);
-    summaryLabel = `${formatCount(rows.length)} customer${rows.length === 1 ? "" : "s"} with outstanding balance`;
   } else {
     const ledgerNumber = rows[0]?.customer_number || "";
     const customerName = rows[0]?.customer_name || "Selected customer";
@@ -5537,9 +5548,9 @@ function renderLedgerTable(rows, mode = "summary") {
     });
 
     state.currentLedgerOutstanding = totalOutstanding;
-    summaryLabel = `${escapeHtml(customerName)} - ${escapeHtml(ledgerNumber)}`;
+    state.currentLedgerEntryCount = rows.length;
     ledgerActionHtml = `
-      <div class="due-ledger-strip__action">
+      <div class="due-ledger-table__action-row">
         <button
           class="btn btn-primary due-ledger-download-btn"
           type="button"
@@ -5553,23 +5564,7 @@ function renderLedgerTable(rows, mode = "summary") {
   }
 
   dom.ledgerTable.innerHTML = `
-    <div class="summary-strip due-ledger-strip mb-3">
-      <div class="due-ledger-strip__meta">
-        <span class="summary-pill">
-          <i class="fa-solid fa-address-card"></i>
-          ${summaryLabel}
-        </span>
-        <span class="summary-pill">
-          <i class="fa-solid fa-hand-holding-dollar"></i>
-          Outstanding: ${formatCurrency(totalOutstanding)}
-        </span>
-        <span class="summary-pill summary-pill--neutral">
-          <i class="fa-solid ${mode === "summary" ? "fa-arrow-up-right-from-square" : "fa-clock-rotate-left"}"></i>
-          ${mode === "summary" ? "Click a row to open ledger details" : `${formatCount(rows.length)} timeline entr${rows.length === 1 ? "y" : "ies"}`}
-        </span>
-      </div>
-      ${ledgerActionHtml}
-    </div>
+    ${ledgerActionHtml}
     <table class="table table-sm text-center align-middle dashboard-table dashboard-table--ledger">
       ${tableHead}
       <tbody>${tableBody}</tbody>
