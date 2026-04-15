@@ -1069,9 +1069,8 @@ function updateDueWorkspaceMeta() {
   }
 
   if (dom.showAllDuesBtn) {
-    dom.showAllDuesBtn.innerHTML = isLedgerView
-      ? '<i class="fas fa-list"></i> Back to Summary'
-      : '<i class="fas fa-list"></i> All Customers';
+    dom.showAllDuesBtn.innerHTML =
+      '<i class="fas fa-list"></i> Search all Customers';
   }
 }
 
