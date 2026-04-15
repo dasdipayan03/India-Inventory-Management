@@ -2001,12 +2001,14 @@ router.get(
         normalizeDisplayText(result.rows[0]?.customer_name) || "Customer";
       const filename = `customer_ledger_${safeFilePart(customerName)}_${number}.pdf`;
       const doc = new PDFDocument({ size: "A4", margin: 40 });
+      const ledgerNarrative =
+        "Invoice-linked collections and manual due entries are shown in one running timeline.";
       const ledgerColumns = [
         { label: "Date", x: 46, width: 88 },
         { label: "Total", x: 138, width: 70, align: "right" },
         { label: "Credit", x: 212, width: 70, align: "right" },
         { label: "Balance", x: 286, width: 78, align: "right" },
-        { label: "Remarks", x: 368, width: 178 },
+        { label: "Remarks", x: 378, width: 168 },
       ];
 
       let runningBalance = 0;
@@ -2044,7 +2046,7 @@ router.get(
       );
 
       const summaryTop = doc.y + 2;
-      const infoHeight = 92;
+      const infoHeight = 104;
 
       doc.save();
       doc
@@ -2056,7 +2058,7 @@ router.get(
       doc.restore();
 
       doc.font("Helvetica-Bold").fontSize(11).fillColor(PDF_THEME.navy);
-      doc.text("Customer Snapshot", 56, summaryTop + 12, { width: 180 });
+      doc.text("Customer Details", 56, summaryTop + 12, { width: 180 });
       doc.text("Ledger Summary", 356, summaryTop + 12, { width: 140 });
 
       doc.font("Helvetica").fontSize(10).fillColor(PDF_THEME.muted);
@@ -2089,13 +2091,11 @@ router.get(
         },
       );
 
-      doc.font("Helvetica").fontSize(10).fillColor(PDF_THEME.muted);
-      doc.text(
-        "Invoice-linked collections and manual due entries are shown in one running timeline.",
-        56,
-        summaryTop + 74,
-        { width: 254, lineGap: 1 },
-      );
+      doc.font("Helvetica").fontSize(9).fillColor(PDF_THEME.muted);
+      doc.text(ledgerNarrative, 56, summaryTop + 74, {
+        width: 248,
+        lineGap: 0.8,
+      });
 
       doc.y = summaryTop + infoHeight + 18;
       drawPdfTableHeader(doc, ledgerColumns);
@@ -2111,7 +2111,7 @@ router.get(
           doc.heightOfString(totalText, { width: 70, align: "right" }),
           doc.heightOfString(creditText, { width: 70, align: "right" }),
           doc.heightOfString(balanceText, { width: 78, align: "right" }),
-          doc.heightOfString(remarkText, { width: 178 }),
+          doc.heightOfString(remarkText, { width: 168 }),
           18,
         );
 
@@ -2138,8 +2138,8 @@ router.get(
             row.runningBalance > 0.009 ? PDF_THEME.danger : PDF_THEME.success,
           )
           .text(balanceText, 286, rowY, { width: 78, align: "right" });
-        doc.fillColor(PDF_THEME.ink).text(remarkText, 368, rowY, {
-          width: 178,
+        doc.fillColor(PDF_THEME.ink).text(remarkText, 378, rowY, {
+          width: 168,
         });
         doc
           .moveTo(40, rowY + rowHeight + 2)
