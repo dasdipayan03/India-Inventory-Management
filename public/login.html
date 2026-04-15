@@ -1503,34 +1503,6 @@
         line-height: 1.62;
       }
 
-      .access-preview {
-        display: grid;
-        gap: 12px;
-        margin-top: 18px;
-      }
-
-      .access-preview-row label {
-        display: block;
-        margin-bottom: 7px;
-        color: #415776;
-        font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-      }
-
-      .access-preview-field {
-        min-height: 48px;
-        display: flex;
-        align-items: center;
-        padding: 0 14px;
-        border-radius: 14px;
-        border: 1px solid rgba(134, 161, 196, 0.26);
-        background: linear-gradient(180deg, #ffffff, #f6fbfe);
-        color: #8aa0ba;
-        font-size: 14px;
-      }
-
       .dock {
         position: static;
         right: auto;
@@ -1581,10 +1553,10 @@
       .auth-inline-shell .auth-modal {
         width: 100%;
         max-height: none;
-        padding: 18px;
-        border-radius: 22px;
-        border: 1px solid rgba(22, 151, 208, 0.12);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 251, 255, 0.98));
+        padding: 0;
+        border-radius: 0;
+        border: 0;
+        background: transparent;
         box-shadow: none;
         overflow: visible;
       }
@@ -1612,7 +1584,9 @@
       }
 
       .auth-inline-shell .auth-panel {
+        width: 100%;
         padding: 16px;
+        border-radius: 20px;
       }
 
       .landing-band,
@@ -1861,12 +1835,13 @@
         }
 
         .auth-inline-shell .auth-modal {
-          padding: 16px;
-          border-radius: 18px;
+          padding: 0;
+          border-radius: 0;
         }
 
         .auth-inline-shell .auth-panel {
           padding: 14px;
+          border-radius: 18px;
         }
 
         .showcase-shell::after {
@@ -1959,21 +1934,6 @@
                     reset, or Android install without searching around the
                     page.
                   </p>
-
-                  <div class="access-preview">
-                    <div class="access-preview-row">
-                      <label>Owner login</label>
-                      <div class="access-preview-field">
-                        Business email or mobile number
-                      </div>
-                    </div>
-                    <div class="access-preview-row">
-                      <label>Staff login</label>
-                      <div class="access-preview-field">
-                        Username and password
-                      </div>
-                    </div>
-                  </div>
 
                   <div class="dock" aria-label="Quick account actions">
                     <button
