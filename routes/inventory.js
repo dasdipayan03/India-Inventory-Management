@@ -1967,6 +1967,237 @@ router.get(
 
 // Full ledger
 router.get(
+  "/debts/:number/pdf",
+  requirePermission("customer_due"),
+  async (req, res) => {
+    try {
+      const user_id = getUserId(req);
+      const number = String(req.params.number || "").trim();
+
+      if (!/^\d{10}$/.test(number)) {
+        return res
+          .status(400)
+          .json({ error: "Customer number must be 10 digits" });
+      }
+
+      const [shopName, result] = await Promise.all([
+        getShopName(user_id),
+        pool.query(
+          `SELECT id, customer_name, customer_number, total, credit, remark, created_at
+           FROM debts
+           WHERE user_id = $1 AND customer_number = $2
+           ORDER BY created_at ASC, id ASC`,
+          [user_id, number],
+        ),
+      ]);
+
+      if (!result.rows.length) {
+        return res
+          .status(404)
+          .json({ error: "No ledger rows found for this customer" });
+      }
+
+      const customerName =
+        normalizeDisplayText(result.rows[0]?.customer_name) || "Customer";
+      const filename = `customer_ledger_${safeFilePart(customerName)}_${number}.pdf`;
+      const doc = new PDFDocument({ size: "A4", margin: 40 });
+      const ledgerColumns = [
+        { label: "Date", x: 46, width: 88 },
+        { label: "Total", x: 138, width: 70, align: "right" },
+        { label: "Credit", x: 212, width: 70, align: "right" },
+        { label: "Balance", x: 286, width: 78, align: "right" },
+        { label: "Remarks", x: 368, width: 178 },
+      ];
+
+      let runningBalance = 0;
+      let totalRaised = 0;
+      let totalCollected = 0;
+      const ledgerRows = result.rows.map((row) => {
+        const totalValue = Number(row.total) || 0;
+        const creditValue = Number(row.credit) || 0;
+
+        totalRaised += totalValue;
+        totalCollected += creditValue;
+        runningBalance = Number(
+          (runningBalance + totalValue - creditValue).toFixed(2),
+        );
+
+        return {
+          ...row,
+          totalValue,
+          creditValue,
+          runningBalance,
+        };
+      });
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
+
+      doc.pipe(res);
+
+      drawPdfBanner(
+        doc,
+        "Customer Ledger",
+        shopName,
+        `${customerName} | ${number}`,
+        `Generated: ${formatIstDate(new Date())}`,
+      );
+
+      const summaryTop = doc.y + 2;
+      const infoHeight = 92;
+
+      doc.save();
+      doc
+        .roundedRect(40, summaryTop, 288, infoHeight, 12)
+        .fillAndStroke("#f8fbff", PDF_THEME.line);
+      doc
+        .roundedRect(340, summaryTop, 215, infoHeight, 12)
+        .fillAndStroke("#f8fbff", PDF_THEME.line);
+      doc.restore();
+
+      doc.font("Helvetica-Bold").fontSize(11).fillColor(PDF_THEME.navy);
+      doc.text("Customer Snapshot", 56, summaryTop + 12, { width: 180 });
+      doc.text("Ledger Summary", 356, summaryTop + 12, { width: 140 });
+
+      doc.font("Helvetica").fontSize(10).fillColor(PDF_THEME.muted);
+      doc.text("Customer", 56, summaryTop + 34, { width: 70 });
+      doc.text("Ledger No", 56, summaryTop + 54, { width: 70 });
+      doc.text("Entries", 356, summaryTop + 34, { width: 70 });
+      doc.text("Outstanding", 356, summaryTop + 54, { width: 80 });
+      doc.text("Collected", 356, summaryTop + 74, { width: 70 });
+
+      doc.font("Helvetica-Bold").fontSize(10).fillColor(PDF_THEME.ink);
+      doc.text(customerName, 122, summaryTop + 34, { width: 188 });
+      doc.text(number, 122, summaryTop + 54, { width: 188 });
+      doc.text(String(ledgerRows.length), 436, summaryTop + 34, {
+        width: 100,
+        align: "right",
+      });
+      doc
+        .fillColor(runningBalance > 0.009 ? PDF_THEME.danger : PDF_THEME.success)
+        .text(`Rs. ${formatCurrency(runningBalance)}`, 436, summaryTop + 54, {
+          width: 100,
+          align: "right",
+        });
+      doc.fillColor(PDF_THEME.ink).text(
+        `Rs. ${formatCurrency(totalCollected)}`,
+        436,
+        summaryTop + 74,
+        {
+          width: 100,
+          align: "right",
+        },
+      );
+
+      doc.font("Helvetica").fontSize(10).fillColor(PDF_THEME.muted);
+      doc.text(
+        "Invoice-linked collections and manual due entries are shown in one running timeline.",
+        56,
+        summaryTop + 74,
+        { width: 254, lineGap: 1 },
+      );
+
+      doc.y = summaryTop + infoHeight + 18;
+      drawPdfTableHeader(doc, ledgerColumns);
+
+      ledgerRows.forEach((row, index) => {
+        const dateText = formatIstDate(row.created_at);
+        const totalText = formatCurrency(row.totalValue);
+        const creditText = formatCurrency(row.creditValue);
+        const balanceText = formatCurrency(row.runningBalance);
+        const remarkText = String(row.remark || "-").trim() || "-";
+        const rowHeight = Math.max(
+          doc.heightOfString(dateText, { width: 88 }),
+          doc.heightOfString(totalText, { width: 70, align: "right" }),
+          doc.heightOfString(creditText, { width: 70, align: "right" }),
+          doc.heightOfString(balanceText, { width: 78, align: "right" }),
+          doc.heightOfString(remarkText, { width: 178 }),
+          18,
+        );
+
+        ensurePdfSpace(doc, rowHeight + 12, () => {
+          drawPdfTableHeader(doc, ledgerColumns);
+        });
+
+        const rowY = doc.y;
+
+        if (index % 2 === 0) {
+          doc.save();
+          doc
+            .rect(40, rowY - 2, 515, rowHeight + 6)
+            .fill(PDF_THEME.rowAlt);
+          doc.restore();
+        }
+
+        doc.fillColor(PDF_THEME.ink).font("Helvetica").fontSize(10);
+        doc.text(dateText, 46, rowY, { width: 88 });
+        doc.text(totalText, 138, rowY, { width: 70, align: "right" });
+        doc.text(creditText, 212, rowY, { width: 70, align: "right" });
+        doc
+          .fillColor(
+            row.runningBalance > 0.009 ? PDF_THEME.danger : PDF_THEME.success,
+          )
+          .text(balanceText, 286, rowY, { width: 78, align: "right" });
+        doc.fillColor(PDF_THEME.ink).text(remarkText, 368, rowY, {
+          width: 178,
+        });
+        doc
+          .moveTo(40, rowY + rowHeight + 2)
+          .lineTo(555, rowY + rowHeight + 2)
+          .strokeColor(PDF_THEME.line)
+          .stroke();
+        doc.y = rowY + rowHeight + 6;
+      });
+
+      const totalsBoxHeight = 86;
+      ensurePdfSpace(doc, totalsBoxHeight + 16, () => {
+        drawPdfBanner(
+          doc,
+          "Customer Ledger",
+          shopName,
+          `${customerName} | ${number}`,
+          `Generated: ${formatIstDate(new Date())}`,
+        );
+      });
+
+      const totalsY = doc.y + 8;
+      doc.save();
+      doc
+        .roundedRect(310, totalsY, 245, totalsBoxHeight, 12)
+        .fillAndStroke("#f8fbff", PDF_THEME.line);
+      doc.restore();
+
+      doc.font("Helvetica-Bold").fontSize(11).fillColor(PDF_THEME.navy);
+      doc.text("Ledger Totals", 326, totalsY + 12, { width: 190 });
+      doc.font("Helvetica").fontSize(10).fillColor(PDF_THEME.ink);
+      doc.text(
+        `Raised Due: Rs. ${formatCurrency(totalRaised)}`,
+        326,
+        totalsY + 34,
+      );
+      doc.text(
+        `Collected Credit: Rs. ${formatCurrency(totalCollected)}`,
+        326,
+        totalsY + 50,
+      );
+      doc
+        .font("Helvetica-Bold")
+        .fillColor(runningBalance > 0.009 ? PDF_THEME.danger : PDF_THEME.success)
+        .text(
+          `Current Outstanding: Rs. ${formatCurrency(runningBalance)}`,
+          326,
+          totalsY + 66,
+        );
+
+      doc.end();
+    } catch (err) {
+      console.error("Customer ledger PDF error:", err.message);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
+);
+
+router.get(
   "/debts/:number",
   requirePermission("customer_due"),
   async (req, res) => {

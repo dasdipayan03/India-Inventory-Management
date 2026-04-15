@@ -2444,6 +2444,25 @@
           padding: 78px 10px 28px;
         }
 
+        .gst-report-kpi-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+        }
+
+        .due-ledger-actions {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+        }
+
+        .due-ledger-actions .btn {
+          width: 100%;
+          min-width: 0;
+          padding: 0 10px;
+          font-size: 11px;
+          line-height: 1.2;
+          white-space: normal;
+        }
+
         .mini-kpi-grid.due-preview-grid {
           grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 8px;
@@ -2965,6 +2984,21 @@
       @media (max-width: 420px) {
         .main {
           padding: 74px 8px 24px;
+        }
+
+        .gst-report-kpi-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 7px;
+        }
+
+        .due-ledger-actions {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 7px;
+        }
+
+        .due-ledger-actions .btn {
+          padding: 0 8px;
+          font-size: 10px;
         }
 
         .mini-kpi-grid.due-preview-grid {
@@ -4608,7 +4642,7 @@
               </div>
             </div>
 
-            <div class="report-kpi-grid">
+            <div class="report-kpi-grid gst-report-kpi-grid">
               <article class="report-kpi report-kpi--sky">
                 <span class="report-kpi__label">Invoices</span>
                 <strong class="report-kpi__value" id="gstInvoiceCount"
@@ -5062,6 +5096,16 @@
                   >
                     <i class="fas fa-rotate-right"></i>
                     Refresh
+                  </button>
+                  <button
+                    class="btn btn-primary"
+                    id="downloadDueLedgerPdfBtn"
+                    type="button"
+                    disabled
+                    aria-disabled="true"
+                  >
+                    <i class="fas fa-file-pdf"></i>
+                    Ledger PDF
                   </button>
                 </div>
               </div>

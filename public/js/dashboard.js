@@ -677,6 +677,7 @@ function cacheElements() {
     searchLedgerBtn: document.getElementById("searchLedgerBtn"),
     showAllDuesBtn: document.getElementById("showAllDuesBtn"),
     refreshDueLedgerBtn: document.getElementById("refreshDueLedgerBtn"),
+    downloadDueLedgerPdfBtn: document.getElementById("downloadDueLedgerPdfBtn"),
     dueLedgerViewPill: document.getElementById("dueLedgerViewPill"),
     dueLedgerFocusPill: document.getElementById("dueLedgerFocusPill"),
     dueLedgerHintPill: document.getElementById("dueLedgerHintPill"),
@@ -1072,6 +1073,14 @@ function updateDueWorkspaceMeta() {
     dom.showAllDuesBtn.innerHTML = isLedgerView
       ? '<i class="fas fa-list"></i> Back to Summary'
       : '<i class="fas fa-list"></i> All Customers';
+  }
+
+  if (dom.downloadDueLedgerPdfBtn) {
+    dom.downloadDueLedgerPdfBtn.disabled = !isLedgerView;
+    dom.downloadDueLedgerPdfBtn.setAttribute(
+      "aria-disabled",
+      isLedgerView ? "false" : "true",
+    );
   }
 }
 
@@ -5729,6 +5738,47 @@ async function refreshCurrentDueView() {
   updateDueWorkspaceMeta();
 }
 
+async function downloadCurrentDueLedgerPDF() {
+  const ledgerNumber = String(state.currentLedgerNumber || "").trim();
+
+  if (state.ledgerMode !== "ledger" || !/^\d{10}$/.test(ledgerNumber)) {
+    showPopup(
+      "error",
+      "Open a customer ledger",
+      "Select an exact customer ledger first, then download the PDF timeline.",
+      { autoClose: false },
+    );
+    return;
+  }
+
+  const customerLabel =
+    sanitizeFileName(state.currentLedgerName || ledgerNumber) || ledgerNumber;
+  const fallbackName = `${customerLabel}-ledger-${ledgerNumber}.pdf`;
+
+  await withButtonState(
+    dom.downloadDueLedgerPdfBtn,
+    '<i class="fa-solid fa-spinner fa-spin"></i> Preparing PDF...',
+    async () => {
+      try {
+        await downloadAuthenticatedFile(`/debts/${ledgerNumber}/pdf`, fallbackName);
+        showPopup(
+          "success",
+          "Download complete",
+          "The customer ledger PDF has been downloaded.",
+        );
+      } catch (error) {
+        console.error("Customer ledger PDF download failed:", error);
+        showPopup(
+          "error",
+          "Download failed",
+          error.message || "Could not download the customer ledger PDF.",
+          { autoClose: false },
+        );
+      }
+    },
+  );
+}
+
 function normalizeStaffUsername(value) {
   return String(value || "")
     .replace(/\s+/g, "")
@@ -6647,6 +6697,9 @@ function bindCustomerDueEvents() {
   dom.showAllDuesBtn.addEventListener("click", () => showAllDues());
   dom.refreshDueLedgerBtn?.addEventListener("click", () =>
     refreshCurrentDueView(),
+  );
+  dom.downloadDueLedgerPdfBtn?.addEventListener("click", () =>
+    downloadCurrentDueLedgerPDF(),
   );
 }
 
