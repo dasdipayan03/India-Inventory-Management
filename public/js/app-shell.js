@@ -95,7 +95,7 @@
       z-index: 1100;
       display: flex;
       flex-direction: column;
-      padding: 22px 18px;
+      padding: 20px 16px;
       border-radius: 30px;
       overflow: hidden;
       color: #eff6ff;
@@ -178,14 +178,14 @@
     .sidebar button {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       width: 100%;
       border: 0;
       border-radius: 18px;
-      padding: 10px 16px;
+      padding: 9px 14px;
       background: transparent;
       color: rgba(239, 246, 255, 0.9);
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 600;
       text-align: left;
       transition:
