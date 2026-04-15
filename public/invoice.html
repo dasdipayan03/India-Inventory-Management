@@ -1390,6 +1390,100 @@
           grid-template-columns: 1fr;
         }
 
+        #checkoutCard .payment-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        #checkoutCard .payment-field--full {
+          grid-column: 1 / -1;
+        }
+
+        #checkoutCard .payment-field--split {
+          min-width: 0;
+        }
+
+        #checkoutCard .payment-field--split .payment-readout {
+          min-height: 100%;
+          align-items: flex-start;
+          padding: 12px;
+        }
+
+        #checkoutCard .payment-field--split .payment-readout strong {
+          font-size: 15px;
+        }
+
+        #checkoutCard .payment-field--split .payment-readout small {
+          font-size: 10px;
+          line-height: 1.35;
+        }
+
+        #checkoutCard .payment-field--outstanding .payment-readout {
+          flex-direction: column;
+        }
+
+        #checkoutCard .payment-field--outstanding #paymentStatus {
+          width: 100%;
+        }
+
+        #checkoutCard .payment-field--outstanding .status-chip {
+          min-width: 0;
+          width: fit-content;
+        }
+
+        #liveSessionCard .stats {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 8px;
+        }
+
+        #liveSessionCard .stat:first-child {
+          grid-column: 1 / -1;
+        }
+
+        #liveSessionCard .stat {
+          min-width: 0;
+          padding: 12px;
+        }
+
+        #liveSessionCard .stat span {
+          font-size: 9px;
+          line-height: 1.3;
+        }
+
+        #liveSessionCard .stat strong {
+          font-size: 15px;
+          line-height: 1.2;
+        }
+
+        #liveSessionCard .stat small {
+          display: block;
+          margin-top: 4px;
+          font-size: 10px;
+          line-height: 1.35;
+          color: var(--muted);
+        }
+
+        #invoicePulseCard .stats {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+        }
+
+        #invoicePulseCard .summary-item {
+          min-width: 0;
+          padding: 12px;
+        }
+
+        #invoicePulseCard .summary-item span {
+          font-size: 9px;
+          line-height: 1.3;
+        }
+
+        #invoicePulseCard .summary-item strong {
+          font-size: 15px;
+          line-height: 1.2;
+          word-break: break-word;
+        }
+
         .search-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 10px;
@@ -1690,6 +1784,30 @@
           padding: 12px;
         }
 
+        #checkoutCard .payment-grid {
+          gap: 8px;
+        }
+
+        #checkoutCard .payment-field--split .payment-readout {
+          padding: 10px;
+        }
+
+        #liveSessionCard .stats {
+          gap: 7px;
+        }
+
+        #liveSessionCard .stat {
+          padding: 10px;
+        }
+
+        #invoicePulseCard .stats {
+          gap: 7px;
+        }
+
+        #invoicePulseCard .summary-item {
+          padding: 10px;
+        }
+
         .paper-header,
         .paper-info-grid,
         .paper-item {
@@ -1946,7 +2064,7 @@
             </div>
 
             <div class="payment-grid">
-              <div class="payment-field">
+              <div class="payment-field payment-field--full">
                 <label for="paymentMode">Payment Mode</label>
                 <select id="paymentMode" class="input">
                   <option value="cash">Cash</option>
@@ -1955,7 +2073,7 @@
                   <option value="mixed">Mixed</option>
                 </select>
               </div>
-              <div class="payment-field">
+              <div class="payment-field payment-field--full">
                 <label for="amountPaid">Amount Paid</label>
                 <input
                   id="amountPaid"
@@ -1966,7 +2084,7 @@
                   placeholder="Leave blank for full payment"
                 />
               </div>
-              <div class="payment-field">
+              <div class="payment-field payment-field--split payment-field--collected">
                 <label>Collected Now</label>
                 <div class="payment-readout">
                   <div class="payment-readout-copy">
@@ -1975,7 +2093,7 @@
                   </div>
                 </div>
               </div>
-              <div class="payment-field">
+              <div class="payment-field payment-field--split payment-field--outstanding">
                 <label>Outstanding</label>
                 <div class="payment-readout">
                   <div class="payment-readout-copy">
