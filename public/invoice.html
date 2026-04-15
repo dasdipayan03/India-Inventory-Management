@@ -175,6 +175,11 @@
         color: var(--muted);
         font-size: 13px;
         line-height: 1.5;
+        display: none;
+      }
+
+      #invoicePulseCard > .helper {
+        display: none;
       }
 
       .mini-row,
@@ -1865,10 +1870,6 @@
             <div id="heroShopName" class="topbar-shop-name" hidden>
               India Inventory Management
             </div>
-            <p class="sub">
-              Live GST refresh, autosave draft, and smarter invoice history
-              search.
-            </p>
             <div class="mini-row stack-top-14">
               <span class="mini" id="sessionRolePill">
                 <i class="fa-solid fa-user-shield"></i>
@@ -1888,10 +1889,6 @@
           <div id="liveSessionCard" class="glass card">
             <div class="eyebrow">Live Session</div>
             <h2>Smart Invoice Builder.</h2>
-            <p class="sub">
-              View current invoice, draft status, and item progress in one
-              place.
-            </p>
             <div class="stats">
               <div class="stat">
                 <span>Current Invoice</span>
@@ -1921,9 +1918,6 @@
           <div>
             <div class="eyebrow">Invoice Pulse</div>
             <h2>Quick status before submit</h2>
-            <p class="sub">
-              Important invoice state stays visible while you work.
-            </p>
           </div>
           <div class="stats">
             <div class="summary-item">
@@ -1947,10 +1941,6 @@
             <i class="fa-regular fa-floppy-disk"></i>
             <span id="draftBadgeText">No draft saved yet</span>
           </div>
-          <p class="helper">
-            Shortcut: press <strong>Ctrl + Enter</strong> to run submit
-            pre-check.
-          </p>
         </aside>
       </section>
 
@@ -1961,9 +1951,6 @@
               <div>
                 <div class="eyebrow">Customer</div>
                 <h2>Billing details</h2>
-                <p class="sub">
-                  Customer information goes into the invoice record and PDF.
-                </p>
               </div>
               <div class="mini">
                 <i class="fa-regular fa-address-card"></i>
@@ -2009,10 +1996,6 @@
               <div>
                 <div class="eyebrow">Line Items</div>
                 <h2>Invoice item builder</h2>
-                <p class="sub">
-                  Search inventory, auto-fill selling rate, edit quantity or
-                  total, and keep the same calculation flow.
-                </p>
               </div>
             </div>
 
@@ -2046,7 +2029,6 @@
           <section id="checkoutCard" class="glass card">
             <div class="eyebrow">Checkout</div>
             <h2>Invoice summary</h2>
-            <p class="sub">Review totals and submit when ready.</p>
 
             <div class="totals stack-top-16">
               <div>
@@ -2147,10 +2129,6 @@
             <div class="shop-summary-copy">
               <div class="eyebrow">Shop Profile</div>
               <h2>Business and tax setup</h2>
-              <p class="sub">
-                One-time setup. Open only when you need to update shop details
-                or GST details for Invoice PDF.
-              </p>
             </div>
             <span class="shop-toggle">
               <i class="fa-solid fa-chevron-down"></i>
@@ -2218,9 +2196,6 @@
           <div>
             <div class="eyebrow">Invoice History</div>
             <h2>Search and open invoices</h2>
-            <p class="sub">
-              Search by invoice no, customer, contact, or YYYYMMDD date.
-            </p>
           </div>
           <!-- <div class="mini">
             <i class="fa-solid fa-magnifying-glass"></i>
@@ -2270,10 +2245,6 @@
           <div class="empty">
             <i class="fa-regular fa-folder-open"></i>
             <h3>Invoice history is ready</h3>
-            <p class="sub">
-              Search an invoice or tap Search / View All to load your latest
-              records.
-            </p>
           </div>
         </div>
       </section>
@@ -2283,10 +2254,6 @@
       <div class="modal-bg" data-close-download="true"></div>
       <div class="modal-box">
         <h3>Download invoice PDF?</h3>
-        <p class="sub">
-          The invoice is saved successfully. Do you want to download the PDF
-          now?
-        </p>
         <div class="modal-actions stack-top-18">
           <button id="modalYes" class="btn primary" type="button">Yes</button>
           <button id="modalNo" class="btn ghost" type="button">No</button>
