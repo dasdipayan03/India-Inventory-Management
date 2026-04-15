@@ -677,7 +677,6 @@ function cacheElements() {
     searchLedgerBtn: document.getElementById("searchLedgerBtn"),
     showAllDuesBtn: document.getElementById("showAllDuesBtn"),
     refreshDueLedgerBtn: document.getElementById("refreshDueLedgerBtn"),
-    downloadDueLedgerPdfBtn: document.getElementById("downloadDueLedgerPdfBtn"),
     dueLedgerViewPill: document.getElementById("dueLedgerViewPill"),
     dueLedgerFocusPill: document.getElementById("dueLedgerFocusPill"),
     dueLedgerHintPill: document.getElementById("dueLedgerHintPill"),
@@ -1073,14 +1072,6 @@ function updateDueWorkspaceMeta() {
     dom.showAllDuesBtn.innerHTML = isLedgerView
       ? '<i class="fas fa-list"></i> Back to Summary'
       : '<i class="fas fa-list"></i> All Customers';
-  }
-
-  if (dom.downloadDueLedgerPdfBtn) {
-    dom.downloadDueLedgerPdfBtn.disabled = !isLedgerView;
-    dom.downloadDueLedgerPdfBtn.setAttribute(
-      "aria-disabled",
-      isLedgerView ? "false" : "true",
-    );
   }
 }
 
@@ -5426,6 +5417,7 @@ function renderLedgerTable(rows, mode = "summary") {
   let tableHead = "";
   let tableBody = "";
   let summaryLabel = "";
+  let ledgerActionHtml = "";
 
   if (mode === "summary") {
     state.ledgerMode = "summary";
@@ -5547,22 +5539,37 @@ function renderLedgerTable(rows, mode = "summary") {
 
     state.currentLedgerOutstanding = totalOutstanding;
     summaryLabel = `${escapeHtml(customerName)} - ${escapeHtml(ledgerNumber)}`;
+    ledgerActionHtml = `
+      <div class="due-ledger-strip__action">
+        <button
+          class="btn btn-primary due-ledger-download-btn"
+          type="button"
+          data-ledger-number="${escapeHtml(ledgerNumber)}"
+        >
+          <i class="fas fa-file-pdf"></i>
+          Download Txn Pdf
+        </button>
+      </div>
+    `;
   }
 
   dom.ledgerTable.innerHTML = `
-    <div class="summary-strip mb-3">
-      <span class="summary-pill">
-        <i class="fa-solid fa-address-card"></i>
-        ${summaryLabel}
-      </span>
-      <span class="summary-pill">
-        <i class="fa-solid fa-hand-holding-dollar"></i>
-        Outstanding: ${formatCurrency(totalOutstanding)}
-      </span>
-      <span class="summary-pill summary-pill--neutral">
-        <i class="fa-solid ${mode === "summary" ? "fa-arrow-up-right-from-square" : "fa-clock-rotate-left"}"></i>
-        ${mode === "summary" ? "Click a row to open ledger details" : `${formatCount(rows.length)} timeline entr${rows.length === 1 ? "y" : "ies"}`}
-      </span>
+    <div class="summary-strip due-ledger-strip mb-3">
+      <div class="due-ledger-strip__meta">
+        <span class="summary-pill">
+          <i class="fa-solid fa-address-card"></i>
+          ${summaryLabel}
+        </span>
+        <span class="summary-pill">
+          <i class="fa-solid fa-hand-holding-dollar"></i>
+          Outstanding: ${formatCurrency(totalOutstanding)}
+        </span>
+        <span class="summary-pill summary-pill--neutral">
+          <i class="fa-solid ${mode === "summary" ? "fa-arrow-up-right-from-square" : "fa-clock-rotate-left"}"></i>
+          ${mode === "summary" ? "Click a row to open ledger details" : `${formatCount(rows.length)} timeline entr${rows.length === 1 ? "y" : "ies"}`}
+        </span>
+      </div>
+      ${ledgerActionHtml}
     </div>
     <table class="table table-sm text-center align-middle dashboard-table dashboard-table--ledger">
       ${tableHead}
@@ -5590,6 +5597,14 @@ function renderLedgerTable(rows, mode = "summary") {
         }
       });
     });
+  } else {
+    const downloadButton = dom.ledgerTable.querySelector(
+      ".due-ledger-download-btn",
+    );
+
+    downloadButton?.addEventListener("click", () =>
+      downloadCurrentDueLedgerPDF(downloadButton),
+    );
   }
 
   updateDueWorkspaceMeta();
@@ -5738,7 +5753,7 @@ async function refreshCurrentDueView() {
   updateDueWorkspaceMeta();
 }
 
-async function downloadCurrentDueLedgerPDF() {
+async function downloadCurrentDueLedgerPDF(button = null) {
   const ledgerNumber = String(state.currentLedgerNumber || "").trim();
 
   if (state.ledgerMode !== "ledger" || !/^\d{10}$/.test(ledgerNumber)) {
@@ -5756,7 +5771,7 @@ async function downloadCurrentDueLedgerPDF() {
   const fallbackName = `${customerLabel}-ledger-${ledgerNumber}.pdf`;
 
   await withButtonState(
-    dom.downloadDueLedgerPdfBtn,
+    button,
     '<i class="fa-solid fa-spinner fa-spin"></i> Preparing PDF...',
     async () => {
       try {
@@ -6697,9 +6712,6 @@ function bindCustomerDueEvents() {
   dom.showAllDuesBtn.addEventListener("click", () => showAllDues());
   dom.refreshDueLedgerBtn?.addEventListener("click", () =>
     refreshCurrentDueView(),
-  );
-  dom.downloadDueLedgerPdfBtn?.addEventListener("click", () =>
-    downloadCurrentDueLedgerPDF(),
   );
 }
 

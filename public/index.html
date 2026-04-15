@@ -453,6 +453,31 @@
         justify-content: flex-start;
       }
 
+      .due-ledger-strip {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+        gap: 10px;
+      }
+
+      .due-ledger-strip__meta {
+        min-width: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .due-ledger-strip__action {
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .due-ledger-strip__action .btn {
+        min-height: 40px;
+        padding: 0 14px;
+        white-space: nowrap;
+      }
+
       .summary-pill--neutral {
         background: rgba(71, 85, 105, 0.08);
         color: var(--ink-soft);
@@ -2306,6 +2331,17 @@
         }
       }
 
+      @media (max-width: 1560px) {
+        .due-ledger-toolbar {
+          grid-template-columns: 1fr;
+        }
+
+        .due-ledger-actions {
+          width: 100%;
+          justify-content: flex-start;
+        }
+      }
+
       @media (max-width: 1199px) {
         .overview-grid {
           grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2387,7 +2423,7 @@
 
         .due-ledger-actions {
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-columns: repeat(3, minmax(0, 1fr));
           width: 100%;
         }
 
@@ -2450,17 +2486,23 @@
         }
 
         .due-ledger-actions {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 8px;
         }
 
         .due-ledger-actions .btn {
           width: 100%;
           min-width: 0;
-          padding: 0 10px;
+          padding: 0 8px;
           font-size: 11px;
           line-height: 1.2;
           white-space: normal;
+        }
+
+        .due-ledger-strip__action .btn {
+          min-height: 38px;
+          padding: 0 12px;
+          font-size: 11px;
         }
 
         .mini-kpi-grid.due-preview-grid {
@@ -2519,8 +2561,7 @@
           padding: 20px;
         }
 
-        .due-preview-grid,
-        .due-ledger-actions {
+        .due-preview-grid {
           grid-template-columns: 1fr;
         }
 
@@ -2992,12 +3033,17 @@
         }
 
         .due-ledger-actions {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 7px;
         }
 
         .due-ledger-actions .btn {
-          padding: 0 8px;
+          padding: 0 6px;
+          font-size: 10px;
+        }
+
+        .due-ledger-strip__action .btn {
+          padding: 0 10px;
           font-size: 10px;
         }
 
@@ -5096,16 +5142,6 @@
                   >
                     <i class="fas fa-rotate-right"></i>
                     Refresh
-                  </button>
-                  <button
-                    class="btn btn-primary"
-                    id="downloadDueLedgerPdfBtn"
-                    type="button"
-                    disabled
-                    aria-disabled="true"
-                  >
-                    <i class="fas fa-file-pdf"></i>
-                    Ledger PDF
                   </button>
                 </div>
               </div>
