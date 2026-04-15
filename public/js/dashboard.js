@@ -1329,7 +1329,9 @@ function updateSectionMeta(button) {
   dom.sectionLead.textContent =
     button.dataset.description ||
     "Manage inventory, reporting, and dues from one dashboard.";
-  dom.sectionBadge.textContent = button.dataset.badge || "Live";
+  if (dom.sectionBadge) {
+    dom.sectionBadge.textContent = button.dataset.badge || "Live";
+  }
 }
 
 function updateOverviewVisibility(sectionId = "") {
