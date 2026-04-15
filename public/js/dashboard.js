@@ -1283,10 +1283,6 @@ function applySessionAccess(user) {
       : '<i class="fa-solid fa-shield-halved"></i> Owner Workspace';
   }
 
-  if (dom.overviewGrid) {
-    dom.overviewGrid.hidden = isStaff;
-  }
-
   if (dom.salesNetProfitCard) {
     dom.salesNetProfitCard.hidden = !canAccessPermission("expense_tracking");
   }
@@ -1309,6 +1305,8 @@ function applySessionAccess(user) {
   dom.heroSubtitle.textContent = isStaff
     ? `${ownerName || "Your owner"} assigned access to ${accessSummary}.`
     : "Your dashboard is syncing the latest inventory and sales view.";
+
+  updateOverviewVisibility();
 }
 
 function updateSectionMeta(button) {
@@ -1322,6 +1320,23 @@ function updateSectionMeta(button) {
     button.dataset.description ||
     "Manage inventory, reporting, and dues from one dashboard.";
   dom.sectionBadge.textContent = button.dataset.badge || "Live";
+}
+
+function updateOverviewVisibility(sectionId = "") {
+  if (!dom.overviewGrid) {
+    return;
+  }
+
+  const activeSectionId =
+    sectionId ||
+    dom.formSections.find((section) => section.classList.contains("active"))
+      ?.id ||
+    localStorage.getItem("activeSection") ||
+    "";
+
+  const isStaff = state.sessionUser?.role === "staff";
+  dom.overviewGrid.hidden =
+    isStaff || activeSectionId === "supportChatSection";
 }
 
 function setActiveSection(sectionId) {
@@ -1355,6 +1370,7 @@ function setActiveSection(sectionId) {
   });
 
   localStorage.setItem("activeSection", sectionId);
+  updateOverviewVisibility(sectionId);
 
   if (sectionId === "itemReportSection") {
     loadLowStock({ silent: true });
