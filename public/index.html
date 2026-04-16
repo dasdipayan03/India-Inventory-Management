@@ -389,6 +389,15 @@
         margin-top: 16px;
       }
 
+      .due-composer-card {
+        padding: 18px;
+      }
+
+      .due-composer-card .row.g-3 {
+        --bs-gutter-x: 12px;
+        --bs-gutter-y: 12px;
+      }
+
       .due-field-note {
         display: block;
         margin-top: 8px;
@@ -398,8 +407,8 @@
       }
 
       .due-remark-field {
-        min-height: 104px;
-        padding-top: 14px;
+        min-height: 88px;
+        padding-top: 12px;
         resize: vertical;
       }
 
@@ -412,8 +421,8 @@
 
       .due-impact-row {
         display: grid;
-        gap: 8px;
-        margin-top: 2px;
+        gap: 0;
+        margin-top: 0;
       }
 
       .due-impact-row .due-balance-pill {
@@ -4874,10 +4883,6 @@
                     class="form-control"
                     placeholder="Customer Name"
                   />
-                  <small class="due-field-note">
-                    Use the saved mobile number below to auto-fill and lock the
-                    name for an existing customer ledger.
-                  </small>
                 </div>
 
                 <div class="col-12 position-relative">
@@ -4892,10 +4897,6 @@
                     inputmode="numeric"
                   />
                   <div id="cdNumberDropdown" class="dropdown-list" hidden></div>
-                  <small class="due-field-note">
-                    The same customer number keeps invoice due entries and later
-                    collections connected.
-                  </small>
                 </div>
 
                 <div class="col-sm-6">
@@ -4908,9 +4909,6 @@
                     step="0.01"
                     placeholder="Amount"
                   />
-                  <small class="due-field-note">
-                    Enter the opening due amount that should be added.
-                  </small>
                 </div>
 
                 <div class="col-sm-6">
@@ -4923,10 +4921,6 @@
                     step="0.01"
                     placeholder="Credit Amount"
                   />
-                  <small class="due-field-note">
-                    Credit can settle the due now or apply against linked unpaid
-                    invoices.
-                  </small>
                 </div>
 
                 <div class="col-12">
@@ -4945,9 +4939,6 @@
                   >
                     Balance Impact: Rs. 0.00
                   </span>
-                  <small class="due-field-note" id="cdImpactMeta">
-                    The live preview updates as you type.
-                  </small>
                 </div>
 
                 <div class="col-12 due-submit-row">
