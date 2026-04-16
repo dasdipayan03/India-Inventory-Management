@@ -389,15 +389,6 @@
         margin-top: 16px;
       }
 
-      .due-preview-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        margin-bottom: 18px;
-      }
-
-      .due-preview-grid .mini-kpi {
-        box-shadow: var(--shadow-sm);
-      }
-
       .due-field-note {
         display: block;
         margin-top: 8px;
@@ -413,7 +404,23 @@
       }
 
       .due-submit-row {
-        margin-top: 4px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(170px, 0.45fr);
+        gap: 10px;
+        margin-top: 8px;
+      }
+
+      .due-impact-row {
+        display: grid;
+        gap: 8px;
+        margin-top: 2px;
+      }
+
+      .due-impact-row .due-balance-pill {
+        min-width: 0;
+        max-width: 100%;
+        justify-content: flex-start;
+        padding: 10px 14px;
       }
 
       .due-ledger-toolbar {
@@ -2393,10 +2400,6 @@
           flex-direction: column;
         }
 
-        .due-preview-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
         .due-ledger-actions {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2503,30 +2506,6 @@
           font-size: 11px;
         }
 
-        .mini-kpi-grid.due-preview-grid {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 8px;
-        }
-
-        .due-preview-grid .mini-kpi {
-          padding: 10px;
-        }
-
-        .due-preview-grid .mini-kpi__label {
-          font-size: 9px;
-          line-height: 1.3;
-        }
-
-        .due-preview-grid .mini-kpi__value {
-          font-size: 16px;
-          line-height: 1.2;
-        }
-
-        .due-preview-grid .mini-kpi__meta {
-          font-size: 10px;
-          line-height: 1.35;
-        }
-
         .insight-panel .gst-summary-kpi-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 8px;
@@ -2559,8 +2538,12 @@
           padding: 20px;
         }
 
-        .due-preview-grid {
-          grid-template-columns: 1fr;
+        .due-submit-row {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .due-submit-row .btn {
+          min-width: 0;
         }
 
         .overview-grid {
@@ -3062,19 +3045,6 @@
         .due-summary-strip .summary-pill {
           padding: 8px 10px;
           font-size: 10px;
-        }
-
-        .mini-kpi-grid.due-preview-grid {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 7px;
-        }
-
-        .due-preview-grid .mini-kpi {
-          padding: 9px;
-        }
-
-        .due-preview-grid .mini-kpi__value {
-          font-size: 15px;
         }
 
         .insight-panel .gst-summary-kpi-grid {
@@ -4895,38 +4865,6 @@
                 </div>
               </div>
 
-              <div class="mini-kpi-grid due-preview-grid">
-                <article class="mini-kpi">
-                  <span class="mini-kpi__label">Entry Type</span>
-                  <strong class="mini-kpi__value" id="cdEntryType"
-                    >Waiting</strong
-                  >
-                  <small class="mini-kpi__meta" id="cdEntryTypeMeta">
-                    Start with customer and amount details.
-                  </small>
-                </article>
-
-                <article class="mini-kpi">
-                  <span class="mini-kpi__label">Balance Impact</span>
-                  <strong class="mini-kpi__value" id="cdImpactValue"
-                    >Rs. 0.00</strong
-                  >
-                  <small class="mini-kpi__meta" id="cdImpactMeta">
-                    The live preview updates as you type.
-                  </small>
-                </article>
-
-                <article class="mini-kpi">
-                  <span class="mini-kpi__label">Workflow</span>
-                  <strong class="mini-kpi__value" id="cdWorkflowValue"
-                    >Manual entry</strong
-                  >
-                  <small class="mini-kpi__meta" id="cdWorkflowMeta">
-                    Invoice-linked settlement guidance will appear here.
-                  </small>
-                </article>
-              </div>
-
               <div class="row g-3">
                 <div class="col-12">
                   <label class="form-label small">Customer Name</label>
@@ -5000,6 +4938,18 @@
                   ></textarea>
                 </div>
 
+                <div class="col-12 due-impact-row">
+                  <span
+                    class="due-balance-pill due-balance-pill--neutral"
+                    id="cdImpactValue"
+                  >
+                    Balance Impact: Rs. 0.00
+                  </span>
+                  <small class="due-field-note" id="cdImpactMeta">
+                    The live preview updates as you type.
+                  </small>
+                </div>
+
                 <div class="col-12 due-submit-row">
                   <button
                     class="btn btn-danger w-100"
@@ -5008,6 +4958,14 @@
                   >
                     <i class="fas fa-check-circle"></i>
                     Save Due Entry
+                  </button>
+                  <button
+                    class="btn btn-secondary w-100"
+                    id="clearDebtBtn"
+                    type="button"
+                  >
+                    <i class="fa-solid fa-eraser"></i>
+                    Clear
                   </button>
                 </div>
               </div>

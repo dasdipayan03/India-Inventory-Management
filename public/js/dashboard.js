@@ -674,6 +674,7 @@ function cacheElements() {
     cdWorkflowValue: document.getElementById("cdWorkflowValue"),
     cdWorkflowMeta: document.getElementById("cdWorkflowMeta"),
     submitDebtBtn: document.getElementById("submitDebtBtn"),
+    clearDebtBtn: document.getElementById("clearDebtBtn"),
     cdSearchInput: document.getElementById("cdSearchInput"),
     cdSearchDropdown: document.getElementById("cdSearchDropdown"),
     searchLedgerBtn: document.getElementById("searchLedgerBtn"),
@@ -917,6 +918,22 @@ function setCustomerNameLocked(locked) {
   updateCustomerDuePreview();
 }
 
+function resetCustomerDueForm(options = {}) {
+  ["cdName", "cdNumber", "cdTotal", "cdCredit", "cdRemark"].forEach((id) => {
+    const field = document.getElementById(id);
+    if (field) {
+      field.value = "";
+    }
+  });
+
+  setCustomerNameLocked(false);
+  hideElement(dom.cdNumberDropdown);
+
+  if (options.focus && dom.cdName) {
+    dom.cdName.focus();
+  }
+}
+
 function getDueFormSnapshot() {
   const customerName = dom.cdName?.value.trim() || "";
   const customerNumber = dom.cdNumber?.value.trim() || "";
@@ -985,6 +1002,7 @@ function getDueFormSnapshot() {
   return {
     entryType,
     entryTypeMeta,
+    impactAmount: balanceImpact,
     impactValue,
     impactMeta,
     workflowValue,
@@ -1004,7 +1022,8 @@ function updateCustomerDuePreview() {
   }
 
   if (dom.cdImpactValue) {
-    dom.cdImpactValue.textContent = snapshot.impactValue;
+    dom.cdImpactValue.className = getDueBalancePillClass(snapshot.impactAmount);
+    dom.cdImpactValue.textContent = `Balance Impact: ${snapshot.impactValue}`;
   }
 
   if (dom.cdImpactMeta) {
@@ -4730,13 +4749,7 @@ async function submitDebt() {
           data.message || "Customer due entry added successfully.",
         );
 
-        ["cdName", "cdNumber", "cdTotal", "cdCredit", "cdRemark"].forEach(
-          (id) => {
-            document.getElementById(id).value = "";
-          },
-        );
-
-        setCustomerNameLocked(false);
+        resetCustomerDueForm();
         await loadDashboardOverview({ silent: true });
 
         if (state.ledgerMode === "summary") {
@@ -6735,6 +6748,9 @@ function bindCustomerDueEvents() {
   });
 
   dom.submitDebtBtn.addEventListener("click", submitDebt);
+  dom.clearDebtBtn?.addEventListener("click", () => {
+    resetCustomerDueForm({ focus: true });
+  });
 
   dom.cdSearchInput.addEventListener("input", () => {
     runLedgerSearchSuggestions();
