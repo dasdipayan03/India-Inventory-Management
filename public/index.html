@@ -308,26 +308,27 @@
       }
 
       .section-meta {
-        display: flex;
-        align-items: flex-end;
-        justify-content: space-between;
-        gap: 16px;
-        margin-bottom: 18px;
-        padding: 16px 18px;
-        border-radius: 24px;
-        border: 1px solid rgba(255, 255, 255, 0.58);
-        background: linear-gradient(
-          180deg,
-          rgba(255, 255, 255, 0.84),
-          rgba(246, 251, 255, 0.78)
-        );
-        box-shadow: var(--shadow-md);
+        display: inline-grid;
+        gap: 6px;
+        width: fit-content;
+        max-width: 100%;
+        margin-bottom: 14px;
+        padding: 12px 16px;
+        border-radius: 999px;
+        border: 1px solid rgba(14, 165, 233, 0.16);
+        background: rgba(255, 255, 255, 0.82);
+        box-shadow: none;
       }
 
       .section-meta__eyebrow {
-        margin: 0 0 8px;
+        display: inline-flex;
+        width: fit-content;
+        margin: 0;
+        padding: 4px 9px;
+        border-radius: 999px;
+        background: rgba(14, 165, 233, 0.08);
         color: var(--cyan-strong);
-        font-size: 12px;
+        font-size: 10px;
         font-weight: 800;
         letter-spacing: 0.06em;
         text-transform: uppercase;
@@ -336,17 +337,17 @@
       .section-meta h3 {
         margin: 0;
         color: var(--ink-strong);
-        font-size: clamp(18px, 2.35vw, 24px);
-        line-height: 1.05;
-        letter-spacing: -0.04em;
+        font-size: clamp(17px, 2vw, 20px);
+        line-height: 1.08;
+        letter-spacing: -0.03em;
       }
 
       .section-meta p {
-        max-width: 64ch;
-        margin: 8px 0 0;
+        max-width: 42ch;
+        margin: 0;
         color: var(--ink-soft);
-        font-size: 12px;
-        line-height: 1.5;
+        font-size: 11px;
+        line-height: 1.38;
       }
 
       .form-section {
@@ -3311,14 +3312,9 @@
 
         <section class="section-meta" aria-live="polite">
           <div>
-            <p class="section-meta__eyebrow" id="sectionEyebrow">
-              Inventory Intake
-            </p>
-            <h3 id="sectionHeading">Add New Stock</h3>
-            <p id="sectionLead">
-              Keep quantity, buying rate, and selling rate aligned when fresh
-              stock arrives.
-            </p>
+            <p class="section-meta__eyebrow" id="sectionEyebrow">Stock</p>
+            <h3 id="sectionHeading">Add Stock</h3>
+            <p id="sectionLead">Add stock and set price.</p>
           </div>
         </section>
 

@@ -59,10 +59,9 @@
       permission: "add_stock",
       iconClass: "fas fa-plus-circle",
       label: staffPageConfig.add_stock?.label || "Add New Stock",
-      eyebrow: "Inventory Intake",
-      title: staffPageConfig.add_stock?.label || "Add New Stock",
-      description:
-        "Keep quantity, buying rate, and selling rate aligned when fresh stock arrives.",
+      eyebrow: "Stock",
+      title: "Add Stock",
+      description: "Add stock and set price.",
       badge: "Stock",
     },
     {
@@ -71,10 +70,9 @@
       permission: "purchase_entry",
       iconClass: "fa-solid fa-truck-ramp-box",
       label: staffPageConfig.purchase_entry?.label || "Purchase Entry",
-      eyebrow: "Procurement Flow",
-      title: staffPageConfig.purchase_entry?.label || "Purchase Entry",
-      description:
-        "Capture supplier bills, restock inventory directly from purchases, and monitor supplier payables in one flow.",
+      eyebrow: "Purchase",
+      title: "Purchase Entry",
+      description: "Save bill and add stock.",
       badge: "Purchase",
     },
     {
@@ -83,10 +81,9 @@
       permission: invoicePagePermission,
       iconClass: "fa-solid fa-file-invoice",
       label: staffPageConfig.sale_invoice?.label || "Sale and Invoice",
-      eyebrow: "Billing Workspace",
-      title: staffPageConfig.sale_invoice?.label || "Sale and Invoice",
-      description:
-        "Create sale entries, generate polished invoices, and review recent billing activity.",
+      eyebrow: "Billing",
+      title: "Sale and Invoice",
+      description: "Make bill and print invoice.",
       badge: "Invoice",
     },
     {
@@ -95,10 +92,9 @@
       permission: "stock_report",
       iconClass: "fas fa-boxes",
       label: staffPageConfig.stock_report?.label || "Stock Report",
-      eyebrow: "Inventory Insights",
-      title: staffPageConfig.stock_report?.label || "Stock Report",
-      description:
-        "Search any item, review availability, and spot low stock before it becomes urgent.",
+      eyebrow: "Stock",
+      title: "Stock Report",
+      description: "Check stock and low items.",
       badge: "Reports",
     },
     {
@@ -107,10 +103,9 @@
       permission: "sales_report",
       iconClass: "fas fa-chart-line",
       label: staffPageConfig.sales_report?.label || "Sales Report",
-      eyebrow: "Revenue Tracking",
-      title: staffPageConfig.sales_report?.label || "Sales Report",
-      description:
-        "Explore date-wise sales, export PDF or Excel files, and monitor trend charts month after month.",
+      eyebrow: "Sales",
+      title: "Sales Report",
+      description: "See sales and export files.",
       badge: "Sales",
     },
     {
@@ -119,10 +114,9 @@
       permission: "gst_report",
       iconClass: "fas fa-receipt",
       label: staffPageConfig.gst_report?.label || "GST Report",
-      eyebrow: "Tax Compliance",
-      title: staffPageConfig.gst_report?.label || "GST Report",
-      description:
-        "Review invoice-wise GST for any date range, then export polished reports for filing and bookkeeping.",
+      eyebrow: "GST",
+      title: "GST Report",
+      description: "Check GST and export.",
       badge: "GST",
     },
     {
@@ -131,10 +125,9 @@
       permission: "customer_due",
       iconClass: "fas fa-user-clock",
       label: staffPageConfig.customer_due?.label || "Customer Due",
-      eyebrow: "Collections",
-      title: staffPageConfig.customer_due?.label || "Customer Due",
-      description:
-        "Capture customer balances, search dues quickly, and keep ledger follow-up organized.",
+      eyebrow: "Due",
+      title: "Customer Due",
+      description: "Add due and check ledger.",
       badge: "Ledger",
     },
     {
@@ -143,10 +136,9 @@
       permission: "expense_tracking",
       iconClass: "fa-solid fa-wallet",
       label: staffPageConfig.expense_tracking?.label || "Expenses",
-      eyebrow: "Finance Control",
-      title: staffPageConfig.expense_tracking?.label || "Expenses",
-      description:
-        "Track daily business expenses, compare gross profit against real net profit, and keep spending visible.",
+      eyebrow: "Expenses",
+      title: "Expenses",
+      description: "Save expense and check profit.",
       badge: "Expense",
     },
     {
@@ -155,10 +147,9 @@
       ownerOnly: true,
       iconClass: "fa-solid fa-users-gear",
       label: "Staff Access",
-      eyebrow: "Access Control",
+      eyebrow: "Staff",
       title: "Staff Access",
-      description:
-        "Create up to two staff accounts, keep credentials organized, and control who can work inside the shop workspace.",
+      description: "Manage staff login and access.",
       badge: "Team",
     },
     {
@@ -167,10 +158,9 @@
       availableToAll: true,
       iconClass: "fa-solid fa-headset",
       label: "Chat Support",
-      eyebrow: "Customer Care Support",
+      eyebrow: "Support",
       title: "Chat Support",
-      description:
-        "Send a private message to customer care support, track replies easily, and keep support tied to your current login.",
+      description: "Send message and get reply.",
       badge: "Support",
     },
   ];
