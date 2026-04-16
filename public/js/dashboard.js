@@ -5597,7 +5597,7 @@ function renderLedgerTable(rows, mode = "summary") {
     ledgerActionHtml = `
       <div class="due-ledger-table__action-row">
         <button
-          class="btn btn-primary due-ledger-download-btn"
+          class="btn btn-info due-ledger-download-btn"
           type="button"
           data-ledger-number="${escapeHtml(ledgerNumber)}"
         >
@@ -6025,7 +6025,7 @@ function renderStaffList(data = {}) {
               <div class="staff-card__actions mt-3">
                 <button
                   type="button"
-                  class="btn btn-info btn-sm staff-save-btn"
+                  class="btn btn-success btn-sm staff-save-btn"
                   data-staff-id="${member.id}"
                 >
                   <i class="fa-solid fa-floppy-disk"></i>
@@ -6033,7 +6033,7 @@ function renderStaffList(data = {}) {
                 </button>
                 <button
                   type="button"
-                  class="btn btn-secondary btn-sm staff-delete-btn"
+                  class="btn btn-danger btn-sm staff-delete-btn"
                   data-staff-id="${member.id}"
                 >
                   <i class="fa-solid fa-trash"></i>
