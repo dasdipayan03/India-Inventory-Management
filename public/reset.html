@@ -140,9 +140,9 @@
         gap: 8px;
         padding: 0 12px;
         border-radius: 14px;
-        border: 1px solid rgba(148, 163, 184, 0.3);
-        background: linear-gradient(135deg, #e5e7eb, #cbd5e1);
-        color: #334155;
+        border: 1px solid rgba(22, 151, 208, 0.18);
+        background: rgba(22, 151, 208, 0.05);
+        color: var(--sky);
         font-size: 12px;
         font-weight: 800;
         text-decoration: none;
@@ -151,7 +151,7 @@
 
       .topbar-link:hover {
         transform: translateY(-1px);
-        background: linear-gradient(135deg, #dbe1e9, #c5ced9);
+        background: rgba(22, 151, 208, 0.11);
       }
 
       .topbar-link:focus-visible,
@@ -175,8 +175,8 @@
         gap: 8px;
         padding: 7px 12px;
         border-radius: 999px;
-        background: rgba(220, 252, 231, 0.94);
-        color: #166534;
+        background: rgba(22, 151, 208, 0.08);
+        color: var(--sky);
         font-size: 11px;
         font-weight: 800;
         letter-spacing: 0.08em;
@@ -341,13 +341,13 @@
         place-items: center;
         border: 0;
         border-radius: 12px;
-        background: rgba(226, 232, 240, 0.88);
-        color: #475569;
+        background: transparent;
+        color: var(--muted);
       }
 
       .password-toggle:hover {
-        background: rgba(203, 213, 225, 0.92);
-        color: #334155;
+        background: rgba(22, 151, 208, 0.08);
+        color: var(--sky);
       }
 
       .field-hint {
@@ -371,18 +371,18 @@
         margin-top: 4px;
         border: 0;
         border-radius: 18px;
-        background: linear-gradient(135deg, #4ade80, #16a34a);
+        background: linear-gradient(135deg, var(--sky), var(--sky-soft));
         color: #ffffff;
         font-size: 12px;
         font-weight: 800;
         letter-spacing: 0.02em;
-        box-shadow: 0 10px 24px rgba(34, 197, 94, 0.22);
+        box-shadow: 0 10px 24px rgba(22, 151, 208, 0.22);
         transition: all 0.25s ease;
       }
 
       .submit-btn:hover:not(:disabled) {
         transform: translateY(-1px);
-        box-shadow: 0 14px 26px rgba(34, 197, 94, 0.26);
+        box-shadow: 0 14px 26px rgba(22, 151, 208, 0.26);
       }
 
       .submit-btn:disabled {
@@ -401,7 +401,7 @@
       }
 
       .support-link {
-        color: #334155;
+        color: var(--sky);
         text-decoration: none;
         font-size: 13px;
         font-weight: 800;

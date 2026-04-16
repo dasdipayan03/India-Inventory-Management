@@ -22,18 +22,6 @@
         --glass: rgba(255, 255, 255, 0.88);
         --danger: #dc2626;
         --success: #16a34a;
-        --action-submit-start: #4ade80;
-        --action-submit-end: #16a34a;
-        --action-clear-start: #fecaca;
-        --action-clear-end: #fda4af;
-        --action-view-start: #e5e7eb;
-        --action-view-end: #cbd5e1;
-        --action-download-start: #93c5fd;
-        --action-download-end: #3b82f6;
-        --action-add-start: #bfdbfe;
-        --action-add-end: #7dd3fc;
-        --pill-green-bg: rgba(220, 252, 231, 0.94);
-        --pill-green-text: #166534;
         --shadow: 0 22px 48px rgba(17, 29, 58, 0.12);
         --radius: 24px;
       }
@@ -451,51 +439,6 @@
         background: rgba(254, 226, 226, 0.92);
       }
 
-      .btn-submit {
-        color: #ffffff;
-        background: linear-gradient(
-          135deg,
-          var(--action-submit-start),
-          var(--action-submit-end)
-        );
-      }
-
-      .btn-clear {
-        color: #9f1239;
-        background: linear-gradient(
-          135deg,
-          var(--action-clear-start),
-          var(--action-clear-end)
-        );
-      }
-
-      .btn-view {
-        color: #334155;
-        background: linear-gradient(
-          135deg,
-          var(--action-view-start),
-          var(--action-view-end)
-        );
-      }
-
-      .btn-download {
-        color: #ffffff;
-        background: linear-gradient(
-          135deg,
-          var(--action-download-start),
-          var(--action-download-end)
-        );
-      }
-
-      .btn-add {
-        color: #0c4a6e;
-        background: linear-gradient(
-          135deg,
-          var(--action-add-start),
-          var(--action-add-end)
-        );
-      }
-
       .toolbar {
         display: flex;
         justify-content: space-between;
@@ -707,7 +650,6 @@
 
       .stock.blink {
         color: var(--danger);
-        background: rgba(254, 226, 226, 0.92);
         animation: blink 0.85s infinite;
       }
 
@@ -844,30 +786,6 @@
       .status-chip--draft {
         color: var(--navy);
         background: rgba(219, 234, 254, 0.74);
-      }
-
-      .mini,
-      .stock,
-      .status-chip {
-        background: var(--pill-green-bg);
-        color: var(--pill-green-text);
-        border-color: rgba(34, 197, 94, 0.18);
-      }
-
-      .mini strong {
-        color: var(--pill-green-text);
-      }
-
-      .draft-badge.active,
-      .draft-badge.clear,
-      .draft-badge.alert,
-      .status-chip--paid,
-      .status-chip--partial,
-      .status-chip--due,
-      .status-chip--return,
-      .status-chip--draft {
-        background: var(--pill-green-bg);
-        color: var(--pill-green-text);
       }
 
       .search-grid {
@@ -1339,12 +1257,8 @@
         justify-content: center;
         border: 0;
         border-radius: 999px;
-        background: linear-gradient(
-          135deg,
-          var(--action-clear-start),
-          var(--action-clear-end)
-        );
-        color: #9f1239;
+        background: rgba(148, 163, 184, 0.12);
+        color: var(--muted);
         cursor: pointer;
         transition:
           background-color 0.2s ease,
@@ -1353,8 +1267,8 @@
       }
 
       .popup-close:hover {
-        background: linear-gradient(135deg, #fda4af, #fb7185);
-        color: #881337;
+        background: rgba(14, 165, 233, 0.12);
+        color: var(--sky);
         transform: translateY(-1px);
       }
 
@@ -2110,7 +2024,7 @@
             </div>
 
             <div class="actions stack-top-16">
-              <button id="addItemBtn" class="btn btn-add" type="button">
+              <button id="addItemBtn" class="btn soft" type="button">
                 <i class="fa-solid fa-plus"></i>
                 Add Item Row
               </button>
@@ -2203,11 +2117,11 @@
             </div>
 
             <div class="checkout-actions">
-              <button id="saveInvoiceBtn" class="btn btn-submit" type="button">
+              <button id="saveInvoiceBtn" class="btn primary" type="button">
                 <i class="fa-solid fa-file-circle-check"></i>
                 Submit Invoice
               </button>
-              <button id="clearBtn" class="btn btn-clear" type="button">
+              <button id="clearBtn" class="btn danger" type="button">
                 <i class="fa-solid fa-trash"></i>
                 Clear Invoice
               </button>
@@ -2275,7 +2189,7 @@
             </div>
 
             <div class="actions stack-top-16">
-              <button id="saveGstBtn" class="btn btn-submit" type="button">
+              <button id="saveGstBtn" class="btn primary" type="button">
                 <i class="fa-regular fa-floppy-disk"></i>
                 Save Shop Profile
               </button>
@@ -2311,11 +2225,11 @@
               placeholder="Invoice no, customer, contact, or date (YYYYMMDD)"
             />
           </div>
-          <button id="searchInvoiceBtn" class="btn btn-view" type="button">
+          <button id="searchInvoiceBtn" class="btn soft" type="button">
             <i class="fa-solid fa-search"></i>
             Search / View All
           </button>
-          <button id="searchDownloadBtn" class="btn btn-download" type="button">
+          <button id="searchDownloadBtn" class="btn ghost" type="button">
             <i class="fa-solid fa-download"></i>
             Download PDF
           </button>
@@ -2348,8 +2262,8 @@
       <div class="modal-box">
         <h3>Download invoice PDF?</h3>
         <div class="modal-actions stack-top-18">
-          <button id="modalYes" class="btn btn-download" type="button">Yes</button>
-          <button id="modalNo" class="btn btn-view" type="button">No</button>
+          <button id="modalYes" class="btn primary" type="button">Yes</button>
+          <button id="modalNo" class="btn ghost" type="button">No</button>
         </div>
       </div>
     </div>
@@ -2363,10 +2277,10 @@
           records after confirmation.
         </p>
         <div class="modal-actions stack-top-18">
-          <button id="confirmSaveYes" class="btn btn-submit" type="button">
+          <button id="confirmSaveYes" class="btn primary" type="button">
             Confirm
           </button>
-          <button id="confirmSaveNo" class="btn btn-view" type="button">
+          <button id="confirmSaveNo" class="btn ghost" type="button">
             Cancel
           </button>
         </div>
@@ -3618,7 +3532,7 @@
               <input class="input total-input" type="number" min="0" step="0.01" />
             </td>
             <td data-label="Remove">
-              <button class="btn btn-clear remove-btn" type="button">
+              <button class="btn danger remove-btn" type="button">
                 <i class="fa-solid fa-xmark"></i>
                 Remove
               </button>
@@ -3947,7 +3861,7 @@
                     ></textarea>
                   </div>
                   <div class="actions">
-                    <button class="btn btn-submit detail-receive" type="button" data-inv="${escapeHtml(invoice.invoice_no)}">
+                    <button class="btn primary detail-receive" type="button" data-inv="${escapeHtml(invoice.invoice_no)}">
                       <i class="fa-solid fa-hand-holding-dollar"></i>
                       Receive Payment
                     </button>
@@ -4049,8 +3963,8 @@
                 </div>
 
                 <div class="result-actions">
-                  <button class="btn btn-download detail-download" type="button" data-inv="${escapeHtml(invoice.invoice_no)}"><i class="fa-solid fa-download"></i>Download PDF</button>
-                  <button class="btn btn-view detail-back" type="button"><i class="fa-solid fa-list"></i>Back to invoice list</button>
+                  <button class="btn primary detail-download" type="button" data-inv="${escapeHtml(invoice.invoice_no)}"><i class="fa-solid fa-download"></i>Download PDF</button>
+                  <button class="btn ghost detail-back" type="button"><i class="fa-solid fa-list"></i>Back to invoice list</button>
                 </div>
 
                 <div class="paper-footer-note">
@@ -4158,13 +4072,13 @@
                     <div><span>Item rows</span><strong>${escapeHtml(row.item_count || 0)}</strong></div>
                   </div>
                   <div class="actions">
-                    <button class="btn btn-view invoice-open" type="button" data-inv="${escapeHtml(row.invoice_no)}"><i class="fa-solid fa-eye"></i>Open</button>
+                    <button class="btn soft invoice-open" type="button" data-inv="${escapeHtml(row.invoice_no)}"><i class="fa-solid fa-eye"></i>Open</button>
                     ${
                       Number(row.amount_due || 0) > 0
-                        ? `<button class="btn btn-submit invoice-receive" type="button" data-inv="${escapeHtml(row.invoice_no)}"><i class="fa-solid fa-hand-holding-dollar"></i>Receive Payment</button>`
+                        ? `<button class="btn primary invoice-receive" type="button" data-inv="${escapeHtml(row.invoice_no)}"><i class="fa-solid fa-hand-holding-dollar"></i>Receive Payment</button>`
                         : ""
                     }
-                    <button class="btn btn-download invoice-download" type="button" data-inv="${escapeHtml(row.invoice_no)}"><i class="fa-solid fa-download"></i>PDF</button>
+                    <button class="btn ghost invoice-download" type="button" data-inv="${escapeHtml(row.invoice_no)}"><i class="fa-solid fa-download"></i>PDF</button>
                   </div>
                 </article>
               `,

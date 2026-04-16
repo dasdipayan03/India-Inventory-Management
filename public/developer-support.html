@@ -154,14 +154,13 @@
         gap: 8px;
         padding: 8px 12px;
         border-radius: 999px;
-        background: rgba(220, 252, 231, 0.94);
-        color: #166534;
+        background: rgba(14, 165, 233, 0.08);
+        color: var(--cyan-strong);
         font-size: 12px;
         font-weight: 800;
       }
 
       .ghost-btn,
-      .refresh-btn,
       .primary-btn,
       .danger-btn,
       .filter-btn {
@@ -175,34 +174,32 @@
 
       .ghost-btn,
       .filter-btn {
-        border: 1px solid rgba(148, 163, 184, 0.3);
-        background: linear-gradient(135deg, #e5e7eb, #cbd5e1);
-        color: #334155;
+        border: 1px solid rgba(22, 151, 208, 0.18);
+        background: rgba(22, 151, 208, 0.05);
+        color: var(--cyan-strong);
       }
 
       .primary-btn {
         border: 0;
-        background: linear-gradient(135deg, #4ade80, #16a34a);
+        background: linear-gradient(135deg, var(--cyan), #35b5e8);
         color: #ffffff;
-        box-shadow: 0 12px 28px rgba(34, 197, 94, 0.22);
+        box-shadow: 0 12px 28px rgba(14, 165, 233, 0.22);
       }
 
       .danger-btn {
-        border: 1px solid rgba(244, 114, 182, 0.18);
-        background: linear-gradient(135deg, #fecaca, #fda4af);
-        color: #9f1239;
-      }
-
-      .refresh-btn {
-        border: 1px solid rgba(251, 191, 36, 0.24);
-        background: linear-gradient(135deg, #fef3c7, #fde68a);
-        color: #92400e;
+        border: 1px solid rgba(220, 38, 38, 0.16);
+        background: rgba(220, 38, 38, 0.08);
+        color: var(--danger);
       }
 
       .filter-btn.is-active {
-        background: linear-gradient(135deg, #dbe1e9, #c5ced9);
-        border-color: rgba(148, 163, 184, 0.42);
-        box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12);
+        background: linear-gradient(
+          135deg,
+          rgba(14, 165, 233, 0.16),
+          rgba(20, 184, 166, 0.16)
+        );
+        border-color: rgba(14, 165, 233, 0.3);
+        box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.08);
       }
 
       .ghost-btn.is-loading i {
@@ -565,8 +562,8 @@
         min-height: 28px;
         padding: 0 10px;
         border-radius: 999px;
-        background: rgba(220, 252, 231, 0.94);
-        color: #166534;
+        background: rgba(217, 119, 6, 0.12);
+        color: var(--amber);
         font-size: 12px;
         font-weight: 800;
       }
@@ -582,13 +579,13 @@
       }
 
       .queue-status--open {
-        color: #166534;
-        background: rgba(220, 252, 231, 0.94);
+        color: var(--success);
+        background: rgba(22, 163, 74, 0.12);
       }
 
       .queue-status--closed {
-        color: #166534;
-        background: rgba(220, 252, 231, 0.94);
+        color: var(--amber);
+        background: rgba(217, 119, 6, 0.12);
       }
 
       .queue-empty,
@@ -821,7 +818,7 @@
             <i class="fa-solid fa-user-shield"></i>
             Developer session
           </span>
-          <button id="refreshInboxBtn" class="ghost-btn refresh-btn" type="button">
+          <button id="refreshInboxBtn" class="ghost-btn" type="button">
             <i class="fa-solid fa-rotate-right"></i>
             Refresh Inbox
           </button>
@@ -993,7 +990,7 @@
                 <i class="fa-solid fa-unlock"></i>
                 Mark Open
               </button>
-              <button id="markClosedBtn" class="danger-btn" type="button">
+              <button id="markClosedBtn" class="ghost-btn" type="button">
                 <i class="fa-solid fa-lock"></i>
                 Mark Closed
               </button>
