@@ -504,10 +504,6 @@ function cacheElements() {
     sessionRoleChip: document.getElementById("sessionRoleChip"),
     welcomeUser: document.getElementById("welcomeUser"),
     heroSubtitle: document.getElementById("heroSubtitle"),
-    sectionEyebrow: document.getElementById("sectionEyebrow"),
-    sectionHeading: document.getElementById("sectionHeading"),
-    sectionLead: document.getElementById("sectionLead"),
-    sectionBadge: document.getElementById("sectionBadge"),
     statCatalogCount: document.getElementById("statCatalogCount"),
     statCatalogNote: document.getElementById("statCatalogNote"),
     statCatalogValue: document.getElementById("statCatalogValue"),
@@ -1338,21 +1334,6 @@ function applySessionAccess(user) {
   updateOverviewVisibility();
 }
 
-function updateSectionMeta(button) {
-  if (!button) {
-    return;
-  }
-
-  dom.sectionEyebrow.textContent = button.dataset.eyebrow || "Workspace";
-  dom.sectionHeading.textContent = button.dataset.title || "Dashboard";
-  dom.sectionLead.textContent =
-    button.dataset.description ||
-    "Manage inventory, reporting, and dues from one dashboard.";
-  if (dom.sectionBadge) {
-    dom.sectionBadge.textContent = button.dataset.badge || "Live";
-  }
-}
-
 function updateOverviewVisibility(sectionId = "") {
   if (!dom.overviewGrid) {
     return;
@@ -1395,9 +1376,6 @@ function setActiveSection(sectionId) {
   dom.sectionButtons.forEach((button) => {
     const isActive = button.dataset.section === sectionId;
     button.classList.toggle("active", isActive);
-    if (isActive) {
-      updateSectionMeta(button);
-    }
   });
 
   localStorage.setItem("activeSection", sectionId);

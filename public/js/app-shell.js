@@ -324,21 +324,10 @@
     }
   }
 
-  function buildMetaAttributes(item) {
-    return [
-      `data-eyebrow="${escapeHtml(item.eyebrow || "")}"`,
-      `data-title="${escapeHtml(item.title || item.label || "")}"`,
-      `data-description="${escapeHtml(item.description || "")}"`,
-      `data-badge="${escapeHtml(item.badge || "")}"`,
-    ].join(" ");
-  }
-
   function buildDashboardButton(item) {
-    const metaAttributes = buildMetaAttributes(item);
-
     if (item.kind === "invoice") {
       return `
-        <button id="invoiceBtn" ${metaAttributes} type="button">
+        <button id="invoiceBtn" type="button">
           <i class="${escapeHtml(item.iconClass)}"></i>
           <span>${escapeHtml(item.label)}</span>
         </button>
@@ -350,7 +339,6 @@
     return `
       <button
         data-section="${escapeHtml(item.sectionId)}"
-        ${metaAttributes}
         ${classes}
         type="button"
       >
@@ -361,14 +349,11 @@
   }
 
   function buildInvoiceButton(item) {
-    const metaAttributes = buildMetaAttributes(item);
-
     if (item.kind === "invoice") {
       return `
         <button
           id="invoiceNavBtn"
           class="active"
-          ${metaAttributes}
           type="button"
           aria-current="page"
         >
@@ -381,7 +366,6 @@
     return `
       <button
         data-nav-section="${escapeHtml(item.sectionId)}"
-        ${metaAttributes}
         type="button"
       >
         <i class="${escapeHtml(item.iconClass)}"></i>
