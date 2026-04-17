@@ -1713,6 +1713,36 @@
         line-height: 1.45;
       }
 
+      #reorderPlannerCard .mini-kpi-grid {
+        gap: 10px;
+      }
+
+      #reorderPlannerCard .mini-kpi {
+        padding: 13px 14px;
+        border-radius: 16px;
+      }
+
+      #reorderPlannerCard .mini-kpi__label {
+        font-size: 10px;
+      }
+
+      #reorderPlannerCard .mini-kpi__value {
+        margin-top: 6px;
+        font-size: 17px;
+        line-height: 1.1;
+      }
+
+      #reorderPlannerCard .mini-kpi__meta {
+        margin-top: 4px;
+        font-size: 11px;
+        line-height: 1.38;
+      }
+
+      #reorderPlannerCard .summary-strip {
+        justify-content: flex-start;
+        margin-top: 12px;
+      }
+
       .insight-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4115,39 +4145,28 @@
                   <strong class="mini-kpi__value" id="reorderCandidateCount"
                     >0</strong
                   >
-                  <small class="mini-kpi__meta">
-                    Items that need replenishment to reach the target stock
-                    cover.
-                  </small>
+                  <small class="mini-kpi__meta">Items to restock.</small>
                 </article>
                 <article class="mini-kpi">
                   <span class="mini-kpi__label">Urgent</span>
                   <strong class="mini-kpi__value" id="reorderUrgentCount"
                     >0</strong
                   >
-                  <small class="mini-kpi__meta">
-                    High-risk items that may run out first based on recent
-                    movement.
-                  </small>
+                  <small class="mini-kpi__meta">May finish first.</small>
                 </article>
                 <article class="mini-kpi">
-                  <span class="mini-kpi__label">Suggested Units</span>
+                  <span class="mini-kpi__label">Need Qty</span>
                   <strong class="mini-kpi__value" id="reorderSuggestedUnits"
                     >0</strong
                   >
-                  <small class="mini-kpi__meta">
-                    Total recommended quantity to rebuild the stock buffer.
-                  </small>
+                  <small class="mini-kpi__meta">Units to buy now.</small>
                 </article>
                 <article class="mini-kpi">
-                  <span class="mini-kpi__label">Est. Buy Cost</span>
+                  <span class="mini-kpi__label">Buy Cost</span>
                   <strong class="mini-kpi__value" id="reorderEstimatedCost">
                     Rs. 0.00
                   </strong>
-                  <small class="mini-kpi__meta">
-                    Approximate buying cost using the latest buying rate on
-                    record.
-                  </small>
+                  <small class="mini-kpi__meta">Approx buy amount.</small>
                 </article>
               </div>
 
@@ -4155,14 +4174,6 @@
                 <span class="summary-pill">
                   <i class="fa-solid fa-bolt"></i>
                   Fastest mover: <span id="reorderFastestItem">-</span>
-                </span>
-                <span class="summary-pill">
-                  <i class="fa-solid fa-bullseye"></i>
-                  Coverage target: <span id="reorderTargetDays">21 days</span>
-                </span>
-                <span class="summary-pill">
-                  <i class="fa-solid fa-hourglass-half"></i>
-                  Avg cover: <span id="reorderAverageCover">0.00 days</span>
                 </span>
               </div>
 

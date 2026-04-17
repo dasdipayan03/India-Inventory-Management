@@ -595,8 +595,6 @@ function cacheElements() {
     reorderSuggestedUnits: document.getElementById("reorderSuggestedUnits"),
     reorderEstimatedCost: document.getElementById("reorderEstimatedCost"),
     reorderFastestItem: document.getElementById("reorderFastestItem"),
-    reorderTargetDays: document.getElementById("reorderTargetDays"),
-    reorderAverageCover: document.getElementById("reorderAverageCover"),
     reorderPlanBody: document.getElementById("reorderPlanBody"),
     slowMovingCard: document.getElementById("slowMovingCard"),
     slowMovingCount: document.getElementById("slowMovingCount"),
@@ -3715,10 +3713,8 @@ function resetReorderPlanner() {
   dom.reorderSuggestedUnits.textContent = "0";
   dom.reorderEstimatedCost.textContent = "Rs. 0.00";
   dom.reorderFastestItem.textContent = "-";
-  dom.reorderTargetDays.textContent = "21 days";
-  dom.reorderAverageCover.textContent = "0.00 days";
   dom.reorderPlanBody.innerHTML =
-    '<tr><td colspan="6" class="text-muted">Reorder suggestions will appear here.</td></tr>';
+    '<tr><td colspan="6" class="text-muted">Restock list will show here.</td></tr>';
 }
 
 function renderReorderPlanner(rows) {
@@ -3730,19 +3726,15 @@ function renderReorderPlanner(rows) {
     dom.reorderUrgentCount.textContent = "0";
     dom.reorderSuggestedUnits.textContent = "0";
     dom.reorderEstimatedCost.textContent = "Rs. 0.00";
-    dom.reorderFastestItem.textContent = "Inventory looks healthy";
-    dom.reorderTargetDays.textContent = "21 days";
-    dom.reorderAverageCover.textContent = "--";
+    dom.reorderFastestItem.textContent = "Stock looks fine";
     dom.reorderPlanBody.innerHTML =
-      '<tr><td colspan="6" class="text-muted">No reorder suggestion is needed right now.</td></tr>';
+      '<tr><td colspan="6" class="text-muted">No restock needed right now.</td></tr>';
     return;
   }
 
   let suggestedUnits = 0;
   let estimatedCost = 0;
   let urgentCount = 0;
-  let totalCoverDays = 0;
-  let coverCount = 0;
   let fastestMover = rows[0];
 
   rows.forEach((row) => {
@@ -3752,7 +3744,6 @@ function renderReorderPlanner(rows) {
     const daysLeft = Number(row.days_left);
     const reorderQty = Number(row.recommended_reorder_qty) || 0;
     const reorderCost = Number(row.reorder_cost) || 0;
-    const targetDays = Number(row.target_days) || 21;
     const priority = row.priority || "BUFFER";
     const tr = document.createElement("tr");
 
@@ -3765,11 +3756,6 @@ function renderReorderPlanner(rows) {
 
     if ((Number(fastestMover?.sold_30_days) || 0) < soldLast30Days) {
       fastestMover = row;
-    }
-
-    if (Number.isFinite(daysLeft)) {
-      totalCoverDays += daysLeft;
-      coverCount += 1;
     }
 
     suggestedUnits += reorderQty;
@@ -3789,10 +3775,7 @@ function renderReorderPlanner(rows) {
       <td>${formatCurrencyValue(reorderCost)}</td>
     `;
     dom.reorderPlanBody.appendChild(tr);
-    dom.reorderTargetDays.textContent = `${formatCount(targetDays)} days`;
   });
-
-  const averageCover = coverCount ? totalCoverDays / coverCount : 0;
 
   dom.reorderCandidateCount.textContent = formatCount(rows.length);
   dom.reorderUrgentCount.textContent = formatCount(urgentCount);
@@ -3801,9 +3784,6 @@ function renderReorderPlanner(rows) {
   dom.reorderFastestItem.textContent = fastestMover
     ? `${fastestMover.item_name} (${formatNumber(fastestMover.sold_30_days)} sold / 30d)`
     : "-";
-  dom.reorderAverageCover.textContent = coverCount
-    ? `${formatNumber(averageCover)} days`
-    : "--";
 }
 
 function resetSlowMovingPlanner() {
