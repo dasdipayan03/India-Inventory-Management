@@ -548,10 +548,6 @@ function cacheElements() {
     ),
     purchasePaymentStatus: document.getElementById("purchasePaymentStatus"),
     purchaseActiveRows: document.getElementById("purchaseActiveRows"),
-    purchaseSupplierSnapshot: document.getElementById(
-      "purchaseSupplierSnapshot",
-    ),
-    purchasePulseNote: document.getElementById("purchasePulseNote"),
     purchaseFromDate: document.getElementById("purchaseFromDate"),
     purchaseToDate: document.getElementById("purchaseToDate"),
     purchaseSearchInput: document.getElementById("purchaseSearchInput"),
@@ -2032,14 +2028,6 @@ function refreshPurchaseAutoRates(options = {}) {
   updatePurchaseSummary();
 }
 
-function updatePurchaseSupplierSnapshot() {
-  const supplierName = dom.supplierName?.value.trim();
-  const supplierNumber = dom.supplierNumber?.value.trim();
-  dom.purchaseSupplierSnapshot.textContent = supplierName
-    ? `${supplierName}${supplierNumber ? ` | ${supplierNumber}` : ""}`
-    : "Supplier payables stay visible in the ledger below.";
-}
-
 function normalizePurchasePaidFieldValue(value) {
   const raw = String(value ?? "").trim();
   if (!raw) {
@@ -2158,29 +2146,6 @@ function updatePurchaseSummary() {
   dom.purchasePaymentStatus.innerHTML = getStatusChipMarkup(
     payment.paymentStatus,
   );
-
-  if (!payment.subtotal) {
-    dom.purchasePulseNote.textContent =
-      "Add purchase rows to see subtotal, paid amount, and supplier due.";
-  } else if (
-    payment.paymentStatus === "due" &&
-    payment.paymentMode === "credit"
-  ) {
-    dom.purchasePulseNote.textContent =
-      "Credit mode with blank paid amount keeps the full bill pending for later repayment.";
-  } else if (payment.paymentStatus === "partial") {
-    dom.purchasePulseNote.textContent = `${formatCurrency(payment.amountDue)} remains payable to this supplier.`;
-  } else if (payment.paymentStatus === "due") {
-    dom.purchasePulseNote.textContent = `No amount is recorded as paid yet. ${formatCurrency(payment.amountDue)} stays in supplier due.`;
-  } else if (dom.purchaseAmountPaid?.dataset.manual !== "true") {
-    dom.purchasePulseNote.textContent =
-      "Amount paid auto-fills from the item total, but you can still edit it any time.";
-  } else {
-    dom.purchasePulseNote.textContent =
-      "This purchase will be stored as fully paid.";
-  }
-
-  updatePurchaseSupplierSnapshot();
   return {
     activeRows,
     ...payment,

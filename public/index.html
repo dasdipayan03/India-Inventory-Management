@@ -325,10 +325,6 @@
         grid-template-columns: minmax(0, 1.6fr) minmax(300px, 0.9fr);
       }
 
-      .section-grid--purchase {
-        grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.95fr);
-      }
-
       .section-grid--dues {
         grid-template-columns: minmax(340px, 0.92fr) minmax(0, 1.24fr);
       }
@@ -1179,47 +1175,52 @@
         margin-top: 6px;
       }
 
-      .purchase-pulse-card {
-        padding: 20px;
-      }
-
-      .purchase-pulse-card .panel-card__header {
-        margin-bottom: 16px;
-      }
-
-      .purchase-pulse-card .panel-subtitle {
-        margin-top: 8px;
-        font-size: 13px;
-        line-height: 1.55;
-      }
-
-      .purchase-pulse-card .info-list {
+      .purchase-summary-pill-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 10px;
-        margin-top: 16px;
+        margin-bottom: 14px;
       }
 
-      .purchase-pulse-card .info-card {
-        padding: 12px 14px;
-        border-radius: 16px;
+      .purchase-summary-pill {
+        display: grid;
+        gap: 6px;
+        align-content: center;
+        min-height: 74px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(125, 211, 252, 0.34);
+        background: linear-gradient(
+          180deg,
+          rgba(224, 242, 254, 0.94),
+          rgba(248, 250, 252, 0.98)
+        );
       }
 
-      .purchase-pulse-card .info-card strong {
-        font-size: 18px;
+      .purchase-summary-pill > span {
+        color: var(--ink-main);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
       }
 
-      .purchase-pulse-card .info-card p {
-        margin-top: 6px;
-        font-size: 12px;
-        line-height: 1.5;
+      .purchase-summary-pill strong {
+        color: var(--ink-strong);
+        font-size: 16px;
+        line-height: 1.12;
+        letter-spacing: -0.03em;
       }
 
-      .purchase-pulse-card .support-list {
-        margin-top: 14px;
+      .purchase-summary-pill__status {
+        display: flex;
+        align-items: center;
+        min-height: 28px;
       }
 
-      .purchase-pulse-card .support-list li {
-        font-size: 13px;
-        line-height: 1.5;
+      .purchase-summary-pill__status .status-chip {
+        min-width: 0;
+        width: fit-content;
       }
 
       .purchase-workspace-card {
@@ -2286,12 +2287,6 @@
         }
       }
 
-      @media (max-width: 1460px) {
-        .section-grid--purchase {
-          grid-template-columns: 1fr;
-        }
-      }
-
       @media (max-width: 1199px) {
         .overview-grid {
           grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3060,8 +3055,18 @@
           border-radius: 18px;
         }
 
-        .purchase-pulse-card {
-          padding: 16px;
+        .purchase-summary-pill-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+        }
+
+        .purchase-summary-pill {
+          min-height: 68px;
+          padding: 10px 12px;
+        }
+
+        .purchase-summary-pill strong {
+          font-size: 14px;
         }
 
         .purchase-view-switch {
@@ -3392,7 +3397,7 @@
         </div>
 
         <div id="purchaseEntrySection" class="form-section">
-          <div class="section-grid section-grid--purchase">
+          <div class="section-grid">
             <section class="panel-card panel-card--surface">
               <div class="panel-card__header">
                 <div>
@@ -3517,6 +3522,33 @@
                     />
                   </div>
                 </div>
+                <div class="purchase-summary-pill-grid" aria-label="Purchase summary">
+                  <div class="purchase-summary-pill">
+                    <span>Purchase Subtotal</span>
+                    <strong id="purchaseSubtotal">Rs. 0.00</strong>
+                  </div>
+                  <div class="purchase-summary-pill">
+                    <span>Amount Paid</span>
+                    <strong id="purchaseAmountPaidDisplay">Rs. 0.00</strong>
+                  </div>
+                  <div class="purchase-summary-pill">
+                    <span>Amount Due</span>
+                    <strong id="purchaseAmountDueDisplay">Rs. 0.00</strong>
+                  </div>
+                  <div class="purchase-summary-pill">
+                    <span>Payment Status</span>
+                    <div
+                      id="purchasePaymentStatus"
+                      class="purchase-summary-pill__status"
+                    >
+                      <span class="status-chip status-chip--paid">Paid</span>
+                    </div>
+                  </div>
+                  <div class="purchase-summary-pill">
+                    <span>Active Rows</span>
+                    <strong id="purchaseActiveRows">0</strong>
+                  </div>
+                </div>
                 <button
                   id="submitPurchaseBtn"
                   class="btn btn-primary w-100"
@@ -3527,64 +3559,6 @@
                 </button>
               </div>
             </section>
-
-            <aside class="panel-card panel-card--highlight purchase-pulse-card">
-              <div class="panel-card__header">
-                <div>
-                  <span class="panel-kicker">Purchase Pulse</span>
-                  <h4>Supplier payable snapshot</h4>
-                </div>
-                <div class="panel-card__icon">
-                  <i class="fa-solid fa-file-invoice-dollar"></i>
-                </div>
-              </div>
-
-              <div class="info-list">
-                <div class="info-card">
-                  <span>Purchase Subtotal</span>
-                  <strong id="purchaseSubtotal">Rs. 0.00</strong>
-                  <p>Total of all purchase line items in the active bill.</p>
-                </div>
-                <div class="info-card">
-                  <span>Amount Paid</span>
-                  <strong id="purchaseAmountPaidDisplay">Rs. 0.00</strong>
-                  <p>Amount recorded as already paid to the supplier.</p>
-                </div>
-                <div class="info-card">
-                  <span>Amount Due</span>
-                  <strong id="purchaseAmountDueDisplay">Rs. 0.00</strong>
-                  <p id="purchasePulseNote">
-                    Any remaining amount becomes part of supplier ledger due.
-                  </p>
-                </div>
-                <div class="info-card">
-                  <span>Payment Status</span>
-                  <strong id="purchasePaymentStatus">Paid</strong>
-                  <p id="purchaseSupplierSnapshot">
-                    Supplier payables stay visible in the ledger below.
-                  </p>
-                </div>
-                <div class="info-card">
-                  <span>Active Rows</span>
-                  <strong id="purchaseActiveRows">0</strong>
-                  <p>Purchase lines ready to be added into stock.</p>
-                </div>
-              </div>
-
-              <ul class="support-list">
-                <li>
-                  Existing item names can be reused from the same item list.
-                </li>
-                <li>
-                  Selling rate can stay auto-suggested from your saved default
-                  profit percent.
-                </li>
-                <li>
-                  Partial or unpaid supplier purchases automatically stay in the
-                  supplier ledger.
-                </li>
-              </ul>
-            </aside>
           </div>
 
           <section
