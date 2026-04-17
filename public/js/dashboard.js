@@ -601,9 +601,6 @@ function cacheElements() {
     slowMovingUnits: document.getElementById("slowMovingUnits"),
     slowMovingValue: document.getElementById("slowMovingValue"),
     slowMovingIdleCount: document.getElementById("slowMovingIdleCount"),
-    slowMovingIdleCountInline: document.getElementById(
-      "slowMovingIdleCountInline",
-    ),
     slowMovingTopItem: document.getElementById("slowMovingTopItem"),
     slowMovingBody: document.getElementById("slowMovingBody"),
     fromDate: document.getElementById("fromDate"),
@@ -3791,7 +3788,6 @@ function resetSlowMovingPlanner() {
   dom.slowMovingUnits.textContent = "0";
   dom.slowMovingValue.textContent = "Rs. 0.00";
   dom.slowMovingIdleCount.textContent = "0";
-  dom.slowMovingIdleCountInline.textContent = "0";
   dom.slowMovingTopItem.textContent = "-";
   dom.slowMovingBody.innerHTML =
     '<tr><td colspan="5" class="text-muted">Slow-moving stock suggestions will appear here.</td></tr>';
@@ -3806,7 +3802,6 @@ function renderSlowMovingPlanner(rows) {
     dom.slowMovingUnits.textContent = "0";
     dom.slowMovingValue.textContent = "Rs. 0.00";
     dom.slowMovingIdleCount.textContent = "0";
-    dom.slowMovingIdleCountInline.textContent = "0";
     dom.slowMovingTopItem.textContent = "Stock looks fine";
     dom.slowMovingBody.innerHTML =
       '<tr><td colspan="5" class="text-muted">No slow stock right now.</td></tr>';
@@ -3865,7 +3860,6 @@ function renderSlowMovingPlanner(rows) {
   dom.slowMovingUnits.textContent = formatCount(totalUnits);
   dom.slowMovingValue.textContent = formatCurrency(totalValue);
   dom.slowMovingIdleCount.textContent = formatCount(idleCount);
-  dom.slowMovingIdleCountInline.textContent = formatCount(idleCount);
   dom.slowMovingTopItem.textContent = topItem
     ? `${topItem.item_name} (${formatNumber(topItem.available_qty)} units)`
     : "-";
