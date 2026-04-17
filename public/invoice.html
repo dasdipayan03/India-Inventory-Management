@@ -691,23 +691,6 @@
         margin-top: 16px;
       }
 
-      #checkoutCard .stats {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 10px;
-        margin-top: 14px;
-      }
-
-      #checkoutCard .summary-item {
-        min-height: 112px;
-        padding: 14px;
-      }
-
-      #checkoutCard .summary-item strong {
-        font-size: 15px;
-        line-height: 1.45;
-        word-break: break-word;
-      }
-
       .payment-field {
         display: grid;
         gap: 8px;
@@ -1401,7 +1384,8 @@
         }
 
         #checkoutCard .payment-field--full {
-          grid-column: 1 / -1;
+          grid-column: auto;
+          min-width: 0;
         }
 
         #checkoutCard .payment-field--split {
@@ -2101,21 +2085,6 @@
               </div>
             </div>
 
-            <div class="stats stack-top-14">
-              <div class="summary-item">
-                <span>Current Invoice</span>
-                <strong id="summaryInvoiceNo">--</strong>
-              </div>
-              <div class="summary-item">
-                <span>Invoice Date</span>
-                <strong id="summaryInvoiceDate">--</strong>
-              </div>
-              <div class="summary-item">
-                <span>Draft Update</span>
-                <strong id="summaryDraftTime">Not yet saved</strong>
-              </div>
-            </div>
-
             <div class="checkout-actions">
               <button id="saveInvoiceBtn" class="btn primary" type="button">
                 <i class="fa-solid fa-file-circle-check"></i>
@@ -2544,9 +2513,6 @@
           ),
           invoiceNo: $("invoiceNo"),
           invoiceDate: $("invoiceDate"),
-          summaryInvoiceNo: $("summaryInvoiceNo"),
-          summaryInvoiceDate: $("summaryInvoiceDate"),
-          summaryDraftTime: $("summaryDraftTime"),
           draftStatusText: $("draftStatusText"),
           draftBadge: $("draftBadge"),
           draftBadgeText: $("draftBadgeText"),
@@ -2955,7 +2921,6 @@
         const setDraftState = (text, mode) => {
           dom.draftStatusText.textContent = text;
           dom.draftBadgeText.textContent = text;
-          dom.summaryDraftTime.textContent = text;
           dom.draftBadge.className = `mini draft-badge ${mode}`;
         };
 
@@ -3064,12 +3029,8 @@
 
         const updateInvoiceMeta = (invoiceNo, dateValue) => {
           const label = safeDate(dateValue);
-          [dom.invoiceNo, dom.summaryInvoiceNo].forEach((el) => {
-            el.textContent = invoiceNo || "--";
-          });
-          [dom.invoiceDate, dom.summaryInvoiceDate].forEach((el) => {
-            el.textContent = label;
-          });
+          dom.invoiceNo.textContent = invoiceNo || "--";
+          dom.invoiceDate.textContent = label;
         };
 
         const updateProfile = () => {
