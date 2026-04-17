@@ -898,6 +898,10 @@
         box-shadow: 0 18px 30px rgba(17, 29, 58, 0.12);
       }
 
+      .btn.is-click-animating {
+        animation: buttonClickPulse 0.28s ease;
+      }
+
       .btn:disabled {
         opacity: 0.72;
         transform: none;
@@ -963,9 +967,10 @@
 
       #previousBuyingRate {
         margin-top: 8px;
-        color: #8fe2ff;
-        font-size: 13px;
-        line-height: 1.5;
+        color: var(--cyan-strong);
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.45;
       }
 
       .support-list {
@@ -993,6 +998,20 @@
           rgba(245, 250, 255, 0.88)
         );
         box-shadow: var(--shadow-sm);
+        transition:
+          opacity 0.18s ease,
+          transform 0.18s ease,
+          box-shadow 0.18s ease;
+      }
+
+      .purchase-line-card--fresh {
+        animation: purchaseRowReveal 0.24s ease;
+      }
+
+      .purchase-line-card--removing {
+        opacity: 0;
+        transform: translateX(12px) scale(0.985);
+        pointer-events: none;
       }
 
       .purchase-line-card__header {
@@ -1101,6 +1120,32 @@
 
       .purchase-remove-btn i {
         font-size: 12px;
+      }
+
+      @keyframes buttonClickPulse {
+        0% {
+          transform: scale(1);
+        }
+
+        45% {
+          transform: scale(0.96);
+        }
+
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      @keyframes purchaseRowReveal {
+        0% {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       .interactive-row {
@@ -3337,6 +3382,7 @@
                       hidden
                     ></div>
                   </div>
+                  <div id="previousBuyingRate" hidden></div>
                 </div>
 
                 <div class="col-sm-6">
@@ -3419,12 +3465,6 @@
                     Saved in business settings to help auto-calculate selling
                     rate.
                   </p>
-                </div>
-
-                <div class="info-card">
-                  <span>Previous Buying Rate</span>
-                  <strong>Recent reference</strong>
-                  <div id="previousBuyingRate" hidden></div>
                 </div>
               </div>
 

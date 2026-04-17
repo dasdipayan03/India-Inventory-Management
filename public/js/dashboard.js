@@ -851,6 +851,20 @@ async function withButtonState(button, loadingHtml, task) {
   }
 }
 
+function triggerButtonFeedback(button, duration = 280) {
+  if (!button) {
+    return;
+  }
+
+  button.classList.remove("is-click-animating");
+  void button.offsetWidth;
+  button.classList.add("is-click-animating");
+
+  window.setTimeout(() => {
+    button.classList.remove("is-click-animating");
+  }, duration);
+}
+
 function showPopup(type, title, message, options = {}) {
   if (!dom.commonPopup) {
     return;
@@ -1809,6 +1823,9 @@ async function showPreviousBuyingRate(itemName) {
     const item = await fetchJSON(
       `/items/info?name=${encodeURIComponent(trimmedName)}`,
     );
+    if (findExactItemName(dom.newItemSearch?.value.trim() || "") !== trimmedName) {
+      return;
+    }
     const previousRate = Number(item.buying_rate);
 
     if (!Number.isFinite(previousRate)) {
@@ -2152,10 +2169,12 @@ function updatePurchaseSummary() {
   };
 }
 
-function addPurchaseItemRow(item = {}) {
+function addPurchaseItemRow(item = {}, options = {}) {
   if (!dom.purchaseItemsBody) {
     return;
   }
+
+  const shouldAnimateIn = options.animateIn === true;
 
   const row = document.createElement("div");
   row.className = "purchase-line-card";
@@ -2207,6 +2226,13 @@ function addPurchaseItemRow(item = {}) {
   `;
 
   dom.purchaseItemsBody.appendChild(row);
+
+  if (shouldAnimateIn) {
+    row.classList.add("purchase-line-card--fresh");
+    window.setTimeout(() => {
+      row.classList.remove("purchase-line-card--fresh");
+    }, 260);
+  }
 
   const itemInput = row.querySelector(".purchase-item-input");
   const dropdown = row.querySelector(".purchase-item-dropdown");
@@ -2431,12 +2457,23 @@ function addPurchaseItemRow(item = {}) {
   });
 
   removeBtn.addEventListener("click", () => {
-    row.remove();
-    if (!purchaseRows().length) {
-      addPurchaseItemRow();
+    if (row.dataset.removing === "true") {
+      return;
     }
-    updatePurchaseLineLabels();
-    updatePurchaseSummary();
+
+    row.dataset.removing = "true";
+    triggerButtonFeedback(removeBtn, 180);
+    removeBtn.disabled = true;
+    row.classList.add("purchase-line-card--removing");
+
+    window.setTimeout(() => {
+      row.remove();
+      if (!purchaseRows().length) {
+        addPurchaseItemRow();
+      }
+      updatePurchaseLineLabels();
+      updatePurchaseSummary();
+    }, 160);
   });
 
   updatePurchaseLineLabels();
@@ -2473,7 +2510,7 @@ function resetPurchaseForm() {
   dom.purchaseAmountPaid.dataset.autoValue = "";
   dom.purchaseAmountPaid.dataset.editing = "false";
   dom.purchaseItemsBody.innerHTML = "";
-  addPurchaseItemRow();
+  addPurchaseItemRow(undefined, { animateIn: true });
   updatePurchaseLineLabels();
   updatePurchaseSummary();
 }
@@ -6295,9 +6332,13 @@ function bindInventoryEvents() {
       return;
     }
 
-    if (!findExactItemName(dom.newItemSearch.value.trim())) {
+    const exactItemName = findExactItemName(dom.newItemSearch.value.trim());
+    if (!exactItemName) {
       hidePreviousBuyingRate();
+      return;
     }
+
+    showPreviousBuyingRate(exactItemName);
   });
 
   dom.newItemSearch.addEventListener("blur", () => {
@@ -6519,8 +6560,14 @@ function bindPurchaseEvents() {
     setPurchaseWorkspaceView("bills");
     loadPurchaseReport();
   });
-  dom.addPurchaseItemBtn.addEventListener("click", () => addPurchaseItemRow());
-  dom.resetPurchaseBtn.addEventListener("click", resetPurchaseForm);
+  dom.addPurchaseItemBtn.addEventListener("click", () => {
+    triggerButtonFeedback(dom.addPurchaseItemBtn);
+    addPurchaseItemRow(undefined, { animateIn: true });
+  });
+  dom.resetPurchaseBtn.addEventListener("click", () => {
+    triggerButtonFeedback(dom.resetPurchaseBtn);
+    resetPurchaseForm();
+  });
   dom.submitPurchaseBtn.addEventListener("click", submitPurchase);
   dom.submitPurchaseRepaymentBtn?.addEventListener(
     "click",
@@ -6839,7 +6886,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   hidePreviousBuyingRate();
   if (dom.purchaseItemsBody) {
     dom.purchaseItemsBody.innerHTML = "";
-    addPurchaseItemRow();
+    addPurchaseItemRow(undefined, { animateIn: false });
     updatePurchaseSummary();
   }
   setPurchaseWorkspaceView("bills");
