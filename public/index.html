@@ -996,10 +996,12 @@
       }
 
       .purchase-line-card__header {
+        position: relative;
         display: flex;
-        align-items: center;
-        justify-content: space-between;
+        align-items: flex-start;
+        justify-content: flex-start;
         gap: 12px;
+        padding-right: 44px;
         margin-bottom: 14px;
       }
 
@@ -1083,8 +1085,22 @@
       }
 
       .purchase-remove-btn {
-        min-width: 56px;
-        width: 100%;
+        position: absolute;
+        top: 0;
+        right: 0;
+        min-width: 32px;
+        width: 32px;
+        min-height: 32px;
+        height: 32px;
+        display: inline-grid;
+        place-items: center;
+        padding: 0;
+        border-radius: 10px;
+        box-shadow: 0 10px 18px rgba(234, 88, 12, 0.18);
+      }
+
+      .purchase-remove-btn i {
+        font-size: 12px;
       }
 
       .interactive-row {
@@ -3069,6 +3085,10 @@
           font-size: 14px;
         }
 
+        .purchase-summary-pill-grid > .purchase-summary-pill:last-child {
+          grid-column: 1 / -1;
+        }
+
         .purchase-view-switch {
           gap: 8px;
         }
@@ -3086,9 +3106,10 @@
 
         .purchase-line-card__header {
           display: grid;
-          grid-template-columns: minmax(0, 1fr) auto;
+          grid-template-columns: minmax(0, 1fr);
           align-items: start;
           gap: 10px;
+          padding-right: 40px;
           margin-bottom: 10px;
         }
 
@@ -3130,11 +3151,16 @@
         }
 
         .purchase-remove-btn {
-          min-width: 68px;
-          width: 68px;
-          min-height: 42px;
+          min-width: 30px;
+          width: 30px;
+          min-height: 30px;
+          height: 30px;
           padding: 0;
-          border-radius: 14px;
+          border-radius: 9px;
+        }
+
+        .purchase-remove-btn i {
+          font-size: 11px;
         }
 
         .purchase-line-field--item,
@@ -3152,6 +3178,26 @@
 
         .growth-summary-grid {
           grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 767px) {
+        .purchase-summary-pill-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+        }
+
+        .purchase-summary-pill {
+          min-height: 66px;
+          padding: 10px 12px;
+        }
+
+        .purchase-summary-pill strong {
+          font-size: 14px;
+        }
+
+        .purchase-summary-pill-grid > .purchase-summary-pill:last-child {
+          grid-column: 1 / -1;
         }
       }
 
