@@ -605,7 +605,6 @@ function cacheElements() {
       "slowMovingIdleCountInline",
     ),
     slowMovingTopItem: document.getElementById("slowMovingTopItem"),
-    slowMovingAverageCover: document.getElementById("slowMovingAverageCover"),
     slowMovingBody: document.getElementById("slowMovingBody"),
     fromDate: document.getElementById("fromDate"),
     toDate: document.getElementById("toDate"),
@@ -3794,7 +3793,6 @@ function resetSlowMovingPlanner() {
   dom.slowMovingIdleCount.textContent = "0";
   dom.slowMovingIdleCountInline.textContent = "0";
   dom.slowMovingTopItem.textContent = "-";
-  dom.slowMovingAverageCover.textContent = "0.00 days";
   dom.slowMovingBody.innerHTML =
     '<tr><td colspan="5" class="text-muted">Slow-moving stock suggestions will appear here.</td></tr>';
 }
@@ -3809,18 +3807,15 @@ function renderSlowMovingPlanner(rows) {
     dom.slowMovingValue.textContent = "Rs. 0.00";
     dom.slowMovingIdleCount.textContent = "0";
     dom.slowMovingIdleCountInline.textContent = "0";
-    dom.slowMovingTopItem.textContent = "No bulky slow mover right now";
-    dom.slowMovingAverageCover.textContent = "--";
+    dom.slowMovingTopItem.textContent = "Stock looks fine";
     dom.slowMovingBody.innerHTML =
-      '<tr><td colspan="5" class="text-muted">Current stock is moving well. No slow-moving pile stands out right now.</td></tr>';
+      '<tr><td colspan="5" class="text-muted">No slow stock right now.</td></tr>';
     return;
   }
 
   let totalUnits = 0;
   let totalValue = 0;
   let idleCount = 0;
-  let totalCoverDays = 0;
-  let coverCount = 0;
   let topItem = rows[0];
 
   rows.forEach((row) => {
@@ -3850,11 +3845,6 @@ function renderSlowMovingPlanner(rows) {
       topItem = row;
     }
 
-    if (Number.isFinite(daysCover)) {
-      totalCoverDays += daysCover;
-      coverCount += 1;
-    }
-
     tr.innerHTML = `
       <td>
         <div class="table-primary-copy">${escapeHtml(row.item_name)}</div>
@@ -3871,8 +3861,6 @@ function renderSlowMovingPlanner(rows) {
     dom.slowMovingBody.appendChild(tr);
   });
 
-  const averageCover = coverCount ? totalCoverDays / coverCount : 0;
-
   dom.slowMovingCount.textContent = formatCount(rows.length);
   dom.slowMovingUnits.textContent = formatCount(totalUnits);
   dom.slowMovingValue.textContent = formatCurrency(totalValue);
@@ -3881,9 +3869,6 @@ function renderSlowMovingPlanner(rows) {
   dom.slowMovingTopItem.textContent = topItem
     ? `${topItem.item_name} (${formatNumber(topItem.available_qty)} units)`
     : "-";
-  dom.slowMovingAverageCover.textContent = coverCount
-    ? `${formatNumber(averageCover)} days`
-    : "No recent sale";
 }
 
 function renderLowStock(rows) {

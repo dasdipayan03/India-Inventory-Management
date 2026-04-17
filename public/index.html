@@ -1743,6 +1743,36 @@
         margin-top: 12px;
       }
 
+      #slowMovingCard .mini-kpi-grid {
+        gap: 10px;
+      }
+
+      #slowMovingCard .mini-kpi {
+        padding: 13px 14px;
+        border-radius: 16px;
+      }
+
+      #slowMovingCard .mini-kpi__label {
+        font-size: 10px;
+      }
+
+      #slowMovingCard .mini-kpi__value {
+        margin-top: 6px;
+        font-size: 17px;
+        line-height: 1.1;
+      }
+
+      #slowMovingCard .mini-kpi__meta {
+        margin-top: 4px;
+        font-size: 11px;
+        line-height: 1.38;
+      }
+
+      #slowMovingCard .summary-strip {
+        justify-content: flex-start;
+        margin-top: 12px;
+      }
+
       .insight-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4241,38 +4271,28 @@
                   <strong class="mini-kpi__value" id="slowMovingCount"
                     >0</strong
                   >
-                  <small class="mini-kpi__meta">
-                    Items that look bulky against recent 30-day sales.
-                  </small>
+                  <small class="mini-kpi__meta">Items to push first.</small>
                 </article>
                 <article class="mini-kpi">
-                  <span class="mini-kpi__label">Units at Risk</span>
+                  <span class="mini-kpi__label">Extra Units</span>
                   <strong class="mini-kpi__value" id="slowMovingUnits"
                     >0</strong
                   >
-                  <small class="mini-kpi__meta">
-                    Total quantity currently tied up in slower-moving stock.
-                  </small>
+                  <small class="mini-kpi__meta">Units stuck in slow stock.</small>
                 </article>
                 <article class="mini-kpi">
                   <span class="mini-kpi__label">Stock Value</span>
                   <strong class="mini-kpi__value" id="slowMovingValue">
                     Rs. 0.00
                   </strong>
-                  <small class="mini-kpi__meta">
-                    Estimated buying value tied up in items that need
-                    sell-through focus.
-                  </small>
+                  <small class="mini-kpi__meta">Buy value of slow stock.</small>
                 </article>
                 <article class="mini-kpi">
-                  <span class="mini-kpi__label">No Sale (30d)</span>
+                  <span class="mini-kpi__label">No Sale</span>
                   <strong class="mini-kpi__value" id="slowMovingIdleCount"
                     >0</strong
                   >
-                  <small class="mini-kpi__meta">
-                    Items with stock on hand but no sale recorded in the last 30
-                    days.
-                  </small>
+                  <small class="mini-kpi__meta">No sale in last 30 days.</small>
                 </article>
               </div>
 
@@ -4284,10 +4304,6 @@
                 <span class="summary-pill">
                   <i class="fa-solid fa-store-slash"></i>
                   No recent sale: <span id="slowMovingIdleCountInline">0</span>
-                </span>
-                <span class="summary-pill">
-                  <i class="fa-solid fa-calendar-days"></i>
-                  Avg cover: <span id="slowMovingAverageCover">0.00 days</span>
                 </span>
               </div>
 
