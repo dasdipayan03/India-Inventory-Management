@@ -1994,38 +1994,6 @@
         line-height: 1.35;
       }
 
-      #gstReportSection .gst-compare-note {
-        margin: 12px 0 14px;
-      }
-
-      .gst-compare-status {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 92px;
-        padding: 6px 10px;
-        border-radius: 999px;
-        font-size: 10px;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-      }
-
-      .gst-compare-status--payable {
-        color: #166534;
-        background: rgba(187, 247, 208, 0.75);
-      }
-
-      .gst-compare-status--credit {
-        color: #1d4ed8;
-        background: rgba(191, 219, 254, 0.78);
-      }
-
-      .gst-compare-status--balanced {
-        color: var(--ink-soft);
-        background: rgba(226, 232, 240, 0.86);
-      }
-
       .table-primary-copy {
         color: var(--ink-strong);
         font-weight: 700;
@@ -2790,7 +2758,7 @@
         }
 
         .insight-panel .gst-compare-kpi-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 8px;
         }
 
@@ -3168,7 +3136,7 @@
         }
 
         .insight-panel .gst-compare-kpi-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 8px;
         }
 
@@ -5192,7 +5160,7 @@
                     </small>
                   </article>
                   <article class="mini-kpi">
-                    <span class="mini-kpi__label">Profit GST</span>
+                    <span class="mini-kpi__label">GST ON PROFIT</span>
                     <strong class="mini-kpi__value" id="gstCompareProfitTotal"
                       >Rs. 0.00</strong
                     >
@@ -5200,62 +5168,6 @@
                       Sales GST minus purchase GST.
                     </small>
                   </article>
-                  <article class="mini-kpi">
-                    <span class="mini-kpi__label">Effective Rate</span>
-                    <strong class="mini-kpi__value" id="gstCompareRateUsed"
-                      >0.00%</strong
-                    >
-                    <small class="mini-kpi__meta">
-                      Based on sold item GST mix.
-                    </small>
-                  </article>
-                </div>
-
-                <div
-                  id="gstCompareHelper"
-                  class="table-secondary-copy gst-compare-note"
-                >
-                  Load the GST report to compare sold-items purchase GST and
-                  sales GST.
-                </div>
-
-                <div class="table-responsive mobile-table-wrap-1">
-                  <table
-                    class="table table-sm text-center align-middle dashboard-table dashboard-table--gst-compare"
-                  >
-                    <thead>
-                      <tr>
-                        <th>
-                          <span class="table-label-full">Month</span>
-                          <span class="table-label-compact">Month</span>
-                        </th>
-                        <th>
-                          <span class="table-label-full">Purchase GST</span>
-                          <span class="table-label-compact">Purchase</span>
-                        </th>
-                        <th>
-                          <span class="table-label-full">Sales GST</span>
-                          <span class="table-label-compact">Sales</span>
-                        </th>
-                        <th>
-                          <span class="table-label-full">Profit GST</span>
-                          <span class="table-label-compact">Profit</span>
-                        </th>
-                        <th>
-                          <span class="table-label-full">Status</span>
-                          <span class="table-label-compact">Status</span>
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody id="gstCompareBody">
-                      <tr>
-                        <td colspan="5" class="text-muted">
-                          Load report to compare sold-items purchase GST and
-                          sales GST.
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
                 </div>
               </article>
             </div>

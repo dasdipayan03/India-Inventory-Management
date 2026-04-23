@@ -661,9 +661,6 @@ function cacheElements() {
     gstComparePurchaseTotal: document.getElementById("gstComparePurchaseTotal"),
     gstCompareSalesTotal: document.getElementById("gstCompareSalesTotal"),
     gstCompareProfitTotal: document.getElementById("gstCompareProfitTotal"),
-    gstCompareRateUsed: document.getElementById("gstCompareRateUsed"),
-    gstCompareHelper: document.getElementById("gstCompareHelper"),
-    gstCompareBody: document.getElementById("gstCompareBody"),
     yearFilter: document.getElementById("yearFilter"),
     growthLivePill: document.getElementById("growthLivePill"),
     growthRangeLabel: document.getElementById("growthRangeLabel"),
@@ -4539,9 +4536,7 @@ function renderGstAdvancedSummary(insights) {
     : '<tr><td colspan="5" class="text-muted">No GST rate breakup found.</td></tr>';
 }
 
-function resetGstComparison(
-  message = "Load the GST report to compare purchase and sales GST.",
-) {
+function resetGstComparison() {
   if (!dom.gstComparePurchaseTotal) {
     return;
   }
@@ -4550,27 +4545,6 @@ function resetGstComparison(
   dom.gstCompareSalesTotal.textContent = "Rs. 0.00";
   dom.gstCompareProfitTotal.textContent = "Rs. 0.00";
   dom.gstCompareProfitTotal.classList.remove("text-danger", "text-success");
-  dom.gstCompareRateUsed.textContent = "0.00%";
-  dom.gstCompareHelper.textContent = message;
-  dom.gstCompareBody.innerHTML = `
-    <tr>
-      <td colspan="5" class="text-muted">${escapeHtml(message)}</td>
-    </tr>
-  `;
-}
-
-function getGstCompareStatusMeta(amount) {
-  const value = Number(amount) || 0;
-
-  if (value > 0.004) {
-    return { label: "Payable", tone: "payable" };
-  }
-
-  if (value < -0.004) {
-    return { label: "Credit", tone: "credit" };
-  }
-
-  return { label: "Balanced", tone: "balanced" };
 }
 
 function renderGstComparison(compare = {}) {
@@ -4579,52 +4553,15 @@ function renderGstComparison(compare = {}) {
   }
 
   const summary = compare.summary || {};
-  const monthlyRows = Array.isArray(compare.monthly) ? compare.monthly : [];
   const purchaseGstTotal = Number(summary.purchase_gst_total) || 0;
   const salesGstTotal = Number(summary.sales_gst_total) || 0;
   const profitGstTotal = Number(summary.profit_gst_total) || 0;
-  const appliedRate =
-    Number(compare.applied_rate) || Number(monthlyRows[0]?.applied_rate) || 0;
 
   dom.gstComparePurchaseTotal.textContent = formatCurrency(purchaseGstTotal);
   dom.gstCompareSalesTotal.textContent = formatCurrency(salesGstTotal);
   dom.gstCompareProfitTotal.textContent = formatCurrency(profitGstTotal);
   dom.gstCompareProfitTotal.classList.toggle("text-success", profitGstTotal > 0);
   dom.gstCompareProfitTotal.classList.toggle("text-danger", profitGstTotal < 0);
-  dom.gstCompareRateUsed.textContent = formatPercent(appliedRate);
-  dom.gstCompareHelper.textContent = `Purchase GST is estimated from sold items' buying cost using each sale row's GST percent. Effective applied rate: ${formatPercent(appliedRate)}.`;
-
-  if (!monthlyRows.length) {
-    dom.gstCompareBody.innerHTML = `
-      <tr>
-        <td colspan="5" class="text-muted">No GST comparison data found for this range.</td>
-      </tr>
-    `;
-    return;
-  }
-
-  dom.gstCompareBody.innerHTML = monthlyRows
-    .map((row) => {
-      const purchaseValue = Number(row.purchase_gst_total) || 0;
-      const salesValue = Number(row.sales_gst_total) || 0;
-      const profitValue = Number(row.profit_gst_total) || 0;
-      const status = getGstCompareStatusMeta(profitValue);
-
-      return `
-        <tr>
-          <td>${escapeHtml(row.month_label || "-")}</td>
-          <td>${formatCurrencyValue(purchaseValue)}</td>
-          <td>${formatCurrencyValue(salesValue)}</td>
-          <td>${formatCurrencyValue(profitValue)}</td>
-          <td>
-            <span class="gst-compare-status gst-compare-status--${status.tone}">
-              ${status.label}
-            </span>
-          </td>
-        </tr>
-      `;
-    })
-    .join("");
 }
 
 function renderGstReport(rows) {
@@ -4744,7 +4681,7 @@ async function loadGstReport(options = {}) {
       return;
     }
 
-    resetGstComparison("Could not load GST comparison right now.");
+    resetGstComparison();
   };
 
   if (options.silent) {
