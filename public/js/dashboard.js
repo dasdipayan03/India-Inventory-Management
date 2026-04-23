@@ -40,6 +40,14 @@ const state = {
   profitSaveTimer: null,
   lastSavedProfitPercent: null,
   sessionUser: null,
+  overviewCarousel: {
+    index: 0,
+    timer: 0,
+    isHovered: false,
+    isFocused: false,
+    isBound: false,
+    touchStartX: 0,
+  },
   supportConversation: null,
   supportMessages: [],
   supportLoadRequestId: 0,
@@ -224,6 +232,10 @@ function toInputDate(date) {
 const isMobileLayout =
   appConfig.isMobileLayout ||
   (() => window.matchMedia("(max-width: 991px)").matches);
+const prefersReducedMotionQuery =
+  typeof window.matchMedia === "function"
+    ? window.matchMedia("(prefers-reduced-motion: reduce)")
+    : { matches: false };
 
 function sanitizeFileName(value) {
   return String(value || "download")
@@ -500,6 +512,15 @@ function cacheElements() {
     formSections: Array.from(document.querySelectorAll(".form-section")),
     invoiceBtn: document.getElementById("invoiceBtn"),
     overviewGrid: document.getElementById("overviewGrid"),
+    overviewViewport: document.getElementById("overviewViewport"),
+    overviewTrack: document.getElementById("overviewTrack"),
+    overviewSlides: Array.from(
+      document.querySelectorAll("[data-overview-slide]"),
+    ),
+    overviewPrevBtn: document.getElementById("overviewPrevBtn"),
+    overviewNextBtn: document.getElementById("overviewNextBtn"),
+    overviewStatus: document.getElementById("overviewStatus"),
+    overviewDots: document.getElementById("overviewDots"),
     currentDateLabel: document.getElementById("currentDateLabel"),
     sessionRoleChip: document.getElementById("sessionRoleChip"),
     welcomeUser: document.getElementById("welcomeUser"),
@@ -1353,6 +1374,212 @@ function updateOverviewVisibility(sectionId = "") {
   const isStaff = state.sessionUser?.role === "staff";
   dom.overviewGrid.hidden =
     isStaff || activeSectionId === "supportChatSection";
+  syncOverviewCarouselAutoplay();
+}
+
+function getOverviewSlideCount() {
+  return dom.overviewSlides?.length || 0;
+}
+
+function normalizeOverviewSlideIndex(index) {
+  const slideCount = getOverviewSlideCount();
+
+  if (!slideCount) {
+    return 0;
+  }
+
+  return ((Number(index) || 0) % slideCount + slideCount) % slideCount;
+}
+
+function clearOverviewCarouselTimer() {
+  if (!state.overviewCarousel.timer) {
+    return;
+  }
+
+  window.clearTimeout(state.overviewCarousel.timer);
+  state.overviewCarousel.timer = 0;
+}
+
+function syncOverviewCarouselAutoplay() {
+  clearOverviewCarouselTimer();
+
+  if (
+    !dom.overviewGrid ||
+    !dom.overviewTrack ||
+    getOverviewSlideCount() < 2 ||
+    dom.overviewGrid.hidden ||
+    document.hidden ||
+    prefersReducedMotionQuery.matches ||
+    state.overviewCarousel.isHovered ||
+    state.overviewCarousel.isFocused
+  ) {
+    return;
+  }
+
+  state.overviewCarousel.timer = window.setTimeout(() => {
+    setOverviewCarouselSlide(state.overviewCarousel.index + 1);
+  }, 5200);
+}
+
+function renderOverviewCarouselDots() {
+  if (!dom.overviewDots) {
+    return;
+  }
+
+  const slideCount = getOverviewSlideCount();
+  dom.overviewDots.innerHTML = Array.from({ length: slideCount }, (_, index) => {
+    const active = index === state.overviewCarousel.index;
+    return `<button type="button" class="overview-carousel__dot${active ? " is-active" : ""}" data-overview-dot="${index}" aria-label="Show overview card ${index + 1}" aria-pressed="${active ? "true" : "false"}"></button>`;
+  }).join("");
+}
+
+function setOverviewCarouselSlide(index, options = {}) {
+  if (!dom.overviewTrack || !getOverviewSlideCount()) {
+    return;
+  }
+
+  const nextIndex = normalizeOverviewSlideIndex(index);
+  state.overviewCarousel.index = nextIndex;
+
+  if (options.instant) {
+    dom.overviewTrack.classList.add("is-instant");
+  }
+
+  dom.overviewTrack.style.transform = `translateX(-${nextIndex * 100}%)`;
+
+  if (options.instant) {
+    window.requestAnimationFrame(() => {
+      dom.overviewTrack?.classList.remove("is-instant");
+    });
+  }
+
+  dom.overviewSlides.forEach((slide, slideIndex) => {
+    slide.setAttribute("aria-hidden", slideIndex === nextIndex ? "false" : "true");
+  });
+
+  Array.from(dom.overviewDots?.children || []).forEach((dot, dotIndex) => {
+    const active = dotIndex === nextIndex;
+    dot.classList.toggle("is-active", active);
+    dot.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+
+  if (dom.overviewStatus) {
+    dom.overviewStatus.textContent = `${nextIndex + 1} / ${getOverviewSlideCount()}`;
+  }
+
+  if (!options.skipAutoplay) {
+    syncOverviewCarouselAutoplay();
+  }
+}
+
+function stepOverviewCarousel(direction) {
+  setOverviewCarouselSlide(state.overviewCarousel.index + direction);
+}
+
+function bindOverviewCarousel() {
+  if (
+    state.overviewCarousel.isBound ||
+    !dom.overviewGrid ||
+    !dom.overviewTrack ||
+    !getOverviewSlideCount()
+  ) {
+    return;
+  }
+
+  state.overviewCarousel.isBound = true;
+  renderOverviewCarouselDots();
+  setOverviewCarouselSlide(0, { instant: true });
+
+  dom.overviewPrevBtn?.addEventListener("click", () => {
+    stepOverviewCarousel(-1);
+  });
+
+  dom.overviewNextBtn?.addEventListener("click", () => {
+    stepOverviewCarousel(1);
+  });
+
+  dom.overviewDots?.addEventListener("click", (event) => {
+    const target = event.target.closest("[data-overview-dot]");
+    if (!target) {
+      return;
+    }
+
+    setOverviewCarouselSlide(Number(target.dataset.overviewDot) || 0);
+  });
+
+  dom.overviewGrid.addEventListener("mouseenter", () => {
+    state.overviewCarousel.isHovered = true;
+    syncOverviewCarouselAutoplay();
+  });
+
+  dom.overviewGrid.addEventListener("mouseleave", () => {
+    state.overviewCarousel.isHovered = false;
+    syncOverviewCarouselAutoplay();
+  });
+
+  dom.overviewGrid.addEventListener("focusin", () => {
+    state.overviewCarousel.isFocused = true;
+    syncOverviewCarouselAutoplay();
+  });
+
+  dom.overviewGrid.addEventListener("focusout", () => {
+    window.setTimeout(() => {
+      state.overviewCarousel.isFocused = dom.overviewGrid?.contains(
+        document.activeElement,
+      );
+      syncOverviewCarouselAutoplay();
+    }, 0);
+  });
+
+  dom.overviewGrid.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      stepOverviewCarousel(-1);
+    }
+
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      stepOverviewCarousel(1);
+    }
+  });
+
+  dom.overviewViewport?.addEventListener(
+    "touchstart",
+    (event) => {
+      state.overviewCarousel.touchStartX =
+        event.changedTouches?.[0]?.clientX || 0;
+    },
+    { passive: true },
+  );
+
+  dom.overviewViewport?.addEventListener(
+    "touchend",
+    (event) => {
+      const touchEndX = event.changedTouches?.[0]?.clientX || 0;
+      const deltaX = touchEndX - state.overviewCarousel.touchStartX;
+
+      if (Math.abs(deltaX) > 40) {
+        stepOverviewCarousel(deltaX > 0 ? -1 : 1);
+        return;
+      }
+
+      syncOverviewCarouselAutoplay();
+    },
+    { passive: true },
+  );
+
+  document.addEventListener("visibilitychange", syncOverviewCarouselAutoplay);
+
+  if (typeof prefersReducedMotionQuery.addEventListener === "function") {
+    prefersReducedMotionQuery.addEventListener(
+      "change",
+      syncOverviewCarouselAutoplay,
+    );
+  } else if (typeof prefersReducedMotionQuery.addListener === "function") {
+    prefersReducedMotionQuery.addListener(syncOverviewCarouselAutoplay);
+  }
+
+  syncOverviewCarouselAutoplay();
 }
 
 function setActiveSection(sectionId) {
@@ -6833,6 +7060,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       onLogout: logoutAndRedirect,
     }) || null;
   cacheElements();
+  bindOverviewCarousel();
   bindPopupEvents();
   bindInventoryEvents();
   bindPurchaseEvents();
