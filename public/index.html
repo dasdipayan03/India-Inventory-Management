@@ -1994,6 +1994,38 @@
         line-height: 1.35;
       }
 
+      #gstReportSection .gst-compare-note {
+        margin: 12px 0 14px;
+      }
+
+      .gst-compare-status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 92px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .gst-compare-status--payable {
+        color: #166534;
+        background: rgba(187, 247, 208, 0.75);
+      }
+
+      .gst-compare-status--credit {
+        color: #1d4ed8;
+        background: rgba(191, 219, 254, 0.78);
+      }
+
+      .gst-compare-status--balanced {
+        color: var(--ink-soft);
+        background: rgba(226, 232, 240, 0.86);
+      }
+
       .table-primary-copy {
         color: var(--ink-strong);
         font-weight: 700;
@@ -2757,6 +2789,11 @@
           gap: 8px;
         }
 
+        .insight-panel .gst-compare-kpi-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+        }
+
         #reorderPlannerCard .mini-kpi-grid,
         #slowMovingCard .mini-kpi-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3103,6 +3140,20 @@
           width: 24%;
         }
 
+        .dashboard-table--gst-compare th:nth-child(1) {
+          width: 22%;
+        }
+
+        .dashboard-table--gst-compare th:nth-child(2),
+        .dashboard-table--gst-compare th:nth-child(3),
+        .dashboard-table--gst-compare th:nth-child(4) {
+          width: 18%;
+        }
+
+        .dashboard-table--gst-compare th:nth-child(5) {
+          width: 24%;
+        }
+
         .report-kpi-grid {
           grid-template-columns: 1fr;
         }
@@ -3114,6 +3165,11 @@
 
         .mini-kpi-grid {
           grid-template-columns: 1fr;
+        }
+
+        .insight-panel .gst-compare-kpi-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
         }
 
         .mobile-table-wrap {
@@ -3327,6 +3383,11 @@
         }
 
         .insight-panel .gst-summary-kpi-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 7px;
+        }
+
+        .insight-panel .gst-compare-kpi-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 7px;
         }
@@ -5089,6 +5150,106 @@
                       <tr>
                         <td colspan="5" class="text-muted">
                           Load report to see GST rate split.
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+
+              <article class="insight-panel insight-panel--wide">
+                <div class="insight-panel__head">
+                  <div>
+                    <span class="insight-panel__eyebrow">Compare View</span>
+                    <strong class="insight-panel__title"
+                      >Purchase vs sales GST</strong
+                    >
+                    <span class="insight-panel__copy">
+                      Compare purchase GST estimate, sales GST, and GST profit
+                      for the selected range.
+                    </span>
+                  </div>
+                  <span class="insight-badge">Compare</span>
+                </div>
+
+                <div class="mini-kpi-grid gst-compare-kpi-grid">
+                  <article class="mini-kpi">
+                    <span class="mini-kpi__label">Purchase GST Est.</span>
+                    <strong class="mini-kpi__value" id="gstComparePurchaseTotal"
+                      >Rs. 0.00</strong
+                    >
+                    <small class="mini-kpi__meta">
+                      Estimated from purchase subtotal.
+                    </small>
+                  </article>
+                  <article class="mini-kpi">
+                    <span class="mini-kpi__label">Sales GST</span>
+                    <strong class="mini-kpi__value" id="gstCompareSalesTotal"
+                      >Rs. 0.00</strong
+                    >
+                    <small class="mini-kpi__meta">
+                      Collected from invoice sales.
+                    </small>
+                  </article>
+                  <article class="mini-kpi">
+                    <span class="mini-kpi__label">Profit GST</span>
+                    <strong class="mini-kpi__value" id="gstCompareProfitTotal"
+                      >Rs. 0.00</strong
+                    >
+                    <small class="mini-kpi__meta">
+                      Sales GST minus purchase GST.
+                    </small>
+                  </article>
+                  <article class="mini-kpi">
+                    <span class="mini-kpi__label">GST Rate Used</span>
+                    <strong class="mini-kpi__value" id="gstCompareRateUsed"
+                      >0.00%</strong
+                    >
+                    <small class="mini-kpi__meta">
+                      Used for purchase GST estimate.
+                    </small>
+                  </article>
+                </div>
+
+                <div
+                  id="gstCompareHelper"
+                  class="table-secondary-copy gst-compare-note"
+                >
+                  Load the GST report to compare purchase and sales GST.
+                </div>
+
+                <div class="table-responsive mobile-table-wrap-1">
+                  <table
+                    class="table table-sm text-center align-middle dashboard-table dashboard-table--gst-compare"
+                  >
+                    <thead>
+                      <tr>
+                        <th>
+                          <span class="table-label-full">Month</span>
+                          <span class="table-label-compact">Month</span>
+                        </th>
+                        <th>
+                          <span class="table-label-full">Purchase GST</span>
+                          <span class="table-label-compact">Purchase</span>
+                        </th>
+                        <th>
+                          <span class="table-label-full">Sales GST</span>
+                          <span class="table-label-compact">Sales</span>
+                        </th>
+                        <th>
+                          <span class="table-label-full">Profit GST</span>
+                          <span class="table-label-compact">Profit</span>
+                        </th>
+                        <th>
+                          <span class="table-label-full">Status</span>
+                          <span class="table-label-compact">Status</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody id="gstCompareBody">
+                      <tr>
+                        <td colspan="5" class="text-muted">
+                          Load report to compare purchase and sales GST.
                         </td>
                       </tr>
                     </tbody>

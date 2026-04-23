@@ -13,6 +13,7 @@ const state = {
   currentPurchaseRows: [],
   currentSalesRows: [],
   currentGstRows: [],
+  currentGstCompare: null,
   currentExpenseRows: [],
   lowStockRows: [],
   reorderRows: [],
@@ -657,6 +658,12 @@ function cacheElements() {
     gstDominantRate: document.getElementById("gstDominantRate"),
     gstMonthlySummaryBody: document.getElementById("gstMonthlySummaryBody"),
     gstRateSummaryBody: document.getElementById("gstRateSummaryBody"),
+    gstComparePurchaseTotal: document.getElementById("gstComparePurchaseTotal"),
+    gstCompareSalesTotal: document.getElementById("gstCompareSalesTotal"),
+    gstCompareProfitTotal: document.getElementById("gstCompareProfitTotal"),
+    gstCompareRateUsed: document.getElementById("gstCompareRateUsed"),
+    gstCompareHelper: document.getElementById("gstCompareHelper"),
+    gstCompareBody: document.getElementById("gstCompareBody"),
     yearFilter: document.getElementById("yearFilter"),
     growthLivePill: document.getElementById("growthLivePill"),
     growthRangeLabel: document.getElementById("growthRangeLabel"),
@@ -4532,6 +4539,94 @@ function renderGstAdvancedSummary(insights) {
     : '<tr><td colspan="5" class="text-muted">No GST rate breakup found.</td></tr>';
 }
 
+function resetGstComparison(
+  message = "Load the GST report to compare purchase and sales GST.",
+) {
+  if (!dom.gstComparePurchaseTotal) {
+    return;
+  }
+
+  dom.gstComparePurchaseTotal.textContent = "Rs. 0.00";
+  dom.gstCompareSalesTotal.textContent = "Rs. 0.00";
+  dom.gstCompareProfitTotal.textContent = "Rs. 0.00";
+  dom.gstCompareProfitTotal.classList.remove("text-danger", "text-success");
+  dom.gstCompareRateUsed.textContent = "0.00%";
+  dom.gstCompareHelper.textContent = message;
+  dom.gstCompareBody.innerHTML = `
+    <tr>
+      <td colspan="5" class="text-muted">${escapeHtml(message)}</td>
+    </tr>
+  `;
+}
+
+function getGstCompareStatusMeta(amount) {
+  const value = Number(amount) || 0;
+
+  if (value > 0.004) {
+    return { label: "Payable", tone: "payable" };
+  }
+
+  if (value < -0.004) {
+    return { label: "Credit", tone: "credit" };
+  }
+
+  return { label: "Balanced", tone: "balanced" };
+}
+
+function renderGstComparison(compare = {}) {
+  if (!dom.gstComparePurchaseTotal) {
+    return;
+  }
+
+  const summary = compare.summary || {};
+  const monthlyRows = Array.isArray(compare.monthly) ? compare.monthly : [];
+  const purchaseGstTotal = Number(summary.purchase_gst_total) || 0;
+  const salesGstTotal = Number(summary.sales_gst_total) || 0;
+  const profitGstTotal = Number(summary.profit_gst_total) || 0;
+  const gstRate =
+    Number(compare.gst_rate) || Number(monthlyRows[0]?.gst_rate) || 0;
+
+  dom.gstComparePurchaseTotal.textContent = formatCurrency(purchaseGstTotal);
+  dom.gstCompareSalesTotal.textContent = formatCurrency(salesGstTotal);
+  dom.gstCompareProfitTotal.textContent = formatCurrency(profitGstTotal);
+  dom.gstCompareProfitTotal.classList.toggle("text-success", profitGstTotal > 0);
+  dom.gstCompareProfitTotal.classList.toggle("text-danger", profitGstTotal < 0);
+  dom.gstCompareRateUsed.textContent = formatPercent(gstRate);
+  dom.gstCompareHelper.textContent = `Purchase GST is estimated from purchase subtotal using the current GST rate of ${formatPercent(gstRate)}.`;
+
+  if (!monthlyRows.length) {
+    dom.gstCompareBody.innerHTML = `
+      <tr>
+        <td colspan="5" class="text-muted">No GST comparison data found for this range.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  dom.gstCompareBody.innerHTML = monthlyRows
+    .map((row) => {
+      const purchaseValue = Number(row.purchase_gst_total) || 0;
+      const salesValue = Number(row.sales_gst_total) || 0;
+      const profitValue = Number(row.profit_gst_total) || 0;
+      const status = getGstCompareStatusMeta(profitValue);
+
+      return `
+        <tr>
+          <td>${escapeHtml(row.month_label || "-")}</td>
+          <td>${formatCurrencyValue(purchaseValue)}</td>
+          <td>${formatCurrencyValue(salesValue)}</td>
+          <td>${formatCurrencyValue(profitValue)}</td>
+          <td>
+            <span class="gst-compare-status gst-compare-status--${status.tone}">
+              ${status.label}
+            </span>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
 function renderGstReport(rows) {
   dom.gstReportBody.innerHTML = "";
 
@@ -4631,11 +4726,25 @@ async function loadGstReport(options = {}) {
   const fromDate = dom.gstFromDate.value;
   const toDate = dom.gstToDate.value;
   const query = `/gst/report?from=${fromDate}&to=${toDate}`;
+  const compareQuery = `/gst/compare?from=${fromDate}&to=${toDate}`;
 
   const task = async () => {
-    const rows = await fetchJSON(query);
+    const [rows, comparePayload] = await Promise.all([
+      fetchJSON(query),
+      fetchJSON(compareQuery).catch((error) => {
+        console.error("GST comparison load failed:", error);
+        return null;
+      }),
+    ]);
     state.currentGstRows = Array.isArray(rows) ? rows : [];
+    state.currentGstCompare = comparePayload?.compare || null;
     renderGstReport(state.currentGstRows);
+    if (state.currentGstCompare) {
+      renderGstComparison(state.currentGstCompare);
+      return;
+    }
+
+    resetGstComparison("Could not load GST comparison right now.");
   };
 
   if (options.silent) {

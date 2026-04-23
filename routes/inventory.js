@@ -1416,6 +1416,141 @@ router.get("/gst/report", requirePermission("gst_report"), async (req, res) => {
   }
 });
 
+router.get("/gst/compare", requirePermission("gst_report"), async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const { from, to } = req.query;
+
+    if (!from || !to) {
+      return res.status(400).json({ error: "Missing date range" });
+    }
+
+    const result = await pool.query(
+      `
+      WITH params AS (
+        SELECT
+          $2::date AS from_date,
+          $3::date AS to_date,
+          COALESCE(
+            (
+              SELECT gst_rate
+              FROM settings
+              WHERE user_id = $1
+              LIMIT 1
+            ),
+            18
+          )::numeric(5,2) AS gst_rate
+      ),
+      months AS (
+        SELECT
+          generate_series(
+            DATE_TRUNC('month', params.from_date::timestamp),
+            DATE_TRUNC('month', params.to_date::timestamp),
+            INTERVAL '1 month'
+          )::date AS month_start,
+          params.gst_rate
+        FROM params
+      ),
+      sales_rollup AS (
+        SELECT
+          DATE_TRUNC('month', i.date AT TIME ZONE 'Asia/Kolkata')::date AS month_start,
+          COALESCE(SUM(i.subtotal), 0)::numeric(12,2) AS sales_taxable_total,
+          COALESCE(SUM(i.gst_amount), 0)::numeric(12,2) AS sales_gst_total
+        FROM invoices i
+        CROSS JOIN params p
+        WHERE i.user_id = $1
+          AND (i.date AT TIME ZONE 'Asia/Kolkata')::date >= p.from_date
+          AND (i.date AT TIME ZONE 'Asia/Kolkata')::date <= p.to_date
+        GROUP BY 1
+      ),
+      purchase_rollup AS (
+        SELECT
+          DATE_TRUNC('month', p.purchase_date AT TIME ZONE 'Asia/Kolkata')::date AS month_start,
+          COALESCE(SUM(p.subtotal), 0)::numeric(12,2) AS purchase_taxable_total
+        FROM purchases p
+        CROSS JOIN params q
+        WHERE p.user_id = $1
+          AND (p.purchase_date AT TIME ZONE 'Asia/Kolkata')::date >= q.from_date
+          AND (p.purchase_date AT TIME ZONE 'Asia/Kolkata')::date <= q.to_date
+        GROUP BY 1
+      )
+      SELECT
+        TO_CHAR(m.month_start, 'YYYY-MM') AS month_key,
+        TO_CHAR(m.month_start, 'Mon YYYY') AS month_label,
+        COALESCE(pr.purchase_taxable_total, 0)::numeric(12,2) AS purchase_taxable_total,
+        ROUND((COALESCE(pr.purchase_taxable_total, 0) * m.gst_rate / 100)::numeric, 2) AS purchase_gst_total,
+        COALESCE(sr.sales_taxable_total, 0)::numeric(12,2) AS sales_taxable_total,
+        COALESCE(sr.sales_gst_total, 0)::numeric(12,2) AS sales_gst_total,
+        ROUND(
+          (
+            COALESCE(sr.sales_gst_total, 0)
+            - (COALESCE(pr.purchase_taxable_total, 0) * m.gst_rate / 100)
+          )::numeric,
+          2
+        ) AS profit_gst_total,
+        m.gst_rate::numeric(5,2) AS gst_rate
+      FROM months m
+      LEFT JOIN purchase_rollup pr
+        ON pr.month_start = m.month_start
+      LEFT JOIN sales_rollup sr
+        ON sr.month_start = m.month_start
+      ORDER BY m.month_start ASC
+      `,
+      [userId, from, to],
+    );
+
+    const monthly = result.rows.map((row) => ({
+      month_key: row.month_key,
+      month_label: row.month_label,
+      purchase_taxable_total: Number(row.purchase_taxable_total) || 0,
+      purchase_gst_total: Number(row.purchase_gst_total) || 0,
+      sales_taxable_total: Number(row.sales_taxable_total) || 0,
+      sales_gst_total: Number(row.sales_gst_total) || 0,
+      profit_gst_total: Number(row.profit_gst_total) || 0,
+      gst_rate: Number(row.gst_rate) || 18,
+    }));
+
+    const summary = monthly.reduce(
+      (totals, row) => {
+        totals.purchase_taxable_total += row.purchase_taxable_total;
+        totals.purchase_gst_total += row.purchase_gst_total;
+        totals.sales_taxable_total += row.sales_taxable_total;
+        totals.sales_gst_total += row.sales_gst_total;
+        totals.profit_gst_total += row.profit_gst_total;
+        return totals;
+      },
+      {
+        purchase_taxable_total: 0,
+        purchase_gst_total: 0,
+        sales_taxable_total: 0,
+        sales_gst_total: 0,
+        profit_gst_total: 0,
+      },
+    );
+
+    res.json({
+      success: true,
+      range: { from, to },
+      compare: {
+        gst_rate: monthly[0]?.gst_rate || 18,
+        summary: {
+          purchase_taxable_total: Number(
+            summary.purchase_taxable_total.toFixed(2),
+          ),
+          purchase_gst_total: Number(summary.purchase_gst_total.toFixed(2)),
+          sales_taxable_total: Number(summary.sales_taxable_total.toFixed(2)),
+          sales_gst_total: Number(summary.sales_gst_total.toFixed(2)),
+          profit_gst_total: Number(summary.profit_gst_total.toFixed(2)),
+        },
+        monthly,
+      },
+    });
+  } catch (err) {
+    console.error("GST compare JSON error:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 // ----------------- GST REPORT (PDF DOWNLOAD) -----------------
 router.get(
   "/gst/report/pdf",
