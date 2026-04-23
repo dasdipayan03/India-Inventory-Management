@@ -533,6 +533,8 @@ function cacheElements() {
     statDueNote: document.getElementById("statDueNote"),
     statSupplierDue: document.getElementById("statSupplierDue"),
     statSupplierDueNote: document.getElementById("statSupplierDueNote"),
+    statRunningMonthGst: document.getElementById("statRunningMonthGst"),
+    statRunningMonthGstNote: document.getElementById("statRunningMonthGstNote"),
     statNetProfit: document.getElementById("statNetProfit"),
     statNetProfitNote: document.getElementById("statNetProfitNote"),
     newItemSearch: document.getElementById("newItemSearch"),
@@ -2073,6 +2075,11 @@ async function loadDashboardOverview(options = {}) {
     const dueSupplierCount =
       Number(overview.purchases?.due_supplier_count) || 0;
     const supplierDue = Number(overview.purchases?.supplier_due) || 0;
+    const runningMonthGst = Number(overview.gst?.current_month_gst_total) || 0;
+    const runningMonthGstInvoices =
+      Number(overview.gst?.current_month_invoice_count) || 0;
+    const runningMonthGstLabel =
+      String(overview.gst?.current_month_label || "").trim() || "This month";
     const totalExpense = Number(overview.finance?.total_expense) || 0;
     const netProfit = Number(overview.finance?.net_profit) || 0;
 
@@ -2103,6 +2110,13 @@ async function loadDashboardOverview(options = {}) {
       dom.statSupplierDueNote.textContent = dueSupplierCount
         ? `${formatCount(dueSupplierCount)} supplier${dueSupplierCount === 1 ? "" : "s"} currently have unpaid purchase balance.`
         : "No pending supplier payable right now.";
+    }
+
+    if (dom.statRunningMonthGst) {
+      dom.statRunningMonthGst.textContent = formatCurrency(runningMonthGst);
+      dom.statRunningMonthGstNote.textContent = runningMonthGstInvoices
+        ? `${runningMonthGstLabel} GST from ${formatCount(runningMonthGstInvoices)} invoice${runningMonthGstInvoices === 1 ? "" : "s"}.`
+        : `${runningMonthGstLabel} has no GST invoice yet.`;
     }
 
     if (dom.statNetProfit) {

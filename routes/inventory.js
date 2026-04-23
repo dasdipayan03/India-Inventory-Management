@@ -2260,6 +2260,7 @@ router.get("/dashboard/overview", requireOwner, async (req, res) => {
       lowStockResult,
       dueResult,
       supplierDueResult,
+      gstMonthResult,
       financeResult,
     ] = await Promise.all([
       pool.query(
@@ -2347,6 +2348,32 @@ router.get("/dashboard/overview", requireOwner, async (req, res) => {
       ),
       pool.query(
         `
+        WITH month_window AS (
+          SELECT
+            DATE_TRUNC('month', NOW() AT TIME ZONE 'Asia/Kolkata')::date AS month_start,
+            (
+              DATE_TRUNC('month', NOW() AT TIME ZONE 'Asia/Kolkata')
+              + INTERVAL '1 month'
+            )::date AS next_month_start,
+            TO_CHAR(
+              DATE_TRUNC('month', NOW() AT TIME ZONE 'Asia/Kolkata'),
+              'Mon YYYY'
+            ) AS month_label
+        )
+        SELECT
+          COALESCE(SUM(i.gst_amount), 0) AS current_month_gst_total,
+          COUNT(*) AS current_month_invoice_count,
+          MAX(month_window.month_label) AS current_month_label
+        FROM month_window
+        LEFT JOIN invoices i
+          ON i.user_id = $1
+         AND (i.date AT TIME ZONE 'Asia/Kolkata')::date >= month_window.month_start
+         AND (i.date AT TIME ZONE 'Asia/Kolkata')::date < month_window.next_month_start
+        `,
+        [user_id],
+      ),
+      pool.query(
+        `
         WITH gross_profit AS (
           SELECT
             COALESCE(SUM((selling_price - cost_price) * quantity), 0) AS gross_profit
@@ -2375,6 +2402,7 @@ router.get("/dashboard/overview", requireOwner, async (req, res) => {
       alerts: lowStockResult.rows[0],
       dues: dueResult.rows[0],
       purchases: supplierDueResult.rows[0],
+      gst: gstMonthResult.rows[0],
       finance: financeResult.rows[0],
     });
   } catch (err) {
