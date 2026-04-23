@@ -4583,16 +4583,16 @@ function renderGstComparison(compare = {}) {
   const purchaseGstTotal = Number(summary.purchase_gst_total) || 0;
   const salesGstTotal = Number(summary.sales_gst_total) || 0;
   const profitGstTotal = Number(summary.profit_gst_total) || 0;
-  const gstRate =
-    Number(compare.gst_rate) || Number(monthlyRows[0]?.gst_rate) || 0;
+  const appliedRate =
+    Number(compare.applied_rate) || Number(monthlyRows[0]?.applied_rate) || 0;
 
   dom.gstComparePurchaseTotal.textContent = formatCurrency(purchaseGstTotal);
   dom.gstCompareSalesTotal.textContent = formatCurrency(salesGstTotal);
   dom.gstCompareProfitTotal.textContent = formatCurrency(profitGstTotal);
   dom.gstCompareProfitTotal.classList.toggle("text-success", profitGstTotal > 0);
   dom.gstCompareProfitTotal.classList.toggle("text-danger", profitGstTotal < 0);
-  dom.gstCompareRateUsed.textContent = formatPercent(gstRate);
-  dom.gstCompareHelper.textContent = `Purchase GST is estimated from purchase subtotal using the current GST rate of ${formatPercent(gstRate)}.`;
+  dom.gstCompareRateUsed.textContent = formatPercent(appliedRate);
+  dom.gstCompareHelper.textContent = `Purchase GST is estimated from sold items' buying cost using each sale row's GST percent. Effective applied rate: ${formatPercent(appliedRate)}.`;
 
   if (!monthlyRows.length) {
     dom.gstCompareBody.innerHTML = `

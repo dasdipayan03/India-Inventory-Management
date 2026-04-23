@@ -1430,16 +1430,7 @@ router.get("/gst/compare", requirePermission("gst_report"), async (req, res) => 
       WITH params AS (
         SELECT
           $2::date AS from_date,
-          $3::date AS to_date,
-          COALESCE(
-            (
-              SELECT gst_rate
-              FROM settings
-              WHERE user_id = $1
-              LIMIT 1
-            ),
-            18
-          )::numeric(5,2) AS gst_rate
+          $3::date AS to_date
       ),
       months AS (
         SELECT
@@ -1447,51 +1438,60 @@ router.get("/gst/compare", requirePermission("gst_report"), async (req, res) => 
             DATE_TRUNC('month', params.from_date::timestamp),
             DATE_TRUNC('month', params.to_date::timestamp),
             INTERVAL '1 month'
-          )::date AS month_start,
-          params.gst_rate
+          )::date AS month_start
         FROM params
       ),
       sales_rollup AS (
         SELECT
-          DATE_TRUNC('month', i.date AT TIME ZONE 'Asia/Kolkata')::date AS month_start,
-          COALESCE(SUM(i.subtotal), 0)::numeric(12,2) AS sales_taxable_total,
-          COALESCE(SUM(i.gst_amount), 0)::numeric(12,2) AS sales_gst_total
-        FROM invoices i
+          DATE_TRUNC('month', s.created_at AT TIME ZONE 'Asia/Kolkata')::date AS month_start,
+          COALESCE(SUM(s.cost_price * s.quantity), 0)::numeric(12,2) AS purchase_taxable_total,
+          ROUND(
+            COALESCE(
+              SUM(
+                (s.cost_price * s.quantity) *
+                CASE
+                  WHEN COALESCE(s.total_price, 0) = 0 THEN 0
+                  ELSE ABS(s.gst_amount / NULLIF(s.total_price, 0))
+                END
+              ),
+              0
+            )::numeric,
+            2
+          ) AS purchase_gst_total,
+          COALESCE(SUM(s.total_price), 0)::numeric(12,2) AS sales_taxable_total,
+          COALESCE(SUM(s.gst_amount), 0)::numeric(12,2) AS sales_gst_total
+        FROM sales s
         CROSS JOIN params p
-        WHERE i.user_id = $1
-          AND (i.date AT TIME ZONE 'Asia/Kolkata')::date >= p.from_date
-          AND (i.date AT TIME ZONE 'Asia/Kolkata')::date <= p.to_date
-        GROUP BY 1
-      ),
-      purchase_rollup AS (
-        SELECT
-          DATE_TRUNC('month', p.purchase_date AT TIME ZONE 'Asia/Kolkata')::date AS month_start,
-          COALESCE(SUM(p.subtotal), 0)::numeric(12,2) AS purchase_taxable_total
-        FROM purchases p
-        CROSS JOIN params q
-        WHERE p.user_id = $1
-          AND (p.purchase_date AT TIME ZONE 'Asia/Kolkata')::date >= q.from_date
-          AND (p.purchase_date AT TIME ZONE 'Asia/Kolkata')::date <= q.to_date
+        WHERE s.user_id = $1
+          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date >= p.from_date
+          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date <= p.to_date
         GROUP BY 1
       )
       SELECT
         TO_CHAR(m.month_start, 'YYYY-MM') AS month_key,
         TO_CHAR(m.month_start, 'Mon YYYY') AS month_label,
-        COALESCE(pr.purchase_taxable_total, 0)::numeric(12,2) AS purchase_taxable_total,
-        ROUND((COALESCE(pr.purchase_taxable_total, 0) * m.gst_rate / 100)::numeric, 2) AS purchase_gst_total,
+        COALESCE(sr.purchase_taxable_total, 0)::numeric(12,2) AS purchase_taxable_total,
+        COALESCE(sr.purchase_gst_total, 0)::numeric(12,2) AS purchase_gst_total,
         COALESCE(sr.sales_taxable_total, 0)::numeric(12,2) AS sales_taxable_total,
         COALESCE(sr.sales_gst_total, 0)::numeric(12,2) AS sales_gst_total,
         ROUND(
           (
             COALESCE(sr.sales_gst_total, 0)
-            - (COALESCE(pr.purchase_taxable_total, 0) * m.gst_rate / 100)
+            - COALESCE(sr.purchase_gst_total, 0)
           )::numeric,
           2
         ) AS profit_gst_total,
-        m.gst_rate::numeric(5,2) AS gst_rate
+        ROUND(
+          CASE
+            WHEN COALESCE(sr.purchase_taxable_total, 0) = 0 THEN 0
+            ELSE (
+              COALESCE(sr.purchase_gst_total, 0)
+              / NULLIF(sr.purchase_taxable_total, 0)
+            ) * 100
+          END::numeric,
+          2
+        ) AS applied_rate
       FROM months m
-      LEFT JOIN purchase_rollup pr
-        ON pr.month_start = m.month_start
       LEFT JOIN sales_rollup sr
         ON sr.month_start = m.month_start
       ORDER BY m.month_start ASC
@@ -1507,7 +1507,7 @@ router.get("/gst/compare", requirePermission("gst_report"), async (req, res) => 
       sales_taxable_total: Number(row.sales_taxable_total) || 0,
       sales_gst_total: Number(row.sales_gst_total) || 0,
       profit_gst_total: Number(row.profit_gst_total) || 0,
-      gst_rate: Number(row.gst_rate) || 18,
+      applied_rate: Number(row.applied_rate) || 0,
     }));
 
     const summary = monthly.reduce(
@@ -1528,11 +1528,16 @@ router.get("/gst/compare", requirePermission("gst_report"), async (req, res) => 
       },
     );
 
+    const appliedRate =
+      summary.purchase_taxable_total > 0
+        ? (summary.purchase_gst_total / summary.purchase_taxable_total) * 100
+        : 0;
+
     res.json({
       success: true,
       range: { from, to },
       compare: {
-        gst_rate: monthly[0]?.gst_rate || 18,
+        applied_rate: Number(appliedRate.toFixed(2)),
         summary: {
           purchase_taxable_total: Number(
             summary.purchase_taxable_total.toFixed(2),
