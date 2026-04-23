@@ -329,33 +329,8 @@
       }
 
       .overview-carousel__controls {
-        display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 12px;
-      }
-
-      .overview-carousel__nav {
-        display: inline-flex;
-        align-items: center;
+        display: flex;
         justify-content: center;
-        width: 42px;
-        height: 42px;
-        cursor: pointer;
-        border: 1px solid rgba(191, 219, 254, 0.5);
-        border-radius: 14px;
-        background: rgba(255, 255, 255, 0.88);
-        color: var(--ink-strong);
-        box-shadow: var(--shadow-sm);
-      }
-
-      .overview-carousel__nav:hover {
-        background: rgba(255, 255, 255, 0.98);
-      }
-
-      .overview-carousel__nav:focus-visible {
-        outline: 2px solid rgba(14, 165, 233, 0.35);
-        outline-offset: 2px;
       }
 
       .overview-carousel__pager {
@@ -2617,15 +2592,6 @@
       }
 
       @media (max-width: 768px) {
-        .overview-carousel__controls {
-          gap: 10px;
-        }
-
-        .overview-carousel__nav {
-          width: 40px;
-          height: 40px;
-        }
-
         .purchase-line-card__grid,
         .purchase-detail-meta {
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3387,16 +3353,6 @@
           margin-bottom: 10px;
         }
 
-        .overview-carousel__controls {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 8px;
-        }
-
-        .overview-carousel__pager {
-          grid-column: 1 / -1;
-          order: -1;
-        }
-
         .dashboard-table--ledger td:first-child,
         .dashboard-table--ledger td:last-child {
           min-width: 0;
@@ -3665,31 +3621,13 @@
             </div>
           </div>
 
-          <div class="overview-carousel__controls" aria-label="Overview card controls">
-            <button
-              id="overviewPrevBtn"
-              class="overview-carousel__nav"
-              type="button"
-              aria-label="Show previous overview card"
-            >
-              <i class="fa-solid fa-arrow-left"></i>
-            </button>
-
+          <div class="overview-carousel__controls" aria-label="Overview card progress">
             <div class="overview-carousel__pager">
               <span id="overviewStatus" class="overview-carousel__status"
                 >1 / 5</span
               >
               <div id="overviewDots" class="overview-carousel__dots"></div>
             </div>
-
-            <button
-              id="overviewNextBtn"
-              class="overview-carousel__nav"
-              type="button"
-              aria-label="Show next overview card"
-            >
-              <i class="fa-solid fa-arrow-right"></i>
-            </button>
           </div>
         </section>
 

@@ -517,8 +517,6 @@ function cacheElements() {
     overviewSlides: Array.from(
       document.querySelectorAll("[data-overview-slide]"),
     ),
-    overviewPrevBtn: document.getElementById("overviewPrevBtn"),
-    overviewNextBtn: document.getElementById("overviewNextBtn"),
     overviewStatus: document.getElementById("overviewStatus"),
     overviewDots: document.getElementById("overviewDots"),
     currentDateLabel: document.getElementById("currentDateLabel"),
@@ -1489,14 +1487,6 @@ function bindOverviewCarousel() {
   state.overviewCarousel.isBound = true;
   renderOverviewCarouselDots();
   setOverviewCarouselSlide(0, { instant: true });
-
-  dom.overviewPrevBtn?.addEventListener("click", () => {
-    stepOverviewCarousel(-1);
-  });
-
-  dom.overviewNextBtn?.addEventListener("click", () => {
-    stepOverviewCarousel(1);
-  });
 
   dom.overviewDots?.addEventListener("click", (event) => {
     const target = event.target.closest("[data-overview-dot]");
