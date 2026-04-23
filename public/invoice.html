@@ -248,6 +248,10 @@
         margin-top: 18px;
       }
 
+      #liveSessionCard .stats {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
       .stat,
       .summary-item,
       .result-meta > div,
@@ -1421,12 +1425,8 @@
         }
 
         #liveSessionCard .stats {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-columns: minmax(0, 1fr);
           gap: 8px;
-        }
-
-        #liveSessionCard .stat:first-child {
-          grid-column: 1 / -1;
         }
 
         #liveSessionCard .stat {
@@ -1886,21 +1886,6 @@
                 <strong id="invoiceNo">--</strong>
                 <small id="invoiceDate">--</small>
               </div>
-              <div class="stat">
-                <span>Draft Status</span>
-                <strong id="draftStatusText">No draft</strong>
-                <small>Autosaved in this browser.</small>
-              </div>
-              <div class="stat">
-                <span>Filled Items</span>
-                <strong id="heroItemCount">0</strong>
-                <small id="lineCountText">0 active lines.</small>
-              </div>
-              <div class="stat">
-                <span>Customer Profile</span>
-                <strong id="customerProgress">0%</strong>
-                <small>Name, contact, address completion.</small>
-              </div>
             </div>
           </div>
         </div>
@@ -1942,11 +1927,6 @@
               <div>
                 <div class="eyebrow">Customer</div>
                 <h2>Billing details</h2>
-              </div>
-              <div class="mini">
-                <i class="fa-regular fa-address-card"></i>
-                Profile
-                <strong id="profileScore">0%</strong>
               </div>
             </div>
 
@@ -2057,7 +2037,9 @@
                   placeholder="Leave blank for full payment"
                 />
               </div>
-              <div class="payment-field payment-field--split payment-field--collected">
+              <div
+                class="payment-field payment-field--split payment-field--collected"
+              >
                 <label>Collected Now</label>
                 <div class="payment-readout">
                   <div class="payment-readout-copy">
@@ -2066,7 +2048,9 @@
                   </div>
                 </div>
               </div>
-              <div class="payment-field payment-field--split payment-field--outstanding">
+              <div
+                class="payment-field payment-field--split payment-field--outstanding"
+              >
                 <label>Outstanding</label>
                 <div class="payment-readout">
                   <div class="payment-readout-copy">
@@ -2513,13 +2497,8 @@
           ),
           invoiceNo: $("invoiceNo"),
           invoiceDate: $("invoiceDate"),
-          draftStatusText: $("draftStatusText"),
           draftBadge: $("draftBadge"),
           draftBadgeText: $("draftBadgeText"),
-          heroItemCount: $("heroItemCount"),
-          lineCountText: $("lineCountText"),
-          customerProgress: $("customerProgress"),
-          profileScore: $("profileScore"),
           summaryGstRate: $("summaryGstRate"),
           summaryLineCount: $("summaryLineCount"),
           summaryFilledCount: $("summaryFilledCount"),
@@ -2919,7 +2898,6 @@
         const closeModal = (el) => el.classList.remove("open");
 
         const setDraftState = (text, mode) => {
-          dom.draftStatusText.textContent = text;
           dom.draftBadgeText.textContent = text;
           dom.draftBadge.className = `mini draft-badge ${mode}`;
         };
@@ -3033,27 +3011,13 @@
           dom.invoiceDate.textContent = label;
         };
 
-        const updateProfile = () => {
-          const filled = [
-            dom.custName,
-            dom.custContact,
-            dom.custAddress,
-          ].filter((el) => el.value.trim()).length;
-          const pct = Math.round((filled / 3) * 100);
-          dom.customerProgress.textContent = `${pct}%`;
-          dom.profileScore.textContent = `${pct}%`;
-        };
-
         const updateCounts = () => {
           const list = rows();
           const filled = list.filter((row) =>
             row.querySelector(".item-input")?.value.trim(),
           ).length;
-          dom.heroItemCount.textContent = String(filled);
           dom.summaryLineCount.textContent = String(list.length || 0);
           dom.summaryFilledCount.textContent = String(filled);
-          dom.lineCountText.textContent = `${list.length || 0} active lines.`;
-          updateProfile();
         };
 
         const updateGst = () => {
@@ -4468,7 +4432,6 @@
         [dom.custName, dom.custContact, dom.custAddress].forEach((input) =>
           input.addEventListener("input", () => {
             input.classList.remove("invalid");
-            updateProfile();
             queueDraft();
           }),
         );

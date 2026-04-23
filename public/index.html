@@ -1849,6 +1849,53 @@
         white-space: nowrap;
       }
 
+      #gstReportSection .insight-panel {
+        padding: 16px;
+        border-radius: 20px;
+      }
+
+      #gstReportSection .insight-panel__head {
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      #gstReportSection .insight-panel__title {
+        margin-top: 4px;
+        font-size: 18px;
+      }
+
+      #gstReportSection .insight-panel__copy {
+        margin-top: 5px;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      #gstReportSection .insight-badge {
+        padding: 7px 10px;
+        font-size: 10px;
+      }
+
+      #gstReportSection .gst-summary-kpi-grid .mini-kpi {
+        padding: 13px 14px;
+        border-radius: 16px;
+      }
+
+      #gstReportSection .gst-summary-kpi-grid .mini-kpi__label {
+        font-size: 10px;
+      }
+
+      #gstReportSection .gst-summary-kpi-grid .mini-kpi__value {
+        margin-top: 6px;
+        font-size: 18px;
+        line-height: 1.1;
+      }
+
+      #gstReportSection .gst-summary-kpi-grid .mini-kpi__meta {
+        margin-top: 4px;
+        font-size: 11px;
+        line-height: 1.35;
+      }
+
       .table-primary-copy {
         color: var(--ink-strong);
         font-weight: 700;
@@ -2559,6 +2606,23 @@
           gap: 8px;
         }
 
+        #gstReportSection .insight-panel {
+          padding: 15px;
+        }
+
+        #gstReportSection .insight-panel__head {
+          margin-bottom: 10px;
+        }
+
+        #gstReportSection .insight-panel__title {
+          font-size: 17px;
+        }
+
+        #gstReportSection .insight-panel__copy {
+          font-size: 11.5px;
+          line-height: 1.4;
+        }
+
         .due-ledger-actions {
           grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 8px;
@@ -2941,6 +3005,11 @@
           grid-template-columns: 1fr;
         }
 
+        .report-kpi-grid.gst-report-kpi-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+        }
+
         .mini-kpi-grid {
           grid-template-columns: 1fr;
         }
@@ -3100,6 +3169,24 @@
         .gst-report-kpi-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 7px;
+        }
+
+        #gstReportSection .insight-panel {
+          padding: 14px;
+          border-radius: 18px;
+        }
+
+        #gstReportSection .insight-panel__title {
+          font-size: 16px;
+        }
+
+        #gstReportSection .insight-panel__copy {
+          font-size: 11px;
+        }
+
+        #gstReportSection .gst-summary-kpi-grid .mini-kpi {
+          padding: 12px;
+          border-radius: 15px;
         }
 
         .due-ledger-actions {
@@ -4714,54 +4801,45 @@
               <article class="insight-panel insight-panel--wide">
                 <div class="insight-panel__head">
                   <div>
-                    <span class="insight-panel__eyebrow">Filing Snapshot</span>
-                    <strong class="insight-panel__title">
-                      GST summary for the selected period
-                    </strong>
+                    <span class="insight-panel__eyebrow">Quick View</span>
+                    <strong class="insight-panel__title">GST summary</strong>
                     <span class="insight-panel__copy">
-                      Quick filing-ready highlights including period, dominant
-                      rate, zero-GST invoices, and how GST compares with taxable
-                      value.
+                      See the date range, top GST month, zero-GST bills, and
+                      top GST rate.
                     </span>
                   </div>
-                  <span class="insight-badge">Advanced Summary</span>
+                  <span class="insight-badge">Overview</span>
                 </div>
 
                 <div class="mini-kpi-grid gst-summary-kpi-grid">
                   <article class="mini-kpi">
-                    <span class="mini-kpi__label">Period</span>
+                    <span class="mini-kpi__label">Date Range</span>
                     <strong class="mini-kpi__value" id="gstFilingPeriod"
                       >-</strong
                     >
-                    <small class="mini-kpi__meta">
-                      Active date range for this GST review.
-                    </small>
+                    <small class="mini-kpi__meta">Selected report dates.</small>
                   </article>
                   <article class="mini-kpi">
                     <span class="mini-kpi__label">Top Month</span>
                     <strong class="mini-kpi__value" id="gstTopCollectionMonth"
                       >-</strong
                     >
-                    <small class="mini-kpi__meta">
-                      Month that contributed the highest GST collection.
-                    </small>
+                    <small class="mini-kpi__meta">Month with most GST.</small>
                   </article>
                   <article class="mini-kpi">
-                    <span class="mini-kpi__label">Zero GST Invoices</span>
+                    <span class="mini-kpi__label">Zero GST Bills</span>
                     <strong class="mini-kpi__value" id="gstZeroRatedInvoices"
                       >0</strong
                     >
-                    <small class="mini-kpi__meta">
-                      Invoices that carried no GST in the selected date range.
-                    </small>
+                    <small class="mini-kpi__meta">Bills without GST.</small>
                   </article>
                   <article class="mini-kpi">
-                    <span class="mini-kpi__label">Dominant Rate</span>
+                    <span class="mini-kpi__label">Top Rate</span>
                     <strong class="mini-kpi__value" id="gstDominantRate"
                       >0.00%</strong
                     >
                     <small class="mini-kpi__meta">
-                      GST rate slab contributing the largest taxable value.
+                      Rate with highest taxable sales.
                     </small>
                   </article>
                 </div>
@@ -4770,13 +4848,11 @@
               <article class="insight-panel">
                 <div class="insight-panel__head">
                   <div>
-                    <span class="insight-panel__eyebrow">Month-wise View</span>
-                    <strong class="insight-panel__title"
-                      >Monthly GST summary</strong
-                    >
+                    <span class="insight-panel__eyebrow">Month View</span>
+                    <strong class="insight-panel__title">Monthly GST</strong>
                     <span class="insight-panel__copy">
-                      Review month-by-month invoice count, taxable value, GST,
-                      and final invoice total for filing prep.
+                      See invoices, taxable value, GST, and total month by
+                      month.
                     </span>
                   </div>
                   <span class="insight-badge">Monthly</span>
@@ -4812,7 +4888,7 @@
                     <tbody id="gstMonthlySummaryBody">
                       <tr>
                         <td colspan="5" class="text-muted">
-                          Load the GST report to view monthly summary.
+                          Load report to see monthly data.
                         </td>
                       </tr>
                     </tbody>
@@ -4823,16 +4899,13 @@
               <article class="insight-panel">
                 <div class="insight-panel__head">
                   <div>
-                    <span class="insight-panel__eyebrow">Rate Slabs</span>
-                    <strong class="insight-panel__title"
-                      >Rate-wise breakup</strong
-                    >
+                    <span class="insight-panel__eyebrow">Rate View</span>
+                    <strong class="insight-panel__title">GST rate split</strong>
                     <span class="insight-panel__copy">
-                      Identify which GST slabs are contributing most to taxable
-                      value and collection in the selected period.
+                      See which GST rates add the most taxable value and GST.
                     </span>
                   </div>
-                  <span class="insight-badge">Rate-wise</span>
+                  <span class="insight-badge">Rates</span>
                 </div>
                 <div class="table-responsive mobile-table-wrap-1">
                   <table
@@ -4865,7 +4938,7 @@
                     <tbody id="gstRateSummaryBody">
                       <tr>
                         <td colspan="5" class="text-muted">
-                          Load the GST report to view rate-wise breakup.
+                          Load report to see GST rate split.
                         </td>
                       </tr>
                     </tbody>
