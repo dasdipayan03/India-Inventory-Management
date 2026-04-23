@@ -545,6 +545,7 @@ function cacheElements() {
     buyingRate: document.getElementById("buyingRate"),
     sellingRate: document.getElementById("sellingRate"),
     addStockBtn: document.getElementById("addStockBtn"),
+    clearAddStockBtn: document.getElementById("clearAddStockBtn"),
     previousBuyingRate: document.getElementById("previousBuyingRate"),
     profitPreviewValue: document.getElementById("profitPreviewValue"),
     profitPreviewNote: document.getElementById("profitPreviewNote"),
@@ -1132,6 +1133,21 @@ function updateDueWorkspaceMeta() {
 function hidePreviousBuyingRate() {
   hideElement(dom.previousBuyingRate);
   dom.previousBuyingRate.textContent = "";
+}
+
+function resetAddStockForm() {
+  ["newItemSearch", "newQuantity", "buyingRate", "sellingRate"].forEach(
+    (id) => {
+      const field = document.getElementById(id);
+      if (field) {
+        field.value = "";
+      }
+    },
+  );
+
+  hideElement(dom.newItemDropdownList);
+  hidePreviousBuyingRate();
+  updateProfitPreview();
 }
 
 function normalizeProfitPercentValue(value) {
@@ -2211,14 +2227,7 @@ async function addStock() {
         data.message || "Inventory entry has been updated successfully.",
       );
 
-      ["newItemSearch", "newQuantity", "buyingRate", "sellingRate"].forEach(
-        (id) => {
-          document.getElementById(id).value = "";
-        },
-      );
-
-      hidePreviousBuyingRate();
-      updateProfitPreview();
+      resetAddStockForm();
 
       await Promise.allSettled([
         loadItemNames({ silent: true }),
@@ -6601,6 +6610,10 @@ function bindInventoryEvents() {
   });
 
   dom.addStockBtn.addEventListener("click", addStock);
+  dom.clearAddStockBtn?.addEventListener("click", () => {
+    triggerButtonFeedback(dom.clearAddStockBtn);
+    resetAddStockForm();
+  });
 
   setupFilterInput(dom.newItemSearch, dom.newItemDropdownList, (value) => {
     dom.newItemSearch.value = value;
