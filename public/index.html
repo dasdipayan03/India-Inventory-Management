@@ -453,7 +453,7 @@
       .due-impact-row {
         display: grid;
         gap: 0;
-        margin-top: 3px;
+        margin-top: 6px;
       }
 
       .due-impact-row .due-balance-pill {
@@ -2671,7 +2671,6 @@
           align-self: flex-start;
           margin-top: 10px;
         }
-
       }
 
       @media (max-width: 576px) {
@@ -3597,7 +3596,10 @@
             aria-live="off"
           >
             <div class="overview-carousel__track" id="overviewTrack">
-              <article class="overview-card overview-card--sky" data-overview-slide>
+              <article
+                class="overview-card overview-card--sky"
+                data-overview-slide
+              >
                 <span class="overview-card__label">
                   <i class="fa-solid fa-boxes-stacked"></i>
                   Stock Items
@@ -3610,7 +3612,10 @@
                 </small>
               </article>
 
-              <article class="overview-card overview-card--teal" data-overview-slide>
+              <article
+                class="overview-card overview-card--teal"
+                data-overview-slide
+              >
                 <span class="overview-card__label">
                   <i class="fa-solid fa-wallet"></i>
                   Stock Value
@@ -3623,18 +3628,26 @@
                 </small>
               </article>
 
-              <article class="overview-card overview-card--amber" data-overview-slide>
+              <article
+                class="overview-card overview-card--amber"
+                data-overview-slide
+              >
                 <span class="overview-card__label">
                   <i class="fa-solid fa-triangle-exclamation"></i>
                   Low Stock
                 </span>
-                <strong class="overview-card__value" id="statLowStock">0</strong>
+                <strong class="overview-card__value" id="statLowStock"
+                  >0</strong
+                >
                 <small class="overview-card__note" id="statLowStockNote">
                   Items that need attention soon
                 </small>
               </article>
 
-              <article class="overview-card overview-card--blue" data-overview-slide>
+              <article
+                class="overview-card overview-card--blue"
+                data-overview-slide
+              >
                 <span class="overview-card__label">
                   <i class="fa-solid fa-hand-holding-dollar"></i>
                   Due Balance
@@ -3647,7 +3660,10 @@
                 </small>
               </article>
 
-              <article class="overview-card overview-card--teal" data-overview-slide>
+              <article
+                class="overview-card overview-card--teal"
+                data-overview-slide
+              >
                 <span class="overview-card__label">
                   <i class="fa-solid fa-truck-ramp-box"></i>
                   Supplier Due
@@ -3660,7 +3676,10 @@
                 </small>
               </article>
 
-              <article class="overview-card overview-card--sky" data-overview-slide>
+              <article
+                class="overview-card overview-card--sky"
+                data-overview-slide
+              >
                 <span class="overview-card__label">
                   <i class="fa-solid fa-file-invoice-dollar"></i>
                   Running Month GST
@@ -3668,17 +3687,17 @@
                 <strong class="overview-card__value" id="statRunningMonthGst"
                   >Rs. 0.00</strong
                 >
-                <small
-                  class="overview-card__note"
-                  id="statRunningMonthGstNote"
-                >
+                <small class="overview-card__note" id="statRunningMonthGstNote">
                   GST collected in the current month.
                 </small>
               </article>
             </div>
           </div>
 
-          <div class="overview-carousel__controls" aria-label="Overview card progress">
+          <div
+            class="overview-carousel__controls"
+            aria-label="Overview card progress"
+          >
             <div class="overview-carousel__pager">
               <span id="overviewStatus" class="overview-carousel__status"
                 >1 / 6</span
@@ -3946,7 +3965,10 @@
                     />
                   </div>
                 </div>
-                <div class="purchase-summary-pill-grid" aria-label="Purchase summary">
+                <div
+                  class="purchase-summary-pill-grid"
+                  aria-label="Purchase summary"
+                >
                   <div class="purchase-summary-pill">
                     <span>Purchase Subtotal</span>
                     <strong id="purchaseSubtotal">Rs. 0.00</strong>
@@ -4556,7 +4578,9 @@
                   <strong class="mini-kpi__value" id="slowMovingUnits"
                     >0</strong
                   >
-                  <small class="mini-kpi__meta">Units stuck in slow stock.</small>
+                  <small class="mini-kpi__meta"
+                    >Units stuck in slow stock.</small
+                  >
                 </article>
                 <article class="mini-kpi">
                   <span class="mini-kpi__label">Stock Value</span>
@@ -4995,8 +5019,8 @@
                     <span class="insight-panel__eyebrow">Quick View</span>
                     <strong class="insight-panel__title">GST summary</strong>
                     <span class="insight-panel__copy">
-                      See the date range, top GST month, zero-GST bills, and
-                      top GST rate.
+                      See the date range, top GST month, zero-GST bills, and top
+                      GST rate.
                     </span>
                   </div>
                   <span class="insight-badge">Overview</span>
@@ -5542,7 +5566,11 @@
                   class="form-control"
                   placeholder="Search expense title or category"
                 />
-                <div id="expenseSearchDropdown" class="dropdown-list" hidden></div>
+                <div
+                  id="expenseSearchDropdown"
+                  class="dropdown-list"
+                  hidden
+                ></div>
               </div>
               <div class="col-6 col-lg-2">
                 <label class="form-label small">Load Report</label>
