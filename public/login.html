@@ -924,63 +924,6 @@
         border-radius: 16px;
       }
 
-      .feature-carousel__controls {
-        display: flex;
-        justify-content: center;
-        margin-top: 14px;
-      }
-
-      .feature-carousel__pager {
-        display: grid;
-        justify-items: center;
-        gap: 7px;
-        min-width: 0;
-      }
-
-      .feature-carousel__status {
-        color: var(--muted);
-        font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-      }
-
-      .feature-carousel__dots {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-wrap: wrap;
-        gap: 7px;
-      }
-
-      .feature-carousel__dot {
-        width: 9px;
-        height: 9px;
-        padding: 0;
-        cursor: pointer;
-        border: 0;
-        border-radius: 999px;
-        background: rgba(21, 38, 63, 0.18);
-        transition:
-          width 0.22s ease,
-          background 0.22s ease,
-          transform 0.22s ease;
-      }
-
-      .feature-carousel__dot.is-active {
-        width: 26px;
-        background: linear-gradient(
-          135deg,
-          rgba(22, 151, 208, 0.92),
-          rgba(29, 72, 122, 0.88)
-        );
-      }
-
-      .feature-carousel__dot:focus-visible {
-        outline: 2px solid rgba(22, 151, 208, 0.35);
-        outline-offset: 2px;
-      }
-
       .access-panel-section {
         padding: 0;
         overflow: hidden;
@@ -1363,18 +1306,6 @@
                     decoding="async"
                   />
                 </article>
-              </div>
-            </div>
-
-            <div
-              class="feature-carousel__controls"
-              aria-label="Login banner progress"
-            >
-              <div class="feature-carousel__pager">
-                <span id="featureStatus" class="feature-carousel__status"
-                  >1 / 9</span
-                >
-                <div id="featureDots" class="feature-carousel__dots"></div>
               </div>
             </div>
           </section>
@@ -1978,8 +1909,6 @@
         const featureSlides = Array.from(
           document.querySelectorAll("[data-feature-slide]"),
         );
-        const featureStatus = document.getElementById("featureStatus");
-        const featureDots = document.getElementById("featureDots");
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         const mobilePattern = /^\d{10}$/;
         const usernamePattern = /^[a-zA-Z0-9._-]{3,30}$/;
@@ -2088,21 +2017,6 @@
           }, 5200);
         };
 
-        const renderFeatureCarouselDots = () => {
-          if (!featureDots) {
-            return;
-          }
-
-          const slideCount = getFeatureSlideCount();
-          featureDots.innerHTML = Array.from(
-            { length: slideCount },
-            (_, index) => {
-              const active = index === featureCarousel.index;
-              return `<button type="button" class="feature-carousel__dot${active ? " is-active" : ""}" data-feature-dot="${index}" aria-label="Show login banner ${index + 1}" aria-pressed="${active ? "true" : "false"}"></button>`;
-            },
-          ).join("");
-        };
-
         const setFeatureCarouselSlide = (index, options = {}) => {
           if (!featureTrack || !getFeatureSlideCount()) {
             return;
@@ -2130,16 +2044,6 @@
             );
           });
 
-          Array.from(featureDots?.children || []).forEach((dot, dotIndex) => {
-            const active = dotIndex === nextIndex;
-            dot.classList.toggle("is-active", active);
-            dot.setAttribute("aria-pressed", active ? "true" : "false");
-          });
-
-          if (featureStatus) {
-            featureStatus.textContent = `${nextIndex + 1} / ${getFeatureSlideCount()}`;
-          }
-
           if (!options.skipAutoplay) {
             syncFeatureCarouselAutoplay();
           }
@@ -2154,17 +2058,7 @@
             return;
           }
 
-          renderFeatureCarouselDots();
           setFeatureCarouselSlide(0, { instant: true });
-
-          featureDots?.addEventListener("click", (event) => {
-            const target = event.target.closest("[data-feature-dot]");
-            if (!target) {
-              return;
-            }
-
-            setFeatureCarouselSlide(Number(target.dataset.featureDot) || 0);
-          });
 
           featureViewport.addEventListener("mouseenter", () => {
             featureCarousel.isHovered = true;
