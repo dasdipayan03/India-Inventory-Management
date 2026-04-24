@@ -376,6 +376,26 @@
         background: var(--surface-strong);
         border: 1px solid var(--line);
       }
+      .google-profile-modal .auth-head {
+        padding-right: 0;
+      }
+      .google-profile-email {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0 0 16px;
+        padding: 12px 14px;
+        border-radius: 16px;
+        border: 1px solid rgba(22, 151, 208, 0.14);
+        background: rgba(22, 151, 208, 0.07);
+        color: var(--navy);
+        font-size: 13px;
+        font-weight: 800;
+        line-height: 1.45;
+      }
+      .google-profile-email i {
+        color: var(--sky);
+      }
       .mode-wrap {
         margin-bottom: 16px;
       }
@@ -998,7 +1018,7 @@
         bottom: auto;
         z-index: auto;
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
         gap: 10px;
         margin-top: 4px;
       }
@@ -1019,6 +1039,10 @@
       }
 
       .dock-btn.install {
+        text-decoration: none;
+      }
+
+      .dock-btn.google {
         text-decoration: none;
       }
 
@@ -1365,6 +1389,14 @@
                     <i class="fa-solid fa-key"></i>
                     <span>Reset</span>
                   </button>
+                  <a
+                    id="googleLoginBtn"
+                    class="dock-btn google"
+                    href="/api/auth/google/start"
+                  >
+                    <i class="fa-brands fa-google"></i>
+                    <span>Continue with Google</span>
+                  </a>
                 </div>
 
                 <div id="authMount"></div>
@@ -1805,6 +1837,101 @@
     </div>
 
     <div
+      id="googleProfileOverlay"
+      class="auth-overlay google-profile-overlay"
+      aria-hidden="true"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="googleProfileHeading"
+    >
+      <div class="auth-modal google-profile-modal">
+        <div class="auth-head">
+          <span class="section-kicker">Google account setup</span>
+          <h2 id="googleProfileHeading">Complete your shop profile</h2>
+          <p>
+            Add these details once to finish owner access for this Google
+            account.
+          </p>
+        </div>
+
+        <div class="auth-panel">
+          <p class="google-profile-email">
+            <i class="fa-brands fa-google"></i>
+            <span id="googleProfileEmail">Google account selected</span>
+          </p>
+
+          <div
+            id="googleProfileStatus"
+            class="form-status"
+            aria-live="polite"
+          ></div>
+
+          <form id="googleProfileForm" class="form active" novalidate>
+            <div class="field">
+              <label class="field-label" for="googleShopName">Shop name</label>
+              <div class="input-shell">
+                <i class="fa-solid fa-shop"></i>
+                <input
+                  id="googleShopName"
+                  type="text"
+                  placeholder="Enter your shop name"
+                  autocomplete="organization"
+                  maxlength="50"
+                  aria-describedby="googleShopNameHint"
+                  required
+                />
+              </div>
+              <p
+                class="field-hint"
+                id="googleShopNameHint"
+                data-default-message="This shop name will appear in your owner workspace."
+              >
+                This shop name will appear in your owner workspace.
+              </p>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="googleMobile"
+                >Mobile number</label
+              >
+              <div class="input-shell">
+                <i class="fa-solid fa-phone"></i>
+                <input
+                  id="googleMobile"
+                  type="tel"
+                  placeholder="Enter your 10-digit mobile number"
+                  autocomplete="tel"
+                  inputmode="numeric"
+                  maxlength="10"
+                  aria-describedby="googleMobileHint"
+                  required
+                />
+              </div>
+              <p
+                class="field-hint"
+                id="googleMobileHint"
+                data-default-message="This number will also work for owner account lookup."
+              >
+                This number will also work for owner account lookup.
+              </p>
+            </div>
+
+            <button id="googleProfileBtn" class="form-submit" type="submit">
+              <i class="fa-solid fa-circle-check"></i>
+              Continue
+            </button>
+
+            <div class="small-links">
+              <a id="googleUseAnother" href="/api/auth/google/start"
+                >Use another Google account</a
+              >
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div
       id="footerPopupOverlay"
       class="footer-popup-overlay"
       aria-hidden="true"
@@ -1853,6 +1980,18 @@
         const authOpenButtons = Array.from(
           document.querySelectorAll("[data-open-auth]"),
         );
+        const googleLoginBtn = document.getElementById("googleLoginBtn");
+        const googleProfileOverlay = document.getElementById(
+          "googleProfileOverlay",
+        );
+        const googleProfileForm =
+          document.getElementById("googleProfileForm");
+        const googleProfileEmail =
+          document.getElementById("googleProfileEmail");
+        const googleProfileStatus = document.getElementById(
+          "googleProfileStatus",
+        );
+        const googleUseAnother = document.getElementById("googleUseAnother");
         const forms = {
           login: document.getElementById("login"),
           staffLogin: document.getElementById("staffLogin"),
@@ -1871,6 +2010,10 @@
           regConfirmPassword: document.getElementById("regConfirmPassword"),
           forgotEmail: document.getElementById("forgotEmail"),
         };
+        const googleProfileFields = {
+          shopName: document.getElementById("googleShopName"),
+          mobileNumber: document.getElementById("googleMobile"),
+        };
         const statusEls = {
           login: document.getElementById("loginStatus"),
           staffLogin: document.getElementById("staffLoginStatus"),
@@ -1882,6 +2025,7 @@
           staffLogin: document.getElementById("staffLoginBtn"),
           register: document.getElementById("registerBtn"),
           forgot: document.getElementById("forgotBtn"),
+          googleProfile: document.getElementById("googleProfileBtn"),
         };
         const popupEls = {
           success: {
@@ -1975,6 +2119,16 @@
           appDownloadBtn.title = actionLabel;
           appDownloadBtn.setAttribute("aria-label", actionLabel);
           appDownloadLabel.textContent = actionLabel;
+        };
+
+        const configureGoogleButtons = () => {
+          const googleStartUrl = `${apiBase}/google/start`;
+          if (googleLoginBtn) {
+            googleLoginBtn.href = googleStartUrl;
+          }
+          if (googleUseAnother) {
+            googleUseAnother.href = googleStartUrl;
+          }
         };
 
         const getFeatureSlideCount = () => featureSlides.length;
@@ -2147,6 +2301,7 @@
             configureAppDownloadButton();
           }
         }
+        configureGoogleButtons();
 
         const normalizeShopName = (value) => value.replace(/\s+/g, " ").trim();
         const normalizeMobileNumber = (value) => {
@@ -2210,6 +2365,24 @@
           statusEl.textContent = message;
         };
 
+        const clearGoogleProfileStatus = () => {
+          if (!googleProfileStatus) {
+            return;
+          }
+
+          googleProfileStatus.className = "form-status";
+          googleProfileStatus.textContent = "";
+        };
+
+        const setGoogleProfileStatus = (type, message) => {
+          if (!googleProfileStatus || !message) {
+            return;
+          }
+
+          googleProfileStatus.className = `form-status ${type} active`;
+          googleProfileStatus.textContent = message;
+        };
+
         const setLoginMode = (mode) => {
           const isStaff = mode === "staff";
           loginModeButtons.forEach((button) => {
@@ -2262,6 +2435,27 @@
             activeAuthTrigger.focus();
           }
           activeAuthTrigger = null;
+        };
+
+        const openGoogleProfileModal = (profile = {}) => {
+          closeAuthModal();
+          clearGoogleProfileStatus();
+          Object.values(googleProfileFields).forEach(resetInputState);
+          if (googleProfileEmail) {
+            googleProfileEmail.textContent = profile.email
+              ? `Signed in as ${profile.email}`
+              : "Google account selected";
+          }
+          googleProfileOverlay.classList.add("open");
+          googleProfileOverlay.setAttribute("aria-hidden", "false");
+          document.body.classList.add("modal-open");
+          window.setTimeout(() => googleProfileFields.shopName?.focus(), 40);
+        };
+
+        const closeGoogleProfileModal = () => {
+          googleProfileOverlay.classList.remove("open");
+          googleProfileOverlay.setAttribute("aria-hidden", "true");
+          document.body.classList.remove("modal-open");
         };
 
         const clearSelectedFields = (fieldNames) => {
@@ -2361,6 +2555,61 @@
           }
 
           return data;
+        };
+
+        const fetchJSON = async (path) => {
+          let response;
+          try {
+            response = await fetch(`${apiBase}${path}`, {
+              credentials: "include",
+              cache: "no-store",
+            });
+          } catch (_error) {
+            throw new Error(
+              "Unable to reach the server. Please check your connection and try again.",
+            );
+          }
+
+          let data = {};
+          try {
+            data = await response.json();
+          } catch (_error) {
+            data = {};
+          }
+
+          if (!response.ok) {
+            throw new Error(data.error || data.message || "Request failed");
+          }
+
+          return data;
+        };
+
+        const removeGoogleReturnParams = () => {
+          const url = new URL(window.location.href);
+          const hadGoogleParams =
+            url.searchParams.has("google_onboarding") ||
+            url.searchParams.has("google_error");
+
+          if (!hadGoogleParams) {
+            return;
+          }
+
+          url.searchParams.delete("google_onboarding");
+          url.searchParams.delete("google_error");
+          window.history.replaceState(
+            {},
+            "",
+            `${url.pathname}${url.search}${url.hash}`,
+          );
+        };
+
+        const loadGoogleOnboarding = async () => {
+          try {
+            const data = await fetchJSON("/google/onboarding");
+            return data.pending ? data.profile || {} : null;
+          } catch (_error) {
+            return null;
+          }
         };
 
         const checkExistingSession = async () => {
@@ -2694,6 +2943,87 @@
           return email;
         };
 
+        const validateGoogleProfileForm = () => {
+          clearGoogleProfileStatus();
+          resetInputState(googleProfileFields.shopName);
+          resetInputState(googleProfileFields.mobileNumber);
+
+          const shopName = normalizeShopName(
+            googleProfileFields.shopName.value,
+          );
+          const mobileNumber = normalizeMobileNumber(
+            googleProfileFields.mobileNumber.value,
+          );
+          let firstInvalidField = null;
+
+          googleProfileFields.shopName.value = shopName;
+          googleProfileFields.mobileNumber.value = mobileNumber;
+
+          if (!shopName) {
+            setInputState(
+              googleProfileFields.shopName,
+              "invalid",
+              "Shop name is required.",
+            );
+            firstInvalidField = googleProfileFields.shopName;
+          } else if (shopName.length < 3) {
+            setInputState(
+              googleProfileFields.shopName,
+              "invalid",
+              "Shop name should be at least 3 characters long.",
+            );
+            firstInvalidField = googleProfileFields.shopName;
+          } else if (shopName.length > 50) {
+            setInputState(
+              googleProfileFields.shopName,
+              "invalid",
+              "Shop name should be 50 characters or less.",
+            );
+            firstInvalidField = googleProfileFields.shopName;
+          } else {
+            setInputState(
+              googleProfileFields.shopName,
+              "valid",
+              "Shop name looks good.",
+            );
+          }
+
+          if (!mobileNumber) {
+            setInputState(
+              googleProfileFields.mobileNumber,
+              "invalid",
+              "Mobile number is required.",
+            );
+            firstInvalidField =
+              firstInvalidField || googleProfileFields.mobileNumber;
+          } else if (!isValidMobileNumber(mobileNumber)) {
+            setInputState(
+              googleProfileFields.mobileNumber,
+              "invalid",
+              "Please enter a valid 10-digit mobile number.",
+            );
+            firstInvalidField =
+              firstInvalidField || googleProfileFields.mobileNumber;
+          } else {
+            setInputState(
+              googleProfileFields.mobileNumber,
+              "valid",
+              "Mobile number format looks good.",
+            );
+          }
+
+          if (firstInvalidField) {
+            firstInvalidField.focus();
+            setGoogleProfileStatus(
+              "error",
+              "Please complete both fields before continuing.",
+            );
+            return null;
+          }
+
+          return { shopName, mobileNumber };
+        };
+
         forms.login.addEventListener("submit", async (event) => {
           event.preventDefault();
           const payload = validateLoginForm();
@@ -2848,6 +3178,43 @@
           );
         });
 
+        googleProfileForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const payload = validateGoogleProfileForm();
+          if (!payload) {
+            return;
+          }
+
+          await withPendingState(
+            buttons.googleProfile,
+            '<i class="fa-solid fa-spinner fa-spin"></i> Setting up...',
+            async () => {
+              try {
+                await postJSON("/google/complete-profile", payload);
+                setGoogleProfileStatus(
+                  "success",
+                  "Google account setup complete. Redirecting...",
+                );
+                showPopup(
+                  "success",
+                  "Google login successful.",
+                  "index.html",
+                  1200,
+                );
+                window.setTimeout(closeGoogleProfileModal, 1300);
+              } catch (error) {
+                const message = /mobile number already registered/i.test(
+                  error.message,
+                )
+                  ? "This mobile number is already registered. Use another number or log in with the existing owner account."
+                  : error.message;
+                setGoogleProfileStatus("error", message);
+                showPopup("error", message);
+              }
+            },
+          );
+        });
+
         document
           .getElementById("forgotLink")
           .addEventListener("click", (event) => {
@@ -2960,6 +3327,21 @@
                   "Confirm password must match the password above.",
                 );
               }
+            }
+          });
+        });
+
+        Object.values(googleProfileFields).forEach((field) => {
+          field.addEventListener("input", () => {
+            resetInputState(field);
+            clearGoogleProfileStatus();
+
+            if (field === googleProfileFields.shopName) {
+              field.value = field.value.replace(/\s{2,}/g, " ");
+            }
+
+            if (field === googleProfileFields.mobileNumber) {
+              field.value = normalizeMobileNumber(field.value).slice(0, 10);
             }
           });
         });
@@ -3079,6 +3461,60 @@
           } else {
             setInputState(
               fields.regMobile,
+              "invalid",
+              "Please enter a valid 10-digit mobile number.",
+            );
+          }
+        });
+
+        googleProfileFields.shopName.addEventListener("blur", () => {
+          const value = normalizeShopName(googleProfileFields.shopName.value);
+          googleProfileFields.shopName.value = value;
+          if (!value) {
+            resetInputState(googleProfileFields.shopName);
+            return;
+          }
+
+          if (value.length < 3) {
+            setInputState(
+              googleProfileFields.shopName,
+              "invalid",
+              "Shop name should be at least 3 characters long.",
+            );
+          } else if (value.length > 50) {
+            setInputState(
+              googleProfileFields.shopName,
+              "invalid",
+              "Shop name should be 50 characters or less.",
+            );
+          } else {
+            setInputState(
+              googleProfileFields.shopName,
+              "valid",
+              "Shop name looks good.",
+            );
+          }
+        });
+
+        googleProfileFields.mobileNumber.addEventListener("blur", () => {
+          const mobileNumber = normalizeMobileNumber(
+            googleProfileFields.mobileNumber.value,
+          );
+          googleProfileFields.mobileNumber.value = mobileNumber;
+          if (!mobileNumber) {
+            resetInputState(googleProfileFields.mobileNumber);
+            return;
+          }
+
+          if (isValidMobileNumber(mobileNumber)) {
+            setInputState(
+              googleProfileFields.mobileNumber,
+              "valid",
+              "Mobile number format looks good.",
+            );
+          } else {
+            setInputState(
+              googleProfileFields.mobileNumber,
               "invalid",
               "Please enter a valid 10-digit mobile number.",
             );
@@ -3230,8 +3666,41 @@
         });
 
         Object.values(fields).forEach(resetInputState);
+        Object.values(googleProfileFields).forEach(resetInputState);
         bindFeatureCarousel();
         switchForm("login");
+
+        const googleReturnParams = new URLSearchParams(window.location.search);
+        const googleErrorMessage = googleReturnParams.get("google_error");
+        const googleOnboardingRequested =
+          googleReturnParams.get("google_onboarding") === "1";
+        const pendingGoogleProfile = await loadGoogleOnboarding();
+        removeGoogleReturnParams();
+
+        if (pendingGoogleProfile) {
+          openGoogleProfileModal(pendingGoogleProfile);
+          setGoogleProfileStatus(
+            "info",
+            "Shop name and mobile number are mandatory for first-time Google login.",
+          );
+          return;
+        }
+
+        if (googleErrorMessage) {
+          setFormStatus("login", "error", googleErrorMessage);
+          showPopup("error", googleErrorMessage);
+          return;
+        }
+
+        if (googleOnboardingRequested) {
+          setFormStatus(
+            "login",
+            "error",
+            "Google sign-in expired. Please select your Google account again.",
+          );
+          return;
+        }
+
         setFormStatus(
           "login",
           "info",

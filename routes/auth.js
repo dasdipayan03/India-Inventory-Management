@@ -20,6 +20,14 @@ const router = express.Router();
 
 const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const RESET_TOKEN_BYTES = 32;
+const GOOGLE_OAUTH_STATE_COOKIE = "google_oauth_state";
+const GOOGLE_ONBOARDING_COOKIE = "google_onboarding";
+const GOOGLE_OAUTH_STATE_MAX_AGE_MS = 10 * 60 * 1000;
+const GOOGLE_ONBOARDING_MAX_AGE_MS = 15 * 60 * 1000;
+const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
+const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
+const GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo";
+const OWNER_NAME_MAX_LENGTH = 50;
 const USERNAME_PATTERN = /^[a-zA-Z0-9._-]{3,30}$/;
 const MOBILE_NUMBER_PATTERN = /^\d{10}$/;
 const PUBLIC_BASE_URL = normalizeBaseUrl(process.env.BASE_URL);
@@ -85,6 +93,21 @@ function getSessionCookieOptions() {
   };
 }
 
+function setTemporaryCookie(res, name, value, maxAge) {
+  res.cookie(name, value, {
+    ...getSessionCookieOptions(),
+    maxAge,
+  });
+}
+
+function clearGoogleOAuthStateCookie(res) {
+  res.clearCookie(GOOGLE_OAUTH_STATE_COOKIE, getSessionCookieOptions());
+}
+
+function clearGoogleOnboardingCookie(res) {
+  res.clearCookie(GOOGLE_ONBOARDING_COOKIE, getSessionCookieOptions());
+}
+
 function hashResetToken(token) {
   return crypto
     .createHash("sha256")
@@ -137,6 +160,34 @@ function signSession(payload) {
   return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1d" });
 }
 
+function signGoogleOnboarding(profile) {
+  return jwt.sign(
+    {
+      type: "google_onboarding",
+      sub: profile.sub,
+      email: profile.email,
+      name: profile.name,
+      picture: profile.picture || "",
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "15m" },
+  );
+}
+
+function verifyGoogleOnboardingToken(token) {
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  if (decoded.type !== "google_onboarding") {
+    throw new Error("Invalid Google onboarding token");
+  }
+
+  return {
+    sub: String(decoded.sub || "").trim(),
+    email: normalizeEmail(decoded.email),
+    name: normalizeName(decoded.name),
+    picture: String(decoded.picture || "").trim(),
+  };
+}
+
 function setSessionCookie(res, token) {
   res.cookie("token", token, {
     ...getSessionCookieOptions(),
@@ -146,6 +197,112 @@ function setSessionCookie(res, token) {
 
 function clearSessionCookie(res) {
   res.clearCookie("token", getSessionCookieOptions());
+}
+
+function getGoogleOAuthConfig(req) {
+  const clientId = String(process.env.GOOGLE_CLIENT_ID || "").trim();
+  const clientSecret = String(process.env.GOOGLE_CLIENT_SECRET || "").trim();
+  const configuredRedirectUri = String(
+    process.env.GOOGLE_REDIRECT_URI || "",
+  ).trim();
+  const redirectUri =
+    configuredRedirectUri ||
+    `${resolvePublicBaseUrl(req)}/api/auth/google/callback`;
+
+  if (!clientId || !clientSecret) {
+    return null;
+  }
+
+  return {
+    clientId,
+    clientSecret,
+    redirectUri,
+  };
+}
+
+function buildLoginRedirectUrl(req, params = {}) {
+  const url = new URL(`${resolvePublicBaseUrl(req)}/login.html`);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      url.searchParams.set(key, String(value));
+    }
+  });
+
+  return url.toString();
+}
+
+async function exchangeGoogleCodeForTokens(code, config) {
+  const response = await fetch(GOOGLE_TOKEN_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      code,
+      client_id: config.clientId,
+      client_secret: config.clientSecret,
+      redirect_uri: config.redirectUri,
+      grant_type: "authorization_code",
+    }),
+  });
+
+  let payload = {};
+  try {
+    payload = await response.json();
+  } catch (_error) {
+    payload = {};
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      payload.error_description ||
+        payload.error ||
+        "Google token exchange failed",
+    );
+  }
+
+  return payload;
+}
+
+async function fetchGoogleUserProfile(accessToken) {
+  const response = await fetch(GOOGLE_USERINFO_URL, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  let payload = {};
+  try {
+    payload = await response.json();
+  } catch (_error) {
+    payload = {};
+  }
+
+  if (!response.ok) {
+    throw new Error(payload.error_description || "Google profile fetch failed");
+  }
+
+  const email = normalizeEmail(payload.email);
+  const emailVerified =
+    payload.email_verified === true ||
+    payload.email_verified === "true" ||
+    payload.verified_email === true ||
+    payload.verified_email === "true";
+  const sub = String(payload.sub || "").trim();
+  const name =
+    normalizeName(payload.name || payload.given_name) ||
+    normalizeName(email.split("@")[0] || "Google User");
+
+  if (!sub || !email || !emailVerified) {
+    throw new Error("Google account email could not be verified");
+  }
+
+  return {
+    sub,
+    email,
+    name,
+    picture: String(payload.picture || "").trim(),
+  };
 }
 
 function normalizeSessionRole(value) {
@@ -248,6 +405,376 @@ async function getStaffByUsername(username) {
 
   return result.rows[0] || null;
 }
+
+async function getOwnerByGoogleProfile(profile) {
+  const result = await pool.query(
+    `
+      SELECT id, name, email, mobile_number, password_hash, google_sub
+      FROM users
+      WHERE google_sub = $1 OR LOWER(email) = LOWER($2)
+      ORDER BY
+        CASE WHEN google_sub = $1 THEN 0 ELSE 1 END,
+        id ASC
+      LIMIT 2
+    `,
+    [profile.sub, profile.email],
+  );
+
+  const subMatch = result.rows.find((row) => row.google_sub === profile.sub);
+  const emailMatch = result.rows.find(
+    (row) => normalizeEmail(row.email) === profile.email,
+  );
+
+  if (subMatch && emailMatch && subMatch.id !== emailMatch.id) {
+    throw new Error(
+      "This Google account is linked to a different owner account.",
+    );
+  }
+
+  return subMatch || emailMatch || null;
+}
+
+async function linkGoogleProfileToOwner(user, profile) {
+  if (user.google_sub && user.google_sub !== profile.sub) {
+    throw new Error(
+      "This email is already linked with another Google account.",
+    );
+  }
+
+  const result = await pool.query(
+    `
+      UPDATE users
+      SET google_sub = COALESCE(google_sub, $2),
+          google_email_verified = TRUE,
+          google_picture_url = CASE
+            WHEN $3 <> '' THEN $3
+            ELSE google_picture_url
+          END,
+          is_verified = TRUE,
+          updated_at = NOW()
+      WHERE id = $1
+      RETURNING id, name, email, mobile_number, password_hash, google_sub
+    `,
+    [user.id, profile.sub, profile.picture || ""],
+  );
+
+  return result.rows[0];
+}
+
+async function createOwnerFromGoogleProfile(profile, shopName, mobileNumber) {
+  const passwordHash = await bcrypt.hash(
+    crypto.randomBytes(32).toString("hex"),
+    12,
+  );
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const userResult = await client.query(
+      `
+        INSERT INTO users (
+          name,
+          email,
+          mobile_number,
+          password_hash,
+          is_verified,
+          google_sub,
+          google_email_verified,
+          google_picture_url
+        )
+        VALUES ($1, $2, $3, $4, TRUE, $5, TRUE, NULLIF($6, ''))
+        RETURNING id, name, email, mobile_number, password_hash, google_sub
+      `,
+      [
+        shopName,
+        profile.email,
+        mobileNumber,
+        passwordHash,
+        profile.sub,
+        profile.picture || "",
+      ],
+    );
+
+    const user = userResult.rows[0];
+
+    await client.query(
+      `
+        INSERT INTO settings (user_id, shop_name)
+        VALUES ($1, $2)
+        ON CONFLICT (user_id) DO UPDATE
+        SET shop_name = EXCLUDED.shop_name
+      `,
+      [user.id, shopName],
+    );
+
+    await client.query("COMMIT");
+    return user;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+router.get("/google/start", loginAttemptLimiter, async (req, res) => {
+  try {
+    const config = getGoogleOAuthConfig(req);
+    if (!config) {
+      return res.redirect(
+        buildLoginRedirectUrl(req, {
+          google_error:
+            "Google sign-in is not configured yet. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
+        }),
+      );
+    }
+
+    const state = crypto.randomBytes(32).toString("hex");
+    const authUrl = new URL(GOOGLE_AUTH_URL);
+    authUrl.searchParams.set("client_id", config.clientId);
+    authUrl.searchParams.set("redirect_uri", config.redirectUri);
+    authUrl.searchParams.set("response_type", "code");
+    authUrl.searchParams.set("scope", "openid email profile");
+    authUrl.searchParams.set("state", state);
+    authUrl.searchParams.set("prompt", "select_account");
+    authUrl.searchParams.set("access_type", "online");
+    authUrl.searchParams.set("include_granted_scopes", "false");
+
+    markSensitiveResponse(res);
+    clearSessionCookie(res);
+    clearGoogleOnboardingCookie(res);
+    setTemporaryCookie(
+      res,
+      GOOGLE_OAUTH_STATE_COOKIE,
+      state,
+      GOOGLE_OAUTH_STATE_MAX_AGE_MS,
+    );
+
+    return res.redirect(authUrl.toString());
+  } catch (error) {
+    console.error("Google sign-in start error:", error.message);
+    return res.redirect(
+      buildLoginRedirectUrl(req, {
+        google_error: "Google sign-in could not start. Please try again.",
+      }),
+    );
+  }
+});
+
+router.get("/google/callback", async (req, res) => {
+  try {
+    markSensitiveResponse(res);
+
+    const googleError = String(req.query.error || "").trim();
+    if (googleError) {
+      clearGoogleOAuthStateCookie(res);
+      return res.redirect(
+        buildLoginRedirectUrl(req, {
+          google_error: "Google sign-in was cancelled or denied.",
+        }),
+      );
+    }
+
+    const code = String(req.query.code || "").trim();
+    const state = String(req.query.state || "").trim();
+    const expectedState = String(
+      req.cookies?.[GOOGLE_OAUTH_STATE_COOKIE] || "",
+    ).trim();
+    clearGoogleOAuthStateCookie(res);
+
+    if (!code || !state || !expectedState || state !== expectedState) {
+      return res.redirect(
+        buildLoginRedirectUrl(req, {
+          google_error: "Google sign-in expired. Please try again.",
+        }),
+      );
+    }
+
+    const config = getGoogleOAuthConfig(req);
+    if (!config) {
+      return res.redirect(
+        buildLoginRedirectUrl(req, {
+          google_error:
+            "Google sign-in is not configured yet. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
+        }),
+      );
+    }
+
+    const tokens = await exchangeGoogleCodeForTokens(code, config);
+    const accessToken = String(tokens.access_token || "").trim();
+    if (!accessToken) {
+      throw new Error("Google did not return an access token");
+    }
+
+    const profile = await fetchGoogleUserProfile(accessToken);
+    const existingUser = await getOwnerByGoogleProfile(profile);
+
+    if (existingUser) {
+      const linkedUser = await linkGoogleProfileToOwner(
+        existingUser,
+        profile,
+      );
+      const session = buildOwnerSession(linkedUser);
+      const token = signSession(session);
+      clearGoogleOnboardingCookie(res);
+      setSessionCookie(res, token);
+      return res.redirect(`${resolvePublicBaseUrl(req)}/index.html`);
+    }
+
+    const onboardingToken = signGoogleOnboarding(profile);
+    setTemporaryCookie(
+      res,
+      GOOGLE_ONBOARDING_COOKIE,
+      onboardingToken,
+      GOOGLE_ONBOARDING_MAX_AGE_MS,
+    );
+
+    return res.redirect(
+      buildLoginRedirectUrl(req, { google_onboarding: "1" }),
+    );
+  } catch (error) {
+    console.error("Google sign-in callback error:", error.message);
+    clearGoogleOnboardingCookie(res);
+    return res.redirect(
+      buildLoginRedirectUrl(req, {
+        google_error:
+          error.message || "Google sign-in could not be completed.",
+      }),
+    );
+  }
+});
+
+router.get("/google/onboarding", async (req, res) => {
+  try {
+    markSensitiveResponse(res);
+    const token = req.cookies?.[GOOGLE_ONBOARDING_COOKIE];
+    if (!token) {
+      return res.json({ pending: false });
+    }
+
+    const profile = verifyGoogleOnboardingToken(token);
+    if (!profile.sub || !profile.email) {
+      throw new Error("Invalid Google onboarding profile");
+    }
+
+    return res.json({
+      pending: true,
+      profile: {
+        email: profile.email,
+        name: profile.name,
+      },
+    });
+  } catch (_error) {
+    clearGoogleOnboardingCookie(res);
+    return res.status(401).json({ pending: false });
+  }
+});
+
+router.post("/google/complete-profile", loginAttemptLimiter, async (req, res) => {
+  try {
+    markSensitiveResponse(res);
+    const onboardingToken = req.cookies?.[GOOGLE_ONBOARDING_COOKIE];
+    if (!onboardingToken) {
+      return res.status(401).json({
+        error: "Google sign-in expired. Please select your Google account again.",
+      });
+    }
+
+    const profile = verifyGoogleOnboardingToken(onboardingToken);
+    const shopName = normalizeName(req.body.shopName || req.body.shop_name);
+    const mobileNumber = normalizeMobileNumber(
+      req.body.mobileNumber || req.body.mobile_number,
+    );
+
+    if (!profile.sub || !profile.email) {
+      return res.status(401).json({
+        error: "Google sign-in expired. Please select your Google account again.",
+      });
+    }
+
+    if (!shopName || !mobileNumber) {
+      return res
+        .status(400)
+        .json({ error: "Shop name and mobile number are required." });
+    }
+
+    if (shopName.length < 3) {
+      return res
+        .status(400)
+        .json({ error: "Shop name should be at least 3 characters long." });
+    }
+
+    if (shopName.length > OWNER_NAME_MAX_LENGTH) {
+      return res.status(400).json({
+        error: `Shop name should be ${OWNER_NAME_MAX_LENGTH} characters or less.`,
+      });
+    }
+
+    if (!isValidMobileNumber(mobileNumber)) {
+      return res
+        .status(400)
+        .json({ error: "Enter a valid 10-digit mobile number." });
+    }
+
+    const existing = await pool.query(
+      `
+        SELECT id, email, mobile_number, google_sub
+        FROM users
+        WHERE LOWER(email) = LOWER($1)
+           OR mobile_number = $2
+           OR google_sub = $3
+        LIMIT 1
+      `,
+      [profile.email, mobileNumber, profile.sub],
+    );
+
+    if (existing.rowCount > 0) {
+      const existingUser = existing.rows[0];
+      const message =
+        existingUser.google_sub === profile.sub ||
+        normalizeEmail(existingUser.email) === profile.email
+          ? "This Google email is already registered. Please try Google sign-in again."
+          : "Mobile number already registered.";
+      return res.status(400).json({ error: message });
+    }
+
+    const user = await createOwnerFromGoogleProfile(
+      profile,
+      shopName,
+      mobileNumber,
+    );
+    const session = buildOwnerSession(user);
+    const sessionToken = signSession(session);
+    clearGoogleOnboardingCookie(res);
+    setSessionCookie(res, sessionToken);
+
+    return res.json({
+      message: "Google account setup complete",
+      user: toClientUser(session),
+    });
+  } catch (error) {
+    console.error("Google profile completion error:", error.message);
+    if (
+      error.name === "JsonWebTokenError" ||
+      error.name === "TokenExpiredError"
+    ) {
+      clearGoogleOnboardingCookie(res);
+      return res.status(401).json({
+        error: "Google sign-in expired. Please select your Google account again.",
+      });
+    }
+
+    if (error.code === "23505") {
+      return res.status(400).json({
+        error:
+          "This Google email or mobile number is already registered. Please try again.",
+      });
+    }
+
+    return res.status(500).json({ error: "Server error" });
+  }
+});
 
 router.post("/register", async (req, res) => {
   try {
@@ -352,6 +879,7 @@ router.post("/login", loginAttemptLimiter, async (req, res) => {
     const session = buildOwnerSession(user);
     const token = signSession(session);
     markSensitiveResponse(res);
+    clearGoogleOnboardingCookie(res);
     setSessionCookie(res, token);
 
     return res.json({
@@ -386,6 +914,7 @@ router.post("/staff/login", loginAttemptLimiter, async (req, res) => {
     const session = buildStaffSession(staff);
     const token = signSession(session);
     markSensitiveResponse(res);
+    clearGoogleOnboardingCookie(res);
     setSessionCookie(res, token);
     invalidateStaffSessionCache(staff.id);
 

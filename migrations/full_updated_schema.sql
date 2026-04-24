@@ -10,6 +10,9 @@ CREATE TABLE IF NOT EXISTS users (
   mobile_number VARCHAR(10) CHECK (mobile_number ~ '^[0-9]{10}$'),
   password_hash VARCHAR(255) NOT NULL,
   is_verified BOOLEAN DEFAULT FALSE,
+  google_sub VARCHAR(255),
+  google_email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+  google_picture_url TEXT,
   verify_token VARCHAR(255),
   reset_token VARCHAR(255),
   reset_token_expires TIMESTAMP,
@@ -385,6 +388,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email
 
 CREATE INDEX IF NOT EXISTS idx_users_email_lookup
   ON users (LOWER(email));
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub_unique
+  ON users (google_sub)
+  WHERE google_sub IS NOT NULL AND google_sub <> '';
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_staff_accounts_username_unique
   ON staff_accounts (LOWER(TRIM(username)));

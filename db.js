@@ -127,6 +127,27 @@ pool.on("error", (err) => {
 
 async function ensureSchemaCompatibility() {
   await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS google_sub VARCHAR(255)
+  `);
+
+  await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS google_email_verified BOOLEAN NOT NULL DEFAULT FALSE
+  `);
+
+  await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS google_picture_url TEXT
+  `);
+
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub_unique
+      ON users (google_sub)
+      WHERE google_sub IS NOT NULL AND google_sub <> ''
+  `);
+
+  await pool.query(`
     ALTER TABLE settings
     ADD COLUMN IF NOT EXISTS default_profit_percent NUMERIC(8,2) NOT NULL DEFAULT 30.00
   `);
