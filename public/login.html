@@ -799,7 +799,6 @@
       .feature-slider-card,
       .access-panel-section,
       .site-footer {
-        /* position: relative; */
         z-index: 1;
         border: 1px solid rgba(255, 255, 255, 0.76);
         border-radius: 26px;
@@ -905,47 +904,23 @@
       .feature-slide {
         flex: 0 0 100%;
         min-width: 100%;
+        aspect-ratio: 2.4 / 1;
         min-height: 168px;
         display: grid;
-        align-content: start;
-        gap: 10px;
-        padding: 18px;
+        place-items: center;
+        padding: 0;
         border-radius: 22px;
         border: 1px solid rgba(22, 151, 208, 0.13);
-        background:
-          linear-gradient(
-            150deg,
-            rgba(255, 255, 255, 0.96),
-            rgba(238, 248, 252, 0.92)
-          ),
-          #ffffff;
+        background: #ffffff;
         box-shadow: 0 12px 28px rgba(12, 31, 59, 0.08);
+        overflow: hidden;
       }
 
-      .feature-slide i {
-        width: 38px;
-        height: 38px;
-        display: grid;
-        place-items: center;
-        border-radius: 14px;
-        background: linear-gradient(
-          135deg,
-          rgba(36, 179, 107, 0.14),
-          rgba(22, 151, 208, 0.14)
-        );
-        color: var(--sky);
-      }
-
-      .feature-slide strong {
-        color: var(--navy);
-        font-size: 15px;
-        line-height: 1.35;
-      }
-
-      .feature-slide span {
-        color: var(--muted);
-        font-size: 12.5px;
-        line-height: 1.65;
+      .feature-slide img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        object-position: center;
       }
 
       .feature-carousel__controls {
@@ -1312,68 +1287,92 @@
             <div
               class="feature-viewport"
               id="featureViewport"
-              aria-label="Application features"
+              aria-label="Login page banners"
               aria-live="off"
             >
               <div class="feature-track" id="featureTrack">
                 <article class="feature-slide" data-feature-slide>
-                  <i class="fa-solid fa-boxes-stacked"></i>
-                  <strong>Stock entry</strong>
-                  <span
-                    >Update quantity, buying rate, selling rate, and profit
-                    defaults quickly.</span
-                  >
+                  <img
+                    src="/images/login_page_banner_1.png"
+                    alt="India Inventory Management login banner 1"
+                    loading="eager"
+                    decoding="async"
+                  />
                 </article>
                 <article class="feature-slide" data-feature-slide>
-                  <i class="fa-solid fa-file-invoice"></i>
-                  <strong>Invoice billing</strong>
-                  <span
-                    >Create invoices while sales history and stock movement stay
-                    connected.</span
-                  >
+                  <img
+                    src="/images/login_page_banner_2.png"
+                    alt="India Inventory Management login banner 2"
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </article>
                 <article class="feature-slide" data-feature-slide>
-                  <i class="fa-solid fa-cart-flatbed"></i>
-                  <strong>Purchase flow</strong>
-                  <span
-                    >Record supplier purchases, payment status, and stock
-                    replenishment together.</span
-                  >
+                  <img
+                    src="/images/login_page_banner_3.png"
+                    alt="India Inventory Management login banner 3"
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </article>
                 <article class="feature-slide" data-feature-slide>
-                  <i class="fa-solid fa-chart-line"></i>
-                  <strong>Sales and GST</strong>
-                  <span
-                    >Review sales reports, GST summaries, exports, and trend
-                    charts from the dashboard.</span
-                  >
+                  <img
+                    src="/images/login_page_banner_4.png"
+                    alt="India Inventory Management login banner 4"
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </article>
                 <article class="feature-slide" data-feature-slide>
-                  <i class="fa-solid fa-hand-holding-dollar"></i>
-                  <strong>Due tracking</strong>
-                  <span
-                    >Follow customer balances and supplier payable work without
-                    separate registers.</span
-                  >
+                  <img
+                    src="/images/login_page_banner_5.png"
+                    alt="India Inventory Management login banner 5"
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </article>
                 <article class="feature-slide" data-feature-slide>
-                  <i class="fa-solid fa-users-gear"></i>
-                  <strong>Staff page access</strong>
-                  <span
-                    >Give staff only the pages they need while the owner keeps
-                    full control.</span
-                  >
+                  <img
+                    src="/images/login_page_banner_6.png"
+                    alt="India Inventory Management login banner 6"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </article>
+                <article class="feature-slide" data-feature-slide>
+                  <img
+                    src="/images/login_page_banner_7.png"
+                    alt="India Inventory Management login banner 7"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </article>
+                <article class="feature-slide" data-feature-slide>
+                  <img
+                    src="/images/login_page_banner_8.png"
+                    alt="India Inventory Management login banner 8"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </article>
+                <article class="feature-slide" data-feature-slide>
+                  <img
+                    src="/images/login_page_banner_9.png"
+                    alt="India Inventory Management login banner 9"
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </article>
               </div>
             </div>
 
             <div
               class="feature-carousel__controls"
-              aria-label="Feature card progress"
+              aria-label="Login banner progress"
             >
               <div class="feature-carousel__pager">
                 <span id="featureStatus" class="feature-carousel__status"
-                  >1 / 6</span
+                  >1 / 9</span
                 >
                 <div id="featureDots" class="feature-carousel__dots"></div>
               </div>
@@ -2099,7 +2098,7 @@
             { length: slideCount },
             (_, index) => {
               const active = index === featureCarousel.index;
-              return `<button type="button" class="feature-carousel__dot${active ? " is-active" : ""}" data-feature-dot="${index}" aria-label="Show feature card ${index + 1}" aria-pressed="${active ? "true" : "false"}"></button>`;
+              return `<button type="button" class="feature-carousel__dot${active ? " is-active" : ""}" data-feature-dot="${index}" aria-label="Show login banner ${index + 1}" aria-pressed="${active ? "true" : "false"}"></button>`;
             },
           ).join("");
         };
