@@ -813,7 +813,12 @@
       .landing-main {
         display: grid;
         gap: 14px;
-        padding-top: 10px;
+      }
+
+      .header-card-gap {
+        position: relative;
+        z-index: 1;
+        height: 10px;
       }
 
       .feature-slider-card {
@@ -1251,6 +1256,8 @@
           </a>
 
         </header>
+
+        <div class="header-card-gap" aria-hidden="true"></div>
 
         <main class="landing-main">
           <section class="feature-slider-card" id="overview">
