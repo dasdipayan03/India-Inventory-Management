@@ -160,6 +160,26 @@ function signSession(payload) {
   return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1d" });
 }
 
+function signGoogleOAuthState() {
+  return jwt.sign(
+    {
+      type: "google_oauth_state",
+      nonce: crypto.randomBytes(16).toString("hex"),
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "10m" },
+  );
+}
+
+function isValidGoogleOAuthState(state) {
+  try {
+    const decoded = jwt.verify(state, process.env.JWT_SECRET);
+    return decoded.type === "google_oauth_state" && Boolean(decoded.nonce);
+  } catch (_error) {
+    return false;
+  }
+}
+
 function signGoogleOnboarding(profile) {
   return jwt.sign(
     {
@@ -530,7 +550,7 @@ router.get("/google/start", loginAttemptLimiter, async (req, res) => {
       );
     }
 
-    const state = crypto.randomBytes(32).toString("hex");
+    const state = signGoogleOAuthState();
     const authUrl = new URL(GOOGLE_AUTH_URL);
     authUrl.searchParams.set("client_id", config.clientId);
     authUrl.searchParams.set("redirect_uri", config.redirectUri);
@@ -583,7 +603,10 @@ router.get("/google/callback", async (req, res) => {
     ).trim();
     clearGoogleOAuthStateCookie(res);
 
-    if (!code || !state || !expectedState || state !== expectedState) {
+    const stateMatchesCookie = expectedState && state === expectedState;
+    const stateMatchesSignature = isValidGoogleOAuthState(state);
+
+    if (!code || !state || (!stateMatchesCookie && !stateMatchesSignature)) {
       return res.redirect(
         buildLoginRedirectUrl(req, {
           google_error: "Google sign-in expired. Please try again.",
