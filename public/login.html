@@ -197,41 +197,49 @@
       .site-footer {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        padding: 20px 24px;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px 22px;
+        padding: 10px 18px;
       }
       .footer-links {
         display: flex;
-        flex-wrap: wrap;
-        gap: 14px 18px;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: nowrap;
+        gap: 16px;
       }
       .footer-link {
-        min-height: 40px;
-        padding: 0 14px;
-        border: 1px solid rgba(22, 151, 208, 0.2);
-        border-radius: 10px;
-        background: rgba(22, 151, 208, 0.04);
+        min-height: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
         color: var(--sky);
         font-size: 12px;
         font-weight: 700;
         text-decoration: none;
-        transition: all 0.3s ease;
+        transition:
+          color 0.2s ease,
+          text-decoration-color 0.2s ease;
         cursor: pointer;
       }
       .footer-link:hover {
-        background: rgba(22, 151, 208, 0.12);
-        border-color: rgba(22, 151, 208, 0.4);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(22, 151, 208, 0.2);
+        color: var(--navy-soft);
+        text-decoration: underline;
+        text-decoration-thickness: 2px;
+        text-underline-offset: 4px;
       }
       .footer-link:focus-visible {
         outline: 3px solid rgba(22, 151, 208, 0.18);
-        outline-offset: 3px;
+        outline-offset: 4px;
       }
       .copyright {
         color: var(--muted);
-        font-size: 13px;
+        font-size: 12.5px;
+        line-height: 1.35;
+        text-align: center;
+        white-space: nowrap;
       }
       .dock {
         position: fixed;
@@ -753,7 +761,7 @@
       .showcase-shell {
         position: relative;
         display: grid;
-        gap: 14px;
+        gap: 0;
         width: 100%;
         padding: 14px;
         border-radius: 32px;
@@ -805,6 +813,7 @@
       .landing-main {
         display: grid;
         gap: 14px;
+        margin-top: 10px;
       }
 
       .feature-slider-card {
@@ -856,23 +865,26 @@
 
       .feature-viewport {
         overflow: hidden;
+        border-radius: 22px;
       }
 
       .feature-track {
         display: flex;
-        width: max-content;
-        gap: 12px;
-        animation: featureSlide 28s linear infinite;
+        align-items: stretch;
+        min-width: 0;
+        transition: transform 0.45s ease;
+        will-change: transform;
+        touch-action: pan-y;
       }
 
-      .feature-viewport:hover .feature-track {
-        animation-play-state: paused;
+      .feature-track.is-instant {
+        transition: none;
       }
 
       .feature-slide {
-        width: clamp(230px, 24vw, 330px);
+        flex: 0 0 100%;
+        min-width: 100%;
         min-height: 168px;
-        flex: 0 0 auto;
         display: grid;
         align-content: start;
         gap: 10px;
@@ -907,17 +919,66 @@
         line-height: 1.65;
       }
 
-      @keyframes featureSlide {
-        from {
-          transform: translateX(0);
-        }
-        to {
-          transform: translateX(calc(-50% - 6px));
-        }
+      .feature-carousel__controls {
+        display: flex;
+        justify-content: center;
+        margin-top: 14px;
+      }
+
+      .feature-carousel__pager {
+        display: grid;
+        justify-items: center;
+        gap: 7px;
+        min-width: 0;
+      }
+
+      .feature-carousel__status {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .feature-carousel__dots {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+
+      .feature-carousel__dot {
+        width: 9px;
+        height: 9px;
+        padding: 0;
+        cursor: pointer;
+        border: 0;
+        border-radius: 999px;
+        background: rgba(21, 38, 63, 0.18);
+        transition:
+          width 0.22s ease,
+          background 0.22s ease,
+          transform 0.22s ease;
+      }
+
+      .feature-carousel__dot.is-active {
+        width: 26px;
+        background: linear-gradient(
+          135deg,
+          rgba(22, 151, 208, 0.92),
+          rgba(29, 72, 122, 0.88)
+        );
+      }
+
+      .feature-carousel__dot:focus-visible {
+        outline: 2px solid rgba(22, 151, 208, 0.35);
+        outline-offset: 2px;
       }
 
       .access-panel-section {
-        padding: clamp(12px, 2vw, 18px);
+        padding: 0;
+        overflow: hidden;
         background:
           linear-gradient(160deg, rgba(19, 72, 120, 0.11), rgba(36, 179, 107, 0.08)),
           rgba(255, 255, 255, 0.72);
@@ -925,10 +986,11 @@
 
       .access-frame {
         position: relative;
-        padding: 10px;
-        border-radius: 28px;
+        min-height: 100%;
+        padding: 8px;
+        border-radius: inherit;
         background: linear-gradient(145deg, rgba(19, 72, 120, 0.94), rgba(36, 179, 107, 0.92));
-        box-shadow: 0 22px 52px rgba(12, 31, 59, 0.16);
+        box-shadow: none;
       }
 
       .access-frame::before {
@@ -1072,7 +1134,7 @@
         }
 
         .showcase-shell {
-          gap: 10px;
+          gap: 0;
           padding: 10px;
           border-radius: 24px;
         }
@@ -1103,16 +1165,21 @@
         }
 
         .feature-slide {
-          width: min(76vw, 280px);
+          flex-basis: 100%;
+          min-width: 100%;
         }
 
         .access-frame {
-          padding: 8px;
-          border-radius: 22px;
+          padding: 7px;
+          border-radius: inherit;
         }
 
         .access-card {
           border-radius: 18px;
+        }
+
+        .site-footer {
+          padding: 10px 14px;
         }
 
         .dock {
@@ -1135,6 +1202,14 @@
 
         .dock {
           grid-template-columns: 1fr;
+        }
+
+        .footer-links {
+          flex-wrap: wrap;
+        }
+
+        .copyright {
+          white-space: normal;
         }
 
         .dock-btn.primary {
@@ -1181,68 +1256,55 @@
               </p>
             </div>
 
-            <div class="feature-viewport" aria-label="Application features">
-              <div class="feature-track">
-                <article class="feature-slide">
+            <div
+              class="feature-viewport"
+              id="featureViewport"
+              aria-label="Application features"
+              aria-live="off"
+            >
+              <div class="feature-track" id="featureTrack">
+                <article class="feature-slide" data-feature-slide>
                   <i class="fa-solid fa-boxes-stacked"></i>
                   <strong>Stock entry</strong>
                   <span>Update quantity, buying rate, selling rate, and profit defaults quickly.</span>
                 </article>
-                <article class="feature-slide">
+                <article class="feature-slide" data-feature-slide>
                   <i class="fa-solid fa-file-invoice"></i>
                   <strong>Invoice billing</strong>
                   <span>Create invoices while sales history and stock movement stay connected.</span>
                 </article>
-                <article class="feature-slide">
+                <article class="feature-slide" data-feature-slide>
                   <i class="fa-solid fa-cart-flatbed"></i>
                   <strong>Purchase flow</strong>
                   <span>Record supplier purchases, payment status, and stock replenishment together.</span>
                 </article>
-                <article class="feature-slide">
+                <article class="feature-slide" data-feature-slide>
                   <i class="fa-solid fa-chart-line"></i>
                   <strong>Sales and GST</strong>
                   <span>Review sales reports, GST summaries, exports, and trend charts from the dashboard.</span>
                 </article>
-                <article class="feature-slide">
+                <article class="feature-slide" data-feature-slide>
                   <i class="fa-solid fa-hand-holding-dollar"></i>
                   <strong>Due tracking</strong>
                   <span>Follow customer balances and supplier payable work without separate registers.</span>
                 </article>
-                <article class="feature-slide">
+                <article class="feature-slide" data-feature-slide>
                   <i class="fa-solid fa-users-gear"></i>
                   <strong>Staff page access</strong>
                   <span>Give staff only the pages they need while the owner keeps full control.</span>
                 </article>
-                <article class="feature-slide">
-                  <i class="fa-solid fa-boxes-stacked"></i>
-                  <strong>Stock entry</strong>
-                  <span>Update quantity, buying rate, selling rate, and profit defaults quickly.</span>
-                </article>
-                <article class="feature-slide">
-                  <i class="fa-solid fa-file-invoice"></i>
-                  <strong>Invoice billing</strong>
-                  <span>Create invoices while sales history and stock movement stay connected.</span>
-                </article>
-                <article class="feature-slide">
-                  <i class="fa-solid fa-cart-flatbed"></i>
-                  <strong>Purchase flow</strong>
-                  <span>Record supplier purchases, payment status, and stock replenishment together.</span>
-                </article>
-                <article class="feature-slide">
-                  <i class="fa-solid fa-chart-line"></i>
-                  <strong>Sales and GST</strong>
-                  <span>Review sales reports, GST summaries, exports, and trend charts from the dashboard.</span>
-                </article>
-                <article class="feature-slide">
-                  <i class="fa-solid fa-hand-holding-dollar"></i>
-                  <strong>Due tracking</strong>
-                  <span>Follow customer balances and supplier payable work without separate registers.</span>
-                </article>
-                <article class="feature-slide">
-                  <i class="fa-solid fa-users-gear"></i>
-                  <strong>Staff page access</strong>
-                  <span>Give staff only the pages they need while the owner keeps full control.</span>
-                </article>
+              </div>
+            </div>
+
+            <div
+              class="feature-carousel__controls"
+              aria-label="Feature card progress"
+            >
+              <div class="feature-carousel__pager">
+                <span id="featureStatus" class="feature-carousel__status"
+                  >1 / 6</span
+                >
+                <div id="featureDots" class="feature-carousel__dots"></div>
               </div>
             </div>
           </section>
@@ -1837,13 +1899,30 @@
         const popupClose = document.getElementById("popupClose");
         const appDownloadBtn = document.getElementById("appDownloadBtn");
         const appDownloadLabel = document.getElementById("appDownloadLabel");
+        const featureViewport = document.getElementById("featureViewport");
+        const featureTrack = document.getElementById("featureTrack");
+        const featureSlides = Array.from(
+          document.querySelectorAll("[data-feature-slide]"),
+        );
+        const featureStatus = document.getElementById("featureStatus");
+        const featureDots = document.getElementById("featureDots");
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         const mobilePattern = /^\d{10}$/;
         const usernamePattern = /^[a-zA-Z0-9._-]{3,30}$/;
+        const prefersReducedMotionQuery = window.matchMedia(
+          "(prefers-reduced-motion: reduce)",
+        );
         const isAndroidUserAgent = /Android/i.test(navigator.userAgent);
         const isAndroidWrapper =
           !!window.AndroidAppShell &&
           typeof window.AndroidAppShell.setSidebarGesturesLocked === "function";
+        const featureCarousel = {
+          index: 0,
+          timer: 0,
+          isHovered: false,
+          isFocused: false,
+          touchStartX: 0,
+        };
         const formMeta = {
           login: {
             title: "Secure owner sign in",
@@ -1897,6 +1976,195 @@
           appDownloadBtn.title = actionLabel;
           appDownloadBtn.setAttribute("aria-label", actionLabel);
           appDownloadLabel.textContent = actionLabel;
+        };
+
+        const getFeatureSlideCount = () => featureSlides.length;
+
+        const normalizeFeatureSlideIndex = (index) => {
+          const slideCount = getFeatureSlideCount();
+
+          if (!slideCount) {
+            return 0;
+          }
+
+          return ((index % slideCount) + slideCount) % slideCount;
+        };
+
+        const clearFeatureCarouselTimer = () => {
+          window.clearTimeout(featureCarousel.timer);
+          featureCarousel.timer = 0;
+        };
+
+        const syncFeatureCarouselAutoplay = () => {
+          clearFeatureCarouselTimer();
+
+          if (
+            !featureTrack ||
+            getFeatureSlideCount() < 2 ||
+            document.hidden ||
+            prefersReducedMotionQuery.matches ||
+            featureCarousel.isHovered ||
+            featureCarousel.isFocused
+          ) {
+            return;
+          }
+
+          featureCarousel.timer = window.setTimeout(() => {
+            setFeatureCarouselSlide(featureCarousel.index + 1);
+          }, 5200);
+        };
+
+        const renderFeatureCarouselDots = () => {
+          if (!featureDots) {
+            return;
+          }
+
+          const slideCount = getFeatureSlideCount();
+          featureDots.innerHTML = Array.from({ length: slideCount }, (_, index) => {
+            const active = index === featureCarousel.index;
+            return `<button type="button" class="feature-carousel__dot${active ? " is-active" : ""}" data-feature-dot="${index}" aria-label="Show feature card ${index + 1}" aria-pressed="${active ? "true" : "false"}"></button>`;
+          }).join("");
+        };
+
+        const setFeatureCarouselSlide = (index, options = {}) => {
+          if (!featureTrack || !getFeatureSlideCount()) {
+            return;
+          }
+
+          const nextIndex = normalizeFeatureSlideIndex(index);
+          featureCarousel.index = nextIndex;
+
+          if (options.instant) {
+            featureTrack.classList.add("is-instant");
+          }
+
+          featureTrack.style.transform = `translateX(-${nextIndex * 100}%)`;
+
+          if (options.instant) {
+            window.requestAnimationFrame(() => {
+              featureTrack?.classList.remove("is-instant");
+            });
+          }
+
+          featureSlides.forEach((slide, slideIndex) => {
+            slide.setAttribute(
+              "aria-hidden",
+              slideIndex === nextIndex ? "false" : "true",
+            );
+          });
+
+          Array.from(featureDots?.children || []).forEach((dot, dotIndex) => {
+            const active = dotIndex === nextIndex;
+            dot.classList.toggle("is-active", active);
+            dot.setAttribute("aria-pressed", active ? "true" : "false");
+          });
+
+          if (featureStatus) {
+            featureStatus.textContent = `${nextIndex + 1} / ${getFeatureSlideCount()}`;
+          }
+
+          if (!options.skipAutoplay) {
+            syncFeatureCarouselAutoplay();
+          }
+        };
+
+        const stepFeatureCarousel = (direction) => {
+          setFeatureCarouselSlide(featureCarousel.index + direction);
+        };
+
+        const bindFeatureCarousel = () => {
+          if (!featureViewport || !featureTrack || !getFeatureSlideCount()) {
+            return;
+          }
+
+          renderFeatureCarouselDots();
+          setFeatureCarouselSlide(0, { instant: true });
+
+          featureDots?.addEventListener("click", (event) => {
+            const target = event.target.closest("[data-feature-dot]");
+            if (!target) {
+              return;
+            }
+
+            setFeatureCarouselSlide(Number(target.dataset.featureDot) || 0);
+          });
+
+          featureViewport.addEventListener("mouseenter", () => {
+            featureCarousel.isHovered = true;
+            syncFeatureCarouselAutoplay();
+          });
+
+          featureViewport.addEventListener("mouseleave", () => {
+            featureCarousel.isHovered = false;
+            syncFeatureCarouselAutoplay();
+          });
+
+          featureViewport.addEventListener("focusin", () => {
+            featureCarousel.isFocused = true;
+            syncFeatureCarouselAutoplay();
+          });
+
+          featureViewport.addEventListener("focusout", () => {
+            window.setTimeout(() => {
+              featureCarousel.isFocused = featureViewport.contains(
+                document.activeElement,
+              );
+              syncFeatureCarouselAutoplay();
+            }, 0);
+          });
+
+          featureViewport.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowLeft") {
+              event.preventDefault();
+              stepFeatureCarousel(-1);
+            }
+
+            if (event.key === "ArrowRight") {
+              event.preventDefault();
+              stepFeatureCarousel(1);
+            }
+          });
+
+          featureViewport.addEventListener(
+            "touchstart",
+            (event) => {
+              featureCarousel.touchStartX =
+                event.changedTouches?.[0]?.clientX || 0;
+            },
+            { passive: true },
+          );
+
+          featureViewport.addEventListener(
+            "touchend",
+            (event) => {
+              const touchEndX = event.changedTouches?.[0]?.clientX || 0;
+              const deltaX = touchEndX - featureCarousel.touchStartX;
+
+              if (Math.abs(deltaX) > 40) {
+                stepFeatureCarousel(deltaX > 0 ? -1 : 1);
+                return;
+              }
+
+              syncFeatureCarouselAutoplay();
+            },
+            { passive: true },
+          );
+
+          document.addEventListener(
+            "visibilitychange",
+            syncFeatureCarouselAutoplay,
+          );
+
+          if (typeof prefersReducedMotionQuery.addEventListener === "function") {
+            prefersReducedMotionQuery.addEventListener(
+              "change",
+              syncFeatureCarouselAutoplay,
+            );
+          } else if (typeof prefersReducedMotionQuery.addListener === "function") {
+            prefersReducedMotionQuery.addListener(syncFeatureCarouselAutoplay);
+          }
+
+          syncFeatureCarouselAutoplay();
         };
 
         if (appDownloadBtn) {
@@ -2991,6 +3259,7 @@
         });
 
         Object.values(fields).forEach(resetInputState);
+        bindFeatureCarousel();
         switchForm("login");
         setFormStatus(
           "login",
