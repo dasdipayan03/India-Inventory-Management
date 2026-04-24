@@ -27,6 +27,8 @@ const GOOGLE_ONBOARDING_MAX_AGE_MS = 15 * 60 * 1000;
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo";
+const ANDROID_GOOGLE_CLIENT = "android";
+const ANDROID_GOOGLE_DEEP_LINK_BASE = "indiainventory://google-auth";
 const OWNER_NAME_MAX_LENGTH = 50;
 const USERNAME_PATTERN = /^[a-zA-Z0-9._-]{3,30}$/;
 const MOBILE_NUMBER_PATTERN = /^\d{10}$/;
@@ -160,24 +162,59 @@ function signSession(payload) {
   return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1d" });
 }
 
-function signGoogleOAuthState() {
+function normalizeGoogleOAuthClient(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase() === ANDROID_GOOGLE_CLIENT
+    ? ANDROID_GOOGLE_CLIENT
+    : "web";
+}
+
+function signGoogleOAuthState(client) {
   return jwt.sign(
     {
       type: "google_oauth_state",
       nonce: crypto.randomBytes(16).toString("hex"),
+      client: normalizeGoogleOAuthClient(client),
     },
     process.env.JWT_SECRET,
     { expiresIn: "10m" },
   );
 }
 
-function isValidGoogleOAuthState(state) {
+function readGoogleOAuthState(state) {
   try {
     const decoded = jwt.verify(state, process.env.JWT_SECRET);
-    return decoded.type === "google_oauth_state" && Boolean(decoded.nonce);
+    if (decoded.type !== "google_oauth_state" || !decoded.nonce) {
+      return null;
+    }
+
+    return {
+      client: normalizeGoogleOAuthClient(decoded.client),
+    };
   } catch (_error) {
-    return false;
+    return null;
   }
+}
+
+function signAndroidGoogleTransfer(payload) {
+  return jwt.sign(
+    {
+      type: "android_google_transfer",
+      ...payload,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "5m" },
+  );
+}
+
+function verifyAndroidGoogleTransfer(token) {
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  if (decoded.type !== "android_google_transfer") {
+    throw new Error("Invalid Android Google transfer token");
+  }
+
+  return decoded;
 }
 
 function signGoogleOnboarding(profile) {
@@ -248,6 +285,13 @@ function buildLoginRedirectUrl(req, params = {}) {
     }
   });
 
+  return url.toString();
+}
+
+function buildAndroidGoogleDeepLink(req, transferToken) {
+  const url = new URL(ANDROID_GOOGLE_DEEP_LINK_BASE);
+  url.searchParams.set("transfer", transferToken);
+  url.searchParams.set("origin", resolvePublicBaseUrl(req));
   return url.toString();
 }
 
@@ -550,7 +594,8 @@ router.get("/google/start", loginAttemptLimiter, async (req, res) => {
       );
     }
 
-    const state = signGoogleOAuthState();
+    const client = normalizeGoogleOAuthClient(req.query.client);
+    const state = signGoogleOAuthState(client);
     const authUrl = new URL(GOOGLE_AUTH_URL);
     authUrl.searchParams.set("client_id", config.clientId);
     authUrl.searchParams.set("redirect_uri", config.redirectUri);
@@ -603,8 +648,9 @@ router.get("/google/callback", async (req, res) => {
     ).trim();
     clearGoogleOAuthStateCookie(res);
 
+    const oauthState = readGoogleOAuthState(state);
     const stateMatchesCookie = expectedState && state === expectedState;
-    const stateMatchesSignature = isValidGoogleOAuthState(state);
+    const stateMatchesSignature = Boolean(oauthState);
 
     if (!code || !state || (!stateMatchesCookie && !stateMatchesSignature)) {
       return res.redirect(
@@ -632,6 +678,7 @@ router.get("/google/callback", async (req, res) => {
 
     const profile = await fetchGoogleUserProfile(accessToken);
     const existingUser = await getOwnerByGoogleProfile(profile);
+    const isAndroidClient = oauthState?.client === ANDROID_GOOGLE_CLIENT;
 
     if (existingUser) {
       const linkedUser = await linkGoogleProfileToOwner(
@@ -639,10 +686,26 @@ router.get("/google/callback", async (req, res) => {
         profile,
       );
       const session = buildOwnerSession(linkedUser);
+      if (isAndroidClient) {
+        const transferToken = signAndroidGoogleTransfer({
+          mode: "session",
+          session,
+        });
+        return res.redirect(buildAndroidGoogleDeepLink(req, transferToken));
+      }
+
       const token = signSession(session);
       clearGoogleOnboardingCookie(res);
       setSessionCookie(res, token);
       return res.redirect(`${resolvePublicBaseUrl(req)}/index.html`);
+    }
+
+    if (isAndroidClient) {
+      const transferToken = signAndroidGoogleTransfer({
+        mode: "onboarding",
+        profile,
+      });
+      return res.redirect(buildAndroidGoogleDeepLink(req, transferToken));
     }
 
     const onboardingToken = signGoogleOnboarding(profile);
@@ -663,6 +726,52 @@ router.get("/google/callback", async (req, res) => {
       buildLoginRedirectUrl(req, {
         google_error:
           error.message || "Google sign-in could not be completed.",
+      }),
+    );
+  }
+});
+
+router.get("/google/android-transfer", async (req, res) => {
+  try {
+    markSensitiveResponse(res);
+    const transferToken = String(req.query.transfer || "").trim();
+    if (!transferToken) {
+      return res.redirect(
+        buildLoginRedirectUrl(req, {
+          google_error: "Google sign-in expired. Please try again.",
+        }),
+      );
+    }
+
+    const transfer = verifyAndroidGoogleTransfer(transferToken);
+    if (transfer.mode === "session" && transfer.session) {
+      const sessionToken = signSession(transfer.session);
+      clearGoogleOnboardingCookie(res);
+      setSessionCookie(res, sessionToken);
+      return res.redirect(`${resolvePublicBaseUrl(req)}/index.html`);
+    }
+
+    if (transfer.mode === "onboarding" && transfer.profile) {
+      const onboardingToken = signGoogleOnboarding(transfer.profile);
+      clearSessionCookie(res);
+      setTemporaryCookie(
+        res,
+        GOOGLE_ONBOARDING_COOKIE,
+        onboardingToken,
+        GOOGLE_ONBOARDING_MAX_AGE_MS,
+      );
+      return res.redirect(
+        buildLoginRedirectUrl(req, { google_onboarding: "1" }),
+      );
+    }
+
+    throw new Error("Unsupported Android Google transfer mode");
+  } catch (error) {
+    console.error("Android Google transfer error:", error.message);
+    clearGoogleOnboardingCookie(res);
+    return res.redirect(
+      buildLoginRedirectUrl(req, {
+        google_error: "Google sign-in expired. Please try again.",
       }),
     );
   }

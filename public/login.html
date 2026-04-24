@@ -2120,7 +2120,9 @@
         };
 
         const configureGoogleButtons = () => {
-          const googleStartUrl = `${apiBase}/google/start`;
+          const googleStartUrl = isAndroidWrapper
+            ? `${apiBase}/google/start?client=android`
+            : `${apiBase}/google/start`;
           if (googleLoginBtn) {
             googleLoginBtn.href = googleStartUrl;
           }
