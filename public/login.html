@@ -1183,7 +1183,26 @@
         }
 
         .dock {
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: 1fr;
+        }
+
+        .dock-btn,
+        .dock-btn.primary,
+        .dock-btn.install {
+          border: 1px solid rgba(22, 151, 208, 0.16);
+          background: rgba(255, 255, 255, 0.94);
+          color: var(--navy);
+          box-shadow: 0 10px 24px rgba(12, 31, 59, 0.08);
+        }
+
+        .dock-btn i,
+        .dock-btn.primary i,
+        .dock-btn.install i {
+          color: var(--sky);
+        }
+
+        .dock-btn.primary {
+          grid-column: auto;
         }
       }
 
@@ -1200,20 +1219,12 @@
           font-size: 10.5px;
         }
 
-        .dock {
-          grid-template-columns: 1fr;
-        }
-
         .footer-links {
           flex-wrap: wrap;
         }
 
         .copyright {
           white-space: normal;
-        }
-
-        .dock-btn.primary {
-          grid-column: auto;
         }
       }
     </style>
