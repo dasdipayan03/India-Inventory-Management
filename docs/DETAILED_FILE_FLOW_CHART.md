@@ -1,6 +1,6 @@
 # Detailed File Flow Chart
 
-Last verified against this repository: `2026-04-13`
+Last verified against this repository: `2026-04-24`
 
 This document maps the runtime-relevant app files in the repository and shows how they connect in practice.
 
@@ -34,7 +34,7 @@ flowchart TD
     PermContract["public/js/permission-contract.js<br/>shared permission contract"]
     AppCore["public/js/app-core.js<br/>frontend app config + access helpers"]
     AppShell["public/js/app-shell.js<br/>sidebar shell + mobile navigation"]
-    DashboardJS["public/js/dashboard.js<br/>dashboard page controller"]
+    DashboardJS["public/js/dashboard.js<br/>dashboard page controller + Add Stock reset"]
     DevLoginJS["public/js/developer-login.js<br/>developer auth page controller"]
     DevSupportJS["public/js/developer-support.js<br/>developer inbox controller"]
     ChartLib["public/js/chart.min.js<br/>chart library"]
@@ -128,7 +128,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-  Railway["Railway / local start"] --> StartCmd["node server.js"]
+  Railway["Railway / local start"] --> StartCmd["npm start<br/>node --max-old-space-size=256 server.js"]
   StartCmd --> ServerBoot["server.js boot"]
   ServerBoot --> LogBoot["utils/runtime-log.js<br/>app_bootstrap_started"]
   ServerBoot --> DBInit["db.js<br/>create pg Pool + run startup compatibility SQL"]
@@ -136,7 +136,7 @@ flowchart TD
   ServerBoot --> Middleware["helmet + cors + cookie-parser + compression + rate-limit"]
   ServerBoot --> Health["/health, /ready, /live routes"]
   ServerBoot --> StaticPages["serve login/developer-login/developer-support/index/invoice/reset HTML"]
-  ServerBoot --> MountRoutes["mount /api/auth, /api/support, /api inventory/business/invoice routes"]
+  ServerBoot --> MountRoutes["mount /api/auth plus /api support/inventory/business/invoice routes"]
 
   MountRoutes --> AuthAPI["routes/auth.js"]
   MountRoutes --> SupportAPI["routes/support.js"]
@@ -187,8 +187,8 @@ flowchart LR
   DashboardController --> Chart["chart.min.js when charts are needed"]
   DashboardController --> AuthAPI2["routes/auth.js<br/>session/staff management"]
   DashboardController --> SupportAPI2["routes/support.js<br/>/support/thread /support/messages"]
-  DashboardController --> InventoryAPI2["routes/inventory.js<br/>stock/sales/reports/dashboard/debts"]
-  DashboardController --> BusinessAPI2["routes/business.js<br/>purchases/suppliers/expenses"]
+  DashboardController --> InventoryAPI2["routes/inventory.js<br/>stock defaults/items/sales/GST/debts/dashboard"]
+  DashboardController --> BusinessAPI2["routes/business.js<br/>purchases/suppliers/repayments/expenses"]
 
   Invoice --> InvoiceShared["permission-contract.js + app-core.js + app-shell.js"]
   InvoiceShared --> InvoiceInline["inline invoice page controller"]
@@ -222,19 +222,19 @@ flowchart LR
 | `utils/concurrency.js`               | Advisory lock helper and shared text normalization                                        | Used by write-heavy route files to avoid duplicate concurrent writes           |
 | `routes/auth.js`                     | Owner registration, login, staff login, session, logout, password reset, staff management | Uses `db.js`, `middleware/auth.js`, shared permission contract                 |
 | `routes/support.js`                  | Developer auth, owner/staff support thread, developer inbox, replies, status updates      | Uses `db.js`, `middleware/auth.js`                                             |
-| `routes/inventory.js`                | Stock entry, stock defaults, sales reports, GST, debts, dashboard, trends                 | Uses `db.js`, `middleware/auth.js`, `utils/concurrency.js`                     |
+| `routes/inventory.js`                | Stock entry, stock defaults, sales reports, GST compare/export, debts, dashboard, trends  | Uses `db.js`, `middleware/auth.js`, `utils/concurrency.js`                     |
 | `routes/business.js`                 | Supplier search, purchase save, purchase report, supplier ledger, repayments, expenses    | Uses `db.js`, `middleware/auth.js`, `utils/concurrency.js`                     |
 | `routes/invoices.js`                 | Invoice number preview, invoice save, invoice PDF, invoice lookup, payments, shop info    | Uses `db.js`, `middleware/auth.js`, `utils/concurrency.js`                     |
 | `public/login.html`                  | Public entry page for owner login, staff login, registration, forgot password             | Inline JS calls `routes/auth.js` endpoints                                     |
 | `public/developer-login.html`        | Developer account login/register page                                                     | Loads `public/js/developer-login.js`, calls `routes/support.js` auth endpoints |
 | `public/developer-support.html`      | Developer inbox UI                                                                        | Loads `public/js/developer-support.js`, calls `routes/support.js` inbox APIs   |
 | `public/reset.html`                  | Password reset page                                                                       | Inline JS posts to `routes/auth.js` reset endpoint                             |
-| `public/index.html`                  | Dashboard HTML layout including support chat section                                      | Loads `permission-contract.js`, `app-core.js`, `app-shell.js`, `dashboard.js`  |
+| `public/index.html`                  | Dashboard HTML layout including support chat and Add Stock clear action                   | Loads `permission-contract.js`, `app-core.js`, `app-shell.js`, `dashboard.js`  |
 | `public/invoice.html`                | Invoice workspace HTML                                                                    | Loads shared JS files and contains its own inline invoice controller           |
 | `public/js/permission-contract.js`   | Shared owner/staff permission map                                                         | Loaded by frontend and imported by backend Node files                          |
 | `public/js/app-core.js`              | Frontend app-wide config and access helper registry                                       | Builds `window.InventoryApp` from permission contract                          |
 | `public/js/app-shell.js`             | Shared sidebar shell and mobile navigation behavior                                       | Renders sidebar for dashboard and invoice pages                                |
-| `public/js/dashboard.js`             | Dashboard page controller for stock, purchases, dues, expenses, staff, reports, support   | Uses `window.InventoryApp`, `window.InventoryAppShell`, and backend APIs       |
+| `public/js/dashboard.js`             | Dashboard controller for stock reset/save, purchases, dues, expenses, staff, reports, support | Uses `window.InventoryApp`, `window.InventoryAppShell`, and backend APIs   |
 | `public/js/developer-login.js`       | Developer login/register controller                                                       | Calls `/api/developer-auth/*` with cookie-based auth                           |
 | `public/js/developer-support.js`     | Developer inbox page controller                                                           | Calls `/api/developer-support/*` with cookie-based auth                        |
 | `public/js/chart.min.js`             | Chart rendering library                                                                   | Lazily loaded by `dashboard.js` when sales charts are needed                   |
@@ -263,6 +263,9 @@ flowchart LR
 
 7. `utils/concurrency.js -> inventory.js/business.js/invoices.js`
    This helper protects critical write paths like stock updates, supplier creation, and invoice writes from duplicate concurrent mutations.
+
+8. `public/index.html -> clearAddStockBtn -> dashboard.js/resetAddStockForm`
+   The Add Stock card's Clear button uses the same reset helper that runs after a successful stock save, clearing item, quantity, buying rate, selling rate, dropdown state, and previous-rate preview while keeping the saved `Profit %` default untouched.
 
 ## 6. Practical Reading Order
 

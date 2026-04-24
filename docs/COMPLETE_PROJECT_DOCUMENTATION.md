@@ -1,6 +1,6 @@
 # India Inventory Management Documentation
 
-Last verified against this repository: `2026-04-13`
+Last verified against this repository: `2026-04-24`
 
 This is the single merged documentation file for the project. It replaces the earlier split project doc and database schema doc.
 
@@ -45,6 +45,7 @@ Important current-state notes:
 - Runtime health and readiness now expose structured JSON payloads through `/health`, `/api/health`, `/healthz`, `/ready`, `/readyz`, `/live`, and `/livez`.
 - Structured runtime logs now redact password, token, authorization, cookie, and access-key fields before emitting JSON.
 - Deployment healthcheck and start-command defaults are now pinned in [`../railway.json`](../railway.json), and lifecycle/request logging is centralized through [`../utils/runtime-log.js`](../utils/runtime-log.js).
+- The Add Stock card in [`../public/index.html`](../public/index.html) now has a side-by-side Clear action. Its reset logic lives in [`../public/js/dashboard.js`](../public/js/dashboard.js), clears item, quantity, buying rate, selling rate, dropdown state, and previous-rate preview, and intentionally keeps `Profit %` unchanged.
 
 ## 2. Project Snapshot
 
@@ -134,7 +135,7 @@ The system is owner-centric:
 | [`../middleware/auth.js`](../middleware/auth.js)     | JWT verification, role resolution, permission checks                                                       |
 | [`../routes/auth.js`](../routes/auth.js)             | register/login/logout, forgot/reset password, staff management, `/me`                                      |
 | [`../routes/support.js`](../routes/support.js)       | developer auth, owner/staff support chat, developer inbox, conversation status updates                     |
-| [`../routes/inventory.js`](../routes/inventory.js)   | stock, stock reports, sales reports, GST reports, dashboard overview, customer dues                        |
+| [`../routes/inventory.js`](../routes/inventory.js)   | stock defaults/entry, stock reports, sales reports, GST compare/export, dashboard overview, customer dues  |
 | [`../routes/business.js`](../routes/business.js)     | suppliers, purchases, purchase repayment, expenses                                                         |
 | [`../routes/invoices.js`](../routes/invoices.js)     | invoice numbering, invoice save, history, payment settlement, PDF, shop info                               |
 | [`../utils/concurrency.js`](../utils/concurrency.js) | normalization helpers and owner-scoped advisory locks                                                      |
@@ -244,8 +245,8 @@ flowchart LR
 
 - [`../public/js/dashboard.js`](../public/js/dashboard.js)
   - drives most dashboard features
-  - loads and submits stock, purchase, report, due, expense, and staff data
-  - handles popups, section switching, and report export actions
+  - loads and submits stock, purchase, report, due, expense, support, and staff data
+  - handles Add Stock reset behavior, popups, section switching, and report export actions
 
 - [`../public/js/developer-login.js`](../public/js/developer-login.js)
   - handles developer sign-in and optional developer account creation
@@ -425,17 +426,23 @@ Important scope note:
 
 #### `db.js` function inventory
 
-| Function                           | Purpose                                                                                  |
-| ---------------------------------- | ---------------------------------------------------------------------------------------- |
-| `shouldUseSsl(databaseUrl)`        | auto-decides whether PostgreSQL SSL should be enabled                                    |
-| `readPositiveInt(value, fallback)` | parses positive integer pool-tuning env values                                           |
-| `ensureSchemaCompatibility()`      | applies runtime schema patching so older databases can satisfy current code expectations |
-| `initializeDatabase()`             | tests connectivity, runs compatibility patching, and updates exported readiness state    |
+| Function                                             | Purpose                                                                                  |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `shouldUseSsl(databaseUrl)`                          | auto-decides whether PostgreSQL SSL should be enabled                                    |
+| `readPositiveInt(value, fallback)`                   | parses positive integer pool-tuning env values                                           |
+| `normalizeEmail(value)`                              | canonicalizes developer-support email values during bootstrap reconciliation             |
+| `isTruthyEnvFlag(value)`                             | reads boolean-style environment flags for optional bootstrap behavior                    |
+| `buildArchivedDeveloperEmail(normalizedEmail, id)`   | creates a deterministic archived email for duplicate developer admin records             |
+| `ensureSchemaCompatibility()`                        | applies runtime schema patching so older databases can satisfy current code expectations |
+| `initializeDatabase()`                               | tests connectivity, runs compatibility patching, and updates exported readiness state    |
+
+`ensureSchemaCompatibility()` also contains `reconcileDeveloperAdmins()`, a nested helper that archives duplicate developer admin emails before the normalized unique index is enforced.
 
 #### `middleware/auth.js` function inventory
 
 | Function                                      | Purpose                                                                               |
 | --------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `normalizeSessionRole(value)`                 | constrains raw JWT role values to supported session roles                             |
 | `getStaffSessionCacheKey(staffId)`            | normalizes a staff ID into a safe cache key                                           |
 | `getCachedStaffSession(staffId)`              | returns a non-expired cached staff session if available                               |
 | `setCachedStaffSession(staffId, sessionData)` | writes a staff session into the in-memory cache with TTL enforcement                  |
@@ -473,6 +480,7 @@ Route handlers in this file cover registration, owner login, staff login, logout
 | `signSession(payload)`              | signs the JWT used for owner and staff sessions               |
 | `setSessionCookie(res, token)`      | writes the signed session token into the `token` cookie       |
 | `clearSessionCookie(res)`           | clears the current login cookie                               |
+| `normalizeSessionRole(value)`       | normalizes session roles before client-facing serialization   |
 | `buildOwnerSession(user)`           | creates the normalized owner session payload                  |
 | `buildStaffSession(staff)`          | creates the normalized staff session payload with permissions |
 | `toClientUser(session)`             | reshapes a server session into the frontend-safe user object  |
@@ -487,6 +495,7 @@ Route handlers in this file cover stock defaults, stock entry, item reporting, l
 | ---------------------------------------------------------- | ----------------------------------------------------------------------- |
 | `formatCurrency(value)`                                    | formats numeric values for report output using Indian number formatting |
 | `formatIstDate(value)`                                     | formats a timestamp in the `Asia/Kolkata` timezone                      |
+| `getCurrentIstYear()`                                      | returns the current year in the IST timezone for trend filters          |
 | `safeFilePart(value)`                                      | sanitizes user input for downloadable file names                        |
 | `sanitizeExcelCell(value)`                                 | prevents formula injection in Excel exports                             |
 | `parseNonNegativeNumber(value)`                            | validates non-negative numeric input                                    |
@@ -599,6 +608,7 @@ Route handlers in this file cover developer registration/login, owner or staff s
 | `formatPermissionSummary(permissions, options)` | converts permission arrays into a short human-readable summary                           |
 | `clearStoredSession()`                          | removes legacy session artifacts from `localStorage`                                     |
 | `isMobileLayout()`                              | checks whether the UI is currently in mobile layout                                      |
+| `normalizeSessionRole(value)`                   | constrains client-side session role values to owner or staff                             |
 | `isOwnerUser(user)`                             | identifies owner sessions on the client side                                             |
 | `getUserPermissions(user)`                      | returns the current permission set for a user                                            |
 | `canAccessPermission(user, ...permissions)`     | answers whether a user can access a given permission area                                |
@@ -613,7 +623,6 @@ Route handlers in this file cover developer registration/login, owner or staff s
 | `ensureStyles()`                          | injects sidebar CSS once into the document head                                       |
 | `ensureShell()`                           | creates or reuses the sidebar/toggle DOM shell                                        |
 | `syncFooterText()`                        | refreshes footer text from the current app contract                                   |
-| `buildMetaAttributes(item)`               | converts sidebar metadata into `data-*` attributes                                    |
 | `buildDashboardButton(item)`              | renders one dashboard navigation button                                               |
 | `buildInvoiceButton(item)`                | renders the invoice-page navigation button                                            |
 | `getElements()`                           | returns cached references to the shell's core DOM nodes                               |
@@ -626,7 +635,7 @@ Route handlers in this file cover developer registration/login, owner or staff s
 
 - session/bootstrap: `hideElement`, `showElement`, `markDashboardReady`, `authHeaders`, `handleSessionExpiry`, `checkAuth`
 - formatting/search helpers: `formatCount`, `formatNumber`, `formatCurrency`, `formatDate`, `normalizeSearchKey`, `buildStringSearchIndex`, `getSearchMatches`, `debounce`
-- stock defaults and stock entry: `updateProfitPreview`, `updateSellingRate`, `applySharedProfitPercent`, `saveProfitPercentDefault`, `loadProfitPercentDefault`, `addStock`
+- stock defaults and stock entry: `resetAddStockForm`, `updateProfitPreview`, `updateSellingRate`, `updateProfitPercent`, `applySharedProfitPercent`, `saveProfitPercentDefault`, `loadProfitPercentDefault`, `addStock`
 - purchase workflow: `purchaseRows`, `updatePurchaseSummary`, `addPurchaseItemRow`, `loadPurchaseReport`, `openPurchaseDetail`, `submitPurchaseRepayment`, `searchSupplierLedger`, `submitPurchase`
 - expense workflow: `renderExpenseReport`, `loadExpenseReport`, `submitExpense`
 - report/export workflow: `renderItemReport`, `loadItemReport`, `loadLowStock`, `renderReorderPlanner`, `renderSlowMovingPlanner`, `renderSalesReport`, `loadSalesReport`, `loadGstReport`, `downloadItemReportPDF`, `downloadSalesPDF`, `downloadSalesExcel`, `downloadGstPDF`, `downloadGstExcel`
@@ -641,11 +650,11 @@ Route handlers in this file cover developer registration/login, owner or staff s
   - login/register state: `setMode`, `setStatus`, `handleLoginSubmit`, `handleRegisterSubmit`
   - input normalization: `normalizeName`, `normalizeEmail`, `normalizeDeveloperAccessKey`
   - shared request helper: `requestJSON`
-  - page boot: `checkExistingSession`, `bindPasswordToggles`, `bindModeSwitch`
+  - page boot: `checkExistingSession`, `clearRegisterAccessKey`, `bindPasswordToggles`, `bindModeSwitch`
 - [`../public/js/developer-support.js`](../public/js/developer-support.js):
   - shared request helper: `requestJSON`
   - queue/search rendering: `renderFilterState`, `getFilteredConversations`, `renderConversationSearchDropdown`, `renderConversationList`
-  - thread rendering: `renderDetailCard`, `renderThread`, `renderThreadEmpty`
+  - thread rendering: `renderDetailCard`, `renderThread`, `renderThreadEmpty`, `updateHeroStats`, `setReplyEnabled`
   - developer actions: `loadConversations`, `loadConversation`, `refreshInbox`, `submitReply`, `updateConversationStatus`, `logoutDeveloper`
   - page lifecycle: `bootstrapPage` plus a quiet polling interval that refreshes the active inbox
 
@@ -762,6 +771,9 @@ login.html
 
 ```text
 index.html add stock section
+  -> GET /api/stock-defaults loads shared default Profit %
+  -> Clear button calls resetAddStockForm()
+  -> reset keeps Profit % and clears item, quantity, buying rate, selling rate, dropdown, and previous-rate preview
   -> POST /api/items
   -> if item exists, quantity and rates can be updated
   -> if item does not exist, a new items row is inserted
@@ -810,6 +822,7 @@ dashboard due section
   -> POST /api/debts for new ledger entries
   -> GET /api/debts/customers for search
   -> GET /api/debts/:number for one customer ledger
+  -> GET /api/debts/:number/pdf for customer ledger PDF
   -> GET /api/debts for all due summary
 ```
 
@@ -829,7 +842,7 @@ dashboard purchase section
 dashboard report sections
   -> stock report PDF
   -> sales report PDF + Excel
-  -> GST report PDF + Excel
+  -> GST report compare + PDF + Excel
   -> sales trend charts
   -> purchase and expense reports in dashboard UI
 ```
@@ -895,10 +908,12 @@ All endpoints below are mounted under either `/api/auth` or `/api`.
 | `GET`  | `/api/sales/report/pdf`          | sales report PDF                  |
 | `GET`  | `/api/sales/report/excel`        | sales report Excel                |
 | `GET`  | `/api/gst/report`                | GST report rows                   |
+| `GET`  | `/api/gst/compare`               | month-by-month GST comparison     |
 | `GET`  | `/api/gst/report/pdf`            | GST report PDF                    |
 | `GET`  | `/api/gst/report/excel`          | GST report Excel                  |
 | `POST` | `/api/debts`                     | add customer due ledger entry     |
 | `GET`  | `/api/debts/customers`           | search customers with dues        |
+| `GET`  | `/api/debts/:number/pdf`         | customer ledger PDF               |
 | `GET`  | `/api/debts/:number`             | load one customer ledger          |
 | `GET`  | `/api/debts`                     | summary of all dues               |
 | `GET`  | `/api/dashboard/overview`        | owner dashboard summary cards     |
@@ -917,6 +932,7 @@ All endpoints below are mounted under either `/api/auth` or `/api`.
 | `GET`  | `/api/suppliers/summary`               | supplier balance summary            |
 | `GET`  | `/api/suppliers/:supplierId/ledger`    | supplier ledger / purchase history  |
 | `POST` | `/api/expenses`                        | save expense entry                  |
+| `GET`  | `/api/expenses/suggestions`            | expense title/category suggestions  |
 | `GET`  | `/api/expenses/report`                 | expense report and summary          |
 
 ### 11.4 Invoice routes from `routes/invoices.js`
@@ -979,6 +995,7 @@ That means:
 ```mermaid
 erDiagram
   users ||--o{ staff_accounts : owns
+  users ||--o{ support_conversations : opens
   users ||--|| settings : configures
   users ||--o{ items : owns
   users ||--o{ sales : records
@@ -994,6 +1011,7 @@ erDiagram
   purchases ||--o{ purchase_items : contains
   invoices ||--o{ invoice_items : contains
   invoices o|--o{ debts : linked_settlements
+  support_conversations ||--o{ support_messages : contains
 ```
 
 ### 12.4 Table summary
@@ -1424,8 +1442,78 @@ Constraints, indexes, and triggers:
 - foreign key `owner_user_id -> users.id`
 - check `staff_accounts_name_length` enforces trimmed name length `>= 2`
 - check `staff_accounts_username_length` enforces trimmed username length `>= 3`
-- indexes: `idx_staff_accounts_owner_user_id`, `idx_staff_accounts_username_lookup`
+- indexes: `idx_staff_accounts_owner_user_id`, `idx_staff_accounts_username_unique`, plus runtime compatibility index `idx_staff_accounts_username_lookup`
 - trigger `update_staff_accounts_timestamp` calls shared `update_timestamp()`
+
+#### `developer_admins`
+
+| Column          | Type           | Null | Default  | Details                                            |
+| --------------- | -------------- | ---- | -------- | -------------------------------------------------- |
+| `id`            | `SERIAL`       | no   | sequence | primary key                                        |
+| `name`          | `VARCHAR(120)` | no   | none     | developer support display name                     |
+| `email`         | `VARCHAR(120)` | no   | none     | developer support login email                      |
+| `password_hash` | `VARCHAR(255)` | no   | none     | bcrypt hash                                        |
+| `is_active`     | `BOOLEAN`      | no   | `TRUE`   | developer support account availability             |
+| `last_login_at` | `TIMESTAMPTZ`  | yes  | none     | latest successful login timestamp                  |
+| `created_at`    | `TIMESTAMPTZ`  | yes  | `NOW()`  | creation timestamp                                 |
+| `updated_at`    | `TIMESTAMPTZ`  | yes  | `NOW()`  | updated by trigger                                 |
+
+Constraints, indexes, and triggers:
+
+- primary key on `id`
+- schema-level unique key on `email`
+- runtime compatibility reconciles duplicate normalized emails before enforcing `idx_developer_admins_email_normalized_unique`
+- indexes: `idx_developer_admins_email_lookup`, `idx_developer_admins_email_normalized_unique`
+- trigger `update_developer_admins_timestamp` calls shared `update_timestamp()`
+
+#### `support_conversations`
+
+| Column                   | Type           | Null | Default  | Details                                            |
+| ------------------------ | -------------- | ---- | -------- | -------------------------------------------------- |
+| `id`                     | `SERIAL`       | no   | sequence | primary key                                        |
+| `owner_user_id`          | `INT`          | no   | none     | foreign key to `users.id` with `ON DELETE CASCADE` |
+| `requester_actor_id`     | `INT`          | no   | none     | owner/staff actor ID within the owner workspace    |
+| `requester_role`         | `VARCHAR(20)`  | no   | none     | `owner` or `staff`                                 |
+| `requester_name`         | `VARCHAR(120)` | no   | none     | display name shown in support queues               |
+| `requester_identifier`   | `VARCHAR(120)` | yes  | none     | email, username, or other requester identifier     |
+| `status`                 | `VARCHAR(20)`  | no   | `'open'` | conversation state: `open` or `closed`             |
+| `unread_for_user`        | `INT`          | no   | `0`      | replies waiting for the owner/staff requester      |
+| `unread_for_developer`   | `INT`          | no   | `0`      | requester messages waiting for developer support   |
+| `last_message_at`        | `TIMESTAMPTZ`  | yes  | none     | latest message timestamp for inbox sorting         |
+| `created_at`             | `TIMESTAMPTZ`  | yes  | `NOW()`  | creation timestamp                                 |
+| `updated_at`             | `TIMESTAMPTZ`  | yes  | `NOW()`  | updated by trigger                                 |
+
+Constraints, indexes, and triggers:
+
+- primary key on `id`
+- foreign key `owner_user_id -> users.id`
+- check `support_conversations_requester_role_check` limits requester roles to `owner` or `staff`
+- check `support_conversations_status_check` limits status to `open` or `closed`
+- unique key `support_conversations_unique_requester` keeps one support thread per owner/requester/role
+- indexes: `idx_support_conversations_owner_lookup`, `idx_support_conversations_queue`, `idx_support_conversations_unread_queue`
+- trigger `update_support_conversations_timestamp` calls shared `update_timestamp()`
+
+#### `support_messages`
+
+| Column            | Type           | Null | Default  | Details                                                |
+| ----------------- | -------------- | ---- | -------- | ------------------------------------------------------ |
+| `id`              | `SERIAL`       | no   | sequence | primary key                                            |
+| `conversation_id` | `INT`          | no   | none     | foreign key to `support_conversations.id` with cascade |
+| `sender_type`     | `VARCHAR(20)`  | no   | none     | `user` or `developer`                                  |
+| `sender_actor_id` | `INT`          | no   | none     | sender ID in the relevant actor table                  |
+| `sender_role`     | `VARCHAR(30)`  | no   | none     | more specific role label recorded with the message     |
+| `sender_name`     | `VARCHAR(120)` | no   | none     | sender display name snapshot                           |
+| `message_text`    | `TEXT`         | no   | none     | support message body                                   |
+| `created_at`      | `TIMESTAMPTZ`  | yes  | `NOW()`  | creation timestamp                                     |
+
+Constraints, indexes, and triggers:
+
+- primary key on `id`
+- foreign key `conversation_id -> support_conversations.id`
+- check `support_messages_sender_type_check` limits sender type to `user` or `developer`
+- check `support_messages_message_not_blank` blocks blank messages
+- index `idx_support_messages_conversation_created`
+- no update trigger exists because messages are append-only thread entries
 
 #### `settings`
 
@@ -1667,6 +1755,8 @@ Constraints, indexes, and triggers:
 #### Direct foreign keys
 
 - `staff_accounts.owner_user_id -> users.id`
+- `support_conversations.owner_user_id -> users.id`
+- `support_messages.conversation_id -> support_conversations.id`
 - `items.user_id -> users.id`
 - `sales.user_id -> users.id`
 - `sales.item_id -> items.id`
@@ -1687,6 +1777,7 @@ Constraints, indexes, and triggers:
 - `sales` rows are created during invoice save, but the schema does not store `invoice_id` inside `sales`
 - `purchase_items` affect `items`, but the schema does not store `item_id` inside `purchase_items`
 - invoice collections are recorded through `debts` rows with `invoice_id`
+- `support_messages.sender_actor_id` is polymorphic by `sender_type` and `sender_role`; it records the sender but is not a direct foreign key
 
 #### Main business data flows
 
@@ -1724,6 +1815,9 @@ Important index coverage includes:
 - invoice items by `invoice_id`
 - debt settlement lookup by `invoice_id`
 - staff lookup by normalized username
+- developer support lookup by normalized email
+- support inbox queue ordering and unread counts
+- support message lookup by conversation and creation order
 - due-collection lookup by `(user_id, contact, date)` for invoices with outstanding dues
 
 Timestamp trigger coverage from [`../migrations/full_updated_schema.sql`](../migrations/full_updated_schema.sql):
@@ -1731,6 +1825,8 @@ Timestamp trigger coverage from [`../migrations/full_updated_schema.sql`](../mig
 - shared trigger function: `update_timestamp()` sets `NEW.updated_at = NOW()`
 - `users`
 - `staff_accounts`
+- `developer_admins`
+- `support_conversations`
 - `items`
 - `debts`
 - `suppliers`
@@ -1845,7 +1941,7 @@ flowchart TB
     Login["public/login.html<br/>register | owner login | staff login | forgot password"]
     DevLogin["public/developer-login.html<br/>developer login | developer register"]
     DevSupport["public/developer-support.html<br/>developer inbox | replies | status updates"]
-    Dashboard["public/index.html<br/>stock | purchases | reports | dues | expenses | staff"]
+    Dashboard["public/index.html<br/>stock add/clear | purchases | reports | dues | expenses | staff"]
     Invoice["public/invoice.html<br/>invoice builder | history | payment collection | PDF"]
     Reset["public/reset.html<br/>password reset"]
     AppCore["public/js/app-core.js<br/>apiBase | page metadata | shared helpers"]
@@ -1861,7 +1957,7 @@ flowchart TB
     AuthMW["middleware/auth.js<br/>cookie-first JWT auth | staff permission reload | developer support auth"]
     AuthAPI["routes/auth.js<br/>register | login | reset | staff CRUD | me"]
     SupportAPI["routes/support.js<br/>developer auth | support thread | developer inbox"]
-    InventoryAPI["routes/inventory.js<br/>stock | reports | GST | debts | overview"]
+    InventoryAPI["routes/inventory.js<br/>stock | reports | GST compare/export | debts | overview"]
     BusinessAPI["routes/business.js<br/>suppliers | purchases | repayments | expenses"]
     InvoiceAPI["routes/invoices.js<br/>invoice save | history | settlement | PDF | shop info"]
     Concurrency["utils/concurrency.js<br/>normalizers | advisory locks"]
@@ -1962,7 +2058,7 @@ flowchart TB
   Items --> Sales
   Invoices --> InvoiceItems
   Invoices -. optional settlement link .-> Debts
-  Developers --> SupportMessages
+  Developers -. sender reference only .-> SupportMessages
   SupportThreads --> SupportMessages
 ```
 
