@@ -767,9 +767,21 @@
         border-radius: 32px;
         border: 1px solid rgba(255, 255, 255, 0.82);
         background:
-          radial-gradient(circle at top left, rgba(70, 185, 230, 0.16), transparent 26%),
-          radial-gradient(circle at bottom right, rgba(36, 179, 107, 0.13), transparent 22%),
-          linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(241, 249, 255, 0.94));
+          radial-gradient(
+            circle at top left,
+            rgba(70, 185, 230, 0.16),
+            transparent 26%
+          ),
+          radial-gradient(
+            circle at bottom right,
+            rgba(36, 179, 107, 0.13),
+            transparent 22%
+          ),
+          linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.86),
+            rgba(241, 249, 255, 0.94)
+          );
         box-shadow: var(--shadow-xl);
         overflow: hidden;
       }
@@ -787,7 +799,7 @@
       .feature-slider-card,
       .access-panel-section,
       .site-footer {
-        position: relative;
+        /* position: relative; */
         z-index: 1;
         border: 1px solid rgba(255, 255, 255, 0.76);
         border-radius: 26px;
@@ -825,7 +837,11 @@
         padding: clamp(16px, 2.5vw, 26px);
         overflow: hidden;
         background:
-          linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(237, 248, 252, 0.88)),
+          linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.94),
+            rgba(237, 248, 252, 0.88)
+          ),
           rgba(255, 255, 255, 0.78);
       }
 
@@ -897,7 +913,11 @@
         border-radius: 22px;
         border: 1px solid rgba(22, 151, 208, 0.13);
         background:
-          linear-gradient(150deg, rgba(255, 255, 255, 0.96), rgba(238, 248, 252, 0.92)),
+          linear-gradient(
+            150deg,
+            rgba(255, 255, 255, 0.96),
+            rgba(238, 248, 252, 0.92)
+          ),
           #ffffff;
         box-shadow: 0 12px 28px rgba(12, 31, 59, 0.08);
       }
@@ -908,7 +928,11 @@
         display: grid;
         place-items: center;
         border-radius: 14px;
-        background: linear-gradient(135deg, rgba(36, 179, 107, 0.14), rgba(22, 151, 208, 0.14));
+        background: linear-gradient(
+          135deg,
+          rgba(36, 179, 107, 0.14),
+          rgba(22, 151, 208, 0.14)
+        );
         color: var(--sky);
       }
 
@@ -985,7 +1009,11 @@
         padding: 0;
         overflow: hidden;
         background:
-          linear-gradient(160deg, rgba(19, 72, 120, 0.11), rgba(36, 179, 107, 0.08)),
+          linear-gradient(
+            160deg,
+            rgba(19, 72, 120, 0.11),
+            rgba(36, 179, 107, 0.08)
+          ),
           rgba(255, 255, 255, 0.72);
       }
 
@@ -994,7 +1022,11 @@
         min-height: 100%;
         padding: 8px;
         border-radius: inherit;
-        background: linear-gradient(145deg, rgba(19, 72, 120, 0.94), rgba(36, 179, 107, 0.92));
+        background: linear-gradient(
+          145deg,
+          rgba(19, 72, 120, 0.94),
+          rgba(36, 179, 107, 0.92)
+        );
         box-shadow: none;
       }
 
@@ -1006,7 +1038,11 @@
         width: 132px;
         height: 78px;
         border-radius: 0 28px 0 34px;
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.56));
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.88),
+          rgba(255, 255, 255, 0.56)
+        );
         clip-path: polygon(28% 0, 100% 0, 100% 100%, 58% 100%);
       }
 
@@ -1254,7 +1290,6 @@
               <span>Clean stock, billing, report, and staff access</span>
             </span>
           </a>
-
         </header>
 
         <div class="header-card-gap" aria-hidden="true"></div>
@@ -1284,32 +1319,50 @@
                 <article class="feature-slide" data-feature-slide>
                   <i class="fa-solid fa-boxes-stacked"></i>
                   <strong>Stock entry</strong>
-                  <span>Update quantity, buying rate, selling rate, and profit defaults quickly.</span>
+                  <span
+                    >Update quantity, buying rate, selling rate, and profit
+                    defaults quickly.</span
+                  >
                 </article>
                 <article class="feature-slide" data-feature-slide>
                   <i class="fa-solid fa-file-invoice"></i>
                   <strong>Invoice billing</strong>
-                  <span>Create invoices while sales history and stock movement stay connected.</span>
+                  <span
+                    >Create invoices while sales history and stock movement stay
+                    connected.</span
+                  >
                 </article>
                 <article class="feature-slide" data-feature-slide>
                   <i class="fa-solid fa-cart-flatbed"></i>
                   <strong>Purchase flow</strong>
-                  <span>Record supplier purchases, payment status, and stock replenishment together.</span>
+                  <span
+                    >Record supplier purchases, payment status, and stock
+                    replenishment together.</span
+                  >
                 </article>
                 <article class="feature-slide" data-feature-slide>
                   <i class="fa-solid fa-chart-line"></i>
                   <strong>Sales and GST</strong>
-                  <span>Review sales reports, GST summaries, exports, and trend charts from the dashboard.</span>
+                  <span
+                    >Review sales reports, GST summaries, exports, and trend
+                    charts from the dashboard.</span
+                  >
                 </article>
                 <article class="feature-slide" data-feature-slide>
                   <i class="fa-solid fa-hand-holding-dollar"></i>
                   <strong>Due tracking</strong>
-                  <span>Follow customer balances and supplier payable work without separate registers.</span>
+                  <span
+                    >Follow customer balances and supplier payable work without
+                    separate registers.</span
+                  >
                 </article>
                 <article class="feature-slide" data-feature-slide>
                   <i class="fa-solid fa-users-gear"></i>
                   <strong>Staff page access</strong>
-                  <span>Give staff only the pages they need while the owner keeps full control.</span>
+                  <span
+                    >Give staff only the pages they need while the owner keeps
+                    full control.</span
+                  >
                 </article>
               </div>
             </div>
@@ -1327,7 +1380,11 @@
             </div>
           </section>
 
-          <section class="access-panel-section" id="access" aria-label="Quick access">
+          <section
+            class="access-panel-section"
+            id="access"
+            aria-label="Quick access"
+          >
             <div class="access-frame">
               <div class="access-card">
                 <span class="access-kicker">
@@ -2038,10 +2095,13 @@
           }
 
           const slideCount = getFeatureSlideCount();
-          featureDots.innerHTML = Array.from({ length: slideCount }, (_, index) => {
-            const active = index === featureCarousel.index;
-            return `<button type="button" class="feature-carousel__dot${active ? " is-active" : ""}" data-feature-dot="${index}" aria-label="Show feature card ${index + 1}" aria-pressed="${active ? "true" : "false"}"></button>`;
-          }).join("");
+          featureDots.innerHTML = Array.from(
+            { length: slideCount },
+            (_, index) => {
+              const active = index === featureCarousel.index;
+              return `<button type="button" class="feature-carousel__dot${active ? " is-active" : ""}" data-feature-dot="${index}" aria-label="Show feature card ${index + 1}" aria-pressed="${active ? "true" : "false"}"></button>`;
+            },
+          ).join("");
         };
 
         const setFeatureCarouselSlide = (index, options = {}) => {
@@ -2173,12 +2233,16 @@
             syncFeatureCarouselAutoplay,
           );
 
-          if (typeof prefersReducedMotionQuery.addEventListener === "function") {
+          if (
+            typeof prefersReducedMotionQuery.addEventListener === "function"
+          ) {
             prefersReducedMotionQuery.addEventListener(
               "change",
               syncFeatureCarouselAutoplay,
             );
-          } else if (typeof prefersReducedMotionQuery.addListener === "function") {
+          } else if (
+            typeof prefersReducedMotionQuery.addListener === "function"
+          ) {
             prefersReducedMotionQuery.addListener(syncFeatureCarouselAutoplay);
           }
 
