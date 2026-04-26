@@ -231,6 +231,26 @@
       color: rgba(226, 232, 240, 0.7);
     }
 
+    .sidebar__legal {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      margin-top: 10px;
+    }
+
+    .sidebar__legal a {
+      color: rgba(191, 235, 255, 0.88);
+      font-size: 11px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .sidebar__legal a:hover {
+      color: #ffffff;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
     @media (max-width: 991px) {
       #sidebarToggle {
         display: inline-flex;
@@ -305,6 +325,10 @@
           <div class="sidebar__nav" id="sidebarNav"></div>
           <div class="sidebar__footer">
             <p id="sidebarFooterText"></p>
+            <div class="sidebar__legal" aria-label="Legal links">
+              <a href="/privacy-policy.html">Privacy Policy</a>
+              <a href="/account-deletion.html">Account Deletion</a>
+            </div>
           </div>
         </aside>
       `,

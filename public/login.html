@@ -1415,8 +1415,12 @@
             Contact
           </button>
           <button type="button" class="footer-link" data-type="privacy">
-            Privacy
+            Privacy Summary
           </button>
+          <a class="footer-link" href="/privacy-policy.html">Privacy Policy</a>
+          <a class="footer-link" href="/account-deletion.html"
+            >Account Deletion</a
+          >
         </div>
         <div class="copyright">
           &copy; <span id="currentYear"></span> India Inventory Management
@@ -3606,25 +3610,25 @@
             title: "Privacy Policy",
             content: `
         <p class="footer-popup-copy">
-          We handle business data carefully and use it only to keep your account, billing records, and password recovery flow working properly.                         </p>
+          We handle business data carefully and use it only to keep your account, billing records, support, and password recovery flow working properly.                         </p>
         <div class="footer-popup-grid">
           <div class="footer-popup-card">
             <strong>Privacy essentials</strong>
             <ul>
               <li>Your account data is stored securely for product use</li>     
-              <li>We do not share your data without a valid operational reason</li>
+              <li>We do not sell your personal or business data</li>
               <li>Password reset emails may come from forgot.indiainventory@gmail.com</li>                                                                                 
             </ul>
           </div>
           <div class="footer-popup-card">
-            <strong>Good to know</strong>
-            <p>Keep your password private and log out from shared devices to protect your account.</p>                                                                    </div>
+            <strong>Full policy</strong>
+            <p>Read the full <a href="/privacy-policy.html">Privacy Policy</a> or open the <a href="/account-deletion.html">Account Deletion</a> page.</p>                                                                    </div>
         </div>
       `,
           },
         };
 
-        document.querySelectorAll(".footer-link").forEach((link) => {
+        document.querySelectorAll(".footer-link[data-type]").forEach((link) => {
           link.addEventListener("click", () => {
             openFooterPopup(link.dataset.type, link);
           });

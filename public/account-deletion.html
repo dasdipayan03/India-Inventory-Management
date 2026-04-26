@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en" data-csp-nonce="__CSP_NONCE__">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Account Deletion - India Inventory Management</title>
+    <link rel="icon" type="image/png" href="/images/app_logo.png" />
+    <link rel="apple-touch-icon" href="/images/app_logo.png" />
+    <style nonce="__CSP_NONCE__">
+      :root {
+        color-scheme: light;
+        --navy: #122744;
+        --sky: #149bd7;
+        --teal: #1fb889;
+        --ink: #15263f;
+        --muted: #60728d;
+        --line: rgba(82, 125, 177, 0.22);
+        --surface: rgba(255, 255, 255, 0.94);
+        --soft: rgba(232, 246, 252, 0.72);
+        --warning: #b45309;
+        --shadow: 0 24px 70px rgba(12, 31, 59, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family:
+          "Segoe UI Variable", "Segoe UI", Arial, Helvetica, sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(
+            circle at 0% 0%,
+            rgba(31, 184, 137, 0.16),
+            transparent 28%
+          ),
+          radial-gradient(
+            circle at 100% 0%,
+            rgba(20, 155, 215, 0.18),
+            transparent 28%
+          ),
+          linear-gradient(180deg, #eef9fd 0%, #f8fcff 52%, #edf7fc 100%);
+      }
+
+      a {
+        color: var(--sky);
+        font-weight: 800;
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+
+      .page {
+        width: min(calc(100% - 28px), 980px);
+        margin: 18px auto 42px;
+      }
+
+      .topbar,
+      .hero,
+      .card {
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(18px);
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 14px 18px;
+        border-radius: 28px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .brand img {
+        width: 50px;
+        height: 50px;
+        object-fit: contain;
+      }
+
+      .brand strong,
+      .brand span {
+        display: block;
+      }
+
+      .brand strong {
+        font-size: 15px;
+      }
+
+      .brand span {
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .pill-link,
+      .primary-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        padding: 0 16px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .pill-link {
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--navy);
+      }
+
+      .primary-link {
+        border: 0;
+        background: linear-gradient(135deg, var(--teal), var(--sky));
+        color: #ffffff;
+        box-shadow: 0 16px 34px rgba(20, 155, 215, 0.22);
+      }
+
+      .hero {
+        margin-top: 18px;
+        padding: clamp(28px, 5vw, 52px);
+        border-radius: 34px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: rgba(20, 155, 215, 0.1);
+        color: var(--sky);
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 18px 0 12px;
+        color: var(--navy);
+        font-size: clamp(34px, 6vw, 54px);
+        line-height: 1.02;
+        letter-spacing: 0;
+      }
+
+      h2 {
+        margin: 0 0 12px;
+        color: var(--navy);
+        font-size: clamp(22px, 3vw, 30px);
+        letter-spacing: 0;
+      }
+
+      p,
+      li {
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.8;
+      }
+
+      p {
+        margin: 0 0 12px;
+      }
+
+      ul,
+      ol {
+        margin: 10px 0 0;
+        padding-left: 22px;
+      }
+
+      li + li {
+        margin-top: 8px;
+      }
+
+      .actions {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 24px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        margin-top: 18px;
+      }
+
+      .card {
+        padding: clamp(22px, 4vw, 34px);
+        border-radius: 28px;
+      }
+
+      .full {
+        grid-column: 1 / -1;
+      }
+
+      .warning {
+        border-color: rgba(180, 83, 9, 0.24);
+        background: rgba(255, 251, 235, 0.88);
+      }
+
+      .warning strong {
+        color: var(--warning);
+      }
+
+      .footer {
+        margin-top: 20px;
+        padding: 20px;
+        color: var(--muted);
+        font-size: 13px;
+        text-align: center;
+      }
+
+      @media (max-width: 760px) {
+        .topbar {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .hero,
+        .card {
+          border-radius: 24px;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .page {
+          width: min(calc(100% - 18px), 980px);
+          margin-top: 9px;
+        }
+
+        .brand img {
+          width: 44px;
+          height: 44px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="topbar">
+        <a class="brand" href="/login.html" aria-label="India Inventory Management login">
+          <img src="/images/app_logo.png" alt="India Inventory Management logo" />
+          <span>
+            <strong>India Inventory Management</strong>
+            <span>Account and business data control</span>
+          </span>
+        </a>
+        <a class="pill-link" href="/privacy-policy.html">Privacy Policy</a>
+      </header>
+
+      <main>
+        <article class="hero">
+          <span class="eyebrow">Account Deletion</span>
+          <h1>Request deletion of your India Inventory Management account</h1>
+          <p>
+            Shop owners can request deletion of their owner account and related
+            business data. Staff users should contact the shop owner, because staff
+            access is managed by the owner from the Staff Access section.
+          </p>
+          <div class="actions">
+            <a
+              class="primary-link"
+              href="mailto:forgot.indiainventory@gmail.com?subject=India%20Inventory%20Management%20Account%20Deletion%20Request"
+              >Email Deletion Request</a
+            >
+            <a class="pill-link" href="/login.html">Open App</a>
+          </div>
+        </article>
+
+        <div class="grid">
+          <section class="card">
+            <h2>How to request deletion</h2>
+            <ol>
+              <li>Send an email to forgot.indiainventory@gmail.com with the subject "Account Deletion Request".</li>
+              <li>Include your registered email address, shop name, and registered mobile number.</li>
+              <li>If you can still log in, you can also open Chat Support in the app and request account deletion there.</li>
+              <li>We will verify owner access before deleting account data.</li>
+            </ol>
+          </section>
+
+          <section class="card">
+            <h2>Data usually deleted</h2>
+            <ul>
+              <li>Owner profile, email, mobile number, password hash, and Google login link.</li>
+              <li>Staff users and permission settings created under the owner account.</li>
+              <li>Stock, purchases, invoices, sales, GST records, customer dues, supplier dues, expenses, and support messages linked to the account.</li>
+            </ul>
+          </section>
+
+          <section class="card warning full">
+            <h2>Records that may be retained temporarily</h2>
+            <p>
+              Some data may remain for a limited time in backups, logs, audit
+              records, or where retention is required for legal, security, fraud
+              prevention, accounting, or dispute-resolution reasons. When retention
+              is no longer required, the data will be deleted or anonymized.
+            </p>
+          </section>
+
+          <section class="card full">
+            <h2>Expected timeline</h2>
+            <p>
+              After receiving a valid request and verifying account ownership, we
+              will process deletion as soon as reasonably possible. If extra
+              verification is needed, we may contact the registered email address
+              before deleting the account.
+            </p>
+            <p>
+              For privacy questions, read the
+              <a href="/privacy-policy.html">Privacy Policy</a> or contact us at
+              <a href="mailto:forgot.indiainventory@gmail.com"
+                >forgot.indiainventory@gmail.com</a
+              >.
+            </p>
+          </section>
+        </div>
+      </main>
+
+      <footer class="footer">
+        &copy; 2026 India Inventory Management. All rights reserved.
+      </footer>
+    </div>
+  </body>
+</html>

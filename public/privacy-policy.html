@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="en" data-csp-nonce="__CSP_NONCE__">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy Policy - India Inventory Management</title>
+    <link rel="icon" type="image/png" href="/images/app_logo.png" />
+    <link rel="apple-touch-icon" href="/images/app_logo.png" />
+    <style nonce="__CSP_NONCE__">
+      :root {
+        color-scheme: light;
+        --navy: #122744;
+        --navy-soft: #1d487a;
+        --sky: #149bd7;
+        --teal: #1fb889;
+        --ink: #15263f;
+        --muted: #60728d;
+        --line: rgba(82, 125, 177, 0.22);
+        --surface: rgba(255, 255, 255, 0.94);
+        --soft: rgba(232, 246, 252, 0.72);
+        --shadow: 0 24px 70px rgba(12, 31, 59, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family:
+          "Segoe UI Variable", "Segoe UI", Arial, Helvetica, sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(
+            circle at 0% 0%,
+            rgba(31, 184, 137, 0.16),
+            transparent 28%
+          ),
+          radial-gradient(
+            circle at 100% 0%,
+            rgba(20, 155, 215, 0.18),
+            transparent 28%
+          ),
+          linear-gradient(180deg, #eef9fd 0%, #f8fcff 52%, #edf7fc 100%);
+      }
+
+      a {
+        color: var(--sky);
+        font-weight: 800;
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+
+      .page {
+        width: min(calc(100% - 28px), 1120px);
+        margin: 18px auto 42px;
+      }
+
+      .topbar,
+      .hero,
+      .content-card,
+      .notice {
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(18px);
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 14px 18px;
+        border-radius: 28px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .brand img {
+        width: 50px;
+        height: 50px;
+        object-fit: contain;
+      }
+
+      .brand strong,
+      .brand span {
+        display: block;
+      }
+
+      .brand strong {
+        font-size: 15px;
+      }
+
+      .brand span {
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .top-actions {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+
+      .pill-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        padding: 0 14px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--navy);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .hero {
+        margin-top: 18px;
+        padding: clamp(28px, 5vw, 52px);
+        border-radius: 34px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: rgba(20, 155, 215, 0.1);
+        color: var(--sky);
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        max-width: 780px;
+        margin: 18px 0 12px;
+        color: var(--navy);
+        font-size: clamp(34px, 6vw, 58px);
+        line-height: 1.02;
+        letter-spacing: 0;
+      }
+
+      .lead {
+        max-width: 760px;
+        margin: 0;
+        color: var(--muted);
+        font-size: clamp(16px, 2vw, 18px);
+        line-height: 1.75;
+      }
+
+      .meta-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 28px;
+      }
+
+      .meta-item {
+        min-height: 96px;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      .meta-item span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .meta-item strong {
+        display: block;
+        margin-top: 8px;
+        color: var(--navy);
+        font-size: 15px;
+        line-height: 1.45;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+        gap: 18px;
+        margin-top: 18px;
+        align-items: start;
+      }
+
+      .toc,
+      .content-card {
+        border-radius: 28px;
+      }
+
+      .toc {
+        position: sticky;
+        top: 18px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.74);
+      }
+
+      .toc strong {
+        display: block;
+        margin-bottom: 12px;
+        color: var(--navy);
+      }
+
+      .toc a {
+        display: block;
+        padding: 9px 0;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .content-card {
+        padding: clamp(22px, 4vw, 38px);
+      }
+
+      section + section {
+        margin-top: 34px;
+        padding-top: 30px;
+        border-top: 1px solid var(--line);
+      }
+
+      h2 {
+        margin: 0 0 12px;
+        color: var(--navy);
+        font-size: clamp(22px, 3vw, 30px);
+        line-height: 1.15;
+        letter-spacing: 0;
+      }
+
+      h3 {
+        margin: 22px 0 8px;
+        color: var(--navy-soft);
+        font-size: 17px;
+      }
+
+      p,
+      li {
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.8;
+      }
+
+      p {
+        margin: 0 0 12px;
+      }
+
+      ul {
+        margin: 10px 0 0;
+        padding-left: 20px;
+      }
+
+      li + li {
+        margin-top: 7px;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 16px;
+      }
+
+      .info-box {
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--soft);
+      }
+
+      .info-box strong {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--navy);
+      }
+
+      .notice {
+        margin-top: 18px;
+        padding: 18px;
+        border-radius: 24px;
+        border-color: rgba(31, 184, 137, 0.28);
+        background: rgba(240, 253, 249, 0.86);
+      }
+
+      .footer {
+        margin-top: 20px;
+        padding: 20px;
+        color: var(--muted);
+        font-size: 13px;
+        text-align: center;
+      }
+
+      @media (max-width: 820px) {
+        .topbar {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .top-actions {
+          justify-content: flex-start;
+        }
+
+        .meta-grid,
+        .layout,
+        .info-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .toc {
+          position: static;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .page {
+          width: min(calc(100% - 18px), 1120px);
+          margin-top: 9px;
+        }
+
+        .hero,
+        .content-card {
+          border-radius: 24px;
+        }
+
+        .brand img {
+          width: 44px;
+          height: 44px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="topbar">
+        <a class="brand" href="/login.html" aria-label="India Inventory Management login">
+          <img src="/images/app_logo.png" alt="India Inventory Management logo" />
+          <span>
+            <strong>India Inventory Management</strong>
+            <span>Stock, billing, reports, dues, and staff access</span>
+          </span>
+        </a>
+        <nav class="top-actions" aria-label="Legal pages">
+          <a class="pill-link" href="/login.html">Login</a>
+          <a class="pill-link" href="/account-deletion.html">Account Deletion</a>
+        </nav>
+      </header>
+
+      <main>
+        <article class="hero">
+          <span class="eyebrow">Privacy Policy</span>
+          <h1>How India Inventory Management handles business data</h1>
+          <p class="lead">
+            This Privacy Policy explains what data the India Inventory Management web
+            app and Android app collect, why the data is used, how it is protected,
+            and how account deletion requests can be made.
+          </p>
+
+          <div class="meta-grid" aria-label="Policy summary">
+            <div class="meta-item">
+              <span>Effective date</span>
+              <strong>27 April 2026</strong>
+            </div>
+            <div class="meta-item">
+              <span>App covered</span>
+              <strong>India Inventory Management</strong>
+            </div>
+            <div class="meta-item">
+              <span>Privacy contact</span>
+              <strong>
+                <a href="mailto:forgot.indiainventory@gmail.com"
+                  >forgot.indiainventory@gmail.com</a
+                >
+              </strong>
+            </div>
+          </div>
+        </article>
+
+        <div class="layout">
+          <aside class="toc" aria-label="Privacy policy sections">
+            <strong>On this page</strong>
+            <a href="#overview">Overview</a>
+            <a href="#data">Data we collect</a>
+            <a href="#use">How we use data</a>
+            <a href="#sharing">Sharing and third parties</a>
+            <a href="#security">Security</a>
+            <a href="#retention">Retention and deletion</a>
+            <a href="#permissions">Device permissions</a>
+            <a href="#children">Children</a>
+            <a href="#contact">Contact</a>
+          </aside>
+
+          <div class="content-card">
+            <section id="overview">
+              <h2>1. Overview</h2>
+              <p>
+                India Inventory Management is built for shop owners and staff to
+                manage stock, sale invoices, purchase records, reports, GST review,
+                customer dues, expenses, staff access, and support conversations.
+              </p>
+              <p>
+                We use your data only to operate the app, secure accounts, provide
+                support, maintain business records, and improve reliability. We do
+                not sell personal or business data.
+              </p>
+            </section>
+
+            <section id="data">
+              <h2>2. Data We Collect</h2>
+              <div class="info-grid">
+                <div class="info-box">
+                  <strong>Account and login data</strong>
+                  <ul>
+                    <li>Owner name or shop name</li>
+                    <li>Registered email address and mobile number</li>
+                    <li>Password hash, reset token status, and session status</li>
+                    <li>Google sign-in ID, verified Google email, and profile image URL when Google login is used</li>
+                  </ul>
+                </div>
+                <div class="info-box">
+                  <strong>Business operating data</strong>
+                  <ul>
+                    <li>Stock item names, quantities, buying rates, selling rates, and low-stock information</li>
+                    <li>Purchase entries, supplier names, supplier mobile numbers, and supplier due records</li>
+                    <li>Sale invoices, invoice items, payment mode, amount paid, amount due, GST values, and invoice PDF data</li>
+                    <li>Customer names, customer mobile numbers, addresses, due ledgers, expenses, and reports</li>
+                  </ul>
+                </div>
+                <div class="info-box">
+                  <strong>Staff and access data</strong>
+                  <ul>
+                    <li>Staff username, password hash, assigned permissions, and active status</li>
+                    <li>Role-based page access for stock, invoice, reports, GST, dues, expenses, and support</li>
+                  </ul>
+                </div>
+                <div class="info-box">
+                  <strong>Support and technical data</strong>
+                  <ul>
+                    <li>Support messages sent through the in-app Chat Support feature</li>
+                    <li>Basic server logs such as request time, error details, and security events needed to keep the service reliable</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            <section id="use">
+              <h2>3. How We Use Data</h2>
+              <ul>
+                <li>To create and secure owner accounts, staff accounts, and Google sign-in sessions.</li>
+                <li>To save inventory, billing, purchase, due, expense, GST, and report records for each shop account.</li>
+                <li>To generate invoices, PDFs, reports, due ledgers, and business summaries.</li>
+                <li>To send password reset links and show important app messages.</li>
+                <li>To provide customer support and troubleshoot account or workflow issues.</li>
+                <li>To prevent misuse, protect accounts, and maintain app stability.</li>
+              </ul>
+            </section>
+
+            <section id="sharing">
+              <h2>4. Sharing and Third Parties</h2>
+              <p>
+                We do not sell your data and we do not share your business records
+                with advertisers. Data may be processed by service providers that
+                help run the app.
+              </p>
+              <ul>
+                <li>Hosting and database providers store the app and business records.</li>
+                <li>Google OAuth is used when you choose "Login with Gmail". Google handles the account chooser and Google account authentication.</li>
+                <li>Email or mail relay services may be used to send password reset messages.</li>
+                <li>Legal, security, or compliance requests may require limited disclosure when required by applicable law.</li>
+              </ul>
+              <p>
+                Google account data is also subject to Google's policies when you
+                use Google sign-in. You can review Google's Privacy Policy at
+                <a href="https://policies.google.com/privacy" rel="noopener" target="_blank"
+                  >https://policies.google.com/privacy</a
+                >.
+              </p>
+            </section>
+
+            <section id="security">
+              <h2>5. Security</h2>
+              <ul>
+                <li>Passwords are stored as password hashes, not plain text.</li>
+                <li>Production sessions use secure HTTP-only cookies where supported.</li>
+                <li>Role-based permission checks are used for staff access.</li>
+                <li>Business data is separated by account so one shop cannot access another shop's records through normal app use.</li>
+                <li>We use reasonable technical and organizational safeguards to protect personal and business data.</li>
+              </ul>
+              <div class="notice">
+                No online service can guarantee perfect security. Users should keep
+                passwords private, use trusted devices, and log out from shared devices.
+              </div>
+            </section>
+
+            <section id="retention">
+              <h2>6. Data Retention and Deletion</h2>
+              <p>
+                We keep account and business records while the account is active and
+                as long as needed for billing history, inventory records, support,
+                security, and legal or operational requirements.
+              </p>
+              <p>
+                Account deletion can be requested from the account deletion page.
+                After verification, we will delete or anonymize account data that is
+                no longer required. Some records may remain for a limited time in
+                backups, logs, or where retention is required for legal, security,
+                or dispute reasons.
+              </p>
+              <p>
+                Start here:
+                <a href="/account-deletion.html">Account Deletion Request</a>.
+              </p>
+            </section>
+
+            <section id="permissions">
+              <h2>7. Android App and Device Permissions</h2>
+              <p>
+                The Android app is a web-wrapped version of India Inventory
+                Management. It needs internet access to load the service. Google
+                sign-in may open a browser or Google account chooser and then return
+                to the app through a deep link.
+              </p>
+              <ul>
+                <li>The app does not require access to contacts, SMS, call logs, camera, microphone, or precise location for its core inventory features.</li>
+                <li>If notification permission is requested, it is used only for app-related reminders or business alerts.</li>
+                <li>The app does not process card payments or collect payment card numbers.</li>
+              </ul>
+            </section>
+
+            <section id="children">
+              <h2>8. Children</h2>
+              <p>
+                India Inventory Management is a business productivity app for shop
+                owners, staff, and authorized business users. It is not directed to
+                children.
+              </p>
+            </section>
+
+            <section id="contact">
+              <h2>9. Contact</h2>
+              <p>
+                For privacy questions, data access requests, or deletion requests,
+                contact us through in-app Chat Support or email:
+                <a href="mailto:forgot.indiainventory@gmail.com"
+                  >forgot.indiainventory@gmail.com</a
+                >.
+              </p>
+              <p>
+                Please include your registered email, shop name, and mobile number
+                so we can verify the account before making changes to account data.
+              </p>
+            </section>
+          </div>
+        </div>
+      </main>
+
+      <footer class="footer">
+        &copy; 2026 India Inventory Management. All rights reserved.
+      </footer>
+    </div>
+  </body>
+</html>

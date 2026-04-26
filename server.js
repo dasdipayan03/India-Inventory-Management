@@ -481,6 +481,14 @@ app.get("/reset.html", (req, res) => {
   sendHtmlTemplate(res, "reset.html");
 });
 
+app.get(["/privacy-policy", "/privacy-policy.html"], (req, res) => {
+  sendHtmlTemplate(res, "privacy-policy.html");
+});
+
+app.get(["/account-deletion", "/account-deletion.html"], (req, res) => {
+  sendHtmlTemplate(res, "account-deletion.html");
+});
+
 app.get("/developer-login", (req, res) => {
   sendHtmlTemplate(res, "developer-login.html");
 });
