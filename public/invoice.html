@@ -85,8 +85,9 @@
       .page {
         position: relative;
         z-index: 1;
-        width: min(1420px, calc(100% - 358px));
-        margin: 20px 18px 36px 322px;
+        width: min(1320px, calc(100% - 378px));
+        margin: 20px 28px 36px
+          calc(322px + max(28px, (100vw - 1642px) / 2));
       }
 
       .grid {
