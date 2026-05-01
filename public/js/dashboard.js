@@ -27,6 +27,11 @@ const state = {
   dueSummaryOutstanding: 0,
   supplierLedgerMode: "empty",
   currentSupplierId: null,
+  currentPurchaseSupplierSnapshot: {
+    name: "",
+    mobile_number: "",
+    address: "",
+  },
   currentPurchaseDetailId: null,
   currentPurchaseDetailSupplierId: null,
   currentPurchaseDetail: null,
@@ -2375,6 +2380,14 @@ function getPurchasePaymentSnapshot(subtotalValue = null) {
   };
 }
 
+function updatePurchaseSupplierSnapshot() {
+  state.currentPurchaseSupplierSnapshot = {
+    name: dom.supplierName?.value.trim() || "",
+    mobile_number: normalizeMobileNumber(dom.supplierNumber?.value || ""),
+    address: dom.supplierAddress?.value.trim() || "",
+  };
+}
+
 function updatePurchaseSummary() {
   const rows = purchaseRows();
   const subtotal = rows.reduce((sum, row) => {
@@ -2776,20 +2789,37 @@ function renderSupplierDropdown(listEl, suppliers, onSelect) {
   }
 
   listEl.innerHTML = suppliers
-    .map(
-      (supplier) => `
+    .map((supplier) => {
+      const mobile = supplier.mobile_number || "";
+      const address = supplier.address || "";
+      const meta = [
+        mobile ? `<span><i class="fa-solid fa-phone"></i> ${escapeHtml(mobile)}</span>` : "",
+        address
+          ? `<span><i class="fa-solid fa-location-dot"></i> ${escapeHtml(address)}</span>`
+          : "",
+      ]
+        .filter(Boolean)
+        .join("");
+
+      return `
         <div
-          class="dropdown-item"
+          class="dropdown-item supplier-dropdown-item"
           data-id="${supplier.id}"
           data-name="${encodeURIComponent(supplier.name || "")}"
           data-mobile="${encodeURIComponent(supplier.mobile_number || "")}"
           data-address="${encodeURIComponent(supplier.address || "")}"
         >
-          ${escapeHtml(supplier.name || "Supplier")}
-          ${supplier.mobile_number ? ` - ${escapeHtml(supplier.mobile_number)}` : ""}
+          <div class="supplier-dropdown-item__name">
+            ${escapeHtml(supplier.name || "Supplier")}
+          </div>
+          ${
+            meta
+              ? `<div class="supplier-dropdown-item__meta">${meta}</div>`
+              : '<div class="supplier-dropdown-item__meta"><span>No mobile or address saved</span></div>'
+          }
         </div>
-      `,
-    )
+      `;
+    })
     .join("");
 
   showElement(listEl);
@@ -6687,6 +6717,7 @@ function bindPurchaseEvents() {
       dom.supplierName.value = supplier.name || "";
       dom.supplierNumber.value = supplier.mobile_number || "";
       dom.supplierAddress.value = supplier.address || "";
+      updatePurchaseSupplierSnapshot();
       updatePurchaseSummary();
     });
   }, 180);

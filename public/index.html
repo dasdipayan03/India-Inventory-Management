@@ -814,6 +814,10 @@
         margin-top: 16px;
       }
 
+      .panel-card--purchase-entry {
+        overflow: visible;
+      }
+
       .panel-card--highlight {
         color: #e2edf9;
         background:
@@ -1456,6 +1460,33 @@
 
       .dropdown-item:hover {
         background: rgba(14, 165, 233, 0.08);
+      }
+
+      .supplier-dropdown-item {
+        display: grid;
+        gap: 5px;
+      }
+
+      .supplier-dropdown-item__name {
+        color: var(--ink-main);
+        font-size: 13px;
+        font-weight: 800;
+        line-height: 1.25;
+      }
+
+      .supplier-dropdown-item__meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 10px;
+        color: var(--muted);
+        font-size: 11.5px;
+        font-weight: 700;
+        line-height: 1.35;
+      }
+
+      .supplier-dropdown-item__meta span {
+        min-width: 0;
+        overflow-wrap: anywhere;
       }
 
       .table-responsive {
@@ -4019,7 +4050,7 @@
 
         <div id="purchaseEntrySection" class="form-section">
           <div class="section-grid">
-            <section class="panel-card panel-card--surface">
+            <section class="panel-card panel-card--surface panel-card--purchase-entry">
               <div class="panel-card__header">
                 <div>
                   <span class="panel-kicker">Purchase Flow</span>
