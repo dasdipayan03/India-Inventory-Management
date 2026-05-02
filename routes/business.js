@@ -555,6 +555,70 @@ router.get(
 );
 
 router.get(
+  "/purchases/product-history",
+  requirePermission("purchase_entry"),
+  async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const itemName = normalizeDisplayText(req.query.item_name);
+
+      if (!itemName) {
+        return res.status(400).json({ error: "Product name is required." });
+      }
+
+      const result = await pool.query(
+        `
+        SELECT
+          pi.id,
+          pi.purchase_id,
+          pi.item_name,
+          pi.quantity,
+          pi.buying_rate,
+          pi.selling_rate,
+          pi.line_total,
+          p.bill_no,
+          p.purchase_date,
+          p.payment_status,
+          s.id AS supplier_id,
+          s.name AS supplier_name,
+          s.mobile_number AS supplier_number
+        FROM purchase_items pi
+        JOIN purchases p
+          ON p.id = pi.purchase_id
+        JOIN suppliers s
+          ON s.id = p.supplier_id
+        WHERE p.user_id = $1
+          AND (
+            LOWER(TRIM(pi.item_name)) = LOWER(TRIM($2))
+            OR pi.item_name ILIKE $3
+          )
+        ORDER BY
+          CASE
+            WHEN LOWER(TRIM(pi.item_name)) = LOWER(TRIM($2)) THEN 0
+            ELSE 1
+          END,
+          p.purchase_date DESC,
+          pi.id DESC
+        LIMIT 100
+      `,
+        [userId, itemName, `%${itemName}%`],
+      );
+
+      res.json({
+        success: true,
+        item_name: itemName,
+        rows: result.rows,
+      });
+    } catch (error) {
+      console.error("Product purchase history error:", error);
+      res
+        .status(500)
+        .json({ error: "Failed to load product purchase history" });
+    }
+  },
+);
+
+router.get(
   "/purchases/:purchaseId",
   requirePermission("purchase_entry"),
   async (req, res) => {

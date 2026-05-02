@@ -4517,6 +4517,115 @@
               </div>
             </section>
           </section>
+
+          <section class="panel-card panel-card--surface">
+            <div class="panel-heading">
+              <div>
+                <span class="panel-kicker">Product Purchase History</span>
+                <h4>Track supplier buying history by item</h4>
+              </div>
+              <div class="panel-card__icon">
+                <i class="fa-solid fa-box-open"></i>
+              </div>
+            </div>
+
+            <div class="row g-3 align-items-end">
+              <div class="col-lg-8">
+                <label class="form-label small">Product Name</label>
+                <div class="position-relative">
+                  <input
+                    id="productPurchaseSearchInput"
+                    type="text"
+                    class="form-control"
+                    placeholder="Search product name from purchase items"
+                    autocomplete="off"
+                  />
+                  <div
+                    id="productPurchaseSearchDropdown"
+                    class="dropdown-list"
+                    hidden
+                  ></div>
+                </div>
+              </div>
+              <div class="col-6 col-lg-2">
+                <button
+                  id="loadProductPurchaseHistoryBtn"
+                  class="btn btn-primary w-100"
+                  type="button"
+                >
+                  <i class="fa-solid fa-magnifying-glass-chart"></i>
+                  Search
+                </button>
+              </div>
+              <div class="col-6 col-lg-2">
+                <button
+                  id="clearProductPurchaseHistoryBtn"
+                  class="btn btn-secondary w-100"
+                  type="button"
+                >
+                  <i class="fa-solid fa-eraser"></i>
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            <div id="productPurchaseHistorySummary" class="summary-strip mt-4">
+              <span class="summary-pill">
+                <i class="fa-solid fa-circle-info"></i>
+                Search a product to view previous supplier purchase rates.
+              </span>
+            </div>
+
+            <div class="table-responsive mobile-table-wrap mt-3">
+              <table
+                class="table table-sm text-center align-middle dashboard-table dashboard-table--purchase-detail"
+              >
+                <thead>
+                  <tr>
+                    <th>
+                      <span class="table-label-full">Date</span>
+                      <span class="table-label-compact">Date</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Product</span>
+                      <span class="table-label-compact">Product</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Supplier</span>
+                      <span class="table-label-compact">Supplier</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Bill No</span>
+                      <span class="table-label-compact">Bill</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Qty</span>
+                      <span class="table-label-compact">Qty</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Buy Rate</span>
+                      <span class="table-label-compact">Buy</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Sell Rate</span>
+                      <span class="table-label-compact">Sell</span>
+                    </th>
+                    <th>
+                      <span class="table-label-full">Line Total</span>
+                      <span class="table-label-compact">Total</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="productPurchaseHistoryBody">
+                  <tr>
+                    <td colspan="8" class="text-muted">
+                      Search a product to show its purchase history.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
         </div>
 
         <div id="itemReportSection" class="form-section">

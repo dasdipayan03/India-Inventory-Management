@@ -11,6 +11,7 @@ const state = {
   itemNameLookup: new Map(),
   currentItemReportRows: [],
   currentPurchaseRows: [],
+  currentProductPurchaseHistoryRows: [],
   currentSalesRows: [],
   currentGstRows: [],
   currentGstCompare: null,
@@ -608,6 +609,24 @@ function cacheElements() {
     purchaseRepayNote: document.getElementById("purchaseRepayNote"),
     submitPurchaseRepaymentBtn: document.getElementById(
       "submitPurchaseRepaymentBtn",
+    ),
+    productPurchaseSearchInput: document.getElementById(
+      "productPurchaseSearchInput",
+    ),
+    productPurchaseSearchDropdown: document.getElementById(
+      "productPurchaseSearchDropdown",
+    ),
+    loadProductPurchaseHistoryBtn: document.getElementById(
+      "loadProductPurchaseHistoryBtn",
+    ),
+    clearProductPurchaseHistoryBtn: document.getElementById(
+      "clearProductPurchaseHistoryBtn",
+    ),
+    productPurchaseHistorySummary: document.getElementById(
+      "productPurchaseHistorySummary",
+    ),
+    productPurchaseHistoryBody: document.getElementById(
+      "productPurchaseHistoryBody",
     ),
     itemReportSearch: document.getElementById("itemReportSearch"),
     itemReportDropdown: document.getElementById("itemReportDropdown"),
@@ -3023,6 +3042,182 @@ async function loadPurchaseReport(options = {}) {
           "error",
           "Purchase report unavailable",
           error.message || "Could not load purchase history right now.",
+          { autoClose: false },
+        );
+      }
+    },
+  );
+}
+
+function resetProductPurchaseHistory() {
+  if (dom.productPurchaseSearchInput) {
+    dom.productPurchaseSearchInput.value = "";
+  }
+
+  if (dom.productPurchaseSearchDropdown) {
+    hideElement(dom.productPurchaseSearchDropdown);
+  }
+
+  state.currentProductPurchaseHistoryRows = [];
+
+  if (dom.productPurchaseHistorySummary) {
+    dom.productPurchaseHistorySummary.innerHTML = `
+      <span class="summary-pill">
+        <i class="fa-solid fa-circle-info"></i>
+        Search a product to view previous supplier purchase rates.
+      </span>
+    `;
+  }
+
+  if (dom.productPurchaseHistoryBody) {
+    dom.productPurchaseHistoryBody.innerHTML = `
+      <tr>
+        <td colspan="8" class="text-muted">
+          Search a product to show its purchase history.
+        </td>
+      </tr>
+    `;
+  }
+}
+
+function renderProductPurchaseHistory(rows, productName) {
+  if (!dom.productPurchaseHistoryBody || !dom.productPurchaseHistorySummary) {
+    return;
+  }
+
+  if (!rows.length) {
+    dom.productPurchaseHistorySummary.innerHTML = `
+      <span class="summary-pill">
+        <i class="fa-solid fa-box-open"></i>
+        ${escapeHtml(productName || "Product")}
+      </span>
+      <span class="summary-pill">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        No purchase rows found.
+      </span>
+    `;
+    dom.productPurchaseHistoryBody.innerHTML = `
+      <tr>
+        <td colspan="8" class="text-muted">
+          No purchase history found for this product.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const totalQuantity = rows.reduce(
+    (sum, row) => sum + (Number(row.quantity) || 0),
+    0,
+  );
+  const totalAmount = rows.reduce(
+    (sum, row) => sum + (Number(row.line_total) || 0),
+    0,
+  );
+  const latestRate = Number(rows[0]?.buying_rate) || 0;
+
+  dom.productPurchaseHistorySummary.innerHTML = `
+    <span class="summary-pill">
+      <i class="fa-solid fa-box-open"></i>
+      ${escapeHtml(productName || rows[0]?.item_name || "Product")}
+    </span>
+    <span class="summary-pill">
+      <i class="fa-solid fa-list-ol"></i>
+      ${formatCount(rows.length)} purchase rows
+    </span>
+    <span class="summary-pill">
+      <i class="fa-solid fa-cubes-stacked"></i>
+      ${formatNumber(totalQuantity)} units
+    </span>
+    <span class="summary-pill">
+      <i class="fa-solid fa-indian-rupee-sign"></i>
+      Latest buy ${formatCurrency(latestRate)}
+    </span>
+    <span class="summary-pill">
+      <i class="fa-solid fa-sack-dollar"></i>
+      Total ${formatCurrency(totalAmount)}
+    </span>
+  `;
+
+  dom.productPurchaseHistoryBody.innerHTML = "";
+  rows.forEach((row) => {
+    const tr = document.createElement("tr");
+    tr.className = "interactive-row";
+    tr.dataset.purchaseId = String(row.purchase_id || "");
+    tr.innerHTML = `
+      <td data-label="Date">${formatDate(row.purchase_date)}</td>
+      <td data-label="Product">${escapeHtml(row.item_name || "-")}</td>
+      <td data-label="Supplier">${escapeHtml(row.supplier_name || "-")}</td>
+      <td data-label="Bill">
+        <div class="table-primary-copy">${escapeHtml(row.bill_no || `Purchase #${row.purchase_id}`)}</div>
+        <div class="table-row-hint">
+          <i class="fa-solid fa-eye"></i>
+          Open bill detail
+        </div>
+      </td>
+      <td data-label="Qty">${formatNumber(row.quantity)}</td>
+      <td data-label="Buy">${formatCurrencyValue(row.buying_rate)}</td>
+      <td data-label="Sell">${formatCurrencyValue(row.selling_rate)}</td>
+      <td data-label="Total">${formatCurrencyValue(row.line_total)}</td>
+    `;
+    dom.productPurchaseHistoryBody.appendChild(tr);
+  });
+
+  dom.productPurchaseHistoryBody
+    .querySelectorAll("[data-purchase-id]")
+    .forEach((row) => {
+      row.addEventListener("click", () => {
+        const purchaseId = Number(row.dataset.purchaseId || "0");
+        if (purchaseId > 0) {
+          openPurchaseDetail(purchaseId);
+        }
+      });
+    });
+}
+
+async function loadProductPurchaseHistory(options = {}) {
+  const productName = dom.productPurchaseSearchInput?.value.trim() || "";
+
+  if (!productName) {
+    showPopup("error", "Product required", "Search or enter a product name first.");
+    dom.productPurchaseSearchInput?.focus();
+    return;
+  }
+
+  const task = async () => {
+    const data = await fetchJSON(
+      `/purchases/product-history?item_name=${encodeURIComponent(productName)}`,
+    );
+    state.currentProductPurchaseHistoryRows = Array.isArray(data.rows)
+      ? data.rows
+      : [];
+    renderProductPurchaseHistory(
+      state.currentProductPurchaseHistoryRows,
+      data.item_name || productName,
+    );
+  };
+
+  if (options.silent) {
+    try {
+      await task();
+    } catch (error) {
+      console.error("Product purchase history load failed:", error);
+    }
+    return;
+  }
+
+  await withButtonState(
+    dom.loadProductPurchaseHistoryBtn,
+    '<i class="fa-solid fa-spinner fa-spin"></i> Searching...',
+    async () => {
+      try {
+        await task();
+      } catch (error) {
+        console.error("Product purchase history load failed:", error);
+        showPopup(
+          "error",
+          "History unavailable",
+          error.message || "Could not load this product purchase history.",
           { autoClose: false },
         );
       }
@@ -6884,6 +7079,31 @@ function bindPurchaseEvents() {
   dom.showAllSupplierSummaryBtn.addEventListener("click", () => {
     setPurchaseWorkspaceView("supplier");
     showAllSupplierSummary();
+  });
+
+  setupFilterInput(
+    dom.productPurchaseSearchInput,
+    dom.productPurchaseSearchDropdown,
+    (value) => {
+      dom.productPurchaseSearchInput.value = value;
+      loadProductPurchaseHistory();
+    },
+  );
+
+  dom.productPurchaseSearchInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      hideElement(dom.productPurchaseSearchDropdown);
+      loadProductPurchaseHistory();
+    }
+  });
+
+  dom.loadProductPurchaseHistoryBtn.addEventListener("click", () =>
+    loadProductPurchaseHistory(),
+  );
+  dom.clearProductPurchaseHistoryBtn.addEventListener("click", () => {
+    triggerButtonFeedback(dom.clearProductPurchaseHistoryBtn);
+    resetProductPurchaseHistory();
   });
 }
 
