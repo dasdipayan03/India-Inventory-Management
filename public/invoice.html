@@ -624,6 +624,11 @@
         gap: 4px;
       }
 
+      .dropdown-item--customer {
+        display: grid;
+        gap: 5px;
+      }
+
       .dropdown-item__title {
         color: var(--ink);
         font-size: 13px;
@@ -635,6 +640,10 @@
         color: var(--muted);
         font-size: 11px;
         line-height: 1.5;
+      }
+
+      .dropdown-item__meta span {
+        overflow-wrap: anywhere;
       }
 
       .stock {
@@ -2020,11 +2029,15 @@
             <div class="field-grid">
               <div class="field">
                 <label for="custName">Customer Name</label>
-                <input
-                  id="custName"
-                  class="input"
-                  placeholder="Enter customer name"
-                />
+                <div class="dropdown-wrap">
+                  <input
+                    id="custName"
+                    class="input"
+                    placeholder="Enter customer name"
+                    autocomplete="off"
+                  />
+                  <div id="customerDropdown" class="dropdown-list" hidden></div>
+                </div>
               </div>
               <div class="field">
                 <label for="custContact">Contact Number</label>
@@ -2609,6 +2622,7 @@
           custName: $("custName"),
           custContact: $("custContact"),
           custAddress: $("custAddress"),
+          customerDropdown: $("customerDropdown"),
           itemsTbody: $("itemsTbody"),
           addItemBtn: $("addItemBtn"),
           subtotal: $("subtotal"),
@@ -3298,6 +3312,100 @@
             onSelect(decodeURIComponent(node.dataset.value || ""));
             hideElement(host);
           };
+        };
+
+        const loadCustomerSuggestions = async (query) => {
+          const value = String(query || "").trim();
+          if (!value) return [];
+
+          try {
+            const res = await authFetch(
+              `${API_PREFIX}/invoices/customers?q=${encodeURIComponent(value)}&limit=12`,
+              {
+                cache: "no-store",
+              },
+            );
+            const data = res && res.ok ? await res.json() : null;
+            return Array.isArray(data?.customers) ? data.customers : [];
+          } catch (error) {
+            console.error("Customer suggestions load failed:", error);
+            return [];
+          }
+        };
+
+        const renderCustomerDropdown = (customers) => {
+          if (!dom.customerDropdown) return;
+
+          if (!customers.length) {
+            dom.customerDropdown.innerHTML = "";
+            dom.customerDropdown.onpointerdown = null;
+            hideElement(dom.customerDropdown);
+            return;
+          }
+
+          dom.customerDropdown.innerHTML = customers
+            .map((customer) => {
+              const name = customer.customer_name || "Customer";
+              const contact = customer.contact || "";
+              const address = customer.address || "";
+              const meta = [
+                contact
+                  ? `<span><i class="fa-solid fa-phone"></i> ${escapeHtml(contact)}</span>`
+                  : "",
+                address
+                  ? `<span><i class="fa-solid fa-location-dot"></i> ${escapeHtml(address)}</span>`
+                  : "",
+              ]
+                .filter(Boolean)
+                .join(" ");
+
+              return `
+                <div
+                  class="dropdown-item dropdown-item--customer"
+                  data-name="${encodeURIComponent(name)}"
+                  data-contact="${encodeURIComponent(contact)}"
+                  data-address="${encodeURIComponent(address)}"
+                >
+                  <span class="dropdown-item__title">${escapeHtml(name)}</span>
+                  <span class="dropdown-item__meta">${
+                    meta || "No contact or address saved"
+                  }</span>
+                </div>
+              `;
+            })
+            .join("");
+
+          showElement(dom.customerDropdown);
+          dom.customerDropdown.onpointerdown = (event) => {
+            const node = event.target.closest(".dropdown-item--customer");
+            if (!node || !dom.customerDropdown.contains(node)) return;
+
+            event.preventDefault();
+            dom.custName.value = decodeURIComponent(node.dataset.name || "");
+            dom.custContact.value = decodeURIComponent(
+              node.dataset.contact || "",
+            );
+            dom.custAddress.value = decodeURIComponent(
+              node.dataset.address || "",
+            );
+            [dom.custName, dom.custContact, dom.custAddress].forEach((input) =>
+              input.classList.remove("invalid"),
+            );
+            hideElement(dom.customerDropdown);
+            queueDraft();
+          };
+        };
+
+        const showCustomerSuggestions = async () => {
+          const query = dom.custName.value.trim();
+          if (!query) {
+            renderCustomerDropdown([]);
+            return;
+          }
+
+          const customers = await loadCustomerSuggestions(query);
+          if (dom.custName.value.trim() !== query) return;
+          renderCustomerDropdown(customers);
         };
 
         const renderInvoiceSuggestionDropdown = (
@@ -4516,12 +4624,30 @@
             ),
           );
 
+        const queueCustomerSuggestionLoad = debounce(() => {
+          void showCustomerSuggestions();
+        }, 180);
+
         [dom.custName, dom.custContact, dom.custAddress].forEach((input) =>
           input.addEventListener("input", () => {
             input.classList.remove("invalid");
             queueDraft();
           }),
         );
+
+        dom.custName.addEventListener("input", () => {
+          queueCustomerSuggestionLoad();
+        });
+
+        dom.custName.addEventListener("focus", () => {
+          queueCustomerSuggestionLoad();
+        });
+
+        dom.custName.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            hideElement(dom.customerDropdown);
+          }
+        });
 
         dom.paymentMode.addEventListener("change", () => {
           updatePaymentPreview();

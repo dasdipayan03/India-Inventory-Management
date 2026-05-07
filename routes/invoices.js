@@ -683,6 +683,73 @@ router.get(
   },
 );
 
+router.get(
+  "/invoices/customers",
+  authMiddleware,
+  requirePermission("sale_invoice"),
+  async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const rawQuery = String(req.query.q || "").trim();
+      const normalizedQuery = normalizeLookupText(rawQuery);
+      const numericQuery = normalizeMobileNumber(rawQuery);
+      const limit = Math.min(
+        Math.max(Number.parseInt(req.query.limit, 10) || 12, 1),
+        20,
+      );
+
+      if (!rawQuery) {
+        return res.json({ success: true, customers: [] });
+      }
+
+      const params = [userId, `%${normalizedQuery}%`];
+      const filters = [
+        "LOWER(TRIM(COALESCE(i.customer_name, ''))) LIKE $2",
+      ];
+
+      if (numericQuery) {
+        params.push(`%${numericQuery}%`);
+        filters.push(`COALESCE(i.contact, '') LIKE $3`);
+      }
+
+      const { rows } = await pool.query(
+        `
+          SELECT DISTINCT ON (
+            LOWER(TRIM(COALESCE(i.customer_name, ''))),
+            COALESCE(i.contact, '')
+          )
+            COALESCE(i.customer_name, '') AS customer_name,
+            COALESCE(i.contact, '') AS contact,
+            COALESCE(i.address, '') AS address,
+            i.date AS last_invoice_date
+          FROM invoices i
+          WHERE i.user_id = $1
+            AND COALESCE(i.customer_name, '') <> ''
+            AND (${filters.join(" OR ")})
+          ORDER BY
+            LOWER(TRIM(COALESCE(i.customer_name, ''))),
+            COALESCE(i.contact, ''),
+            i.date DESC,
+            i.id DESC
+          LIMIT ${limit}
+        `,
+        params,
+      );
+
+      res.json({
+        success: true,
+        customers: rows,
+      });
+    } catch (error) {
+      console.error("Invoice customer suggestions fetch error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Could not load customer suggestions.",
+      });
+    }
+  },
+);
+
 /* ---------------------- GET: All Invoices List ---------------------- */
 router.get(
   "/invoices",
