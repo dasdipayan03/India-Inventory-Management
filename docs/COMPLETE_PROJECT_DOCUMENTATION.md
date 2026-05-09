@@ -1,6 +1,6 @@
 # India Inventory Management Documentation
 
-Last verified against this repository: `2026-05-07`
+Last verified against this repository: `2026-05-09`
 
 This is the single merged documentation file for the project. It replaces the earlier split project doc and database schema doc.
 
@@ -37,12 +37,16 @@ This document is meant to be the current source of truth for:
 Important current-state notes:
 
 - Authentication is cookie-based. The frontend uses `credentials: "include"` and bootstraps sessions through `/api/auth/me`.
+- Owner auth now supports password login, staff login, and Google OAuth. Google sign-in has web callbacks, Android deep-link transfer, and a first-time onboarding step that collects shop name and mobile number.
 - Developer support authentication is also cookie-based through `/api/developer-auth/*`; the browser no longer stores a readable developer JWT in session storage.
 - `localStorage` is still used for UI state and invoice draft storage, but not as the primary auth token store.
 - HTML pages are served through [`server.js`](../server.js), which injects a CSP nonce into inline scripts and styles.
 - Database schema truth comes from the SQL files in [`migrations/`](../migrations) plus runtime compatibility patches in [`db.js`](../db.js).
 - The app now includes an owner/staff support chat plus dedicated developer support login and inbox pages backed by [`../routes/support.js`](../routes/support.js).
 - Runtime health and readiness now expose structured JSON payloads through `/health`, `/api/health`, `/healthz`, `/ready`, `/readyz`, `/live`, and `/livez`.
+- Owner-only ops endpoints now expose in-process metrics, DB overview, response-cache stats, export-queue stats, and background-job status through [`../routes/ops.js`](../routes/ops.js).
+- PDF/Excel export requests can run asynchronously when the frontend adds `_async_export=1`; jobs are stored in the in-memory export queue and downloaded through [`../routes/exports.js`](../routes/exports.js).
+- Frequently read JSON endpoints now use short owner-scoped response caching and pagination metadata helpers where list size can grow.
 - Structured runtime logs now redact password, token, authorization, cookie, and access-key fields before emitting JSON.
 - Deployment healthcheck and start-command defaults are now pinned in [`../railway.json`](../railway.json), and lifecycle/request logging is centralized through [`../utils/runtime-log.js`](../utils/runtime-log.js).
 - The Add Stock card in [`../public/index.html`](../public/index.html) has a side-by-side Clear action. Its reset logic lives in [`../public/js/dashboard.js`](../public/js/dashboard.js), clears item, quantity, buying rate, selling rate, dropdown state, and previous-rate preview, and intentionally keeps `Profit %` unchanged.
@@ -56,6 +60,7 @@ This is a Node.js + Express + PostgreSQL business app for a shop owner.
 Main business modules:
 
 - owner registration and login
+- Google owner sign-in with shop-profile onboarding for new Google accounts
 - staff login with page-level permissions
 - owner/staff support chat with a developer inbox
 - developer support account registration and login
@@ -67,6 +72,8 @@ Main business modules:
 - invoice customer lookup/autofill from existing saved invoices
 - customer due ledger
 - sales, stock, and GST reports
+- queued PDF/Excel export delivery for long-running downloads
+- owner-only ops metrics and background cleanup status
 - expense tracking and net profit visibility
 
 The system is owner-centric:
@@ -86,14 +93,18 @@ The system is owner-centric:
 - JWT via `jsonwebtoken`
 - `bcrypt` for password hashing
 - `helmet`, `cors`, `cookie-parser`, `compression`, `express-rate-limit`
+- optional `MAIL_RELAY_URL` / `MAIL_RELAY_KEY` reset-email relay, called with Node `fetch`
 - `pdfkit` for PDF generation
 - `exceljs` for Excel export
+- native `fetch` from Node 18+ for Google OAuth calls and internal queued-export downloads
 
 ### Deployment and runtime
 
 - Railway config-as-code via [`../railway.json`](../railway.json)
 - structured JSON lifecycle logging via [`../utils/runtime-log.js`](../utils/runtime-log.js)
 - health/readiness/liveness endpoints emitted by [`../server.js`](../server.js)
+- owner-only monitoring and background-job status via [`../routes/ops.js`](../routes/ops.js)
+- short-lived in-memory response cache and export queue helpers via [`../utils/cache.js`](../utils/cache.js) and [`../utils/export-queue.js`](../utils/export-queue.js)
 - current Railway defaults in repo:
   - start command: `node --max-old-space-size=256 server.js`
   - healthcheck path: `/health`
@@ -118,39 +129,52 @@ The system is owner-centric:
 
 ## 4. Repository Map
 
-| Path                                 | Purpose                                                                                                  |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| [`../server.js`](../server.js)       | app bootstrap, middleware, request logging, health/readiness routes, and HTML serving                    |
-| [`../db.js`](../db.js)               | PostgreSQL pool setup, readiness state, and schema compatibility patches                                 |
-| [`../railway.json`](../railway.json) | Railway deployment config: start command, healthcheck path, timeout, restart policy                      |
-| [`../middleware/`](../middleware)    | auth and access control middleware                                                                       |
-| [`../routes/`](../routes)            | route files grouped by business domain                                                                   |
-| [`../public/`](../public)            | HTML pages, frontend JS, images                                                                          |
-| [`../utils/`](../utils)              | shared backend helpers such as advisory locking and structured runtime logging                           |
-| [`../migrations/`](../migrations)    | SQL schema and migration history                                                                         |
-| [`../docs/`](.)                      | project documentation, including this merged file, the detailed flow chart, and the public marketing kit |
+| Path                                  | Purpose                                                                                                |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| [`../server.js`](../server.js)        | app bootstrap, middleware, request logging, health/readiness routes, and HTML serving                  |
+| [`../db.js`](../db.js)                | PostgreSQL pool setup, readiness state, and schema compatibility patches                               |
+| [`../railway.json`](../railway.json)  | Railway deployment config: start command, healthcheck path, timeout, restart policy                    |
+| [`../middleware/`](../middleware)     | auth and access control middleware                                                                     |
+| [`../routes/`](../routes)             | route files grouped by business domain                                                                 |
+| [`../repositories/`](../repositories) | small DB reader modules used by operational endpoints                                                  |
+| [`../public/`](../public)             | HTML pages, frontend JS, images                                                                        |
+| [`../utils/`](../utils)               | shared backend helpers such as advisory locking, caching, export jobs, metrics, and structured logging |
+| [`../migrations/`](../migrations)     | SQL schema and migration history                                                                       |
+| [`../docs/`](.)                       | project documentation, including this merged file and the detailed flow chart                          |
 
 ### Key backend files
 
-| File                                                 | Role                                                                                                       |
-| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| [`../server.js`](../server.js)                       | Express entrypoint, request logging, CSP nonce injection, CORS policy, health/debug routes, static serving |
-| [`../db.js`](../db.js)                               | DB connection pool, readiness state, SSL selection, startup schema patching                                |
-| [`../middleware/auth.js`](../middleware/auth.js)     | JWT verification, role resolution, permission checks                                                       |
-| [`../routes/auth.js`](../routes/auth.js)             | register/login/logout, forgot/reset password, staff management, `/me`                                      |
-| [`../routes/support.js`](../routes/support.js)       | developer auth, owner/staff support chat, developer inbox, conversation status updates                     |
-| [`../routes/inventory.js`](../routes/inventory.js)   | stock defaults/entry, stock reports, sales reports, GST compare/export, dashboard overview, customer dues  |
-| [`../routes/business.js`](../routes/business.js)     | suppliers, purchases, product purchase history, purchase repayment, expenses                               |
-| [`../routes/invoices.js`](../routes/invoices.js)     | invoice numbering, invoice save, customer suggestions, history, payment settlement, PDF, shop info         |
-| [`../utils/concurrency.js`](../utils/concurrency.js) | normalization helpers and owner-scoped advisory locks                                                      |
-| [`../utils/runtime-log.js`](../utils/runtime-log.js) | structured JSON log serializer used by server and DB lifecycle logging                                     |
-| [`../railway.json`](../railway.json)                 | Railway config-as-code for runtime start and healthcheck defaults                                          |
+| File                                                                     | Role                                                                                                       |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| [`../server.js`](../server.js)                                           | Express entrypoint, request logging, CSP nonce injection, CORS policy, health/debug routes, static serving |
+| [`../db.js`](../db.js)                                                   | DB connection pool, readiness state, SSL selection, startup schema patching                                |
+| [`../middleware/auth.js`](../middleware/auth.js)                         | JWT verification, role resolution, permission checks                                                       |
+| [`../middleware/cache.js`](../middleware/cache.js)                       | owner-scoped short TTL JSON response cache middleware                                                      |
+| [`../middleware/export-queue.js`](../middleware/export-queue.js)         | async export middleware for queued PDF/Excel downloads                                                     |
+| [`../routes/auth.js`](../routes/auth.js)                                 | register/login/logout, Google OAuth, forgot/reset password, staff management, `/me`                        |
+| [`../routes/support.js`](../routes/support.js)                           | developer auth, owner/staff support chat, developer inbox, conversation status updates                     |
+| [`../routes/exports.js`](../routes/exports.js)                           | export job status and authenticated download endpoints                                                     |
+| [`../routes/ops.js`](../routes/ops.js)                                   | owner-only monitoring metrics and background cleanup endpoints                                             |
+| [`../routes/inventory.js`](../routes/inventory.js)                       | stock defaults/entry, stock reports, sales reports, GST compare/export, dashboard overview, customer dues  |
+| [`../routes/business.js`](../routes/business.js)                         | suppliers, purchases, product purchase history, purchase repayment, expenses                               |
+| [`../routes/invoices.js`](../routes/invoices.js)                         | invoice numbering, invoice save, customer suggestions, history, payment settlement, PDF, shop info         |
+| [`../repositories/ops-repository.js`](../repositories/ops-repository.js) | database overview query used by ops metrics                                                                |
+| [`../utils/background-jobs.js`](../utils/background-jobs.js)             | periodic cache/export cleanup and heartbeat logging                                                        |
+| [`../utils/cache.js`](../utils/cache.js)                                 | in-memory TTL cache plus owner-cache invalidation helpers                                                  |
+| [`../utils/concurrency.js`](../utils/concurrency.js)                     | normalization helpers and owner-scoped advisory locks                                                      |
+| [`../utils/export-queue.js`](../utils/export-queue.js)                   | in-memory export queue implementation and filename parsing                                                 |
+| [`../utils/monitoring.js`](../utils/monitoring.js)                       | request, cache, export, memory, and DB-pool metric snapshots                                               |
+| [`../utils/pagination.js`](../utils/pagination.js)                       | shared query pagination parser, response headers, and metadata builder                                     |
+| [`../utils/runtime-log.js`](../utils/runtime-log.js)                     | structured JSON log serializer used by server and DB lifecycle logging                                     |
+| [`../railway.json`](../railway.json)                                     | Railway config-as-code for runtime start and healthcheck defaults                                          |
 
 ### Key frontend files
 
 | File                                                                         | Role                                                                                                           |
 | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| [`../public/login.html`](../public/login.html)                               | landing page, owner login/register, staff login, forgot password                                               |
+| [`../public/login.html`](../public/login.html)                               | landing page, owner login/register, Google sign-in/onboarding, staff login, forgot password                    |
+| [`../public/privacy-policy.html`](../public/privacy-policy.html)             | public privacy policy page                                                                                     |
+| [`../public/account-deletion.html`](../public/account-deletion.html)         | public account deletion instruction page                                                                       |
 | [`../public/developer-login.html`](../public/developer-login.html)           | developer account login/register page for the support inbox                                                    |
 | [`../public/developer-support.html`](../public/developer-support.html)       | developer support queue and threaded reply workspace                                                           |
 | [`../public/index.html`](../public/index.html)                               | main dashboard shell with stock, purchase, product purchase history, reports, due, expense, and staff sections |
@@ -167,15 +191,19 @@ The system is owner-centric:
 
 ```mermaid
 flowchart LR
-  Browser["Browser pages<br/>login.html | developer-login.html | developer-support.html | index.html | invoice.html | reset.html"]
+  Browser["Browser pages<br/>login.html | developer-login.html | developer-support.html | index.html | invoice.html | reset.html | privacy/account pages"]
   SharedJS["Shared frontend modules<br/>app-core.js | app-shell.js | permission-contract.js | dashboard.js | developer-login.js | developer-support.js"]
   Server["Express app<br/>server.js"]
   AuthMW["Auth middleware<br/>cookie/session + permission resolution"]
   AuthRoutes["routes/auth.js"]
   SupportRoutes["routes/support.js"]
+  ExportRoutes["routes/exports.js"]
+  OpsRoutes["routes/ops.js"]
   InventoryRoutes["routes/inventory.js"]
   BusinessRoutes["routes/business.js"]
   InvoiceRoutes["routes/invoices.js"]
+  CacheMW["cache + export middleware<br/>middleware/cache.js | middleware/export-queue.js"]
+  OpsRuntime["runtime helpers<br/>monitoring | background-jobs | cache | export-queue | pagination"]
   RuntimeLog["Runtime logger<br/>utils/runtime-log.js"]
   DeployCfg["Railway config<br/>railway.json"]
   DB["PostgreSQL"]
@@ -186,18 +214,25 @@ flowchart LR
   SharedJS -->|"fetch /api/*"| Server
   DeployCfg -. deploy defaults .-> Server
   Server --> AuthMW
+  Server --> CacheMW
   Server --> AuthRoutes
   Server --> SupportRoutes
+  Server --> ExportRoutes
+  Server --> OpsRoutes
   Server --> InventoryRoutes
   Server --> BusinessRoutes
   Server --> InvoiceRoutes
+  Server --> OpsRuntime
   Server --> RuntimeLog
   AuthMW --> DB
   AuthRoutes --> DB
   SupportRoutes --> DB
+  OpsRoutes --> DB
   InventoryRoutes --> DB
   BusinessRoutes --> DB
   InvoiceRoutes --> DB
+  CacheMW --> OpsRuntime
+  OpsRuntime --> DB
   Schema --> DB
 ```
 
@@ -209,7 +244,8 @@ flowchart LR
 4. [`middleware/auth.js`](../middleware/auth.js) resolves the current owner/staff session or developer support session as needed.
 5. The matching route file runs business logic and queries PostgreSQL.
 6. Health endpoints can report readiness or liveness without crossing the authenticated route stack.
-7. PDF and Excel exports are generated directly inside route handlers.
+7. PDF and Excel exports are generated directly inside route handlers for normal requests, or queued through `/api/exports/:jobId` when `_async_export=1` is present.
+8. Owner-only ops endpoints expose in-process metrics, DB-pool state, response cache stats, export queue stats, and background-job cleanup state.
 
 ## 6. Frontend Structure
 
@@ -217,12 +253,14 @@ flowchart LR
 
 | Page                                                                   | What it does                                                                                                              |
 | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| [`../public/login.html`](../public/login.html)                         | auth entrypoint for owner and staff, forgot password entry, existing-session redirect                                     |
+| [`../public/login.html`](../public/login.html)                         | auth entrypoint for owner/staff, Google sign-in start/onboarding, forgot password entry, existing-session redirect        |
 | [`../public/developer-login.html`](../public/developer-login.html)     | developer account login/register screen for the support inbox                                                             |
 | [`../public/developer-support.html`](../public/developer-support.html) | developer queue and threaded support reply workspace                                                                      |
 | [`../public/index.html`](../public/index.html)                         | multi-section dashboard for stock, purchases, product purchase history, reports, dues, expenses, and staff owner controls |
 | [`../public/invoice.html`](../public/invoice.html)                     | invoice builder, customer autofill, draft restore, payment summary, invoice lookup, invoice PDF actions                   |
 | [`../public/reset.html`](../public/reset.html)                         | password reset submission using email + token from URL hash                                                               |
+| [`../public/privacy-policy.html`](../public/privacy-policy.html)       | public privacy policy content linked from the login page                                                                  |
+| [`../public/account-deletion.html`](../public/account-deletion.html)   | public account deletion guidance linked from the login page                                                               |
 
 ### Shared frontend module roles
 
@@ -251,11 +289,13 @@ flowchart LR
   - drives most dashboard features
   - loads and submits stock, purchase, report, due, expense, support, and staff data
   - handles Add Stock reset behavior, supplier autocomplete, product purchase history, popups, section switching, and report export actions
+  - requests queued exports by adding `_async_export=1`, polls job status, then downloads through `/api/exports/:jobId/download`
 
 - [`../public/invoice.html`](../public/invoice.html)
   - contains the inline invoice page controller
   - manages invoice draft storage, line item autocomplete, payment preview, invoice search, and PDF actions
   - loads customer suggestions from `/api/invoices/customers` and fills billing name, contact, and address from selected historical invoices
+  - uses the same queued-export pattern for invoice PDF downloads when the backend returns `202`
 
 - [`../public/js/developer-login.js`](../public/js/developer-login.js)
   - handles developer sign-in and optional developer account creation
@@ -297,9 +337,12 @@ Current frontend storage behavior:
 - generating a per-request CSP nonce
 - applying `helmet`, compression, cookie parsing, JSON parsing, and rate limiting
 - skipping health routes from the API rate limiter
+- mounting queued export middleware for async PDF/Excel requests that include `_async_export=1`, `async_export=1`, or `queue_export=1`
 - registering route files
 - mounting [`../routes/support.js`](../routes/support.js) before auth-locked `/api` routers so public developer auth routes do not get intercepted by owner/staff auth guards
+- mounting [`../routes/exports.js`](../routes/exports.js) for export job status/download and [`../routes/ops.js`](../routes/ops.js) for owner-only metrics
 - serving HTML pages through nonce-aware template injection
+- serving `/privacy-policy(.html)` and `/account-deletion(.html)` in addition to the app pages
 - exposing readiness routes:
   - `/health`
   - `/api/health`
@@ -323,6 +366,7 @@ Current frontend storage behavior:
   - `headersTimeout`
   - `requestTimeout`
 - handling `SIGTERM`, `SIGINT`, `unhandledRejection`, and `uncaughtException`
+- starting/stopping background jobs that clean expired response-cache entries and export jobs, and emit periodic monitor heartbeat logs
 
 ### `db.js`
 
@@ -338,8 +382,10 @@ Current frontend storage behavior:
 
 Compatibility patching currently ensures:
 
+- Google OAuth columns on `users`: `google_sub`, `google_email_verified`, and `google_picture_url`
 - `settings.default_profit_percent`
 - `sales.cost_price`
+- `sales.gst_amount`
 - invoice payment columns on `invoices`
 - `debts.invoice_id`
 - creation of `suppliers`, `purchases`, `purchase_items`, `expenses`
@@ -347,6 +393,29 @@ Compatibility patching currently ensures:
 - supporting indexes for those newer tables
 - duplicate/invalid developer admin rows are reconciled before enforcing the normalized email unique index
 - optional developer support bootstrap via `SUPPORT_ADMIN_*` environment variables
+
+### `middleware/cache.js`
+
+[`../middleware/cache.js`](../middleware/cache.js) provides owner-scoped short TTL caching for `GET` JSON endpoints.
+
+Important behavior:
+
+- cache keys include the authenticated owner ID, namespace, and original request URL
+- callers can bypass cache with `_no_cache=1`
+- successful cached responses restore pagination headers such as `X-Total-Count`, `X-Limit`, `X-Offset`, and `X-Has-More`
+- route writes invalidate owner cache through [`../utils/cache.js`](../utils/cache.js)
+
+### `middleware/export-queue.js`
+
+[`../middleware/export-queue.js`](../middleware/export-queue.js) intercepts authenticated `GET` requests ending in `/pdf` or `/excel` when the query asks for async export.
+
+Important behavior:
+
+- supported flags: `_async_export=1`, `async_export=1`, or `queue_export=1`
+- authenticated owner and actor IDs are read from the session JWT
+- the original export route is fetched internally with `x-export-queue-bypass: 1`
+- callers receive `202` with `status_url` and `download_url`
+- queue timeout is controlled by `EXPORT_QUEUE_TIMEOUT_MS`
 
 ### `middleware/auth.js`
 
@@ -401,6 +470,19 @@ It is currently used by:
 - [`../server.js`](../server.js) for startup, health, request, and shutdown events
 - [`../db.js`](../db.js) for DB initialization and pool lifecycle events
 
+### Runtime support utilities
+
+Additional runtime utility files:
+
+| File                                                                     | Purpose                                                                                           |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| [`../utils/cache.js`](../utils/cache.js)                                 | in-memory TTL cache, owner cache key helpers, invalidation, and cache stats                       |
+| [`../utils/export-queue.js`](../utils/export-queue.js)                   | in-memory bounded queue for async export jobs, status serialization, and filename parsing         |
+| [`../utils/monitoring.js`](../utils/monitoring.js)                       | request counters, route timing aggregates, memory stats, DB-pool stats, cache stats, export stats |
+| [`../utils/background-jobs.js`](../utils/background-jobs.js)             | periodic cleanup for expired cache/export entries plus heartbeat logs                             |
+| [`../utils/pagination.js`](../utils/pagination.js)                       | shared `limit`, `page`, and `offset` parser, pagination metadata, and pagination headers          |
+| [`../repositories/ops-repository.js`](../repositories/ops-repository.js) | small PostgreSQL overview query used by `/api/ops/metrics`                                        |
+
 ### Function catalogue
 
 This catalogue covers named top-level helpers, middleware factories, and shared frontend/runtime primitives.
@@ -431,6 +513,8 @@ Important scope note:
 | `applyHtmlCacheHeaders(res)`                  | forces HTML responses to bypass browser/proxy caching                                          |
 | `setStaticAssetCacheHeaders(res, filePath)`   | applies cache rules for images, fonts, and other static assets                                 |
 | `sendHtmlTemplate(res, fileName, statusCode)` | injects the CSP nonce into cached HTML and sends it                                            |
+| `getAuthTokenFromRequest(req)`                | reads a session token from cookie or bearer header for rate-limit identity                     |
+| `getRateLimitKey(req)`                        | builds user/actor-aware rate-limit keys, falling back to IP when unauthenticated               |
 | `shutdown(signal)`                            | performs graceful server shutdown for `SIGTERM` and `SIGINT`                                   |
 
 #### `db.js` function inventory
@@ -470,31 +554,68 @@ Important scope note:
 | `allowRoles(...roles)`                        | returns middleware that allows only a selected set of roles                           |
 | `requireDeveloperSupport(req, res, next)`     | blocks requests that do not carry a developer support session                         |
 
+#### `middleware/cache.js` function inventory
+
+| Function                           | Purpose                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------------ |
+| `readPositiveInt(value, fallback)` | parses positive TTL values with a fallback                               |
+| `cacheJsonResponse(options)`       | creates owner-scoped `GET` JSON cache middleware with optional namespace |
+
+#### `middleware/export-queue.js` function inventory
+
+| Function                                | Purpose                                                          |
+| --------------------------------------- | ---------------------------------------------------------------- |
+| `readPositiveInt(value, fallback)`      | parses timeout configuration values                              |
+| `getAuthToken(req)`                     | reads session token from cookie or bearer header                 |
+| `getTokenSubject(req)`                  | decodes owner/actor identity for queued export ownership         |
+| `shouldQueueExport(req)`                | decides whether a request should be queued                       |
+| `buildInternalExportUrl(req, port)`     | builds the localhost URL used to run the original export route   |
+| `fetchExportBuffer(internalUrl, req)`   | calls the original export route and returns file buffer metadata |
+| `createQueuedExportMiddleware(options)` | creates middleware that returns `202` export job payloads        |
+
 #### `routes/auth.js` function inventory
 
-Route handlers in this file cover registration, owner login, staff login, logout, password reset, staff CRUD, and current-session lookup.
+Route handlers in this file cover registration, owner login, Google OAuth login/onboarding, staff login, logout, password reset, staff CRUD, and current-session lookup.
 
-| Function                            | Purpose                                                       |
-| ----------------------------------- | ------------------------------------------------------------- |
-| `normalizeBaseUrl(value)`           | validates and normalizes the configured public base URL       |
-| `resolvePublicBaseUrl(req)`         | resolves the effective app base URL for password reset links  |
-| `getSessionCookieOptions()`         | returns shared cookie flags for login and logout              |
-| `hashResetToken(token)`             | hashes raw reset tokens before storing them in the database   |
-| `markSensitiveResponse(res)`        | marks auth-sensitive responses as `no-store`                  |
-| `normalizeName(value)`              | trims and de-duplicates whitespace in person names            |
-| `normalizeEmail(value)`             | canonicalizes email values to lowercase                       |
-| `normalizeMobileNumber(value)`      | converts mobile numbers into the app's 10-digit format        |
-| `isValidMobileNumber(value)`        | validates the normalized mobile format                        |
-| `normalizeUsername(value)`          | strips spaces and lowercases staff usernames                  |
-| `signSession(payload)`              | signs the JWT used for owner and staff sessions               |
-| `setSessionCookie(res, token)`      | writes the signed session token into the `token` cookie       |
-| `clearSessionCookie(res)`           | clears the current login cookie                               |
-| `normalizeSessionRole(value)`       | normalizes session roles before client-facing serialization   |
-| `buildOwnerSession(user)`           | creates the normalized owner session payload                  |
-| `buildStaffSession(staff)`          | creates the normalized staff session payload with permissions |
-| `toClientUser(session)`             | reshapes a server session into the frontend-safe user object  |
-| `getOwnersByIdentifier(identifier)` | looks up owner accounts by email or mobile number             |
-| `getStaffByUsername(username)`      | looks up one staff account plus owner metadata                |
+| Function                                                        | Purpose                                                                |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `normalizeBaseUrl(value)`                                       | validates and normalizes the configured public base URL                |
+| `resolvePublicBaseUrl(req)`                                     | resolves the effective app base URL for password reset and OAuth links |
+| `getSessionCookieOptions()`                                     | returns shared cookie flags for login and logout                       |
+| `setTemporaryCookie(res, name, value, maxAge)`                  | writes short-lived Google OAuth state/onboarding cookies               |
+| `clearGoogleOAuthStateCookie(res)`                              | clears the Google OAuth state cookie                                   |
+| `clearGoogleOnboardingCookie(res)`                              | clears the Google onboarding cookie                                    |
+| `hashResetToken(token)`                                         | hashes raw reset tokens before storing them in the database            |
+| `markSensitiveResponse(res)`                                    | marks auth-sensitive responses as `no-store`                           |
+| `normalizeName(value)`                                          | trims and de-duplicates whitespace in person names                     |
+| `normalizeEmail(value)`                                         | canonicalizes email values to lowercase                                |
+| `normalizeMobileNumber(value)`                                  | converts mobile numbers into the app's 10-digit format                 |
+| `isValidMobileNumber(value)`                                    | validates the normalized mobile format                                 |
+| `normalizeUsername(value)`                                      | strips spaces and lowercases staff usernames                           |
+| `signSession(payload)`                                          | signs the JWT used for owner and staff sessions                        |
+| `normalizeGoogleOAuthClient(value)`                             | distinguishes web Google OAuth from Android wrapper OAuth              |
+| `signGoogleOAuthState(client)`                                  | signs the Google OAuth state token                                     |
+| `readGoogleOAuthState(state)`                                   | validates a Google OAuth state token and returns client mode           |
+| `signAndroidGoogleTransfer(payload)`                            | signs short-lived Android deep-link transfer data                      |
+| `verifyAndroidGoogleTransfer(token)`                            | validates the Android transfer token                                   |
+| `signGoogleOnboarding(profile)`                                 | signs short-lived first-time Google onboarding profile data            |
+| `verifyGoogleOnboardingToken(token)`                            | validates Google onboarding cookie data                                |
+| `setSessionCookie(res, token)`                                  | writes the signed session token into the `token` cookie                |
+| `clearSessionCookie(res)`                                       | clears the current login cookie                                        |
+| `getGoogleOAuthConfig(req)`                                     | reads Google client settings and callback URL                          |
+| `buildLoginRedirectUrl(req, params)`                            | creates login-page redirects with Google result/error flags            |
+| `buildAndroidGoogleDeepLink(req, transferToken)`                | creates the Android wrapper deep-link URL                              |
+| `exchangeGoogleCodeForTokens(code, config)`                     | exchanges OAuth code for Google tokens                                 |
+| `fetchGoogleUserProfile(accessToken)`                           | loads and validates Google user profile data                           |
+| `normalizeSessionRole(value)`                                   | normalizes session roles before client-facing serialization            |
+| `buildOwnerSession(user)`                                       | creates the normalized owner session payload                           |
+| `buildStaffSession(staff)`                                      | creates the normalized staff session payload with permissions          |
+| `toClientUser(session)`                                         | reshapes a server session into the frontend-safe user object           |
+| `getOwnersByIdentifier(identifier)`                             | looks up owner accounts by email or mobile number                      |
+| `getStaffByUsername(username)`                                  | looks up one staff account plus owner metadata                         |
+| `getOwnerByGoogleProfile(profile)`                              | finds an owner by Google subject or verified email                     |
+| `linkGoogleProfileToOwner(user, profile)`                       | stores Google subject/email verification metadata on an existing owner |
+| `createOwnerFromGoogleProfile(profile, shopName, mobileNumber)` | creates a new owner/settings pair after Google onboarding              |
 
 #### `routes/inventory.js` function inventory
 
@@ -582,6 +703,31 @@ Route handlers in this file cover developer registration/login, owner or staff s
 | `loadDeveloperConversationById(client, conversationId)` | loads one support conversation for the developer inbox                                |
 | `loadDeveloperConversationList(client)`                 | loads the developer inbox queue ordered by unread/latest activity                     |
 
+#### `routes/exports.js` function inventory
+
+Route handlers in this file cover authenticated export job lookup and file download.
+
+| Function                     | Purpose                                                            |
+| ---------------------------- | ------------------------------------------------------------------ |
+| `getAuthorizedJob(req, res)` | loads an export job and hides it unless it belongs to the owner    |
+| `safeAttachmentName(value)`  | sanitizes generated filenames before writing `Content-Disposition` |
+
+#### `routes/ops.js` function inventory
+
+Route handlers in this file are owner-only and cover monitoring metrics plus background cleanup controls.
+
+| Endpoint handler area               | Purpose                                                                          |
+| ----------------------------------- | -------------------------------------------------------------------------------- |
+| `GET /ops/metrics`                  | combines request metrics, DB overview, cache stats, export stats, and job status |
+| `GET /ops/background-jobs`          | returns cleanup/heartbeat status without mutating state                          |
+| `POST /ops/background-jobs/cleanup` | runs immediate cleanup for expired cache entries and export jobs                 |
+
+#### `repositories/ops-repository.js` function inventory
+
+| Function                     | Purpose                                                        |
+| ---------------------------- | -------------------------------------------------------------- |
+| `loadDatabaseOverview(pool)` | returns database name, user, version, and timestamp for ops UI |
+
 #### `utils/concurrency.js` function inventory
 
 | Function                                                     | Purpose                                                                       |
@@ -590,6 +736,54 @@ Route handlers in this file cover developer registration/login, owner or staff s
 | `normalizeDisplayText(value)`                                | collapses whitespace while preserving user-facing capitalization              |
 | `hashTextToInt(value)`                                       | hashes text into a deterministic 32-bit integer lock key                      |
 | `lockScopedResource(client, ownerId, namespace, resourceId)` | acquires an owner-scoped PostgreSQL advisory lock for the current transaction |
+
+#### `utils/cache.js` function inventory
+
+| Function                                          | Purpose                                                     |
+| ------------------------------------------------- | ----------------------------------------------------------- |
+| `readPositiveInt(value, fallback)`                | parses cache-size and TTL values                            |
+| `TtlCache`                                        | bounded in-memory TTL cache implementation                  |
+| `getUserCachePrefix(userId)`                      | creates a stable owner cache prefix                         |
+| `makeUserCacheKey(userId, namespace, requestUrl)` | creates owner + namespace + URL cache keys                  |
+| `invalidateUserCache(userId, namespace)`          | deletes cached entries for one owner and optional namespace |
+
+#### `utils/export-queue.js` function inventory
+
+| Function                                              | Purpose                                               |
+| ----------------------------------------------------- | ----------------------------------------------------- |
+| `readPositiveInt(value, fallback)`                    | parses export queue size, concurrency, and TTL values |
+| `parseFilenameFromDisposition(disposition, fallback)` | extracts a safe filename from response headers        |
+| `ExportQueue`                                         | bounded in-memory async export queue implementation   |
+
+#### `utils/monitoring.js` function inventory
+
+| Function                             | Purpose                                                              |
+| ------------------------------------ | -------------------------------------------------------------------- |
+| `roundTo(value, decimals)`           | formats metric numbers                                               |
+| `getMemoryUsageMb()`                 | reports current process memory usage                                 |
+| `normalizeRoutePath(pathname)`       | redacts numeric, phone, and UUID route segments for grouping         |
+| `getRouteStatsKey(method, pathname)` | builds a normalized metric key per route                             |
+| `markHttpRequestStarted()`           | increments active request count                                      |
+| `markHttpRequestFinished()`          | decrements active request count                                      |
+| `recordHttpRequest(details)`         | records status, duration, slow-request, and per-route counters       |
+| `buildMonitoringSnapshot(pool)`      | returns the combined service, request, DB, cache, and export metrics |
+
+#### `utils/background-jobs.js` function inventory
+
+| Function                       | Purpose                                                 |
+| ------------------------------ | ------------------------------------------------------- |
+| `runCleanup()`                 | prunes expired response-cache entries and export jobs   |
+| `startBackgroundJobs(options)` | starts cleanup and heartbeat timers                     |
+| `stopBackgroundJobs()`         | stops cleanup and heartbeat timers during shutdown      |
+| `getBackgroundJobStatus(pool)` | returns job state plus cache, export, and DB-pool stats |
+
+#### `utils/pagination.js` function inventory
+
+| Function                                                  | Purpose                                                |
+| --------------------------------------------------------- | ------------------------------------------------------ |
+| `parsePagination(query, defaultLimit, maxLimit, options)` | normalizes `limit`, `page`, and `offset` values        |
+| `buildPaginationMeta(pagination, total, rowCount)`        | builds JSON pagination metadata for enabled pagination |
+| `setPaginationHeaders(res, pagination, total, rowCount)`  | writes pagination headers on list responses            |
 
 #### `utils/runtime-log.js` function inventory
 
@@ -672,6 +866,7 @@ Route handlers in this file cover developer registration/login, owner or staff s
 ### Session model
 
 - Owner login happens through `POST /api/auth/login`.
+- Google owner login starts at `GET /api/auth/google/start` and finishes through `GET /api/auth/google/callback`.
 - Staff login happens through `POST /api/auth/staff/login`.
 - On success, [`routes/auth.js`](../routes/auth.js) signs a JWT and stores it in an `httpOnly` cookie named `token`.
 - Cookie settings:
@@ -681,6 +876,18 @@ Route handlers in this file cover developer registration/login, owner or staff s
   - max age: 1 day
 - Password reset links use `BASE_URL` when available.
 - In production, password reset flow effectively requires `BASE_URL` to be configured.
+
+### Google OAuth owner flow
+
+Current Google sign-in behavior:
+
+- `GET /api/auth/google/start` creates a signed state token, stores it in the `google_oauth_state` cookie for 10 minutes, and redirects to Google.
+- `GET /api/auth/google/callback` validates the state, exchanges the code with Google, fetches the verified profile, and either links or logs in the owner.
+- Existing owners are matched by `google_sub` first, then by verified email; successful matches refresh `users.google_sub`, `google_email_verified`, and `google_picture_url`.
+- New Google owners receive a short-lived `google_onboarding` cookie and are redirected to `login.html?google_onboarding=1`.
+- `GET /api/auth/google/onboarding` lets the login page read the pending Google email/name without exposing the full token.
+- `POST /api/auth/google/complete-profile` requires shop name and 10-digit mobile number, creates the owner and `settings` row, clears onboarding, and sets the normal `token` cookie.
+- Android wrapper mode uses `client=android`, signs a 5-minute transfer token, and redirects to the `indiainventory://google-auth` deep link. `/api/auth/google/android-transfer` converts that transfer back into the web cookie flow when needed.
 
 ### Developer support session model
 
@@ -694,6 +901,7 @@ Route handlers in this file cover developer registration/login, owner or staff s
 ### Client bootstrap
 
 - `login.html` checks `/api/auth/me` to detect an active session.
+- `login.html` also handles Google return flags, opens the first-time Google profile modal, and removes `google_onboarding` / `google_error` query parameters from browser history.
 - `index.html` and `invoice.html` use cookie-based requests with `credentials: "include"`.
 - Frontend code no longer depends on a token response body to stay logged in.
 
@@ -729,10 +937,15 @@ Current hardening that is visible in the codebase:
   - `5` attempts per `15` minutes
 - password reset tokens are hashed before being stored in `users.reset_token`
 - reset links place the token in the URL hash, so the token is not sent back to the server as a query parameter during initial page load
+- Google OAuth state and onboarding data are short-lived signed JWT cookies
+- Google OAuth only creates accounts after verified Google email plus required shop name and 10-digit mobile number
 - auth-sensitive responses mark `Cache-Control: no-store`
 - developer support login now relies on the `developer_support_token` cookie rather than returning a browser-readable token in the response body
 - Excel export sanitizes formula-like cell values in [`../routes/inventory.js`](../routes/inventory.js)
 - invoice PDF downloads now rely on the authenticated cookie-based fetch path used by the first-party frontend
+- queued export jobs are owner-scoped; `/api/exports/:jobId` returns `404` if another owner tries to read the job
+- cached JSON responses are owner-scoped and can be bypassed with `_no_cache=1`
+- list endpoints using pagination emit `X-Total-Count`, `X-Limit`, `X-Offset`, and `X-Has-More`
 - every response gets an `X-Request-Id` header
 - health endpoints emit `Cache-Control: no-store`
 - runtime emits structured JSON logs for:
@@ -764,6 +977,21 @@ login.html
   -> token cookie set
   -> GET /api/auth/me succeeds
   -> redirect to index.html
+```
+
+### Google owner sign-in
+
+```text
+login.html
+  -> GET /api/auth/google/start
+  -> Google account picker
+  -> GET /api/auth/google/callback
+  -> if owner already exists, token cookie is set and user goes to index.html
+  -> if owner is new, google_onboarding cookie is set
+  -> login.html opens Google profile modal
+  -> POST /api/auth/google/complete-profile with shop name + mobile
+  -> users and settings rows are created
+  -> token cookie is set and user goes to index.html
 ```
 
 ### Staff login
@@ -869,6 +1097,20 @@ dashboard report sections
   -> GST report compare + PDF + Excel
   -> sales trend charts
   -> purchase and expense reports in dashboard UI
+  -> frontend appends _async_export=1 for PDF/Excel downloads
+  -> middleware/export-queue.js creates an in-memory export job
+  -> frontend polls /api/exports/:jobId
+  -> frontend downloads through /api/exports/:jobId/download after completion
+```
+
+### Ops metrics and cleanup
+
+```text
+owner session
+  -> GET /api/ops/metrics
+  -> routes/ops.js combines monitoring snapshot, DB overview, and background job state
+  -> GET /api/ops/background-jobs reads cleanup/heartbeat status
+  -> POST /api/ops/background-jobs/cleanup prunes expired response-cache and export-queue entries immediately
 ```
 
 ### Support chat flow
@@ -896,12 +1138,17 @@ developer-login.html
 
 ## 11. API Route Map
 
-All endpoints below are mounted under either `/api/auth` or `/api`.
+Most endpoints below are mounted under either `/api/auth` or `/api`; health routes also exist at non-API paths for deployment probes.
 
 ### 11.1 Auth routes from `routes/auth.js`
 
 | Method   | Path                                   | Purpose                                  |
 | -------- | -------------------------------------- | ---------------------------------------- |
+| `GET`    | `/api/auth/google/start`               | start Google OAuth login                 |
+| `GET`    | `/api/auth/google/callback`            | finish Google OAuth callback             |
+| `GET`    | `/api/auth/google/android-transfer`    | convert Android Google transfer token    |
+| `GET`    | `/api/auth/google/onboarding`          | read pending first-time Google profile   |
+| `POST`   | `/api/auth/google/complete-profile`    | finish first-time Google owner setup     |
 | `POST`   | `/api/auth/register`                   | create owner account                     |
 | `POST`   | `/api/auth/login`                      | owner login by email or mobile           |
 | `POST`   | `/api/auth/staff/login`                | staff login by username                  |
@@ -991,6 +1238,30 @@ All endpoints below are mounted under either `/api/auth` or `/api`.
 | `POST`  | `/api/developer-support/conversations/:conversationId/reply`    | send a developer reply                            |
 | `PATCH` | `/api/developer-support/conversations/:conversationId/status`   | update a conversation between `open` and `closed` |
 
+### 11.6 Export routes from `routes/exports.js`
+
+| Method | Path                           | Purpose                                     |
+| ------ | ------------------------------ | ------------------------------------------- |
+| `GET`  | `/api/exports/:jobId`          | read queued export status for current owner |
+| `GET`  | `/api/exports/:jobId/download` | download completed queued export file       |
+
+### 11.7 Ops routes from `routes/ops.js`
+
+All ops routes require an owner session.
+
+| Method | Path                               | Purpose                                                    |
+| ------ | ---------------------------------- | ---------------------------------------------------------- |
+| `GET`  | `/api/ops/metrics`                 | request, memory, DB, cache, export, and background metrics |
+| `GET`  | `/api/ops/background-jobs`         | background cleanup and heartbeat status                    |
+| `POST` | `/api/ops/background-jobs/cleanup` | run cleanup immediately                                    |
+
+### 11.8 Health routes from `server.js`
+
+| Method | Path group                                                                                             | Purpose                          |
+| ------ | ------------------------------------------------------------------------------------------------------ | -------------------------------- |
+| `GET`  | `/health`, `/api/health`, `/healthz`, `/api/healthz`, `/ready`, `/api/ready`, `/readyz`, `/api/readyz` | readiness with DB state          |
+| `GET`  | `/live`, `/api/live`, `/livez`, `/api/livez`                                                           | liveness without DB-ready gating |
+
 ## 12. Database Schema
 
 ### 12.1 Schema source of truth
@@ -1078,6 +1349,9 @@ Key columns:
 - `email`
 - `mobile_number`
 - `password_hash`
+- `google_sub`
+- `google_email_verified`
+- `google_picture_url`
 - `reset_token`
 - `reset_token_expires`
 - `created_at`
@@ -1085,7 +1359,8 @@ Key columns:
 
 Notes:
 
-- `is_verified` and `verify_token` exist in schema, but current core flows are centered on login/reset rather than a full email-verification workflow
+- `is_verified` and `verify_token` exist in schema, but current core flows are centered on password login, Google OAuth, and reset rather than a full email-verification workflow
+- Google OAuth profile data is optional. When present, `google_sub` is indexed uniquely so the same Google account cannot attach to multiple owners.
 
 #### `staff_accounts`
 
@@ -1432,19 +1707,22 @@ The dictionary below reflects the current effective schema from [`../migrations/
 
 #### `users`
 
-| Column                | Type           | Null | Default  | Details                                   |
-| --------------------- | -------------- | ---- | -------- | ----------------------------------------- |
-| `id`                  | `SERIAL`       | no   | sequence | primary key                               |
-| `name`                | `VARCHAR(50)`  | no   | none     | owner display name                        |
-| `email`               | `VARCHAR(100)` | no   | none     | unique login identifier                   |
-| `mobile_number`       | `VARCHAR(10)`  | yes  | none     | optional 10-digit mobile number           |
-| `password_hash`       | `VARCHAR(255)` | no   | none     | bcrypt hash                               |
-| `is_verified`         | `BOOLEAN`      | yes  | `FALSE`  | currently not central to active auth flow |
-| `verify_token`        | `VARCHAR(255)` | yes  | none     | legacy email verification token           |
-| `reset_token`         | `VARCHAR(255)` | yes  | none     | hashed password reset token               |
-| `reset_token_expires` | `TIMESTAMP`    | yes  | none     | reset token expiry                        |
-| `created_at`          | `TIMESTAMPTZ`  | yes  | `NOW()`  | creation timestamp                        |
-| `updated_at`          | `TIMESTAMPTZ`  | yes  | `NOW()`  | updated by trigger                        |
+| Column                  | Type           | Null | Default  | Details                                      |
+| ----------------------- | -------------- | ---- | -------- | -------------------------------------------- |
+| `id`                    | `SERIAL`       | no   | sequence | primary key                                  |
+| `name`                  | `VARCHAR(50)`  | no   | none     | owner display name                           |
+| `email`                 | `VARCHAR(100)` | no   | none     | unique login identifier                      |
+| `mobile_number`         | `VARCHAR(10)`  | yes  | none     | optional 10-digit mobile number              |
+| `password_hash`         | `VARCHAR(255)` | no   | none     | bcrypt hash                                  |
+| `is_verified`           | `BOOLEAN`      | yes  | `FALSE`  | currently not central to active auth flow    |
+| `google_sub`            | `VARCHAR(255)` | yes  | none     | Google account subject identifier            |
+| `google_email_verified` | `BOOLEAN`      | no   | `FALSE`  | whether the linked Google email was verified |
+| `google_picture_url`    | `TEXT`         | yes  | none     | Google profile image URL                     |
+| `verify_token`          | `VARCHAR(255)` | yes  | none     | legacy email verification token              |
+| `reset_token`           | `VARCHAR(255)` | yes  | none     | hashed password reset token                  |
+| `reset_token_expires`   | `TIMESTAMP`    | yes  | none     | reset token expiry                           |
+| `created_at`            | `TIMESTAMPTZ`  | yes  | `NOW()`  | creation timestamp                           |
+| `updated_at`            | `TIMESTAMPTZ`  | yes  | `NOW()`  | updated by trigger                           |
 
 Constraints, indexes, and triggers:
 
@@ -1452,6 +1730,7 @@ Constraints, indexes, and triggers:
 - unique key on `email`
 - `mobile_number` must match a 10-digit numeric pattern when present
 - runtime compatibility ensures `idx_users_email_lookup` on `LOWER(email)`
+- runtime compatibility ensures `idx_users_google_sub_unique` for non-empty Google subject values
 - trigger `update_users_timestamp` calls shared `update_timestamp()` before update
 
 #### `staff_accounts`
@@ -1850,6 +2129,7 @@ Important index coverage includes:
 - invoice items by `invoice_id`
 - debt settlement lookup by `invoice_id`
 - staff lookup by normalized username
+- Google owner lookup by non-empty `google_sub`
 - developer support lookup by normalized email
 - support inbox queue ordering and unread counts
 - support message lookup by conversation and creation order
@@ -1873,33 +2153,44 @@ Runtime compatibility patching in [`../db.js`](../db.js) exists so older databas
 
 ## 13. Environment Variables
 
-| Variable                      | Required                                        | Purpose                                                                 |
-| ----------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------- |
-| `DATABASE_URL`                | yes                                             | PostgreSQL connection string                                            |
-| `DB_SSL`                      | optional                                        | force SSL on or off; otherwise auto-detected from `DATABASE_URL`        |
-| `PG_POOL_MAX`                 | optional                                        | maximum PostgreSQL pool size                                            |
-| `PG_CONNECTION_TIMEOUT_MS`    | optional                                        | DB connect timeout in milliseconds                                      |
-| `PG_IDLE_TIMEOUT_MS`          | optional                                        | DB idle timeout in milliseconds                                         |
-| `PG_KEEP_ALIVE_DELAY_MS`      | optional                                        | initial keep-alive delay for DB connections                             |
-| `PG_MAX_USES`                 | optional                                        | recycle DB connections after this many uses                             |
-| `JWT_SECRET`                  | yes                                             | signing key for session JWTs                                            |
-| `PORT`                        | optional                                        | HTTP port; defaults to `8080`                                           |
-| `NODE_ENV`                    | optional                                        | production/development behavior                                         |
-| `CORS_ALLOWED_ORIGINS`        | recommended                                     | comma-separated allowlist for cross-origin requests                     |
-| `BASE_URL`                    | recommended, effectively required in production | public app base URL, also used in reset links                           |
-| `MAIL_RELAY_URL`              | optional                                        | outbound mail relay endpoint                                            |
-| `MAIL_RELAY_KEY`              | optional                                        | credential for mail relay                                               |
-| `DEVELOPER_REGISTRATION_KEY`  | recommended                                     | private setup key used by `/api/developer-auth/register`                |
-| `SUPPORT_ADMIN_BOOTSTRAP`     | optional                                        | when truthy, enables startup bootstrap/update of a developer admin      |
-| `SUPPORT_ADMIN_EMAIL`         | optional                                        | email address for the bootstrap developer admin                         |
-| `SUPPORT_ADMIN_PASSWORD_HASH` | optional                                        | pre-hashed bcrypt password for the bootstrap developer admin            |
-| `SUPPORT_ADMIN_PASSWORD`      | optional                                        | plain-text bootstrap password, hashed at startup if no hash is supplied |
-| `SUPPORT_ADMIN_NAME`          | optional                                        | display name for the bootstrap developer admin                          |
-| `JSON_BODY_LIMIT`             | optional                                        | JSON request body size limit for Express                                |
-| `URLENCODED_BODY_LIMIT`       | optional                                        | URL-encoded request body size limit for Express                         |
-| `ENABLE_DEBUG_ROUTES`         | optional                                        | enable `/debug-env` and `/debug-db` in non-production                   |
-| `ENABLE_REQUEST_LOGS`         | optional                                        | log every request instead of only slow/error requests                   |
-| `REQUEST_LOG_SLOW_MS`         | optional                                        | mark requests slower than this threshold for logging                    |
+| Variable                         | Required                                        | Purpose                                                                 |
+| -------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------- |
+| `DATABASE_URL`                   | yes                                             | PostgreSQL connection string                                            |
+| `DB_SSL`                         | optional                                        | force SSL on or off; otherwise auto-detected from `DATABASE_URL`        |
+| `PG_POOL_MAX`                    | optional                                        | maximum PostgreSQL pool size                                            |
+| `PG_CONNECTION_TIMEOUT_MS`       | optional                                        | DB connect timeout in milliseconds                                      |
+| `PG_IDLE_TIMEOUT_MS`             | optional                                        | DB idle timeout in milliseconds                                         |
+| `PG_KEEP_ALIVE_DELAY_MS`         | optional                                        | initial keep-alive delay for DB connections                             |
+| `PG_MAX_USES`                    | optional                                        | recycle DB connections after this many uses                             |
+| `JWT_SECRET`                     | yes                                             | signing key for session JWTs                                            |
+| `PORT`                           | optional                                        | HTTP port; defaults to `8080`                                           |
+| `NODE_ENV`                       | optional                                        | production/development behavior                                         |
+| `CORS_ALLOWED_ORIGINS`           | recommended                                     | comma-separated allowlist for cross-origin requests                     |
+| `BASE_URL`                       | recommended, effectively required in production | public app base URL, also used in reset links                           |
+| `MAIL_RELAY_URL`                 | optional                                        | outbound mail relay endpoint                                            |
+| `MAIL_RELAY_KEY`                 | optional                                        | credential for mail relay                                               |
+| `GOOGLE_CLIENT_ID`               | optional                                        | enables Google OAuth owner login when paired with client secret         |
+| `GOOGLE_CLIENT_SECRET`           | optional                                        | Google OAuth client secret                                              |
+| `GOOGLE_REDIRECT_URI`            | optional                                        | explicit OAuth callback URL; otherwise derived from `BASE_URL`          |
+| `DEVELOPER_REGISTRATION_KEY`     | recommended                                     | private setup key used by `/api/developer-auth/register`                |
+| `SUPPORT_ADMIN_BOOTSTRAP`        | optional                                        | when truthy, enables startup bootstrap/update of a developer admin      |
+| `SUPPORT_ADMIN_EMAIL`            | optional                                        | email address for the bootstrap developer admin                         |
+| `SUPPORT_ADMIN_PASSWORD_HASH`    | optional                                        | pre-hashed bcrypt password for the bootstrap developer admin            |
+| `SUPPORT_ADMIN_PASSWORD`         | optional                                        | plain-text bootstrap password, hashed at startup if no hash is supplied |
+| `SUPPORT_ADMIN_NAME`             | optional                                        | display name for the bootstrap developer admin                          |
+| `JSON_BODY_LIMIT`                | optional                                        | JSON request body size limit for Express                                |
+| `URLENCODED_BODY_LIMIT`          | optional                                        | URL-encoded request body size limit for Express                         |
+| `ENABLE_DEBUG_ROUTES`            | optional                                        | enable `/debug-env` and `/debug-db` in non-production                   |
+| `ENABLE_REQUEST_LOGS`            | optional                                        | log every request instead of only slow/error requests                   |
+| `REQUEST_LOG_SLOW_MS`            | optional                                        | mark requests slower than this threshold for logging                    |
+| `API_RATE_LIMIT_MAX`             | optional                                        | `/api` request limit per 15-minute window; defaults to `500`            |
+| `RESPONSE_CACHE_MAX_ENTRIES`     | optional                                        | max in-memory JSON response cache entries; defaults to `600`            |
+| `EXPORT_QUEUE_TIMEOUT_MS`        | optional                                        | internal export fetch timeout; defaults to `110000` ms                  |
+| `EXPORT_QUEUE_MAX_JOBS`          | optional                                        | max in-memory queued export jobs; defaults to `80`                      |
+| `EXPORT_QUEUE_CONCURRENCY`       | optional                                        | export worker concurrency; defaults to `1`                              |
+| `EXPORT_QUEUE_TTL_MS`            | optional                                        | completed/failed export retention; defaults to `600000` ms              |
+| `BACKGROUND_CLEANUP_INTERVAL_MS` | optional                                        | cache/export cleanup interval; defaults to `60000` ms                   |
+| `MONITOR_HEARTBEAT_INTERVAL_MS`  | optional                                        | monitor heartbeat log interval; defaults to `300000` ms                 |
 
 ## 14. Maintenance Guide
 
@@ -1911,6 +2202,8 @@ Edit:
 - [`../middleware/auth.js`](../middleware/auth.js)
 - [`../public/login.html`](../public/login.html)
 - [`../public/reset.html`](../public/reset.html)
+
+For Google sign-in specifically, update [`../routes/auth.js`](../routes/auth.js), [`../public/login.html`](../public/login.html), and the `GOOGLE_*` environment variables together. Keep the state/onboarding cookies short-lived and cookie-only.
 
 ### If you want to change shared navigation or permission names
 
@@ -1973,7 +2266,29 @@ Edit:
 - [`../server.js`](../server.js)
 - [`../db.js`](../db.js)
 - [`../utils/runtime-log.js`](../utils/runtime-log.js)
+- [`../utils/monitoring.js`](../utils/monitoring.js)
+- [`../utils/background-jobs.js`](../utils/background-jobs.js)
 - [`../railway.json`](../railway.json)
+
+### If you want to change caching, pagination, or queued exports
+
+Edit:
+
+- [`../middleware/cache.js`](../middleware/cache.js)
+- [`../middleware/export-queue.js`](../middleware/export-queue.js)
+- [`../utils/cache.js`](../utils/cache.js)
+- [`../utils/export-queue.js`](../utils/export-queue.js)
+- [`../utils/pagination.js`](../utils/pagination.js)
+- route files that opt into cache/pagination/export behavior
+
+### If you want to change owner ops metrics
+
+Edit:
+
+- [`../routes/ops.js`](../routes/ops.js)
+- [`../repositories/ops-repository.js`](../repositories/ops-repository.js)
+- [`../utils/monitoring.js`](../utils/monitoring.js)
+- [`../utils/background-jobs.js`](../utils/background-jobs.js)
 
 ## 15. Detailed Architecture Diagram
 
@@ -1986,6 +2301,8 @@ flowchart TB
     Dashboard["public/index.html<br/>stock add/clear | purchases | product history | reports | dues | expenses | staff"]
     Invoice["public/invoice.html<br/>invoice builder | customer autofill | history | payment collection | PDF"]
     Reset["public/reset.html<br/>password reset"]
+    Privacy["public/privacy-policy.html<br/>privacy policy"]
+    AccountDeletion["public/account-deletion.html<br/>account deletion instructions"]
     AppCore["public/js/app-core.js<br/>apiBase | page metadata | shared helpers"]
     AppShell["public/js/app-shell.js<br/>sidebar shell | page navigation"]
     Permissions["public/js/permission-contract.js<br/>permission keys shared by frontend and backend"]
@@ -1995,14 +2312,20 @@ flowchart TB
   end
 
   subgraph Server["Express backend"]
-    Entry["server.js<br/>health routes | request IDs | CORS | CSP nonce | helmet | compression | HTML template serving"]
+    Entry["server.js<br/>health routes | request IDs | CORS | CSP nonce | helmet | compression | HTML template serving | background jobs"]
     AuthMW["middleware/auth.js<br/>cookie-first JWT auth | staff permission reload | developer support auth"]
-    AuthAPI["routes/auth.js<br/>register | login | reset | staff CRUD | me"]
+    CacheMW["middleware/cache.js<br/>owner-scoped short TTL JSON cache"]
+    ExportMW["middleware/export-queue.js<br/>async PDF/Excel queue trigger"]
+    AuthAPI["routes/auth.js<br/>register | login | Google OAuth | reset | staff CRUD | me"]
     SupportAPI["routes/support.js<br/>developer auth | support thread | developer inbox"]
+    ExportAPI["routes/exports.js<br/>export job status | download"]
+    OpsAPI["routes/ops.js<br/>owner metrics | background cleanup"]
     InventoryAPI["routes/inventory.js<br/>stock | reports | GST compare/export | debts | overview"]
     BusinessAPI["routes/business.js<br/>suppliers | purchases | product history | repayments | expenses"]
     InvoiceAPI["routes/invoices.js<br/>invoice save | customer lookup | history | settlement | PDF | shop info"]
     Concurrency["utils/concurrency.js<br/>normalizers | advisory locks"]
+    RuntimeHelpers["utils/cache.js | export-queue.js | monitoring.js | background-jobs.js | pagination.js"]
+    OpsRepo["repositories/ops-repository.js<br/>database overview"]
     DBFile["db.js<br/>pool | readiness state | SSL selection | schema compatibility patch"]
     RuntimeLog["utils/runtime-log.js<br/>structured lifecycle and request logging"]
     DeployCfg["railway.json<br/>start command | healthcheck | restart policy"]
@@ -2036,28 +2359,38 @@ flowchart TB
   Invoice --> AppCore
   Invoice --> AppShell
   Reset --> AppCore
+  Login --> Privacy
+  Login --> AccountDeletion
 
   AppCore --> Entry
   AppShell --> Entry
   DashJS --> Entry
   DevLoginJS --> Entry
   DevSupportJS --> Entry
-  Login -->|"POST /api/auth/*"| Entry
+  Login -->|"POST /api/auth/* and GET /api/auth/google/*"| Entry
   DevLogin -->|"POST /api/developer-auth/*"| Entry
   DevSupport -->|"GET/POST/PATCH /api/developer-support/*"| Entry
-  Dashboard -->|"GET/POST /api/*"| Entry
-  Invoice -->|"GET/POST /api/invoices* including /api/invoices/customers and /api/shop-info"| Entry
+  Dashboard -->|"GET/POST /api/* plus queued export polling"| Entry
+  Invoice -->|"GET/POST /api/invoices* including /api/invoices/customers, /api/shop-info, and queued PDF polling"| Entry
   Reset -->|"POST /api/auth/reset-password"| Entry
 
   Entry --> AuthMW
+  Entry --> CacheMW
+  Entry --> ExportMW
   Entry --> AuthAPI
   Entry --> SupportAPI
+  Entry --> ExportAPI
+  Entry --> OpsAPI
   Entry --> InventoryAPI
   Entry --> BusinessAPI
   Entry --> InvoiceAPI
+  Entry --> RuntimeHelpers
   Entry --> RuntimeLog
   AuthAPI --> DBFile
   SupportAPI --> DBFile
+  OpsAPI --> OpsRepo
+  OpsAPI --> RuntimeHelpers
+  ExportAPI --> RuntimeHelpers
   InventoryAPI --> DBFile
   BusinessAPI --> DBFile
   InvoiceAPI --> DBFile
@@ -2065,6 +2398,9 @@ flowchart TB
   InventoryAPI --> Concurrency
   BusinessAPI --> Concurrency
   InvoiceAPI --> Concurrency
+  CacheMW --> RuntimeHelpers
+  ExportMW --> RuntimeHelpers
+  OpsRepo --> DBFile
   DeployCfg -. deploy/runtime defaults .-> Entry
 
   DBFile --> Users
@@ -2111,8 +2447,8 @@ This codebase is organized around a single owner-scoped business workspace:
 - frontend pages are static HTML with shared vanilla JS modules
 - Express route files are grouped by business domain
 - PostgreSQL stores all operational data for stock, invoices, purchases, dues, expenses, and staff control
-- authentication is cookie-based for owner, staff, and developer support flows, with staff permissions enforced on both frontend and backend
+- authentication is cookie-based for owner, staff, Google owner login, and developer support flows, with staff permissions enforced on both frontend and backend
 - the support system adds owner/staff requester threads plus a dedicated developer inbox backed by `developer_admins`, `support_conversations`, and `support_messages`
-- runtime behavior now includes structured lifecycle/request logging plus readiness/liveness health endpoints
+- runtime behavior now includes structured lifecycle/request logging, request metrics, background cleanup, queued export jobs, and readiness/liveness health endpoints
 - deployment defaults for Railway are codified in [`../railway.json`](../railway.json)
 - this document now contains both a reusable function catalogue and a schema-level table dictionary in addition to the higher-level architecture notes

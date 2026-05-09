@@ -229,6 +229,15 @@ code {
   white-space: pre-wrap;
 }
 
+td:first-child code,
+td:first-child a code {
+  color: #8a2f23 !important;
+}
+
+:not(pre):not(.hljs) > code {
+  color: #8a2f23 !important;
+}
+
 pre {
   margin: 10px 0 14px;
   padding: 10px 12px;
