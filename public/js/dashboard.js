@@ -2065,6 +2065,9 @@ function renderDropdown(listEl, items, onSelect) {
     hideElement(listEl);
     listEl.innerHTML = "";
     listEl.onclick = null;
+    listEl.onpointerdown = null;
+    listEl.onmousedown = null;
+    listEl.ontouchstart = null;
     return;
   }
 
@@ -2082,7 +2085,8 @@ function renderDropdown(listEl, items, onSelect) {
     .join("");
 
   showElement(listEl);
-  listEl.onclick = (event) => {
+  let selectedBeforeClick = false;
+  const selectFromEvent = (event) => {
     const entry = event.target.closest(".dropdown-item");
     if (!entry || !listEl.contains(entry)) {
       return;
@@ -2090,6 +2094,35 @@ function renderDropdown(listEl, items, onSelect) {
 
     onSelect(decodeURIComponent(entry.dataset.value));
     hideElement(listEl);
+  };
+
+  const handleEarlySelect = (event) => {
+    if (selectedBeforeClick) {
+      return;
+    }
+
+    event.preventDefault();
+    selectedBeforeClick = true;
+    selectFromEvent(event);
+  };
+
+  if (window.PointerEvent) {
+    listEl.onpointerdown = handleEarlySelect;
+    listEl.onmousedown = null;
+    listEl.ontouchstart = null;
+  } else {
+    listEl.onpointerdown = null;
+    listEl.onmousedown = handleEarlySelect;
+    listEl.ontouchstart = handleEarlySelect;
+  }
+
+  listEl.onclick = (event) => {
+    if (selectedBeforeClick) {
+      selectedBeforeClick = false;
+      return;
+    }
+
+    selectFromEvent(event);
   };
 }
 
