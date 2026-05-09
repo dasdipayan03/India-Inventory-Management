@@ -999,8 +999,8 @@ router.get(
             `SELECT COUNT(*)::int AS total
        FROM sales s
         WHERE s.user_id = $1
-          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date >= $2::date
-          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date <= $3::date`,
+          AND s.created_at >= ($2::date::timestamp AT TIME ZONE 'Asia/Kolkata')
+          AND s.created_at < (($3::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'Asia/Kolkata')`,
             [user_id, from, to],
           )
         : null;
@@ -1016,8 +1016,8 @@ router.get(
        FROM sales s
        JOIN items i ON i.id = s.item_id
         WHERE s.user_id = $1
-          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date >= $2::date
-          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date <= $3::date
+          AND s.created_at >= ($2::date::timestamp AT TIME ZONE 'Asia/Kolkata')
+          AND s.created_at < (($3::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'Asia/Kolkata')
       ORDER BY s.created_at ASC
       ${paginationClause}`,
         [user_id, from, to],
@@ -1062,8 +1062,8 @@ router.get(
        FROM sales s
        JOIN items i ON i.id = s.item_id
         WHERE s.user_id = $1
-          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date >= $2::date
-          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date <= $3::date
+          AND s.created_at >= ($2::date::timestamp AT TIME ZONE 'Asia/Kolkata')
+          AND s.created_at < (($3::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'Asia/Kolkata')
       ORDER BY s.created_at ASC`,
         [user_id, from, to],
       );
@@ -1227,8 +1227,8 @@ router.get(
        FROM sales s
        JOIN items i ON i.id = s.item_id
         WHERE s.user_id = $1
-          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date >= $2::date
-          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date <= $3::date
+          AND s.created_at >= ($2::date::timestamp AT TIME ZONE 'Asia/Kolkata')
+          AND s.created_at < (($3::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'Asia/Kolkata')
       ORDER BY s.created_at ASC`,
         [user_id, from, to],
       );
@@ -1421,7 +1421,13 @@ router.get(
   },
 );
 
-async function fetchGstReportRows(userId, from, to) {
+async function fetchGstReportRows(userId, from, to, options = {}) {
+  const limit = Number.parseInt(options.limit, 10);
+  const offset = Number.parseInt(options.offset, 10);
+  const paginationClause =
+    Number.isInteger(limit) && limit > 0
+      ? `LIMIT ${limit} OFFSET ${Number.isInteger(offset) && offset > 0 ? offset : 0}`
+      : "";
   const result = await pool.query(
     `SELECT
       i.date AS created_at,
@@ -1436,9 +1442,10 @@ async function fetchGstReportRows(userId, from, to) {
       COALESCE(i.total_amount, 0) AS invoice_total
      FROM invoices i
      WHERE i.user_id = $1
-       AND (i.date AT TIME ZONE 'Asia/Kolkata')::date >= $2::date
-       AND (i.date AT TIME ZONE 'Asia/Kolkata')::date <= $3::date
-     ORDER BY i.date ASC, i.id ASC`,
+       AND i.date >= ($2::date::timestamp AT TIME ZONE 'Asia/Kolkata')
+       AND i.date < (($3::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'Asia/Kolkata')
+     ORDER BY i.date ASC, i.id ASC
+     ${paginationClause}`,
     [userId, from, to],
   );
 
@@ -1504,7 +1511,9 @@ router.get(
       WITH params AS (
         SELECT
           $2::date AS from_date,
-          $3::date AS to_date
+          $3::date AS to_date,
+          ($2::date::timestamp AT TIME ZONE 'Asia/Kolkata') AS from_ts,
+          (($3::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'Asia/Kolkata') AS to_ts_exclusive
       ),
       months AS (
         SELECT
@@ -1537,8 +1546,8 @@ router.get(
         FROM sales s
         CROSS JOIN params p
         WHERE s.user_id = $1
-          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date >= p.from_date
-          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date <= p.to_date
+          AND s.created_at >= p.from_ts
+          AND s.created_at < p.to_ts_exclusive
         GROUP BY 1
       )
       SELECT
@@ -2529,27 +2538,7 @@ router.get(
     try {
       const user_id = getUserId(req);
 
-    const [
-      catalogResult,
-      lowStockResult,
-      dueResult,
-      supplierDueResult,
-      gstMonthResult,
-      financeResult,
-    ] = await Promise.all([
-      pool.query(
-        `
-        SELECT
-          COUNT(*) AS item_count,
-          COALESCE(SUM(quantity), 0) AS total_units,
-          COALESCE(SUM(quantity * buying_rate), 0) AS total_cost_value,
-          COALESCE(SUM(quantity * selling_rate), 0) AS total_selling_value
-        FROM items
-        WHERE user_id = $1
-        `,
-        [user_id],
-      ),
-      pool.query(
+      const overviewResult = await pool.query(
         `
         WITH sales_30 AS (
           SELECT
@@ -2559,6 +2548,15 @@ router.get(
           WHERE user_id = $1
             AND created_at >= NOW() - INTERVAL '30 days'
           GROUP BY item_id
+        ),
+        catalog AS (
+          SELECT
+            COUNT(*) AS item_count,
+            COALESCE(SUM(quantity), 0) AS total_units,
+            COALESCE(SUM(quantity * buying_rate), 0) AS total_cost_value,
+            COALESCE(SUM(quantity * selling_rate), 0) AS total_selling_value
+          FROM items
+          WHERE user_id = $1
         ),
         low_stock AS (
           SELECT
@@ -2578,51 +2576,42 @@ router.get(
             AND (
               i.quantity / NULLIF((s.sold_30_days / 30.0), 0)
             ) <= $2
-        )
-        SELECT
-          COUNT(*) AS low_stock_count,
-          MIN(days_left) AS shortest_days_left,
-          (ARRAY_AGG(item_name ORDER BY days_left ASC NULLS LAST))[1] AS most_urgent_item
-        FROM low_stock
-        `,
-        [user_id, STOCK_CONFIG.WARNING_DAYS],
-      ),
-      pool.query(
-        `
-        SELECT
-          COUNT(*) AS due_customer_count,
-          COALESCE(SUM(balance), 0) AS due_balance
-        FROM (
+        ),
+        low_stock_summary AS (
           SELECT
-            SUM(total - credit) AS balance
-          FROM debts
-          WHERE user_id = $1
-          GROUP BY customer_number
-          HAVING SUM(total - credit) > 0
-        ) AS due_summary
-        `,
-        [user_id],
-      ),
-      pool.query(
-        `
-        SELECT
-          COUNT(*) AS due_supplier_count,
-          COALESCE(SUM(amount_due), 0) AS supplier_due
-        FROM (
+            COUNT(*) AS low_stock_count,
+            MIN(days_left) AS shortest_days_left,
+            (ARRAY_AGG(item_name ORDER BY days_left ASC NULLS LAST))[1] AS most_urgent_item
+          FROM low_stock
+        ),
+        customer_due_summary AS (
           SELECT
-            supplier_id,
-            SUM(amount_due) AS amount_due
-          FROM purchases
-          WHERE user_id = $1
-          GROUP BY supplier_id
-          HAVING SUM(amount_due) > 0
-        ) AS supplier_summary
-        `,
-        [user_id],
-      ),
-      pool.query(
-        `
-        WITH month_window AS (
+            COUNT(*) AS due_customer_count,
+            COALESCE(SUM(balance), 0) AS due_balance
+          FROM (
+            SELECT
+              SUM(total - credit) AS balance
+            FROM debts
+            WHERE user_id = $1
+            GROUP BY customer_number
+            HAVING SUM(total - credit) > 0
+          ) AS due_summary
+        ),
+        supplier_due_summary AS (
+          SELECT
+            COUNT(*) AS due_supplier_count,
+            COALESCE(SUM(amount_due), 0) AS supplier_due
+          FROM (
+            SELECT
+              supplier_id,
+              SUM(amount_due) AS amount_due
+            FROM purchases
+            WHERE user_id = $1
+            GROUP BY supplier_id
+            HAVING SUM(amount_due) > 0
+          ) AS supplier_summary
+        ),
+        month_window AS (
           SELECT
             DATE_TRUNC('month', NOW() AT TIME ZONE 'Asia/Kolkata')::date AS month_start,
             (
@@ -2633,22 +2622,19 @@ router.get(
               DATE_TRUNC('month', NOW() AT TIME ZONE 'Asia/Kolkata'),
               'Mon YYYY'
             ) AS month_label
-        )
-        SELECT
-          COALESCE(SUM(i.gst_amount), 0) AS current_month_gst_total,
-          COUNT(*) AS current_month_invoice_count,
-          MAX(month_window.month_label) AS current_month_label
-        FROM month_window
-        LEFT JOIN invoices i
-          ON i.user_id = $1
-         AND (i.date AT TIME ZONE 'Asia/Kolkata')::date >= month_window.month_start
-         AND (i.date AT TIME ZONE 'Asia/Kolkata')::date < month_window.next_month_start
-        `,
-        [user_id],
-      ),
-      pool.query(
-        `
-        WITH gross_profit AS (
+        ),
+        gst_month AS (
+          SELECT
+            COALESCE(SUM(i.gst_amount), 0) AS current_month_gst_total,
+            COUNT(i.id) AS current_month_invoice_count,
+            MAX(month_window.month_label) AS current_month_label
+          FROM month_window
+          LEFT JOIN invoices i
+            ON i.user_id = $1
+           AND i.date >= (month_window.month_start::timestamp AT TIME ZONE 'Asia/Kolkata')
+           AND i.date < (month_window.next_month_start::timestamp AT TIME ZONE 'Asia/Kolkata')
+        ),
+        gross_profit AS (
           SELECT
             COALESCE(SUM((selling_price - cost_price) * quantity), 0) AS gross_profit
           FROM sales
@@ -2661,28 +2647,71 @@ router.get(
           WHERE user_id = $1
         )
         SELECT
+          catalog.item_count,
+          catalog.total_units,
+          catalog.total_cost_value,
+          catalog.total_selling_value,
+          low_stock_summary.low_stock_count,
+          low_stock_summary.shortest_days_left,
+          low_stock_summary.most_urgent_item,
+          customer_due_summary.due_customer_count,
+          customer_due_summary.due_balance,
+          supplier_due_summary.due_supplier_count,
+          supplier_due_summary.supplier_due,
+          gst_month.current_month_gst_total,
+          gst_month.current_month_invoice_count,
+          gst_month.current_month_label,
           gross_profit.gross_profit,
           total_expense.total_expense,
           (gross_profit.gross_profit - total_expense.total_expense) AS net_profit
-        FROM gross_profit
+        FROM catalog
+        CROSS JOIN low_stock_summary
+        CROSS JOIN customer_due_summary
+        CROSS JOIN supplier_due_summary
+        CROSS JOIN gst_month
+        CROSS JOIN gross_profit
         CROSS JOIN total_expense
         `,
-        [user_id],
-      ),
-    ]);
+        [user_id, STOCK_CONFIG.WARNING_DAYS],
+      );
 
-    res.json({
-      catalog: catalogResult.rows[0],
-      alerts: lowStockResult.rows[0],
-      dues: dueResult.rows[0],
-      purchases: supplierDueResult.rows[0],
-      gst: gstMonthResult.rows[0],
-      finance: financeResult.rows[0],
-    });
-  } catch (err) {
-    console.error("Dashboard overview error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
+      const overview = overviewResult.rows[0] || {};
+
+      res.json({
+        catalog: {
+          item_count: overview.item_count,
+          total_units: overview.total_units,
+          total_cost_value: overview.total_cost_value,
+          total_selling_value: overview.total_selling_value,
+        },
+        alerts: {
+          low_stock_count: overview.low_stock_count,
+          shortest_days_left: overview.shortest_days_left,
+          most_urgent_item: overview.most_urgent_item,
+        },
+        dues: {
+          due_customer_count: overview.due_customer_count,
+          due_balance: overview.due_balance,
+        },
+        purchases: {
+          due_supplier_count: overview.due_supplier_count,
+          supplier_due: overview.supplier_due,
+        },
+        gst: {
+          current_month_gst_total: overview.current_month_gst_total,
+          current_month_invoice_count: overview.current_month_invoice_count,
+          current_month_label: overview.current_month_label,
+        },
+        finance: {
+          gross_profit: overview.gross_profit,
+          total_expense: overview.total_expense,
+          net_profit: overview.net_profit,
+        },
+      });
+    } catch (err) {
+      console.error("Dashboard overview error:", err);
+      res.status(500).json({ error: "Server error" });
+    }
   },
 );
 

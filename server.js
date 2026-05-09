@@ -69,6 +69,10 @@ const REQUEST_LOG_SLOW_MS = readPositiveInt(
   process.env.REQUEST_LOG_SLOW_MS,
   1500,
 );
+const DB_POOL_WAITING_REJECT_THRESHOLD = readPositiveInt(
+  process.env.DB_POOL_WAITING_REJECT_THRESHOLD,
+  20,
+);
 const READINESS_ROUTE_PATHS = new Set([
   "/health",
   "/api/health",
@@ -423,6 +427,31 @@ const limiter = rateLimit({
   },
 });
 app.use("/api", limiter);
+app.use("/api", (req, res, next) => {
+  if (
+    !isHealthRoutePath(getRequestPath(req)) &&
+    Number(pool.waitingCount || 0) >= DB_POOL_WAITING_REJECT_THRESHOLD
+  ) {
+    logEvent("warn", "db_pool_backpressure_rejected_request", {
+      requestId: req.requestId || null,
+      method: req.method,
+      path: getRequestPath(req),
+      pool: {
+        total: pool.totalCount,
+        idle: pool.idleCount,
+        waiting: pool.waitingCount,
+      },
+      threshold: DB_POOL_WAITING_REJECT_THRESHOLD,
+    });
+
+    res.set("Retry-After", "3");
+    return res.status(503).json({
+      error: "Server is busy. Please try again in a moment.",
+    });
+  }
+
+  return next();
+});
 app.use("/api", createQueuedExportMiddleware({ port: PORT }));
 
 // =========================================================

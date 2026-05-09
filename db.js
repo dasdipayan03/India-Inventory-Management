@@ -34,6 +34,11 @@ function readPositiveInt(value, fallback) {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function readNonNegativeInt(value, fallback) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
 function normalizeEmail(value) {
   return String(value || "")
     .trim()
@@ -91,6 +96,18 @@ const PG_KEEP_ALIVE_DELAY_MS = readPositiveInt(
   10000,
 );
 const PG_MAX_USES = readPositiveInt(process.env.PG_MAX_USES, 7500);
+const PG_STATEMENT_TIMEOUT_MS = readNonNegativeInt(
+  process.env.PG_STATEMENT_TIMEOUT_MS,
+  0,
+);
+const PG_QUERY_TIMEOUT_MS = readNonNegativeInt(
+  process.env.PG_QUERY_TIMEOUT_MS,
+  0,
+);
+const PG_IDLE_IN_TRANSACTION_SESSION_TIMEOUT_MS = readNonNegativeInt(
+  process.env.PG_IDLE_IN_TRANSACTION_SESSION_TIMEOUT_MS,
+  30000,
+);
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -106,6 +123,10 @@ const pool = new Pool({
   keepAlive: true,
   keepAliveInitialDelayMillis: PG_KEEP_ALIVE_DELAY_MS,
   maxUses: PG_MAX_USES,
+  statement_timeout: PG_STATEMENT_TIMEOUT_MS,
+  query_timeout: PG_QUERY_TIMEOUT_MS,
+  idle_in_transaction_session_timeout: PG_IDLE_IN_TRANSACTION_SESSION_TIMEOUT_MS,
+  application_name: process.env.PG_APPLICATION_NAME || "india-inventory-api",
 });
 
 const dbState = {
@@ -729,6 +750,10 @@ async function initializeDatabase() {
     idleTimeoutMs: PG_IDLE_TIMEOUT_MS,
     keepAliveDelayMs: PG_KEEP_ALIVE_DELAY_MS,
     maxUses: PG_MAX_USES,
+    statementTimeoutMs: PG_STATEMENT_TIMEOUT_MS,
+    queryTimeoutMs: PG_QUERY_TIMEOUT_MS,
+    idleInTransactionSessionTimeoutMs:
+      PG_IDLE_IN_TRANSACTION_SESSION_TIMEOUT_MS,
   });
 
   try {
