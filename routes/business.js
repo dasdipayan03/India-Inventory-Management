@@ -10,6 +10,12 @@ const {
   normalizeDisplayText,
   normalizeLookupText,
 } = require("../utils/concurrency");
+const { cacheJsonResponse } = require("../middleware/cache");
+const { invalidateUserCache } = require("../utils/cache");
+const {
+  buildPaginationMeta,
+  parsePagination,
+} = require("../utils/pagination");
 
 const router = express.Router();
 
@@ -207,6 +213,7 @@ router.use(authMiddleware);
 router.get(
   "/suppliers",
   requirePermission("purchase_entry"),
+  cacheJsonResponse({ namespace: "business:suppliers", ttlMs: 15 * 1000 }),
   async (req, res) => {
     try {
       const userId = getUserId(req);
@@ -453,6 +460,7 @@ router.post(
       }
 
       await client.query("COMMIT");
+      invalidateUserCache(userId);
 
       res.json({
         success: true,
@@ -490,10 +498,14 @@ router.post(
 router.get(
   "/purchases/report",
   requirePermission("purchase_entry"),
+  cacheJsonResponse({ namespace: "business:purchases", ttlMs: 10 * 1000 }),
   async (req, res) => {
     try {
       const userId = getUserId(req);
       const rawQuery = String(req.query.q || "").trim();
+      const pagination = parsePagination(req.query, 100, 500, {
+        optional: true,
+      });
       const { fromDate, toDate, fromTimestamp, toTimestampExclusive } =
         toIstDateRange(req.query.from, req.query.to);
 
@@ -510,6 +522,26 @@ router.get(
         )
       `;
       }
+
+      const paginationClause = pagination.enabled
+        ? `LIMIT ${pagination.limit} OFFSET ${pagination.offset}`
+        : "";
+
+      const countResult = pagination.enabled
+        ? await pool.query(
+            `
+        SELECT COUNT(DISTINCT p.id)::int AS total
+        FROM purchases p
+        JOIN suppliers s
+          ON s.id = p.supplier_id
+        WHERE p.user_id = $1
+          AND p.purchase_date >= $2::timestamptz
+          AND p.purchase_date <= $3::timestamptz
+          ${searchClause}
+      `,
+            params,
+          )
+        : null;
 
       const result = await pool.query(
         `
@@ -538,15 +570,26 @@ router.get(
           ${searchClause}
         GROUP BY p.id, s.id
         ORDER BY p.purchase_date DESC, p.id DESC
+        ${paginationClause}
       `,
         params,
       );
 
-      res.json({
+      const payload = {
         success: true,
         range: { from: fromDate, to: toDate },
         purchases: result.rows,
-      });
+      };
+      const paginationMeta = buildPaginationMeta(
+        pagination,
+        countResult?.rows[0]?.total,
+        result.rows.length,
+      );
+      if (paginationMeta) {
+        payload.pagination = paginationMeta;
+      }
+
+      res.json(payload);
     } catch (error) {
       console.error("Purchase report error:", error);
       res.status(500).json({ error: "Failed to load purchase report" });
@@ -557,6 +600,10 @@ router.get(
 router.get(
   "/purchases/product-history",
   requirePermission("purchase_entry"),
+  cacheJsonResponse({
+    namespace: "business:purchase-product-history",
+    ttlMs: 15 * 1000,
+  }),
   async (req, res) => {
     try {
       const userId = getUserId(req);
@@ -818,6 +865,7 @@ router.post(
       );
 
       await client.query("COMMIT");
+      invalidateUserCache(userId);
 
       res.json({
         success: true,
@@ -854,10 +902,17 @@ router.post(
 router.get(
   "/suppliers/summary",
   requirePermission("purchase_entry"),
+  cacheJsonResponse({
+    namespace: "business:supplier-summary",
+    ttlMs: 10 * 1000,
+  }),
   async (req, res) => {
     try {
       const userId = getUserId(req);
       const rawQuery = String(req.query.q || "").trim();
+      const pagination = parsePagination(req.query, 100, 500, {
+        optional: true,
+      });
       const params = [userId];
       let searchClause = "";
 
@@ -870,6 +925,28 @@ router.get(
         )
       `;
       }
+
+      const paginationClause = pagination.enabled
+        ? `LIMIT ${pagination.limit} OFFSET ${pagination.offset}`
+        : "";
+      const countResult = pagination.enabled
+        ? await pool.query(
+            `
+        SELECT COUNT(*)::int AS total
+        FROM (
+          SELECT s.id
+          FROM suppliers s
+          LEFT JOIN purchases p
+            ON p.supplier_id = s.id AND p.user_id = s.user_id
+          WHERE s.user_id = $1
+            ${searchClause}
+          GROUP BY s.id
+          HAVING COUNT(p.id) > 0
+        ) supplier_summary
+      `,
+            params,
+          )
+        : null;
 
       const result = await pool.query(
         `
@@ -890,14 +967,25 @@ router.get(
         GROUP BY s.id
         HAVING COUNT(p.id) > 0
         ORDER BY COALESCE(SUM(p.amount_due), 0) DESC, MAX(p.purchase_date) DESC NULLS LAST
+        ${paginationClause}
       `,
         params,
       );
 
-      res.json({
+      const payload = {
         success: true,
         suppliers: result.rows,
-      });
+      };
+      const paginationMeta = buildPaginationMeta(
+        pagination,
+        countResult?.rows[0]?.total,
+        result.rows.length,
+      );
+      if (paginationMeta) {
+        payload.pagination = paginationMeta;
+      }
+
+      res.json(payload);
     } catch (error) {
       console.error("Supplier ledger summary error:", error);
       res.status(500).json({ error: "Failed to load supplier summary" });
@@ -908,10 +996,17 @@ router.get(
 router.get(
   "/suppliers/:supplierId/ledger",
   requirePermission("purchase_entry"),
+  cacheJsonResponse({
+    namespace: "business:supplier-ledger",
+    ttlMs: 10 * 1000,
+  }),
   async (req, res) => {
     try {
       const userId = getUserId(req);
       const supplierId = Number.parseInt(req.params.supplierId, 10);
+      const pagination = parsePagination(req.query, 100, 500, {
+        optional: true,
+      });
 
       if (!Number.isInteger(supplierId) || supplierId <= 0) {
         return res.status(400).json({ error: "Invalid supplier selection." });
@@ -930,6 +1025,21 @@ router.get(
       if (!supplierResult.rowCount) {
         return res.status(404).json({ error: "Supplier not found." });
       }
+
+      const paginationClause = pagination.enabled
+        ? `LIMIT ${pagination.limit} OFFSET ${pagination.offset}`
+        : "";
+      const countResult = pagination.enabled
+        ? await pool.query(
+            `
+        SELECT COUNT(*)::int AS total
+        FROM purchases p
+        WHERE p.user_id = $1
+          AND p.supplier_id = $2
+      `,
+            [userId, supplierId],
+          )
+        : null;
 
       const rows = await pool.query(
         `
@@ -951,15 +1061,26 @@ router.get(
           AND p.supplier_id = $2
         GROUP BY p.id
         ORDER BY p.purchase_date ASC, p.id ASC
+        ${paginationClause}
       `,
         [userId, supplierId],
       );
 
-      res.json({
+      const payload = {
         success: true,
         supplier: supplierResult.rows[0],
         ledger: rows.rows,
-      });
+      };
+      const paginationMeta = buildPaginationMeta(
+        pagination,
+        countResult?.rows[0]?.total,
+        rows.rows.length,
+      );
+      if (paginationMeta) {
+        payload.pagination = paginationMeta;
+      }
+
+      res.json(payload);
     } catch (error) {
       console.error("Supplier ledger detail error:", error);
       res.status(500).json({ error: "Failed to load supplier ledger" });
@@ -1019,6 +1140,7 @@ router.post(
         ],
       );
 
+      invalidateUserCache(userId);
       res.json({
         success: true,
         message: "Expense saved successfully.",
@@ -1034,6 +1156,7 @@ router.post(
 router.get(
   "/expenses/suggestions",
   requirePermission("expense_tracking"),
+  cacheJsonResponse({ namespace: "business:expense-suggestions", ttlMs: 15 * 1000 }),
   async (req, res) => {
     try {
       const userId = getUserId(req);
@@ -1078,10 +1201,14 @@ router.get(
 router.get(
   "/expenses/report",
   requirePermission("expense_tracking"),
+  cacheJsonResponse({ namespace: "business:expense-report", ttlMs: 10 * 1000 }),
   async (req, res) => {
     try {
       const userId = getUserId(req);
       const rawQuery = String(req.query.q || "").trim();
+      const pagination = parsePagination(req.query, 100, 500, {
+        optional: true,
+      });
       const { fromDate, toDate, fromTimestamp, toTimestampExclusive } =
         toIstDateRange(req.query.from, req.query.to);
 
@@ -1099,6 +1226,23 @@ router.get(
       `;
       }
 
+      const paginationClause = pagination.enabled
+        ? `LIMIT ${pagination.limit} OFFSET ${pagination.offset}`
+        : "";
+      const countResult = pagination.enabled
+        ? await pool.query(
+            `
+        SELECT COUNT(*)::int AS total
+        FROM expenses e
+        WHERE e.user_id = $1
+          AND e.expense_date >= $2::timestamptz
+          AND e.expense_date <= $3::timestamptz
+          ${searchClause}
+      `,
+            baseParams,
+          )
+        : null;
+
       const rowsResult = await pool.query(
         `
         SELECT
@@ -1115,6 +1259,7 @@ router.get(
           AND e.expense_date <= $3::timestamptz
           ${searchClause}
         ORDER BY e.expense_date DESC, e.id DESC
+        ${paginationClause}
       `,
         baseParams,
       );
@@ -1183,7 +1328,7 @@ router.get(
       const totalExpense = Number(summary.total_expense) || 0;
       const grossProfit = Number(summary.gross_profit) || 0;
 
-      res.json({
+      const payload = {
         success: true,
         range: { from: fromDate, to: toDate },
         expenses: rowsResult.rows,
@@ -1195,7 +1340,17 @@ router.get(
           gross_profit: grossProfit,
           net_profit: Number((grossProfit - totalExpense).toFixed(2)),
         },
-      });
+      };
+      const paginationMeta = buildPaginationMeta(
+        pagination,
+        countResult?.rows[0]?.total,
+        rowsResult.rows.length,
+      );
+      if (paginationMeta) {
+        payload.pagination = paginationMeta;
+      }
+
+      res.json(payload);
     } catch (error) {
       console.error("Expense report error:", error);
       res.status(500).json({ error: "Failed to load expense report" });

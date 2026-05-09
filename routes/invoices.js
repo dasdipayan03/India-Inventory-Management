@@ -14,6 +14,9 @@ const {
   normalizeDisplayText,
   normalizeLookupText,
 } = require("../utils/concurrency");
+const { cacheJsonResponse } = require("../middleware/cache");
+const { invalidateUserCache } = require("../utils/cache");
+const { parsePagination } = require("../utils/pagination");
 
 /* ---------------------- Helper: pad serial ---------------------- */
 function padSerial(n) {
@@ -541,6 +544,7 @@ router.post(
           }
 
           await client.query("COMMIT");
+          invalidateUserCache(userId);
           return res.json({
             success: true,
             invoice_no: invoiceNo,
@@ -600,6 +604,7 @@ router.get(
   "/invoices/suggestions",
   authMiddleware,
   requirePermission("sale_invoice"),
+  cacheJsonResponse({ namespace: "invoices:suggestions", ttlMs: 15 * 1000 }),
   async (req, res) => {
     try {
       const userId = getUserId(req);
@@ -668,6 +673,7 @@ router.get(
   "/invoices/numbers",
   authMiddleware,
   requirePermission("sale_invoice"),
+  cacheJsonResponse({ namespace: "invoices:numbers", ttlMs: 15 * 1000 }),
   async (req, res) => {
     const userId = getUserId(req);
     const { rows } = await pool.query(
@@ -687,6 +693,7 @@ router.get(
   "/invoices/customers",
   authMiddleware,
   requirePermission("sale_invoice"),
+  cacheJsonResponse({ namespace: "invoices:customers", ttlMs: 15 * 1000 }),
   async (req, res) => {
     try {
       const userId = getUserId(req);
@@ -755,15 +762,13 @@ router.get(
   "/invoices",
   authMiddleware,
   requirePermission("sale_invoice"),
+  cacheJsonResponse({ namespace: "invoices:list", ttlMs: 10 * 1000 }),
   async (req, res) => {
     try {
       const rawQuery = String(req.query.q || "")
         .trim()
         .toLowerCase();
-      const limit = Math.min(
-        Math.max(Number.parseInt(req.query.limit, 10) || 100, 1),
-        200,
-      );
+      const pagination = parsePagination(req.query, 100, 200);
       const params = [getUserId(req)];
       const filters = [];
 
@@ -788,6 +793,16 @@ router.get(
       }
 
       const whereClause = filters.length ? `AND (${filters.join(" OR ")})` : "";
+      const countResult = await pool.query(
+        `
+          SELECT COUNT(DISTINCT i.id)::int AS total
+          FROM invoices i
+          WHERE i.user_id = $1
+          ${whereClause}
+        `,
+        params,
+      );
+
       const { rows } = await pool.query(
         `
             SELECT
@@ -807,12 +822,25 @@ router.get(
             ${whereClause}
             GROUP BY i.id
             ORDER BY i.date DESC, i.id DESC
-            LIMIT ${limit}
+            LIMIT ${pagination.limit}
+            OFFSET ${pagination.offset}
             `,
         params,
       );
 
-      res.json({ success: true, invoices: rows });
+      res.json({
+        success: true,
+        invoices: rows,
+        pagination: {
+          total: Number(countResult.rows[0]?.total) || 0,
+          limit: pagination.limit,
+          offset: pagination.offset,
+          page: pagination.page,
+          has_more:
+            pagination.offset + rows.length <
+            (Number(countResult.rows[0]?.total) || 0),
+        },
+      });
     } catch (err) {
       console.error("All invoices fetch error:", err);
       res.status(500).json({ success: false });
@@ -825,6 +853,7 @@ router.get(
   "/invoices/:invoiceNo",
   authMiddleware,
   requirePermission("sale_invoice"),
+  cacheJsonResponse({ namespace: "invoices:detail", ttlMs: 10 * 1000 }),
   async (req, res) => {
     const userId = getUserId(req);
     const { rows } = await pool.query(
@@ -978,6 +1007,7 @@ router.post(
       );
 
       await client.query("COMMIT");
+      invalidateUserCache(userId);
 
       return res.json({
         success: true,
@@ -1484,6 +1514,7 @@ router.post("/shop-info", authMiddleware, requireOwner, async (req, res) => {
       ],
     );
 
+    invalidateUserCache(userId);
     res.json({ success: true });
   } catch (error) {
     console.error("Shop info save error:", error);

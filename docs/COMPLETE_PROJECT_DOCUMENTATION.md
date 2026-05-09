@@ -1,6 +1,6 @@
 # India Inventory Management Documentation
 
-Last verified against this repository: `2026-04-24`
+Last verified against this repository: `2026-05-07`
 
 This is the single merged documentation file for the project. It replaces the earlier split project doc and database schema doc.
 
@@ -45,7 +45,9 @@ Important current-state notes:
 - Runtime health and readiness now expose structured JSON payloads through `/health`, `/api/health`, `/healthz`, `/ready`, `/readyz`, `/live`, and `/livez`.
 - Structured runtime logs now redact password, token, authorization, cookie, and access-key fields before emitting JSON.
 - Deployment healthcheck and start-command defaults are now pinned in [`../railway.json`](../railway.json), and lifecycle/request logging is centralized through [`../utils/runtime-log.js`](../utils/runtime-log.js).
-- The Add Stock card in [`../public/index.html`](../public/index.html) now has a side-by-side Clear action. Its reset logic lives in [`../public/js/dashboard.js`](../public/js/dashboard.js), clears item, quantity, buying rate, selling rate, dropdown state, and previous-rate preview, and intentionally keeps `Profit %` unchanged.
+- The Add Stock card in [`../public/index.html`](../public/index.html) has a side-by-side Clear action. Its reset logic lives in [`../public/js/dashboard.js`](../public/js/dashboard.js), clears item, quantity, buying rate, selling rate, dropdown state, and previous-rate preview, and intentionally keeps `Profit %` unchanged.
+- Purchase Entry now includes supplier autocomplete in the Supplier purchase entry card, product-wise purchase history under the Purchase Desk, and supplier detail autofill for name, mobile, and address.
+- Sale and Invoice now includes customer autocomplete in the Billing details card. The inline invoice controller calls `/api/invoices/customers`, then fills customer name, contact, and address when an existing customer is selected.
 
 ## 2. Project Snapshot
 
@@ -59,8 +61,10 @@ Main business modules:
 - developer support account registration and login
 - stock entry and stock defaults
 - purchase entry with supplier ledger and supplier repayment tracking
+- product-wise purchase history from saved purchase item rows
 - sales invoice creation with PDF generation
 - invoice history, due settlement, and payment collection
+- invoice customer lookup/autofill from existing saved invoices
 - customer due ledger
 - sales, stock, and GST reports
 - expense tracking and net profit visibility
@@ -136,28 +140,28 @@ The system is owner-centric:
 | [`../routes/auth.js`](../routes/auth.js)             | register/login/logout, forgot/reset password, staff management, `/me`                                      |
 | [`../routes/support.js`](../routes/support.js)       | developer auth, owner/staff support chat, developer inbox, conversation status updates                     |
 | [`../routes/inventory.js`](../routes/inventory.js)   | stock defaults/entry, stock reports, sales reports, GST compare/export, dashboard overview, customer dues  |
-| [`../routes/business.js`](../routes/business.js)     | suppliers, purchases, purchase repayment, expenses                                                         |
-| [`../routes/invoices.js`](../routes/invoices.js)     | invoice numbering, invoice save, history, payment settlement, PDF, shop info                               |
+| [`../routes/business.js`](../routes/business.js)     | suppliers, purchases, product purchase history, purchase repayment, expenses                               |
+| [`../routes/invoices.js`](../routes/invoices.js)     | invoice numbering, invoice save, customer suggestions, history, payment settlement, PDF, shop info         |
 | [`../utils/concurrency.js`](../utils/concurrency.js) | normalization helpers and owner-scoped advisory locks                                                      |
 | [`../utils/runtime-log.js`](../utils/runtime-log.js) | structured JSON log serializer used by server and DB lifecycle logging                                     |
 | [`../railway.json`](../railway.json)                 | Railway config-as-code for runtime start and healthcheck defaults                                          |
 
 ### Key frontend files
 
-| File                                                                         | Role                                                                                 |
-| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| [`../public/login.html`](../public/login.html)                               | landing page, owner login/register, staff login, forgot password                     |
-| [`../public/developer-login.html`](../public/developer-login.html)           | developer account login/register page for the support inbox                          |
-| [`../public/developer-support.html`](../public/developer-support.html)       | developer support queue and threaded reply workspace                                 |
-| [`../public/index.html`](../public/index.html)                               | main dashboard shell with stock, purchase, reports, due, expense, and staff sections |
-| [`../public/invoice.html`](../public/invoice.html)                           | sale and invoice workspace, invoice history, PDF actions, shop profile               |
-| [`../public/reset.html`](../public/reset.html)                               | reset password page                                                                  |
-| [`../public/js/developer-login.js`](../public/js/developer-login.js)         | developer login/register controller                                                  |
-| [`../public/js/developer-support.js`](../public/js/developer-support.js)     | developer inbox queue, thread, reply, and status update controller                   |
-| [`../public/js/dashboard.js`](../public/js/dashboard.js)                     | main dashboard logic and report UI orchestration                                     |
-| [`../public/js/app-core.js`](../public/js/app-core.js)                       | shared constants, permission descriptions, app bootstrap helpers                     |
-| [`../public/js/app-shell.js`](../public/js/app-shell.js)                     | reusable sidebar shell and page navigation                                           |
-| [`../public/js/permission-contract.js`](../public/js/permission-contract.js) | single permission vocabulary shared by backend and frontend                          |
+| File                                                                         | Role                                                                                                           |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| [`../public/login.html`](../public/login.html)                               | landing page, owner login/register, staff login, forgot password                                               |
+| [`../public/developer-login.html`](../public/developer-login.html)           | developer account login/register page for the support inbox                                                    |
+| [`../public/developer-support.html`](../public/developer-support.html)       | developer support queue and threaded reply workspace                                                           |
+| [`../public/index.html`](../public/index.html)                               | main dashboard shell with stock, purchase, product purchase history, reports, due, expense, and staff sections |
+| [`../public/invoice.html`](../public/invoice.html)                           | sale and invoice workspace, customer autocomplete, invoice history, PDF actions, shop profile                  |
+| [`../public/reset.html`](../public/reset.html)                               | reset password page                                                                                            |
+| [`../public/js/developer-login.js`](../public/js/developer-login.js)         | developer login/register controller                                                                            |
+| [`../public/js/developer-support.js`](../public/js/developer-support.js)     | developer inbox queue, thread, reply, and status update controller                                             |
+| [`../public/js/dashboard.js`](../public/js/dashboard.js)                     | main dashboard logic and report UI orchestration                                                               |
+| [`../public/js/app-core.js`](../public/js/app-core.js)                       | shared constants, permission descriptions, app bootstrap helpers                                               |
+| [`../public/js/app-shell.js`](../public/js/app-shell.js)                     | reusable sidebar shell and page navigation                                                                     |
+| [`../public/js/permission-contract.js`](../public/js/permission-contract.js) | single permission vocabulary shared by backend and frontend                                                    |
 
 ## 5. High-Level Architecture
 
@@ -211,14 +215,14 @@ flowchart LR
 
 ### Page responsibilities
 
-| Page                                                                   | What it does                                                                                    |
-| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| [`../public/login.html`](../public/login.html)                         | auth entrypoint for owner and staff, forgot password entry, existing-session redirect           |
-| [`../public/developer-login.html`](../public/developer-login.html)     | developer account login/register screen for the support inbox                                   |
-| [`../public/developer-support.html`](../public/developer-support.html) | developer queue and threaded support reply workspace                                            |
-| [`../public/index.html`](../public/index.html)                         | multi-section dashboard for stock, purchases, reports, dues, expenses, and staff owner controls |
-| [`../public/invoice.html`](../public/invoice.html)                     | invoice builder, draft restore, payment summary, invoice lookup, invoice PDF actions            |
-| [`../public/reset.html`](../public/reset.html)                         | password reset submission using email + token from URL hash                                     |
+| Page                                                                   | What it does                                                                                                              |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| [`../public/login.html`](../public/login.html)                         | auth entrypoint for owner and staff, forgot password entry, existing-session redirect                                     |
+| [`../public/developer-login.html`](../public/developer-login.html)     | developer account login/register screen for the support inbox                                                             |
+| [`../public/developer-support.html`](../public/developer-support.html) | developer queue and threaded support reply workspace                                                                      |
+| [`../public/index.html`](../public/index.html)                         | multi-section dashboard for stock, purchases, product purchase history, reports, dues, expenses, and staff owner controls |
+| [`../public/invoice.html`](../public/invoice.html)                     | invoice builder, customer autofill, draft restore, payment summary, invoice lookup, invoice PDF actions                   |
+| [`../public/reset.html`](../public/reset.html)                         | password reset submission using email + token from URL hash                                                               |
 
 ### Shared frontend module roles
 
@@ -246,7 +250,12 @@ flowchart LR
 - [`../public/js/dashboard.js`](../public/js/dashboard.js)
   - drives most dashboard features
   - loads and submits stock, purchase, report, due, expense, support, and staff data
-  - handles Add Stock reset behavior, popups, section switching, and report export actions
+  - handles Add Stock reset behavior, supplier autocomplete, product purchase history, popups, section switching, and report export actions
+
+- [`../public/invoice.html`](../public/invoice.html)
+  - contains the inline invoice page controller
+  - manages invoice draft storage, line item autocomplete, payment preview, invoice search, and PDF actions
+  - loads customer suggestions from `/api/invoices/customers` and fills billing name, contact, and address from selected historical invoices
 
 - [`../public/js/developer-login.js`](../public/js/developer-login.js)
   - handles developer sign-in and optional developer account creation
@@ -426,15 +435,15 @@ Important scope note:
 
 #### `db.js` function inventory
 
-| Function                                             | Purpose                                                                                  |
-| ---------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `shouldUseSsl(databaseUrl)`                          | auto-decides whether PostgreSQL SSL should be enabled                                    |
-| `readPositiveInt(value, fallback)`                   | parses positive integer pool-tuning env values                                           |
-| `normalizeEmail(value)`                              | canonicalizes developer-support email values during bootstrap reconciliation             |
-| `isTruthyEnvFlag(value)`                             | reads boolean-style environment flags for optional bootstrap behavior                    |
-| `buildArchivedDeveloperEmail(normalizedEmail, id)`   | creates a deterministic archived email for duplicate developer admin records             |
-| `ensureSchemaCompatibility()`                        | applies runtime schema patching so older databases can satisfy current code expectations |
-| `initializeDatabase()`                               | tests connectivity, runs compatibility patching, and updates exported readiness state    |
+| Function                                           | Purpose                                                                                  |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `shouldUseSsl(databaseUrl)`                        | auto-decides whether PostgreSQL SSL should be enabled                                    |
+| `readPositiveInt(value, fallback)`                 | parses positive integer pool-tuning env values                                           |
+| `normalizeEmail(value)`                            | canonicalizes developer-support email values during bootstrap reconciliation             |
+| `isTruthyEnvFlag(value)`                           | reads boolean-style environment flags for optional bootstrap behavior                    |
+| `buildArchivedDeveloperEmail(normalizedEmail, id)` | creates a deterministic archived email for duplicate developer admin records             |
+| `ensureSchemaCompatibility()`                      | applies runtime schema patching so older databases can satisfy current code expectations |
+| `initializeDatabase()`                             | tests connectivity, runs compatibility patching, and updates exported readiness state    |
 
 `ensureSchemaCompatibility()` also contains `reconcileDeveloperAdmins()`, a nested helper that archives duplicate developer admin emails before the normalized unique index is enforced.
 
@@ -512,7 +521,7 @@ Route handlers in this file cover stock defaults, stock entry, item reporting, l
 
 #### `routes/business.js` function inventory
 
-Route handlers in this file cover supplier lookup, purchase entry, purchase reporting, supplier ledger views, repayment capture, and expenses.
+Route handlers in this file cover supplier lookup, purchase entry, product-wise purchase history, purchase reporting, supplier ledger views, repayment capture, and expenses.
 
 | Function                                                  | Purpose                                                            |
 | --------------------------------------------------------- | ------------------------------------------------------------------ |
@@ -528,7 +537,7 @@ Route handlers in this file cover supplier lookup, purchase entry, purchase repo
 
 #### `routes/invoices.js` function inventory
 
-Route handlers in this file cover invoice preview, invoice creation, invoice search/history, invoice detail, due settlement, PDF export, and shop profile settings.
+Route handlers in this file cover invoice preview, invoice creation, customer autocomplete, invoice search/history, invoice detail, due settlement, PDF export, and shop profile settings.
 
 | Function                                                                           | Purpose                                                                         |
 | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
@@ -636,7 +645,7 @@ Route handlers in this file cover developer registration/login, owner or staff s
 - session/bootstrap: `hideElement`, `showElement`, `markDashboardReady`, `authHeaders`, `handleSessionExpiry`, `checkAuth`
 - formatting/search helpers: `formatCount`, `formatNumber`, `formatCurrency`, `formatDate`, `normalizeSearchKey`, `buildStringSearchIndex`, `getSearchMatches`, `debounce`
 - stock defaults and stock entry: `resetAddStockForm`, `updateProfitPreview`, `updateSellingRate`, `updateProfitPercent`, `applySharedProfitPercent`, `saveProfitPercentDefault`, `loadProfitPercentDefault`, `addStock`
-- purchase workflow: `purchaseRows`, `updatePurchaseSummary`, `addPurchaseItemRow`, `loadPurchaseReport`, `openPurchaseDetail`, `submitPurchaseRepayment`, `searchSupplierLedger`, `submitPurchase`
+- purchase workflow: `purchaseRows`, `updatePurchaseSummary`, `addPurchaseItemRow`, `loadSupplierSuggestions`, `renderSupplierDropdown`, `loadProductPurchaseHistory`, `renderProductPurchaseHistory`, `loadPurchaseReport`, `openPurchaseDetail`, `submitPurchaseRepayment`, `searchSupplierLedger`, `submitPurchase`
 - expense workflow: `renderExpenseReport`, `loadExpenseReport`, `submitExpense`
 - report/export workflow: `renderItemReport`, `loadItemReport`, `loadLowStock`, `renderReorderPlanner`, `renderSlowMovingPlanner`, `renderSalesReport`, `loadSalesReport`, `loadGstReport`, `downloadItemReportPDF`, `downloadSalesPDF`, `downloadSalesExcel`, `downloadGstPDF`, `downloadGstExcel`
 - due ledger workflow: `getDueFormSnapshot`, `updateCustomerDuePreview`, `searchLedger`, `showAllDues`, `refreshCurrentDueView`, `submitDebt`
@@ -783,6 +792,8 @@ index.html add stock section
 
 ```text
 index.html purchase section
+  -> GET /api/suppliers while typing supplier name
+  -> selecting a supplier fills name, mobile number, and address
   -> POST /api/purchases
   -> supplier record is found or created
   -> purchases header is saved
@@ -791,11 +802,24 @@ index.html purchase section
   -> supplier due remains tracked through purchase payment fields
 ```
 
+### Product purchase history
+
+```text
+index.html Product Purchase History card
+  -> product input reuses item-name autocomplete
+  -> GET /api/purchases/product-history?item_name=...
+  -> purchase_items rows are joined to purchases and suppliers
+  -> dashboard renders latest buy rate, total units, total amount, and bill rows
+  -> clicking a row opens the original purchase detail card
+```
+
 ### Invoice creation
 
 ```text
 invoice.html
   -> GET /api/invoices/new
+  -> GET /api/invoices/customers while typing customer name
+  -> selecting a customer fills customer name, contact number, and address
   -> user adds customer info and item rows
   -> POST /api/invoices
   -> invoice_no generated
@@ -927,6 +951,7 @@ All endpoints below are mounted under either `/api/auth` or `/api`.
 | `GET`  | `/api/suppliers`                       | supplier search and quick lookup    |
 | `POST` | `/api/purchases`                       | save purchase and restock inventory |
 | `GET`  | `/api/purchases/report`                | purchase report list                |
+| `GET`  | `/api/purchases/product-history`       | product-wise purchase item history  |
 | `GET`  | `/api/purchases/:purchaseId`           | purchase detail with line items     |
 | `POST` | `/api/purchases/:purchaseId/repayment` | record supplier repayment           |
 | `GET`  | `/api/suppliers/summary`               | supplier balance summary            |
@@ -941,6 +966,7 @@ All endpoints below are mounted under either `/api/auth` or `/api`.
 | ------ | ---------------------------------- | ------------------------------------- |
 | `GET`  | `/api/invoices/new`                | preview next invoice number           |
 | `POST` | `/api/invoices`                    | create invoice and update stock/sales |
+| `GET`  | `/api/invoices/customers`          | customer autocomplete for billing     |
 | `GET`  | `/api/invoices/suggestions`        | invoice search dropdown suggestions   |
 | `GET`  | `/api/invoices/numbers`            | invoice number list                   |
 | `GET`  | `/api/invoices`                    | invoice history list                  |
@@ -1253,6 +1279,7 @@ Notes:
 Purpose:
 
 - supplier master records for purchase workflow
+- source data for Supplier purchase entry autocomplete
 
 Key columns:
 
@@ -1267,6 +1294,7 @@ Notes:
 
 - supplier lookup uses normalized name/mobile matching
 - supplier creation/update is protected with advisory locks
+- selecting a supplier in the purchase form fills name, mobile number, and address
 
 #### `purchases`
 
@@ -1299,6 +1327,7 @@ Notes:
 Purpose:
 
 - line items for one purchase
+- source data for the Product Purchase History dashboard card
 
 Key columns:
 
@@ -1313,6 +1342,7 @@ Notes:
 
 - this stores a snapshot of purchase data
 - there is no direct foreign key to `items`
+- `/api/purchases/product-history` joins purchase items to purchases and suppliers by product name
 
 #### `expenses`
 
@@ -1337,6 +1367,7 @@ Key columns:
 Purpose:
 
 - invoice header records
+- source data for Billing details customer autocomplete on `invoice.html`
 
 Key columns:
 
@@ -1361,6 +1392,7 @@ Notes:
 
 - invoice numbers follow the pattern `INV-YYYYMMDD-userId-####`
 - payment state is stored directly on the invoice
+- `/api/invoices/customers` reads previous customer name, contact, and address values from this table
 
 #### `invoice_items`
 
@@ -1447,16 +1479,16 @@ Constraints, indexes, and triggers:
 
 #### `developer_admins`
 
-| Column          | Type           | Null | Default  | Details                                            |
-| --------------- | -------------- | ---- | -------- | -------------------------------------------------- |
-| `id`            | `SERIAL`       | no   | sequence | primary key                                        |
-| `name`          | `VARCHAR(120)` | no   | none     | developer support display name                     |
-| `email`         | `VARCHAR(120)` | no   | none     | developer support login email                      |
-| `password_hash` | `VARCHAR(255)` | no   | none     | bcrypt hash                                        |
-| `is_active`     | `BOOLEAN`      | no   | `TRUE`   | developer support account availability             |
-| `last_login_at` | `TIMESTAMPTZ`  | yes  | none     | latest successful login timestamp                  |
-| `created_at`    | `TIMESTAMPTZ`  | yes  | `NOW()`  | creation timestamp                                 |
-| `updated_at`    | `TIMESTAMPTZ`  | yes  | `NOW()`  | updated by trigger                                 |
+| Column          | Type           | Null | Default  | Details                                |
+| --------------- | -------------- | ---- | -------- | -------------------------------------- |
+| `id`            | `SERIAL`       | no   | sequence | primary key                            |
+| `name`          | `VARCHAR(120)` | no   | none     | developer support display name         |
+| `email`         | `VARCHAR(120)` | no   | none     | developer support login email          |
+| `password_hash` | `VARCHAR(255)` | no   | none     | bcrypt hash                            |
+| `is_active`     | `BOOLEAN`      | no   | `TRUE`   | developer support account availability |
+| `last_login_at` | `TIMESTAMPTZ`  | yes  | none     | latest successful login timestamp      |
+| `created_at`    | `TIMESTAMPTZ`  | yes  | `NOW()`  | creation timestamp                     |
+| `updated_at`    | `TIMESTAMPTZ`  | yes  | `NOW()`  | updated by trigger                     |
 
 Constraints, indexes, and triggers:
 
@@ -1468,20 +1500,20 @@ Constraints, indexes, and triggers:
 
 #### `support_conversations`
 
-| Column                   | Type           | Null | Default  | Details                                            |
-| ------------------------ | -------------- | ---- | -------- | -------------------------------------------------- |
-| `id`                     | `SERIAL`       | no   | sequence | primary key                                        |
-| `owner_user_id`          | `INT`          | no   | none     | foreign key to `users.id` with `ON DELETE CASCADE` |
-| `requester_actor_id`     | `INT`          | no   | none     | owner/staff actor ID within the owner workspace    |
-| `requester_role`         | `VARCHAR(20)`  | no   | none     | `owner` or `staff`                                 |
-| `requester_name`         | `VARCHAR(120)` | no   | none     | display name shown in support queues               |
-| `requester_identifier`   | `VARCHAR(120)` | yes  | none     | email, username, or other requester identifier     |
-| `status`                 | `VARCHAR(20)`  | no   | `'open'` | conversation state: `open` or `closed`             |
-| `unread_for_user`        | `INT`          | no   | `0`      | replies waiting for the owner/staff requester      |
-| `unread_for_developer`   | `INT`          | no   | `0`      | requester messages waiting for developer support   |
-| `last_message_at`        | `TIMESTAMPTZ`  | yes  | none     | latest message timestamp for inbox sorting         |
-| `created_at`             | `TIMESTAMPTZ`  | yes  | `NOW()`  | creation timestamp                                 |
-| `updated_at`             | `TIMESTAMPTZ`  | yes  | `NOW()`  | updated by trigger                                 |
+| Column                 | Type           | Null | Default  | Details                                            |
+| ---------------------- | -------------- | ---- | -------- | -------------------------------------------------- |
+| `id`                   | `SERIAL`       | no   | sequence | primary key                                        |
+| `owner_user_id`        | `INT`          | no   | none     | foreign key to `users.id` with `ON DELETE CASCADE` |
+| `requester_actor_id`   | `INT`          | no   | none     | owner/staff actor ID within the owner workspace    |
+| `requester_role`       | `VARCHAR(20)`  | no   | none     | `owner` or `staff`                                 |
+| `requester_name`       | `VARCHAR(120)` | no   | none     | display name shown in support queues               |
+| `requester_identifier` | `VARCHAR(120)` | yes  | none     | email, username, or other requester identifier     |
+| `status`               | `VARCHAR(20)`  | no   | `'open'` | conversation state: `open` or `closed`             |
+| `unread_for_user`      | `INT`          | no   | `0`      | replies waiting for the owner/staff requester      |
+| `unread_for_developer` | `INT`          | no   | `0`      | requester messages waiting for developer support   |
+| `last_message_at`      | `TIMESTAMPTZ`  | yes  | none     | latest message timestamp for inbox sorting         |
+| `created_at`           | `TIMESTAMPTZ`  | yes  | `NOW()`  | creation timestamp                                 |
+| `updated_at`           | `TIMESTAMPTZ`  | yes  | `NOW()`  | updated by trigger                                 |
 
 Constraints, indexes, and triggers:
 
@@ -1618,6 +1650,7 @@ Constraints, indexes, and triggers:
 - check `suppliers_mobile_number_format` enforces 10-digit mobile when present
 - indexes: `idx_suppliers_user_name`, `idx_suppliers_user_mobile`, `idx_suppliers_user_id`
 - trigger `update_suppliers_timestamp` calls shared `update_timestamp()`
+- `GET /api/suppliers` powers supplier ledger search and Purchase Entry supplier autofill
 
 #### `purchases`
 
@@ -1662,6 +1695,7 @@ Constraints, indexes, and triggers:
 - foreign key `purchase_id -> purchases.id`
 - index `idx_purchase_items_purchase`
 - no trigger exists because rows are immutable line snapshots
+- product purchase history reads these rows and opens the original bill through `purchase_id`
 
 #### `expenses`
 
@@ -1715,6 +1749,7 @@ Constraints, indexes, and triggers:
 - indexes: `idx_invoices_user_date`, `idx_invoices_user_id`
 - runtime compatibility also ensures partial due-collection index `idx_invoices_user_contact_due_date`
 - trigger `update_invoices_timestamp` calls shared `update_timestamp()`
+- `GET /api/invoices/customers` reads saved customer fields here to autofill Billing details
 
 #### `invoice_items`
 
@@ -1895,6 +1930,11 @@ Edit:
 - [`../routes/inventory.js`](../routes/inventory.js)
 - [`../routes/business.js`](../routes/business.js)
 
+For purchase-specific search/autofill behavior:
+
+- supplier autocomplete lives in [`../public/js/dashboard.js`](../public/js/dashboard.js) and calls `GET /api/suppliers`
+- product purchase history lives in [`../public/index.html`](../public/index.html), [`../public/js/dashboard.js`](../public/js/dashboard.js), and `GET /api/purchases/product-history`
+
 ### If you want to change invoice flow or PDF output
 
 Edit:
@@ -1902,6 +1942,8 @@ Edit:
 - [`../public/invoice.html`](../public/invoice.html)
 - [`../routes/invoices.js`](../routes/invoices.js)
 - [`../middleware/auth.js`](../middleware/auth.js) if auth behavior also changes
+
+For Billing details customer autocomplete, update [`../public/invoice.html`](../public/invoice.html) and `GET /api/invoices/customers` in [`../routes/invoices.js`](../routes/invoices.js).
 
 ### If you want to change support chat or developer portal behavior
 
@@ -1941,8 +1983,8 @@ flowchart TB
     Login["public/login.html<br/>register | owner login | staff login | forgot password"]
     DevLogin["public/developer-login.html<br/>developer login | developer register"]
     DevSupport["public/developer-support.html<br/>developer inbox | replies | status updates"]
-    Dashboard["public/index.html<br/>stock add/clear | purchases | reports | dues | expenses | staff"]
-    Invoice["public/invoice.html<br/>invoice builder | history | payment collection | PDF"]
+    Dashboard["public/index.html<br/>stock add/clear | purchases | product history | reports | dues | expenses | staff"]
+    Invoice["public/invoice.html<br/>invoice builder | customer autofill | history | payment collection | PDF"]
     Reset["public/reset.html<br/>password reset"]
     AppCore["public/js/app-core.js<br/>apiBase | page metadata | shared helpers"]
     AppShell["public/js/app-shell.js<br/>sidebar shell | page navigation"]
@@ -1958,8 +2000,8 @@ flowchart TB
     AuthAPI["routes/auth.js<br/>register | login | reset | staff CRUD | me"]
     SupportAPI["routes/support.js<br/>developer auth | support thread | developer inbox"]
     InventoryAPI["routes/inventory.js<br/>stock | reports | GST compare/export | debts | overview"]
-    BusinessAPI["routes/business.js<br/>suppliers | purchases | repayments | expenses"]
-    InvoiceAPI["routes/invoices.js<br/>invoice save | history | settlement | PDF | shop info"]
+    BusinessAPI["routes/business.js<br/>suppliers | purchases | product history | repayments | expenses"]
+    InvoiceAPI["routes/invoices.js<br/>invoice save | customer lookup | history | settlement | PDF | shop info"]
     Concurrency["utils/concurrency.js<br/>normalizers | advisory locks"]
     DBFile["db.js<br/>pool | readiness state | SSL selection | schema compatibility patch"]
     RuntimeLog["utils/runtime-log.js<br/>structured lifecycle and request logging"]
@@ -2004,7 +2046,7 @@ flowchart TB
   DevLogin -->|"POST /api/developer-auth/*"| Entry
   DevSupport -->|"GET/POST/PATCH /api/developer-support/*"| Entry
   Dashboard -->|"GET/POST /api/*"| Entry
-  Invoice -->|"GET/POST /api/invoices* and /api/shop-info"| Entry
+  Invoice -->|"GET/POST /api/invoices* including /api/invoices/customers and /api/shop-info"| Entry
   Reset -->|"POST /api/auth/reset-password"| Entry
 
   Entry --> AuthMW

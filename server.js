@@ -21,13 +21,14 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
 
 // =========================================================
 // 🔐 SECURITY & PERFORMANCE MIDDLEWARE
 // =========================================================
 const helmet = require("helmet"); // Security headers
 const cors = require("cors"); // Cross-origin access
-const rateLimit = require("express-rate-limit"); // Rate limiting
+const rateLimitPackage = require("express-rate-limit"); // Rate limiting
 const compression = require("compression"); // Gzip compression
 const cookieParser = require("cookie-parser"); // Cookie parsing
 
@@ -36,11 +37,24 @@ const cookieParser = require("cookie-parser"); // Cookie parsing
 // =========================================================
 const pool = require("./db");
 const { logEvent } = require("./utils/runtime-log");
+const { createQueuedExportMiddleware } = require("./middleware/export-queue");
+const {
+  markHttpRequestFinished,
+  markHttpRequestStarted,
+  recordHttpRequest,
+} = require("./utils/monitoring");
+const {
+  startBackgroundJobs,
+  stopBackgroundJobs,
+} = require("./utils/background-jobs");
 
 // =========================================================
 // 🚀 CREATE EXPRESS APP
 // =========================================================
 const app = express();
+const rateLimit = rateLimitPackage.rateLimit || rateLimitPackage;
+const ipKeyGenerator =
+  rateLimitPackage.ipKeyGenerator || ((ip) => ip || "unknown");
 const publicDir = path.join(__dirname, "public");
 const htmlTemplateCache = new Map();
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -278,10 +292,26 @@ app.use((req, res, next) => {
 
   req.requestId = requestId;
   res.set("X-Request-Id", requestId);
+  markHttpRequestStarted();
 
-  res.on("finish", () => {
+  let completionRecorded = false;
+  const recordRequestCompletion = () => {
+    if (completionRecorded) {
+      return;
+    }
+
+    completionRecorded = true;
     const durationMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
     const pathName = getRequestPath(req);
+    const aborted = !res.writableEnded;
+    markHttpRequestFinished();
+    recordHttpRequest({
+      method: req.method,
+      pathname: pathName,
+      statusCode: res.statusCode,
+      durationMs,
+      slowThresholdMs: REQUEST_LOG_SLOW_MS,
+    });
     const shouldLog =
       ENABLE_REQUEST_LOGS ||
       res.statusCode >= 500 ||
@@ -308,19 +338,15 @@ app.use((req, res, next) => {
         ip: req.ip,
         userAgent: req.get("user-agent") || null,
         responseLength: res.getHeader("content-length") || null,
+        aborted,
       },
     );
-  });
+  };
+
+  res.on("finish", recordRequestCompletion);
+  res.on("close", recordRequestCompletion);
 
   next();
-});
-
-app.get(Array.from(READINESS_ROUTE_PATHS), (req, res) => {
-  sendHealthResponse(res, "readiness");
-});
-
-app.get(Array.from(LIVENESS_ROUTE_PATHS), (req, res) => {
-  sendHealthResponse(res, "liveness");
 });
 
 app.use((req, res, next) => {
@@ -349,18 +375,55 @@ app.use(express.urlencoded({ extended: false, limit: URLENCODED_BODY_LIMIT }));
 app.use(cookieParser()); // Parse cookies from client
 app.use(compression({ threshold: 1024 })); // Compress larger responses only
 
+function getAuthTokenFromRequest(req) {
+  if (req.cookies?.token) {
+    return req.cookies.token;
+  }
+
+  const header = req.headers.authorization;
+  if (header && header.startsWith("Bearer ")) {
+    return header.split(" ")[1];
+  }
+
+  return null;
+}
+
+function getRateLimitKey(req) {
+  const token = getAuthTokenFromRequest(req);
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const ownerId = decoded.ownerId || decoded.id;
+      const actorId = decoded.actorId || decoded.staffId || decoded.id;
+      const role = decoded.role || "user";
+      if (ownerId) {
+        return `user:${ownerId}:actor:${actorId || ownerId}:role:${role}`;
+      }
+    } catch (_error) {
+      // Invalid tokens fall back to IP based limiting and auth middleware rejects them.
+    }
+  }
+
+  return `ip:${ipKeyGenerator(req.ip)}`;
+}
+
 // Rate Limiter
-// Max 200 requests per 15 minutes per IP
+// Authenticated users are limited by account/actor, anonymous requests by IP.
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 500,
+  max: readPositiveInt(process.env.API_RATE_LIMIT_MAX, 500),
+  keyGenerator: getRateLimitKey,
   standardHeaders: true,
   legacyHeaders: false,
   skip(req) {
     return isHealthRoutePath(getRequestPath(req));
   },
+  message: {
+    error: "Too many requests. Please wait a moment and try again.",
+  },
 });
 app.use("/api", limiter);
+app.use("/api", createQueuedExportMiddleware({ port: PORT }));
 
 // =========================================================
 // 🛡 CONTENT SECURITY POLICY (Helmet)
@@ -412,6 +475,8 @@ app.use(helmet.referrerPolicy({ policy: "same-origin" }));
 // =========================================================
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api", require("./routes/support"));
+app.use("/api", require("./routes/exports"));
+app.use("/api", require("./routes/ops"));
 app.use("/api", require("./routes/inventory"));
 app.use("/api", require("./routes/business"));
 app.use("/api", require("./routes/invoices"));
@@ -566,6 +631,8 @@ server = app.listen(PORT, "0.0.0.0", () => {
 // 🛑 GRACEFUL SHUTDOWN
 // Handles container shutdown safely
 // =========================================================
+startBackgroundJobs({ pool });
+
 server.on("error", (error) => {
   logEvent("error", "http_server_error", {
     host: "0.0.0.0",
@@ -598,6 +665,7 @@ function shutdown(signal) {
   }
 
   isShuttingDown = true;
+  stopBackgroundJobs();
   logEvent("warn", "shutdown_requested", {
     signal,
     uptimeSeconds: roundTo(process.uptime(), 3),

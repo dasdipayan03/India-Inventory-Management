@@ -336,8 +336,23 @@ async function ensureSchemaCompatibility() {
   `);
 
   await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_items_user_name_lookup
+      ON items (user_id, LOWER(TRIM(name)))
+  `);
+
+  await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_sales_user_date
       ON sales (user_id, created_at)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_sales_user_date_desc
+      ON sales (user_id, created_at DESC, id DESC)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_sales_user_item_date
+      ON sales (user_id, item_id, created_at DESC)
   `);
 
   await pool.query(`
@@ -366,6 +381,26 @@ async function ensureSchemaCompatibility() {
   `);
 
   await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_invoices_user_date_id_desc
+      ON invoices (user_id, date DESC, id DESC)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_invoices_user_invoice_lookup
+      ON invoices (user_id, LOWER(invoice_no))
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_invoices_user_customer_lookup
+      ON invoices (user_id, LOWER(TRIM(customer_name)))
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_invoices_user_contact_lookup
+      ON invoices (user_id, contact)
+  `);
+
+  await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_invoices_user_id
       ON invoices (user_id)
   `);
@@ -391,6 +426,11 @@ async function ensureSchemaCompatibility() {
   `);
 
   await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_debts_user_customer_summary
+      ON debts (user_id, customer_name, customer_number)
+  `);
+
+  await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_invoices_user_contact_due_date
       ON invoices (user_id, contact, date ASC)
       WHERE amount_due > 0
@@ -412,6 +452,16 @@ async function ensureSchemaCompatibility() {
   `);
 
   await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_purchases_user_date_id_desc
+      ON purchases (user_id, purchase_date DESC, id DESC)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_purchases_user_supplier_date
+      ON purchases (user_id, supplier_id, purchase_date ASC, id ASC)
+  `);
+
+  await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_purchases_supplier_id
       ON purchases (supplier_id)
   `);
@@ -422,8 +472,28 @@ async function ensureSchemaCompatibility() {
   `);
 
   await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_purchase_items_item_lookup
+      ON purchase_items (LOWER(TRIM(item_name)))
+  `);
+
+  await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_expenses_user_date
       ON expenses (user_id, expense_date DESC)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_expenses_user_date_id_desc
+      ON expenses (user_id, expense_date DESC, id DESC)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_expenses_user_title_lookup
+      ON expenses (user_id, LOWER(TRIM(title)))
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_expenses_user_category_lookup
+      ON expenses (user_id, LOWER(TRIM(category)))
   `);
 
   await pool.query(`

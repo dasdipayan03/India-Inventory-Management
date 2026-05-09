@@ -820,13 +820,122 @@ async function fetchJSON(path, options = {}) {
   return payload;
 }
 
+function appendAsyncExportFlag(path) {
+  const normalizedPath = String(path || "");
+  if (!/\/(?:pdf|excel)(?:\?|$)/i.test(normalizedPath)) {
+    return normalizedPath;
+  }
+
+  const separator = normalizedPath.includes("?") ? "&" : "?";
+  return `${normalizedPath}${separator}_async_export=1`;
+}
+
+function getDownloadFilename(response, fallbackName) {
+  const disposition = response.headers.get("content-disposition") || "";
+  const match = disposition.match(/filename="?([^"]+)"?/i);
+  return match?.[1] || fallbackName;
+}
+
+async function saveDownloadResponse(response, fallbackName) {
+  const blob = await response.blob();
+  const filename = getDownloadFilename(response, fallbackName);
+  const blobUrl = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = blobUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  window.setTimeout(() => {
+    window.URL.revokeObjectURL(blobUrl);
+  }, 1500);
+}
+
+function wait(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function waitForQueuedExport(job, fallbackName) {
+  const jobId = job?.id;
+  if (!jobId) {
+    throw new Error("Export job could not be started.");
+  }
+
+  const statusPath = job.status_url || `/exports/${jobId}`;
+  const downloadPath = job.download_url || `/exports/${jobId}/download`;
+  const maxAttempts = 80;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    if (attempt > 0) {
+      await wait(attempt < 8 ? 800 : 1500);
+    }
+
+    const statusPayload = await fetchJSON(statusPath, { cache: "no-store" });
+    const currentJob = statusPayload.export_job || {};
+
+    if (currentJob.status === "failed") {
+      throw new Error(currentJob.error || "Export failed.");
+    }
+
+    if (currentJob.status !== "completed") {
+      continue;
+    }
+
+    const downloadResponse = await fetch(`${apiBase}${downloadPath}`, {
+      credentials: "include",
+      headers: authHeaders(),
+      cache: "no-store",
+    });
+
+    if (downloadResponse.status === 202) {
+      continue;
+    }
+
+    if (downloadResponse.status === 401) {
+      handleSessionExpiry();
+      const authError = new Error("Session expired");
+      authError.code = "SESSION_EXPIRED";
+      throw authError;
+    }
+
+    if (!downloadResponse.ok) {
+      let payload = {};
+      try {
+        payload = await downloadResponse.json();
+      } catch (error) {
+        payload = {};
+      }
+      throw new Error(payload.error || payload.message || "Download failed");
+    }
+
+    await saveDownloadResponse(downloadResponse, fallbackName);
+    return;
+  }
+
+  throw new Error("Export is taking longer than expected. Please try again.");
+}
+
 async function downloadAuthenticatedFile(path, fallbackName) {
-  const response = await fetch(`${apiBase}${path}`, {
+  const response = await fetch(`${apiBase}${appendAsyncExportFlag(path)}`, {
     credentials: "include",
     headers: authHeaders(),
+    cache: "no-store",
   });
 
   let payload = {};
+  if (response.status === 202) {
+    try {
+      payload = await response.json();
+    } catch (error) {
+      payload = {};
+    }
+
+    await waitForQueuedExport(payload.export_job, fallbackName);
+    return;
+  }
+
   if (!response.ok || response.status === 401) {
     try {
       payload = await response.json();
@@ -846,22 +955,7 @@ async function downloadAuthenticatedFile(path, fallbackName) {
     throw new Error(payload.error || payload.message || "Download failed");
   }
 
-  const blob = await response.blob();
-  const disposition = response.headers.get("content-disposition") || "";
-  const match = disposition.match(/filename="?([^"]+)"?/i);
-  const filename = match?.[1] || fallbackName;
-  const blobUrl = window.URL.createObjectURL(blob);
-  const link = document.createElement("a");
-
-  link.href = blobUrl;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-
-  window.setTimeout(() => {
-    window.URL.revokeObjectURL(blobUrl);
-  }, 1500);
+  await saveDownloadResponse(response, fallbackName);
 }
 
 async function logoutAndRedirect() {
@@ -881,7 +975,12 @@ async function withButtonState(button, loadingHtml, task) {
     return;
   }
 
+  if (button.dataset.busy === "true" || button.disabled) {
+    return;
+  }
+
   const originalHtml = button.innerHTML;
+  button.dataset.busy = "true";
   button.disabled = true;
   button.setAttribute("aria-busy", "true");
   button.innerHTML = loadingHtml;
@@ -892,6 +991,7 @@ async function withButtonState(button, loadingHtml, task) {
     button.disabled = false;
     button.setAttribute("aria-busy", "false");
     button.innerHTML = originalHtml;
+    delete button.dataset.busy;
   }
 }
 
@@ -5374,18 +5474,6 @@ function resolveTrendReferenceRow(rows, context = {}) {
   }
 
   return rows[rows.length - 1];
-}
-
-function resolvePreviousTrendRow(rows, referenceRow) {
-  if (!Array.isArray(rows) || !rows.length || !referenceRow) {
-    return null;
-  }
-
-  const referenceIndex = rows.findIndex(
-    (row) => row.month_key === referenceRow.month_key,
-  );
-
-  return referenceIndex > 0 ? rows[referenceIndex - 1] : null;
 }
 
 function resolveTrendAverageBaseline(rows, referenceRow, context = {}) {

@@ -2584,6 +2584,80 @@
         return response;
       }
 
+      const appendAsyncExportFlag = (url) => {
+        const normalizedUrl = String(url || "");
+        if (!/\/(?:pdf|excel)(?:\?|$)/i.test(normalizedUrl)) {
+          return normalizedUrl;
+        }
+
+        return `${normalizedUrl}${normalizedUrl.includes("?") ? "&" : "?"}_async_export=1`;
+      };
+
+      const wait = (ms) =>
+        new Promise((resolve) => window.setTimeout(resolve, ms));
+
+      const waitForQueuedExport = async (job, fallbackName) => {
+        const jobId = job?.id;
+        if (!jobId) {
+          throw new Error("Export job could not be started.");
+        }
+
+        const statusUrl = `${API_PREFIX}${job.status_url || `/exports/${jobId}`}`;
+        const downloadUrl = `${API_PREFIX}${
+          job.download_url || `/exports/${jobId}/download`
+        }`;
+
+        for (let attempt = 0; attempt < 80; attempt += 1) {
+          if (attempt > 0) {
+            await wait(attempt < 8 ? 800 : 1500);
+          }
+
+          const statusResponse = await authFetch(statusUrl, {
+            cache: "no-store",
+          });
+          if (!statusResponse) {
+            return false;
+          }
+
+          const statusPayload = await statusResponse.json();
+          const currentJob = statusPayload.export_job || {};
+
+          if (currentJob.status === "failed") {
+            throw new Error(currentJob.error || "Export failed.");
+          }
+
+          if (currentJob.status !== "completed") {
+            continue;
+          }
+
+          const downloadResponse = await authFetch(downloadUrl, {
+            cache: "no-store",
+          });
+          if (!downloadResponse) {
+            return false;
+          }
+
+          if (downloadResponse.status === 202) {
+            continue;
+          }
+
+          if (!downloadResponse.ok) {
+            let payload = {};
+            try {
+              payload = await downloadResponse.json();
+            } catch (_error) {
+              payload = {};
+            }
+            throw new Error(payload.error || payload.message || "Download failed");
+          }
+
+          await saveBlobDownload(downloadResponse, fallbackName);
+          return true;
+        }
+
+        throw new Error("Export is taking longer than expected. Please try again.");
+      };
+
       document.addEventListener("DOMContentLoaded", () => {
         window.InventoryAppShell?.renderSidebar("invoice");
 
@@ -2974,6 +3048,7 @@
             button.dataset.label = button.innerHTML;
           }
 
+          button.dataset.busy = busy ? "true" : "false";
           button.disabled = busy;
           button.setAttribute("aria-busy", busy ? "true" : "false");
           button.innerHTML = busy
@@ -2984,6 +3059,10 @@
         const withButtonState = async (button, label, task) => {
           if (!button) {
             await task();
+            return;
+          }
+
+          if (button.dataset.busy === "true" || button.disabled) {
             return;
           }
 
@@ -3051,10 +3130,34 @@
           await withButtonState(button, "Preparing PDF...", async () => {
             try {
               const response = await authFetch(
-                `${API_PREFIX}/invoices/${encodeURIComponent(normalizedInvoiceNo)}/pdf`,
+                appendAsyncExportFlag(
+                  `${API_PREFIX}/invoices/${encodeURIComponent(normalizedInvoiceNo)}/pdf`,
+                ),
               );
 
               if (!response) {
+                return;
+              }
+
+              if (response.status === 202) {
+                let payload = {};
+                try {
+                  payload = await response.json();
+                } catch (_error) {
+                  payload = {};
+                }
+
+                didDownload = await waitForQueuedExport(
+                  payload.export_job,
+                  `${normalizedInvoiceNo}.pdf`,
+                );
+                if (didDownload) {
+                  showPopup(
+                    "success",
+                    "Download complete",
+                    "The invoice PDF has been downloaded.",
+                  );
+                }
                 return;
               }
 
@@ -4240,6 +4343,10 @@
           const button = dom.searchResult.querySelector(".detail-receive");
           const amountValue = Number(amountField?.value || "0");
 
+          if (button?.dataset.busy === "true" || button?.disabled) {
+            return;
+          }
+
           if (!Number.isFinite(amountValue) || amountValue <= 0) {
             showPopup(
               "error",
@@ -4538,6 +4645,13 @@
         }
 
         async function submitInvoice() {
+          if (
+            dom.confirmSaveYes?.dataset.busy === "true" ||
+            dom.confirmSaveYes?.disabled
+          ) {
+            return;
+          }
+
           closeModal(dom.saveConfirmModal);
           setBusy(dom.confirmSaveYes, true, "Submitting...");
           try {

@@ -1,6 +1,6 @@
 # Detailed File Flow Chart
 
-Last verified against this repository: `2026-04-24`
+Last verified against this repository: `2026-05-07`
 
 This document maps the runtime-relevant app files in the repository and shows how they connect in practice.
 
@@ -26,15 +26,15 @@ flowchart TD
     AuthRoute["routes/auth.js<br/>owner register/login/staff/session/reset"]
     SupportRoute["routes/support.js<br/>developer auth + support chat + inbox"]
     InventoryRoute["routes/inventory.js<br/>stock/sales/reports/debts/dashboard"]
-    BusinessRoute["routes/business.js<br/>purchases/suppliers/repayments/expenses"]
-    InvoiceRoute["routes/invoices.js<br/>invoice create/list/pdf/payment/shop info"]
+    BusinessRoute["routes/business.js<br/>purchases/suppliers/product history/repayments/expenses"]
+    InvoiceRoute["routes/invoices.js<br/>invoice create/customer lookup/list/pdf/payment/shop info"]
   end
 
   subgraph SharedFront["Shared frontend JS"]
     PermContract["public/js/permission-contract.js<br/>shared permission contract"]
     AppCore["public/js/app-core.js<br/>frontend app config + access helpers"]
     AppShell["public/js/app-shell.js<br/>sidebar shell + mobile navigation"]
-    DashboardJS["public/js/dashboard.js<br/>dashboard page controller + Add Stock reset"]
+    DashboardJS["public/js/dashboard.js<br/>dashboard page controller + stock/purchase autocomplete"]
     DevLoginJS["public/js/developer-login.js<br/>developer auth page controller"]
     DevSupportJS["public/js/developer-support.js<br/>developer inbox controller"]
     ChartLib["public/js/chart.min.js<br/>chart library"]
@@ -45,8 +45,8 @@ flowchart TD
     DevLoginPage["public/developer-login.html<br/>developer login/register UI"]
     DevSupportPage["public/developer-support.html<br/>developer support queue UI"]
     ResetPage["public/reset.html<br/>reset password UI + inline reset script"]
-    IndexPage["public/index.html<br/>dashboard shell HTML + support chat card"]
-    InvoicePage["public/invoice.html<br/>invoice studio HTML + inline invoice script"]
+    IndexPage["public/index.html<br/>dashboard shell HTML + purchase/product history cards"]
+    InvoicePage["public/invoice.html<br/>invoice studio HTML + billing customer autocomplete"]
     Logo["public/images/app_logo.png<br/>brand asset"]
   end
 
@@ -188,13 +188,13 @@ flowchart LR
   DashboardController --> AuthAPI2["routes/auth.js<br/>session/staff management"]
   DashboardController --> SupportAPI2["routes/support.js<br/>/support/thread /support/messages"]
   DashboardController --> InventoryAPI2["routes/inventory.js<br/>stock defaults/items/sales/GST/debts/dashboard"]
-  DashboardController --> BusinessAPI2["routes/business.js<br/>purchases/suppliers/repayments/expenses"]
+  DashboardController --> BusinessAPI2["routes/business.js<br/>purchases/suppliers/product-history/repayments/expenses"]
 
   Invoice --> InvoiceShared["permission-contract.js + app-core.js + app-shell.js"]
   InvoiceShared --> InvoiceInline["inline invoice page controller"]
   InvoiceInline --> AuthAPI3["routes/auth.js<br/>/me /logout"]
   InvoiceInline --> InventoryAPI3["routes/inventory.js<br/>/items/names /items/info"]
-  InvoiceInline --> InvoiceAPI3["routes/invoices.js<br/>/invoices* /shop-info"]
+  InvoiceInline --> InvoiceAPI3["routes/invoices.js<br/>/invoices* /invoices/customers /shop-info"]
 
   Developer["Developer opens portal"] --> DevLogin["public/developer-login.html"]
   DevLogin --> DevLoginJS["public/js/developer-login.js"]
@@ -210,36 +210,36 @@ flowchart LR
 
 ## 4. File Role Catalog
 
-| Path                                 | Main role                                                                                 | Primary connections                                                            |
-| ------------------------------------ | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `package.json`                       | Declares Node runtime, start script, and app dependencies                                 | Drives `server.js`, route files, `db.js`, PDF/Excel/auth libs                  |
-| `package-lock.json`                  | Pins exact dependency versions                                                            | Supports deterministic install from `package.json`                             |
-| `railway.json`                       | Railway deployment instructions                                                           | Starts `server.js`, checks `/health`, restarts on failure                      |
-| `server.js`                          | Main app bootstrap                                                                        | Uses `db.js`, `runtime-log.js`, mounts all route files, serves HTML pages      |
-| `db.js`                              | Global PostgreSQL pool and readiness state                                                | Queried by all route files, logged by `runtime-log.js`, informed by schema SQL |
-| `middleware/auth.js`                 | JWT/session verification and permission guard for owner, staff, and developer routes      | Used by all protected route files, imports shared permission contract          |
-| `utils/runtime-log.js`               | Structured JSON logging with sensitive-field redaction                                    | Used by `server.js` and `db.js` for startup/request/error/shutdown logs        |
-| `utils/concurrency.js`               | Advisory lock helper and shared text normalization                                        | Used by write-heavy route files to avoid duplicate concurrent writes           |
-| `routes/auth.js`                     | Owner registration, login, staff login, session, logout, password reset, staff management | Uses `db.js`, `middleware/auth.js`, shared permission contract                 |
-| `routes/support.js`                  | Developer auth, owner/staff support thread, developer inbox, replies, status updates      | Uses `db.js`, `middleware/auth.js`                                             |
-| `routes/inventory.js`                | Stock entry, stock defaults, sales reports, GST compare/export, debts, dashboard, trends  | Uses `db.js`, `middleware/auth.js`, `utils/concurrency.js`                     |
-| `routes/business.js`                 | Supplier search, purchase save, purchase report, supplier ledger, repayments, expenses    | Uses `db.js`, `middleware/auth.js`, `utils/concurrency.js`                     |
-| `routes/invoices.js`                 | Invoice number preview, invoice save, invoice PDF, invoice lookup, payments, shop info    | Uses `db.js`, `middleware/auth.js`, `utils/concurrency.js`                     |
-| `public/login.html`                  | Public entry page for owner login, staff login, registration, forgot password             | Inline JS calls `routes/auth.js` endpoints                                     |
-| `public/developer-login.html`        | Developer account login/register page                                                     | Loads `public/js/developer-login.js`, calls `routes/support.js` auth endpoints |
-| `public/developer-support.html`      | Developer inbox UI                                                                        | Loads `public/js/developer-support.js`, calls `routes/support.js` inbox APIs   |
-| `public/reset.html`                  | Password reset page                                                                       | Inline JS posts to `routes/auth.js` reset endpoint                             |
-| `public/index.html`                  | Dashboard HTML layout including support chat and Add Stock clear action                   | Loads `permission-contract.js`, `app-core.js`, `app-shell.js`, `dashboard.js`  |
-| `public/invoice.html`                | Invoice workspace HTML                                                                    | Loads shared JS files and contains its own inline invoice controller           |
-| `public/js/permission-contract.js`   | Shared owner/staff permission map                                                         | Loaded by frontend and imported by backend Node files                          |
-| `public/js/app-core.js`              | Frontend app-wide config and access helper registry                                       | Builds `window.InventoryApp` from permission contract                          |
-| `public/js/app-shell.js`             | Shared sidebar shell and mobile navigation behavior                                       | Renders sidebar for dashboard and invoice pages                                |
-| `public/js/dashboard.js`             | Dashboard controller for stock reset/save, purchases, dues, expenses, staff, reports, support | Uses `window.InventoryApp`, `window.InventoryAppShell`, and backend APIs   |
-| `public/js/developer-login.js`       | Developer login/register controller                                                       | Calls `/api/developer-auth/*` with cookie-based auth                           |
-| `public/js/developer-support.js`     | Developer inbox page controller                                                           | Calls `/api/developer-support/*` with cookie-based auth                        |
-| `public/js/chart.min.js`             | Chart rendering library                                                                   | Lazily loaded by `dashboard.js` when sales charts are needed                   |
-| `public/images/app_logo.png`         | Brand/logo asset                                                                          | Used by the public and developer-facing HTML pages                             |
-| `migrations/full_updated_schema.sql` | Full schema snapshot                                                                      | Reference source for DB structure alongside runtime patching in `db.js`        |
+| Path                                 | Main role                                                                                                                           | Primary connections                                                            |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `package.json`                       | Declares Node runtime, start script, and app dependencies                                                                           | Drives `server.js`, route files, `db.js`, PDF/Excel/auth libs                  |
+| `package-lock.json`                  | Pins exact dependency versions                                                                                                      | Supports deterministic install from `package.json`                             |
+| `railway.json`                       | Railway deployment instructions                                                                                                     | Starts `server.js`, checks `/health`, restarts on failure                      |
+| `server.js`                          | Main app bootstrap                                                                                                                  | Uses `db.js`, `runtime-log.js`, mounts all route files, serves HTML pages      |
+| `db.js`                              | Global PostgreSQL pool and readiness state                                                                                          | Queried by all route files, logged by `runtime-log.js`, informed by schema SQL |
+| `middleware/auth.js`                 | JWT/session verification and permission guard for owner, staff, and developer routes                                                | Used by all protected route files, imports shared permission contract          |
+| `utils/runtime-log.js`               | Structured JSON logging with sensitive-field redaction                                                                              | Used by `server.js` and `db.js` for startup/request/error/shutdown logs        |
+| `utils/concurrency.js`               | Advisory lock helper and shared text normalization                                                                                  | Used by write-heavy route files to avoid duplicate concurrent writes           |
+| `routes/auth.js`                     | Owner registration, login, staff login, session, logout, password reset, staff management                                           | Uses `db.js`, `middleware/auth.js`, shared permission contract                 |
+| `routes/support.js`                  | Developer auth, owner/staff support thread, developer inbox, replies, status updates                                                | Uses `db.js`, `middleware/auth.js`                                             |
+| `routes/inventory.js`                | Stock entry, stock defaults, sales reports, GST compare/export, debts, dashboard, trends                                            | Uses `db.js`, `middleware/auth.js`, `utils/concurrency.js`                     |
+| `routes/business.js`                 | Supplier search, purchase save, product purchase history, supplier ledger, repayments, expenses                                     | Uses `db.js`, `middleware/auth.js`, `utils/concurrency.js`                     |
+| `routes/invoices.js`                 | Invoice number preview, invoice save, customer suggestions, invoice PDF, invoice lookup, payments, shop info                        | Uses `db.js`, `middleware/auth.js`, `utils/concurrency.js`                     |
+| `public/login.html`                  | Public entry page for owner login, staff login, registration, forgot password                                                       | Inline JS calls `routes/auth.js` endpoints                                     |
+| `public/developer-login.html`        | Developer account login/register page                                                                                               | Loads `public/js/developer-login.js`, calls `routes/support.js` auth endpoints |
+| `public/developer-support.html`      | Developer inbox UI                                                                                                                  | Loads `public/js/developer-support.js`, calls `routes/support.js` inbox APIs   |
+| `public/reset.html`                  | Password reset page                                                                                                                 | Inline JS posts to `routes/auth.js` reset endpoint                             |
+| `public/index.html`                  | Dashboard HTML layout including support chat, purchase supplier autocomplete, and Product Purchase History                          | Loads `permission-contract.js`, `app-core.js`, `app-shell.js`, `dashboard.js`  |
+| `public/invoice.html`                | Invoice workspace HTML with Billing details customer autocomplete                                                                   | Loads shared JS files and contains its own inline invoice controller           |
+| `public/js/permission-contract.js`   | Shared owner/staff permission map                                                                                                   | Loaded by frontend and imported by backend Node files                          |
+| `public/js/app-core.js`              | Frontend app-wide config and access helper registry                                                                                 | Builds `window.InventoryApp` from permission contract                          |
+| `public/js/app-shell.js`             | Shared sidebar shell and mobile navigation behavior                                                                                 | Renders sidebar for dashboard and invoice pages                                |
+| `public/js/dashboard.js`             | Dashboard controller for stock reset/save, supplier autocomplete, product purchase history, dues, expenses, staff, reports, support | Uses `window.InventoryApp`, `window.InventoryAppShell`, and backend APIs       |
+| `public/js/developer-login.js`       | Developer login/register controller                                                                                                 | Calls `/api/developer-auth/*` with cookie-based auth                           |
+| `public/js/developer-support.js`     | Developer inbox page controller                                                                                                     | Calls `/api/developer-support/*` with cookie-based auth                        |
+| `public/js/chart.min.js`             | Chart rendering library                                                                                                             | Lazily loaded by `dashboard.js` when sales charts are needed                   |
+| `public/images/app_logo.png`         | Brand/logo asset                                                                                                                    | Used by the public and developer-facing HTML pages                             |
+| `migrations/full_updated_schema.sql` | Full schema snapshot                                                                                                                | Reference source for DB structure alongside runtime patching in `db.js`        |
 
 ## 5. Highest-Value Cross-File Relationships
 
@@ -266,6 +266,12 @@ flowchart LR
 
 8. `public/index.html -> clearAddStockBtn -> dashboard.js/resetAddStockForm`
    The Add Stock card's Clear button uses the same reset helper that runs after a successful stock save, clearing item, quantity, buying rate, selling rate, dropdown state, and previous-rate preview while keeping the saved `Profit %` default untouched.
+
+9. `public/index.html -> dashboard.js -> routes/business.js`
+   Purchase Entry uses `/api/suppliers` for supplier autocomplete and autofill. The Product Purchase History card uses `/api/purchases/product-history` to join purchase item rows back to purchase bills and suppliers.
+
+10. `public/invoice.html -> inline invoice controller -> routes/invoices.js`
+    Billing details customer autocomplete uses `/api/invoices/customers` to read prior invoice customer name, contact, and address values, then fills the invoice form without changing the invoice save/PDF flow.
 
 ## 6. Practical Reading Order
 

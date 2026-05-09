@@ -14,6 +14,12 @@ const {
   normalizeDisplayText,
   normalizeLookupText,
 } = require("../utils/concurrency");
+const { cacheJsonResponse } = require("../middleware/cache");
+const { invalidateUserCache } = require("../utils/cache");
+const {
+  parsePagination,
+  setPaginationHeaders,
+} = require("../utils/pagination");
 
 const router = express.Router();
 // ===== STOCK ALERT CONFIG =====
@@ -232,6 +238,7 @@ router.use(authMiddleware);
 router.get(
   "/stock-defaults",
   requirePermission("add_stock", "purchase_entry"),
+  cacheJsonResponse({ namespace: "inventory:stock-defaults", ttlMs: 15 * 1000 }),
   async (req, res) => {
     try {
       const user_id = getUserId(req);
@@ -290,6 +297,7 @@ router.put(
         [user_id, roundedProfitPercent],
       );
 
+      invalidateUserCache(user_id);
       res.json({
         success: true,
         settings: {
@@ -374,6 +382,7 @@ router.post("/items", requirePermission("add_stock"), async (req, res) => {
     }
 
     await client.query("COMMIT");
+    invalidateUserCache(user_id);
     return res.json({
       message: check.rows.length > 0 ? "Stock updated" : "New item added",
       item: result.rows[0],
@@ -398,6 +407,7 @@ router.post("/items", requirePermission("add_stock"), async (req, res) => {
 router.get(
   "/items/names",
   requirePermission("add_stock", "sale_invoice", "stock_report"),
+  cacheJsonResponse({ namespace: "inventory:item-names", ttlMs: 15 * 1000 }),
   async (req, res) => {
     try {
       const user_id = getUserId(req);
@@ -417,6 +427,7 @@ router.get(
 router.get(
   "/items/info",
   requirePermission("add_stock", "sale_invoice", "purchase_entry"),
+  cacheJsonResponse({ namespace: "inventory:item-info", ttlMs: 10 * 1000 }),
   async (req, res) => {
     try {
       const user_id = getUserId(req);
@@ -445,10 +456,14 @@ router.get(
 router.get(
   "/items/report",
   requirePermission("stock_report"),
+  cacheJsonResponse({ namespace: "inventory:item-report", ttlMs: 10 * 1000 }),
   async (req, res) => {
     try {
       const user_id = getUserId(req);
       const { name } = req.query;
+      const pagination = parsePagination(req.query, 100, 500, {
+        optional: true,
+      });
 
       let params = [user_id];
       let nameFilter = "";
@@ -457,6 +472,21 @@ router.get(
         params.push(name.trim());
         nameFilter = "AND LOWER(TRIM(i.name)) = LOWER($2)";
       }
+
+      const paginationClause = pagination.enabled
+        ? `LIMIT ${pagination.limit} OFFSET ${pagination.offset}`
+        : "";
+      const countResult = pagination.enabled
+        ? await pool.query(
+            `
+      SELECT COUNT(*)::int AS total
+      FROM items i
+      WHERE i.user_id = $1
+      ${nameFilter}
+      `,
+            params,
+          )
+        : null;
 
       const result = await pool.query(
         `
@@ -474,10 +504,17 @@ router.get(
       ${nameFilter}
       GROUP BY i.id, i.name, i.quantity, i.buying_rate, i.selling_rate
       ORDER BY i.name ASC
+      ${paginationClause}
       `,
         params,
       );
 
+      setPaginationHeaders(
+        res,
+        pagination,
+        countResult?.rows[0]?.total,
+        result.rows.length,
+      );
       res.json(result.rows);
     } catch (err) {
       console.error("Item report error:", err.message);
@@ -490,6 +527,7 @@ router.get(
 router.get(
   "/items/low-stock",
   requirePermission("stock_report"),
+  cacheJsonResponse({ namespace: "inventory:low-stock", ttlMs: 10 * 1000 }),
   async (req, res) => {
     try {
       const user_id = getUserId(req);
@@ -545,6 +583,7 @@ router.get(
 router.get(
   "/items/reorder-suggestions",
   requirePermission("stock_report"),
+  cacheJsonResponse({ namespace: "inventory:reorder", ttlMs: 10 * 1000 }),
   async (req, res) => {
     try {
       const user_id = getUserId(req);
@@ -650,6 +689,7 @@ router.get(
 router.get(
   "/items/slow-moving",
   requirePermission("stock_report"),
+  cacheJsonResponse({ namespace: "inventory:slow-moving", ttlMs: 10 * 1000 }),
   async (req, res) => {
     try {
       const user_id = getUserId(req);
@@ -938,14 +978,32 @@ router.get(
 router.get(
   "/sales/report",
   requirePermission("sales_report"),
+  cacheJsonResponse({ namespace: "inventory:sales-report", ttlMs: 10 * 1000 }),
   async (req, res) => {
     try {
       const user_id = getUserId(req);
       const { from, to } = req.query;
+      const pagination = parsePagination(req.query, 100, 500, {
+        optional: true,
+      });
 
       if (!from || !to) {
         return res.status(400).json({ error: "Missing date range" });
       }
+
+      const paginationClause = pagination.enabled
+        ? `LIMIT ${pagination.limit} OFFSET ${pagination.offset}`
+        : "";
+      const countResult = pagination.enabled
+        ? await pool.query(
+            `SELECT COUNT(*)::int AS total
+       FROM sales s
+        WHERE s.user_id = $1
+          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date >= $2::date
+          AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date <= $3::date`,
+            [user_id, from, to],
+          )
+        : null;
 
       const result = await pool.query(
         `SELECT
@@ -960,10 +1018,17 @@ router.get(
         WHERE s.user_id = $1
           AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date >= $2::date
           AND (s.created_at AT TIME ZONE 'Asia/Kolkata')::date <= $3::date
-      ORDER BY s.created_at ASC`,
+      ORDER BY s.created_at ASC
+      ${paginationClause}`,
         [user_id, from, to],
       );
 
+      setPaginationHeaders(
+        res,
+        pagination,
+        countResult?.rows[0]?.total,
+        result.rows.length,
+      );
       res.json(result.rows);
     } catch (err) {
       console.error("Sales report JSON error:", err.message);
@@ -1399,25 +1464,34 @@ function summarizeGstRows(rows) {
 }
 
 // ----------------- GST REPORT table (JSON PREVIEW) -----------------
-router.get("/gst/report", requirePermission("gst_report"), async (req, res) => {
-  try {
-    const userId = getUserId(req);
-    const { from, to } = req.query;
+router.get(
+  "/gst/report",
+  requirePermission("gst_report"),
+  cacheJsonResponse({ namespace: "inventory:gst-report", ttlMs: 10 * 1000 }),
+  async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { from, to } = req.query;
 
-    if (!from || !to) {
-      return res.status(400).json({ error: "Missing date range" });
+      if (!from || !to) {
+        return res.status(400).json({ error: "Missing date range" });
+      }
+
+      const rows = await fetchGstReportRows(userId, from, to);
+      res.json(rows);
+    } catch (err) {
+      console.error("GST report JSON error:", err.message);
+      res.status(500).json({ error: "Server error" });
     }
+  },
+);
 
-    const rows = await fetchGstReportRows(userId, from, to);
-    res.json(rows);
-  } catch (err) {
-    console.error("GST report JSON error:", err.message);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-router.get("/gst/compare", requirePermission("gst_report"), async (req, res) => {
-  try {
+router.get(
+  "/gst/compare",
+  requirePermission("gst_report"),
+  cacheJsonResponse({ namespace: "inventory:gst-compare", ttlMs: 10 * 1000 }),
+  async (req, res) => {
+    try {
     const userId = getUserId(req);
     const { from, to } = req.query;
 
@@ -1550,11 +1624,12 @@ router.get("/gst/compare", requirePermission("gst_report"), async (req, res) => 
         monthly,
       },
     });
-  } catch (err) {
-    console.error("GST compare JSON error:", err.message);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+    } catch (err) {
+      console.error("GST compare JSON error:", err.message);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
+);
 
 // ----------------- GST REPORT (PDF DOWNLOAD) -----------------
 router.get(
@@ -2043,6 +2118,7 @@ router.post("/debts", requirePermission("customer_due"), async (req, res) => {
     }
 
     await client.query("COMMIT");
+    invalidateUserCache(user_id);
 
     res.json({
       message:
@@ -2072,6 +2148,7 @@ router.post("/debts", requirePermission("customer_due"), async (req, res) => {
 router.get(
   "/debts/customers",
   requirePermission("customer_due"),
+  cacheJsonResponse({ namespace: "inventory:debt-customers", ttlMs: 15 * 1000 }),
   async (req, res) => {
     try {
       const user_id = getUserId(req);
@@ -2340,24 +2417,47 @@ router.get(
 router.get(
   "/debts/:number",
   requirePermission("customer_due"),
+  cacheJsonResponse({ namespace: "inventory:debt-ledger", ttlMs: 10 * 1000 }),
   async (req, res) => {
     try {
       const user_id = getUserId(req);
       const number = req.params.number;
+      const pagination = parsePagination(req.query, 100, 500, {
+        optional: true,
+      });
 
       if (!/^\d{10}$/.test(number))
         return res
           .status(400)
           .json({ error: "Customer number must be 10 digits" });
 
+      const paginationClause = pagination.enabled
+        ? `LIMIT ${pagination.limit} OFFSET ${pagination.offset}`
+        : "";
+      const countResult = pagination.enabled
+        ? await pool.query(
+            `SELECT COUNT(*)::int AS total
+       FROM debts
+       WHERE user_id=$1 AND customer_number=$2`,
+            [user_id, number],
+          )
+        : null;
+
       const result = await pool.query(
         `SELECT id, customer_name, customer_number, total, credit, remark, created_at
        FROM debts
        WHERE user_id=$1 AND customer_number=$2
-       ORDER BY created_at ASC, id ASC`,
+       ORDER BY created_at ASC, id ASC
+       ${paginationClause}`,
         [user_id, number],
       );
 
+      setPaginationHeaders(
+        res,
+        pagination,
+        countResult?.rows[0]?.total,
+        result.rows.length,
+      );
       res.json(result.rows);
     } catch (err) {
       if (process.env.NODE_ENV !== "production")
@@ -2368,32 +2468,66 @@ router.get(
 );
 
 // Summary dues
-router.get("/debts", requirePermission("customer_due"), async (req, res) => {
-  try {
-    const user_id = getUserId(req);
-    const result = await pool.query(
-      `SELECT customer_name, customer_number,
+router.get(
+  "/debts",
+  requirePermission("customer_due"),
+  cacheJsonResponse({ namespace: "inventory:debt-summary", ttlMs: 10 * 1000 }),
+  async (req, res) => {
+    try {
+      const user_id = getUserId(req);
+      const pagination = parsePagination(req.query, 100, 500, {
+        optional: true,
+      });
+      const paginationClause = pagination.enabled
+        ? `LIMIT ${pagination.limit} OFFSET ${pagination.offset}`
+        : "";
+      const countResult = pagination.enabled
+        ? await pool.query(
+            `SELECT COUNT(*)::int AS total
+       FROM (
+         SELECT 1
+         FROM debts
+         WHERE user_id=$1
+         GROUP BY customer_name, customer_number
+       ) grouped_debts`,
+            [user_id],
+          )
+        : null;
+      const result = await pool.query(
+        `SELECT customer_name, customer_number,
               SUM(total) AS total,
               SUM(credit) AS credit,
               SUM(total - credit) AS balance
        FROM debts
        WHERE user_id=$1
        GROUP BY customer_name, customer_number
-       ORDER BY customer_name ASC`,
-      [user_id],
-    );
+       ORDER BY customer_name ASC
+       ${paginationClause}`,
+        [user_id],
+      );
 
-    res.json(result.rows);
-  } catch (err) {
-    if (process.env.NODE_ENV !== "production")
-      console.error("Error in GET /debts:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+      setPaginationHeaders(
+        res,
+        pagination,
+        countResult?.rows[0]?.total,
+        result.rows.length,
+      );
+      res.json(result.rows);
+    } catch (err) {
+      if (process.env.NODE_ENV !== "production")
+        console.error("Error in GET /debts:", err);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
+);
 
-router.get("/dashboard/overview", requireOwner, async (req, res) => {
-  try {
-    const user_id = getUserId(req);
+router.get(
+  "/dashboard/overview",
+  requireOwner,
+  cacheJsonResponse({ namespace: "inventory:dashboard", ttlMs: 10 * 1000 }),
+  async (req, res) => {
+    try {
+      const user_id = getUserId(req);
 
     const [
       catalogResult,
@@ -2549,7 +2683,8 @@ router.get("/dashboard/overview", requireOwner, async (req, res) => {
     console.error("Dashboard overview error:", err);
     res.status(500).json({ error: "Server error" });
   }
-});
+  },
+);
 
 // Global error handler
 router.use((err, req, res, next) => {
