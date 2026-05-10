@@ -2860,6 +2860,8 @@
         let userGstRate = 18;
         let itemNames = [];
         let itemNameSearchIndex = [];
+        let itemNamesLoaded = false;
+        let itemNamesPromise = null;
         let invoiceNumbers = [];
         let invoiceNumberSearchIndex = [];
         let invoiceNumberLookup = new Map();
@@ -3675,11 +3677,31 @@
         };
 
         async function loadItemNames() {
-          const res = await authFetch(API_PREFIX + "/items/names", {
-            headers: authHeaders(),
-          });
-          itemNames = res && res.ok ? await res.json() : [];
-          itemNameSearchIndex = buildStringSearchIndex(itemNames);
+          if (itemNamesPromise) {
+            return itemNamesPromise;
+          }
+
+          itemNamesPromise = (async () => {
+            try {
+              const res = await authFetch(API_PREFIX + "/items/names", {
+                headers: authHeaders(),
+              });
+              itemNames = res && res.ok ? await res.json() : [];
+              itemNameSearchIndex = buildStringSearchIndex(itemNames);
+              itemNamesLoaded = Boolean(res && res.ok);
+              return itemNames;
+            } catch (error) {
+              console.error("Item names load failed:", error);
+              itemNames = [];
+              itemNameSearchIndex = [];
+              itemNamesLoaded = false;
+              return [];
+            } finally {
+              itemNamesPromise = null;
+            }
+          })();
+
+          return itemNamesPromise;
         }
 
         async function loadInvoiceNumbers() {
@@ -3973,16 +3995,28 @@
             fromRate();
           };
 
-          itemInput.addEventListener("input", () => {
+          const showItemSuggestions = async () => {
             syncItemTitle();
             clearStock();
-            const q = itemInput.value.trim().toLowerCase();
+            let q = itemInput.value.trim().toLowerCase();
             if (!q) {
               hideElement(dropdown);
               fromRate();
               queueDraft();
               return;
             }
+
+            if (!itemNamesLoaded) {
+              await loadItemNames();
+              q = itemInput.value.trim().toLowerCase();
+              if (!q) {
+                hideElement(dropdown);
+                fromRate();
+                queueDraft();
+                return;
+              }
+            }
+
             renderDropdown(
               dropdown,
               getSearchMatches(itemNameSearchIndex, q, 15),
@@ -3995,6 +4029,16 @@
             );
             fromRate();
             queueDraft();
+          };
+
+          itemInput.addEventListener("input", () => {
+            void showItemSuggestions();
+          });
+
+          itemInput.addEventListener("focus", () => {
+            if (itemInput.value.trim()) {
+              void showItemSuggestions();
+            }
           });
 
           itemInput.addEventListener("blur", () =>

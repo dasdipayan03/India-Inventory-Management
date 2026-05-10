@@ -9,6 +9,8 @@ const state = {
   itemNames: [],
   itemNameSearchIndex: [],
   itemNameLookup: new Map(),
+  itemNamesLoaded: false,
+  itemNamesPromise: null,
   currentItemReportRows: [],
   currentPurchaseRows: [],
   currentProductPurchaseHistoryRows: [],
@@ -2273,30 +2275,44 @@ function renderDropdown(listEl, items, onSelect) {
   };
 }
 
-function setupFilterInput(input, listEl, onSelect) {
-  input.addEventListener("input", () => {
-    const query = input.value.trim().toLowerCase();
+async function renderItemNameDropdown(input, listEl, onSelect) {
+  if (
+    !state.itemNamesLoaded &&
+    canAccessPermission(
+      "add_stock",
+      "purchase_entry",
+      "sale_invoice",
+      "stock_report",
+    )
+  ) {
+    await loadItemNames({ silent: true });
+  }
 
-    if (!query) {
-      renderDropdown(
-        listEl,
-        getSearchMatches(state.itemNameSearchIndex, "", 50),
-        onSelect,
-      );
-      return;
-    }
+  const query = input.value.trim().toLowerCase();
 
-    const matches = getSearchMatches(state.itemNameSearchIndex, query, 50);
-
-    renderDropdown(listEl, matches, onSelect);
-  });
-
-  input.addEventListener("focus", () => {
+  if (!query) {
     renderDropdown(
       listEl,
       getSearchMatches(state.itemNameSearchIndex, "", 50),
       onSelect,
     );
+    return;
+  }
+
+  renderDropdown(
+    listEl,
+    getSearchMatches(state.itemNameSearchIndex, query, 50),
+    onSelect,
+  );
+}
+
+function setupFilterInput(input, listEl, onSelect) {
+  input.addEventListener("input", () => {
+    void renderItemNameDropdown(input, listEl, onSelect);
+  });
+
+  input.addEventListener("focus", () => {
+    void renderItemNameDropdown(input, listEl, onSelect);
   });
 
   document.addEventListener("click", (event) => {
@@ -2329,24 +2345,36 @@ async function checkAuth() {
 }
 
 async function loadItemNames(options = {}) {
-  try {
-    const rows = await fetchJSON("/items/names");
-    state.itemNames = Array.isArray(rows) ? rows : [];
-    state.itemNameSearchIndex = buildStringSearchIndex(state.itemNames);
-    state.itemNameLookup = buildStringLookup(state.itemNameSearchIndex);
-    return state.itemNames;
-  } catch (error) {
-    console.error("Item names load failed:", error);
-    state.itemNames = [];
-    state.itemNameSearchIndex = [];
-    state.itemNameLookup = new Map();
-    if (!options.silent) {
-      showPopup("error", "Load failed", "Could not load item names.", {
-        autoClose: false,
-      });
-    }
-    return [];
+  if (state.itemNamesPromise) {
+    return state.itemNamesPromise;
   }
+
+  state.itemNamesPromise = (async () => {
+    try {
+      const rows = await fetchJSON("/items/names");
+      state.itemNames = Array.isArray(rows) ? rows : [];
+      state.itemNameSearchIndex = buildStringSearchIndex(state.itemNames);
+      state.itemNameLookup = buildStringLookup(state.itemNameSearchIndex);
+      state.itemNamesLoaded = true;
+      return state.itemNames;
+    } catch (error) {
+      console.error("Item names load failed:", error);
+      state.itemNames = [];
+      state.itemNameSearchIndex = [];
+      state.itemNameLookup = new Map();
+      state.itemNamesLoaded = false;
+      if (!options.silent) {
+        showPopup("error", "Load failed", "Could not load item names.", {
+          autoClose: false,
+        });
+      }
+      return [];
+    } finally {
+      state.itemNamesPromise = null;
+    }
+  })();
+
+  return state.itemNamesPromise;
 }
 
 async function showPreviousBuyingRate(itemName) {

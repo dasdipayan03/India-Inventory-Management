@@ -340,11 +340,10 @@ function hasPermission(req, ...permissions) {
     return true;
   }
 
-  const currentPermissions = Array.isArray(req.user?.permissions)
-    ? req.user.permissions
-    : [];
+  const currentPermissions = normalizePermissions(req.user?.permissions);
+  const requiredPermissions = normalizePermissions(permissions);
 
-  return permissions.some((permission) =>
+  return requiredPermissions.some((permission) =>
     currentPermissions.includes(permission),
   );
 }

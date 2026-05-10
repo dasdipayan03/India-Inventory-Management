@@ -406,7 +406,12 @@ router.post("/items", requirePermission("add_stock"), async (req, res) => {
 // Auto-suggest item names
 router.get(
   "/items/names",
-  requirePermission("add_stock", "sale_invoice", "stock_report"),
+  requirePermission(
+    "add_stock",
+    "purchase_entry",
+    "sale_invoice",
+    "stock_report",
+  ),
   cacheJsonResponse({ namespace: "inventory:item-names", ttlMs: 15 * 1000 }),
   async (req, res) => {
     try {
