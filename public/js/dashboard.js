@@ -964,6 +964,30 @@ function wait(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
+async function fetchAuthenticatedDownload(path, options = {}) {
+  const response = await fetch(`${apiBase}${path}`, {
+    credentials: "include",
+    headers: authHeaders(),
+    cache: "no-store",
+  });
+
+  if (response.status === 401) {
+    handleSessionExpiry();
+    const authError = new Error("Session expired");
+    authError.code = "SESSION_EXPIRED";
+    throw authError;
+  }
+
+  if (response.status === 403 && !options.permissionRetry) {
+    const refreshed = await refreshSessionAfterAccessDenied();
+    if (refreshed) {
+      return fetchAuthenticatedDownload(path, { permissionRetry: true });
+    }
+  }
+
+  return response;
+}
+
 async function waitForQueuedExport(job, fallbackName) {
   const jobId = job?.id;
   if (!jobId) {
@@ -983,28 +1007,21 @@ async function waitForQueuedExport(job, fallbackName) {
     const currentJob = statusPayload.export_job || {};
 
     if (currentJob.status === "failed") {
-      throw new Error(currentJob.error || "Export failed.");
+      const error = new Error(currentJob.error || "Export failed.");
+      if (/access denied|owner access required/i.test(error.message)) {
+        error.code = "ACCESS_DENIED";
+      }
+      throw error;
     }
 
     if (currentJob.status !== "completed") {
       continue;
     }
 
-    const downloadResponse = await fetch(`${apiBase}${downloadPath}`, {
-      credentials: "include",
-      headers: authHeaders(),
-      cache: "no-store",
-    });
+    const downloadResponse = await fetchAuthenticatedDownload(downloadPath);
 
     if (downloadResponse.status === 202) {
       continue;
-    }
-
-    if (downloadResponse.status === 401) {
-      handleSessionExpiry();
-      const authError = new Error("Session expired");
-      authError.code = "SESSION_EXPIRED";
-      throw authError;
     }
 
     if (!downloadResponse.ok) {
@@ -1025,11 +1042,8 @@ async function waitForQueuedExport(job, fallbackName) {
 }
 
 async function downloadAuthenticatedFile(path, fallbackName) {
-  const response = await fetch(`${apiBase}${appendAsyncExportFlag(path)}`, {
-    credentials: "include",
-    headers: authHeaders(),
-    cache: "no-store",
-  });
+  const exportPath = appendAsyncExportFlag(path);
+  const response = await fetchAuthenticatedDownload(exportPath);
 
   let payload = {};
   if (response.status === 202) {
@@ -1039,24 +1053,41 @@ async function downloadAuthenticatedFile(path, fallbackName) {
       payload = {};
     }
 
-    await waitForQueuedExport(payload.export_job, fallbackName);
-    return;
+    try {
+      await waitForQueuedExport(payload.export_job, fallbackName);
+      return;
+    } catch (error) {
+      if (error?.code === "ACCESS_DENIED") {
+        const refreshed = await refreshSessionAfterAccessDenied();
+        if (refreshed) {
+          const retryResponse = await fetchAuthenticatedDownload(exportPath, {
+            permissionRetry: true,
+          });
+          if (retryResponse.status === 202) {
+            let retryPayload = {};
+            try {
+              retryPayload = await retryResponse.json();
+            } catch (_error) {
+              retryPayload = {};
+            }
+            await waitForQueuedExport(retryPayload.export_job, fallbackName);
+            return;
+          }
+          if (retryResponse.ok) {
+            await saveDownloadResponse(retryResponse, fallbackName);
+            return;
+          }
+        }
+      }
+      throw error;
+    }
   }
 
-  if (!response.ok || response.status === 401) {
+  if (!response.ok) {
     try {
       payload = await response.json();
     } catch (error) {
       payload = {};
-    }
-
-    if (response.status === 401) {
-      const authError = new Error(
-        payload.error || payload.message || "Session expired",
-      );
-      authError.code = "SESSION_EXPIRED";
-      handleSessionExpiry();
-      throw authError;
     }
 
     throw new Error(payload.error || payload.message || "Download failed");

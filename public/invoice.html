@@ -2576,6 +2576,7 @@
         const {
           permissionRetry = false,
           skipPermissionRefresh = false,
+          showAccessDenied = false,
           ...fetchOptions
         } = options;
         const headers = { ...(fetchOptions.headers || {}) };
@@ -2607,7 +2608,10 @@
             }
           }
 
-          if (typeof invoiceAccessDeniedHandler === "function") {
+          if (
+            showAccessDenied &&
+            typeof invoiceAccessDeniedHandler === "function"
+          ) {
             invoiceAccessDeniedHandler();
           }
           return null;
@@ -3245,6 +3249,7 @@
                 appendAsyncExportFlag(
                   `${API_PREFIX}/invoices/${encodeURIComponent(normalizedInvoiceNo)}/pdf`,
                 ),
+                { showAccessDenied: true },
               );
 
               if (!response) {
@@ -4437,6 +4442,7 @@
             `${API_PREFIX}/invoices/${encodeURIComponent(invoiceNo)}`,
             {
               headers: authHeaders(),
+              showAccessDenied: true,
             },
           );
           if (!res || !res.ok) return false;
@@ -4478,6 +4484,7 @@
               {
                 method: "POST",
                 headers: authHeaders(),
+                showAccessDenied: true,
                 body: JSON.stringify({
                   amount: amountValue,
                   payment_mode: modeField?.value || "cash",
@@ -4684,7 +4691,7 @@
 
             const res = await authFetch(
               `${API_PREFIX}/items/info?name=${encodeURIComponent(description)}`,
-              { headers: authHeaders() },
+              { headers: authHeaders(), showAccessDenied: true },
             );
             if (!res) return false;
             if (!res.ok) {
@@ -4770,6 +4777,7 @@
             const res = await authFetch(`${API_PREFIX}/invoices`, {
               method: "POST",
               headers: authHeaders(),
+              showAccessDenied: true,
               body: JSON.stringify(payload()),
             });
             if (!res) return;
