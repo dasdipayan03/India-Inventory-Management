@@ -57,7 +57,8 @@
       sectionId: "purchaseEntrySection",
       permission: "purchase_entry",
       iconClass: "fa-solid fa-truck-ramp-box",
-      label: staffPageConfig.purchase_entry?.label || "Purchase Entry",
+      label:
+        staffPageConfig.purchase_entry?.label || "Purchase Entry/Add Stock",
     },
     {
       kind: "invoice",
@@ -71,14 +72,14 @@
       sectionId: "itemReportSection",
       permission: "stock_report",
       iconClass: "fas fa-boxes",
-      label: staffPageConfig.stock_report?.label || "Stock Report",
+      label: staffPageConfig.stock_report?.label || "Stock View / Report",
     },
     {
       kind: "section",
       sectionId: "salesReportSection",
       permission: "sales_report",
       iconClass: "fas fa-chart-line",
-      label: staffPageConfig.sales_report?.label || "Sales Report",
+      label: staffPageConfig.sales_report?.label || "Sales View / Report",
     },
     {
       kind: "section",
