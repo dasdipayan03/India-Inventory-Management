@@ -9,7 +9,7 @@
   function createPermissionContract() {
     const STAFF_PAGE_CONFIG = {
       purchase_entry: {
-        label: "Purchase Entry/Add Stock",
+        label: "Purchase Entry / Add Stock",
         shortLabel: "Purchases",
         sectionId: "purchaseEntrySection",
       },

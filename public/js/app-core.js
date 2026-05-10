@@ -58,7 +58,7 @@
       permission: "purchase_entry",
       iconClass: "fa-solid fa-truck-ramp-box",
       label:
-        staffPageConfig.purchase_entry?.label || "Purchase Entry/Add Stock",
+        staffPageConfig.purchase_entry?.label || "Purchase Entry / Add Stock",
     },
     {
       kind: "invoice",
