@@ -540,14 +540,6 @@ async function refreshSessionAfterAccessDenied() {
   return state.permissionRefreshPromise;
 }
 
-function queueAccessDeniedPopup() {
-  window.setTimeout(() => {
-    showPopup("error", "Access denied", ACCESS_DENIED_MESSAGE, {
-      autoClose: false,
-    });
-  }, 0);
-}
-
 async function ensureChartLibrary() {
   if (typeof window.Chart !== "undefined") {
     return window.Chart;
@@ -925,7 +917,6 @@ async function fetchJSON(path, options = {}) {
     const accessError = new Error(ACCESS_DENIED_MESSAGE);
     accessError.code = "ACCESS_DENIED";
     accessError.status = 403;
-    queueAccessDeniedPopup();
     throw accessError;
   }
 
@@ -1636,8 +1627,7 @@ function updateOverviewVisibility(sectionId = "") {
     "";
 
   const isStaff = state.sessionUser?.role === "staff";
-  dom.overviewGrid.hidden =
-    isStaff || activeSectionId === "supportChatSection";
+  dom.overviewGrid.hidden = isStaff || activeSectionId === "supportChatSection";
   syncOverviewCarouselAutoplay();
 }
 
@@ -1652,7 +1642,7 @@ function normalizeOverviewSlideIndex(index) {
     return 0;
   }
 
-  return ((Number(index) || 0) % slideCount + slideCount) % slideCount;
+  return (((Number(index) || 0) % slideCount) + slideCount) % slideCount;
 }
 
 function clearOverviewCarouselTimer() {
@@ -1691,10 +1681,13 @@ function renderOverviewCarouselDots() {
   }
 
   const slideCount = getOverviewSlideCount();
-  dom.overviewDots.innerHTML = Array.from({ length: slideCount }, (_, index) => {
-    const active = index === state.overviewCarousel.index;
-    return `<button type="button" class="overview-carousel__dot${active ? " is-active" : ""}" data-overview-dot="${index}" aria-label="Show overview card ${index + 1}" aria-pressed="${active ? "true" : "false"}"></button>`;
-  }).join("");
+  dom.overviewDots.innerHTML = Array.from(
+    { length: slideCount },
+    (_, index) => {
+      const active = index === state.overviewCarousel.index;
+      return `<button type="button" class="overview-carousel__dot${active ? " is-active" : ""}" data-overview-dot="${index}" aria-label="Show overview card ${index + 1}" aria-pressed="${active ? "true" : "false"}"></button>`;
+    },
+  ).join("");
 }
 
 function setOverviewCarouselSlide(index, options = {}) {
@@ -1718,7 +1711,10 @@ function setOverviewCarouselSlide(index, options = {}) {
   }
 
   dom.overviewSlides.forEach((slide, slideIndex) => {
-    slide.setAttribute("aria-hidden", slideIndex === nextIndex ? "false" : "true");
+    slide.setAttribute(
+      "aria-hidden",
+      slideIndex === nextIndex ? "false" : "true",
+    );
   });
 
   Array.from(dom.overviewDots?.children || []).forEach((dot, dotIndex) => {
@@ -2333,7 +2329,9 @@ async function showPreviousBuyingRate(itemName) {
     const item = await fetchJSON(
       `/items/info?name=${encodeURIComponent(trimmedName)}`,
     );
-    if (findExactItemName(dom.newItemSearch?.value.trim() || "") !== trimmedName) {
+    if (
+      findExactItemName(dom.newItemSearch?.value.trim() || "") !== trimmedName
+    ) {
       return;
     }
     const previousRate = Number(item.buying_rate);
@@ -3065,7 +3063,9 @@ function renderSupplierDropdown(listEl, suppliers, onSelect) {
       const mobile = supplier.mobile_number || "";
       const address = supplier.address || "";
       const meta = [
-        mobile ? `<span><i class="fa-solid fa-phone"></i> ${escapeHtml(mobile)}</span>` : "",
+        mobile
+          ? `<span><i class="fa-solid fa-phone"></i> ${escapeHtml(mobile)}</span>`
+          : "",
         address
           ? `<span><i class="fa-solid fa-location-dot"></i> ${escapeHtml(address)}</span>`
           : "",
@@ -3432,7 +3432,11 @@ async function loadProductPurchaseHistory(options = {}) {
   const productName = dom.productPurchaseSearchInput?.value.trim() || "";
 
   if (!productName) {
-    showPopup("error", "Product required", "Search or enter a product name first.");
+    showPopup(
+      "error",
+      "Product required",
+      "Search or enter a product name first.",
+    );
     dom.productPurchaseSearchInput?.focus();
     return;
   }
@@ -5047,7 +5051,10 @@ function renderGstComparison(compare = {}) {
   dom.gstComparePurchaseTotal.textContent = formatCurrency(purchaseGstTotal);
   dom.gstCompareSalesTotal.textContent = formatCurrency(salesGstTotal);
   dom.gstCompareProfitTotal.textContent = formatCurrency(profitGstTotal);
-  dom.gstCompareProfitTotal.classList.toggle("text-success", profitGstTotal > 0);
+  dom.gstCompareProfitTotal.classList.toggle(
+    "text-success",
+    profitGstTotal > 0,
+  );
   dom.gstCompareProfitTotal.classList.toggle("text-danger", profitGstTotal < 0);
 }
 
@@ -6527,7 +6534,10 @@ async function downloadCurrentDueLedgerPDF(button = null) {
     '<i class="fa-solid fa-spinner fa-spin"></i> Preparing PDF...',
     async () => {
       try {
-        await downloadAuthenticatedFile(`/debts/${ledgerNumber}/pdf`, fallbackName);
+        await downloadAuthenticatedFile(
+          `/debts/${ledgerNumber}/pdf`,
+          fallbackName,
+        );
         showPopup(
           "success",
           "Download complete",

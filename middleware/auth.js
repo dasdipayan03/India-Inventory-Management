@@ -21,7 +21,15 @@ if (!process.env.JWT_SECRET) {
   process.exit(1);
 }
 
-const STAFF_SESSION_CACHE_TTL_MS = 15 * 1000;
+function readNonNegativeInt(value, fallback) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+const STAFF_SESSION_CACHE_TTL_MS = readNonNegativeInt(
+  process.env.STAFF_SESSION_CACHE_TTL_MS,
+  0,
+);
 const STAFF_SESSION_CACHE_MAX_ENTRIES = 200;
 const STAFF_ROLE = "staff";
 const OWNER_ROLE = "owner";
@@ -54,6 +62,10 @@ function getStaffSessionCacheKey(staffId) {
 }
 
 function getCachedStaffSession(staffId) {
+  if (STAFF_SESSION_CACHE_TTL_MS <= 0) {
+    return null;
+  }
+
   const cacheKey = getStaffSessionCacheKey(staffId);
   if (!cacheKey) {
     return null;
@@ -73,6 +85,10 @@ function getCachedStaffSession(staffId) {
 }
 
 function setCachedStaffSession(staffId, sessionData) {
+  if (STAFF_SESSION_CACHE_TTL_MS <= 0) {
+    return sessionData;
+  }
+
   const cacheKey = getStaffSessionCacheKey(staffId);
   if (!cacheKey) {
     return sessionData;
