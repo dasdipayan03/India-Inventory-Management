@@ -9,7 +9,10 @@ class TtlCache {
   constructor(options = {}) {
     this.maxEntries = readPositiveInt(
       options.maxEntries,
-      readPositiveInt(process.env.RESPONSE_CACHE_MAX_ENTRIES, DEFAULT_MAX_ENTRIES),
+      readPositiveInt(
+        process.env.RESPONSE_CACHE_MAX_ENTRIES,
+        DEFAULT_MAX_ENTRIES,
+      ),
     );
     this.store = new Map();
   }

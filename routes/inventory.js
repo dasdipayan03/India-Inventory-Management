@@ -238,7 +238,10 @@ router.use(authMiddleware);
 router.get(
   "/stock-defaults",
   requirePermission("add_stock", "purchase_entry"),
-  cacheJsonResponse({ namespace: "inventory:stock-defaults", ttlMs: 15 * 1000 }),
+  cacheJsonResponse({
+    namespace: "inventory:stock-defaults",
+    ttlMs: 15 * 1000,
+  }),
   async (req, res) => {
     try {
       const user_id = getUserId(req);
@@ -1504,15 +1507,15 @@ router.get(
   cacheJsonResponse({ namespace: "inventory:gst-compare", ttlMs: 10 * 1000 }),
   async (req, res) => {
     try {
-    const userId = getUserId(req);
-    const { from, to } = req.query;
+      const userId = getUserId(req);
+      const { from, to } = req.query;
 
-    if (!from || !to) {
-      return res.status(400).json({ error: "Missing date range" });
-    }
+      if (!from || !to) {
+        return res.status(400).json({ error: "Missing date range" });
+      }
 
-    const result = await pool.query(
-      `
+      const result = await pool.query(
+        `
       WITH params AS (
         SELECT
           $2::date AS from_date,
@@ -1584,60 +1587,60 @@ router.get(
         ON sr.month_start = m.month_start
       ORDER BY m.month_start ASC
       `,
-      [userId, from, to],
-    );
+        [userId, from, to],
+      );
 
-    const monthly = result.rows.map((row) => ({
-      month_key: row.month_key,
-      month_label: row.month_label,
-      purchase_taxable_total: Number(row.purchase_taxable_total) || 0,
-      purchase_gst_total: Number(row.purchase_gst_total) || 0,
-      sales_taxable_total: Number(row.sales_taxable_total) || 0,
-      sales_gst_total: Number(row.sales_gst_total) || 0,
-      profit_gst_total: Number(row.profit_gst_total) || 0,
-      applied_rate: Number(row.applied_rate) || 0,
-    }));
+      const monthly = result.rows.map((row) => ({
+        month_key: row.month_key,
+        month_label: row.month_label,
+        purchase_taxable_total: Number(row.purchase_taxable_total) || 0,
+        purchase_gst_total: Number(row.purchase_gst_total) || 0,
+        sales_taxable_total: Number(row.sales_taxable_total) || 0,
+        sales_gst_total: Number(row.sales_gst_total) || 0,
+        profit_gst_total: Number(row.profit_gst_total) || 0,
+        applied_rate: Number(row.applied_rate) || 0,
+      }));
 
-    const summary = monthly.reduce(
-      (totals, row) => {
-        totals.purchase_taxable_total += row.purchase_taxable_total;
-        totals.purchase_gst_total += row.purchase_gst_total;
-        totals.sales_taxable_total += row.sales_taxable_total;
-        totals.sales_gst_total += row.sales_gst_total;
-        totals.profit_gst_total += row.profit_gst_total;
-        return totals;
-      },
-      {
-        purchase_taxable_total: 0,
-        purchase_gst_total: 0,
-        sales_taxable_total: 0,
-        sales_gst_total: 0,
-        profit_gst_total: 0,
-      },
-    );
-
-    const appliedRate =
-      summary.purchase_taxable_total > 0
-        ? (summary.purchase_gst_total / summary.purchase_taxable_total) * 100
-        : 0;
-
-    res.json({
-      success: true,
-      range: { from, to },
-      compare: {
-        applied_rate: Number(appliedRate.toFixed(2)),
-        summary: {
-          purchase_taxable_total: Number(
-            summary.purchase_taxable_total.toFixed(2),
-          ),
-          purchase_gst_total: Number(summary.purchase_gst_total.toFixed(2)),
-          sales_taxable_total: Number(summary.sales_taxable_total.toFixed(2)),
-          sales_gst_total: Number(summary.sales_gst_total.toFixed(2)),
-          profit_gst_total: Number(summary.profit_gst_total.toFixed(2)),
+      const summary = monthly.reduce(
+        (totals, row) => {
+          totals.purchase_taxable_total += row.purchase_taxable_total;
+          totals.purchase_gst_total += row.purchase_gst_total;
+          totals.sales_taxable_total += row.sales_taxable_total;
+          totals.sales_gst_total += row.sales_gst_total;
+          totals.profit_gst_total += row.profit_gst_total;
+          return totals;
         },
-        monthly,
-      },
-    });
+        {
+          purchase_taxable_total: 0,
+          purchase_gst_total: 0,
+          sales_taxable_total: 0,
+          sales_gst_total: 0,
+          profit_gst_total: 0,
+        },
+      );
+
+      const appliedRate =
+        summary.purchase_taxable_total > 0
+          ? (summary.purchase_gst_total / summary.purchase_taxable_total) * 100
+          : 0;
+
+      res.json({
+        success: true,
+        range: { from, to },
+        compare: {
+          applied_rate: Number(appliedRate.toFixed(2)),
+          summary: {
+            purchase_taxable_total: Number(
+              summary.purchase_taxable_total.toFixed(2),
+            ),
+            purchase_gst_total: Number(summary.purchase_gst_total.toFixed(2)),
+            sales_taxable_total: Number(summary.sales_taxable_total.toFixed(2)),
+            sales_gst_total: Number(summary.sales_gst_total.toFixed(2)),
+            profit_gst_total: Number(summary.profit_gst_total.toFixed(2)),
+          },
+          monthly,
+        },
+      });
     } catch (err) {
       console.error("GST compare JSON error:", err.message);
       res.status(500).json({ error: "Server error" });
@@ -2162,7 +2165,10 @@ router.post("/debts", requirePermission("customer_due"), async (req, res) => {
 router.get(
   "/debts/customers",
   requirePermission("customer_due"),
-  cacheJsonResponse({ namespace: "inventory:debt-customers", ttlMs: 15 * 1000 }),
+  cacheJsonResponse({
+    namespace: "inventory:debt-customers",
+    ttlMs: 15 * 1000,
+  }),
   async (req, res) => {
     try {
       const user_id = getUserId(req);
@@ -2307,20 +2313,19 @@ router.get(
         align: "right",
       });
       doc
-        .fillColor(runningBalance > 0.009 ? PDF_THEME.danger : PDF_THEME.success)
+        .fillColor(
+          runningBalance > 0.009 ? PDF_THEME.danger : PDF_THEME.success,
+        )
         .text(`Rs. ${formatCurrency(runningBalance)}`, 436, summaryTop + 54, {
           width: 100,
           align: "right",
         });
-      doc.fillColor(PDF_THEME.ink).text(
-        `Rs. ${formatCurrency(totalCollected)}`,
-        436,
-        summaryTop + 74,
-        {
+      doc
+        .fillColor(PDF_THEME.ink)
+        .text(`Rs. ${formatCurrency(totalCollected)}`, 436, summaryTop + 74, {
           width: 100,
           align: "right",
-        },
-      );
+        });
 
       doc.font("Helvetica").fontSize(9).fillColor(PDF_THEME.muted);
       doc.text(ledgerNarrative, 56, summaryTop + 74, {
@@ -2357,9 +2362,7 @@ router.get(
 
           if (index % 2 === 0) {
             doc.save();
-            doc
-              .rect(40, rowY - 2, 515, rowHeight + 6)
-              .fill(PDF_THEME.rowAlt);
+            doc.rect(40, rowY - 2, 515, rowHeight + 6).fill(PDF_THEME.rowAlt);
             doc.restore();
           }
 
@@ -2369,9 +2372,7 @@ router.get(
           doc.text(creditText, 212, rowY, { width: 70, align: "right" });
           doc
             .fillColor(
-              row.runningBalance > 0.009
-                ? PDF_THEME.danger
-                : PDF_THEME.success,
+              row.runningBalance > 0.009 ? PDF_THEME.danger : PDF_THEME.success,
             )
             .text(balanceText, 286, rowY, { width: 78, align: "right" });
           doc.fillColor(PDF_THEME.ink).text(remarkText, 378, rowY, {
@@ -2418,7 +2419,9 @@ router.get(
       );
       doc
         .font("Helvetica-Bold")
-        .fillColor(runningBalance > 0.009 ? PDF_THEME.danger : PDF_THEME.success)
+        .fillColor(
+          runningBalance > 0.009 ? PDF_THEME.danger : PDF_THEME.success,
+        )
         .text(
           `Current Outstanding: Rs. ${formatCurrency(runningBalance)}`,
           326,

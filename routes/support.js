@@ -57,7 +57,10 @@ router.use(async (_req, res, next) => {
     await pool.readyPromise;
     return next();
   } catch (error) {
-    console.error("Support routes unavailable while database is starting:", error.message);
+    console.error(
+      "Support routes unavailable while database is starting:",
+      error.message,
+    );
     return res.status(503).json({
       error: "Support service is starting. Please try again in a moment.",
     });

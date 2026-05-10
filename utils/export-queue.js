@@ -32,7 +32,10 @@ class ExportQueue {
     );
     this.concurrency = readPositiveInt(
       options.concurrency,
-      readPositiveInt(process.env.EXPORT_QUEUE_CONCURRENCY, DEFAULT_CONCURRENCY),
+      readPositiveInt(
+        process.env.EXPORT_QUEUE_CONCURRENCY,
+        DEFAULT_CONCURRENCY,
+      ),
     );
     this.ttlMs = readPositiveInt(
       options.ttlMs,
@@ -47,7 +50,9 @@ class ExportQueue {
     this.cleanup();
 
     if (this.jobs.size >= this.maxJobs) {
-      const error = new Error("Export queue is busy. Please try again shortly.");
+      const error = new Error(
+        "Export queue is busy. Please try again shortly.",
+      );
       error.status = 429;
       throw error;
     }

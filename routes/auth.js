@@ -681,10 +681,7 @@ router.get("/google/callback", async (req, res) => {
     const isAndroidClient = oauthState?.client === ANDROID_GOOGLE_CLIENT;
 
     if (existingUser) {
-      const linkedUser = await linkGoogleProfileToOwner(
-        existingUser,
-        profile,
-      );
+      const linkedUser = await linkGoogleProfileToOwner(existingUser, profile);
       const session = buildOwnerSession(linkedUser);
       if (isAndroidClient) {
         const transferToken = signAndroidGoogleTransfer({
@@ -716,16 +713,13 @@ router.get("/google/callback", async (req, res) => {
       GOOGLE_ONBOARDING_MAX_AGE_MS,
     );
 
-    return res.redirect(
-      buildLoginRedirectUrl(req, { google_onboarding: "1" }),
-    );
+    return res.redirect(buildLoginRedirectUrl(req, { google_onboarding: "1" }));
   } catch (error) {
     console.error("Google sign-in callback error:", error.message);
     clearGoogleOnboardingCookie(res);
     return res.redirect(
       buildLoginRedirectUrl(req, {
-        google_error:
-          error.message || "Google sign-in could not be completed.",
+        google_error: error.message || "Google sign-in could not be completed.",
       }),
     );
   }
@@ -803,54 +797,59 @@ router.get("/google/onboarding", async (req, res) => {
   }
 });
 
-router.post("/google/complete-profile", loginAttemptLimiter, async (req, res) => {
-  try {
-    markSensitiveResponse(res);
-    const onboardingToken = req.cookies?.[GOOGLE_ONBOARDING_COOKIE];
-    if (!onboardingToken) {
-      return res.status(401).json({
-        error: "Google sign-in expired. Please select your Google account again.",
-      });
-    }
+router.post(
+  "/google/complete-profile",
+  loginAttemptLimiter,
+  async (req, res) => {
+    try {
+      markSensitiveResponse(res);
+      const onboardingToken = req.cookies?.[GOOGLE_ONBOARDING_COOKIE];
+      if (!onboardingToken) {
+        return res.status(401).json({
+          error:
+            "Google sign-in expired. Please select your Google account again.",
+        });
+      }
 
-    const profile = verifyGoogleOnboardingToken(onboardingToken);
-    const shopName = normalizeName(req.body.shopName || req.body.shop_name);
-    const mobileNumber = normalizeMobileNumber(
-      req.body.mobileNumber || req.body.mobile_number,
-    );
+      const profile = verifyGoogleOnboardingToken(onboardingToken);
+      const shopName = normalizeName(req.body.shopName || req.body.shop_name);
+      const mobileNumber = normalizeMobileNumber(
+        req.body.mobileNumber || req.body.mobile_number,
+      );
 
-    if (!profile.sub || !profile.email) {
-      return res.status(401).json({
-        error: "Google sign-in expired. Please select your Google account again.",
-      });
-    }
+      if (!profile.sub || !profile.email) {
+        return res.status(401).json({
+          error:
+            "Google sign-in expired. Please select your Google account again.",
+        });
+      }
 
-    if (!shopName || !mobileNumber) {
-      return res
-        .status(400)
-        .json({ error: "Shop name and mobile number are required." });
-    }
+      if (!shopName || !mobileNumber) {
+        return res
+          .status(400)
+          .json({ error: "Shop name and mobile number are required." });
+      }
 
-    if (shopName.length < 3) {
-      return res
-        .status(400)
-        .json({ error: "Shop name should be at least 3 characters long." });
-    }
+      if (shopName.length < 3) {
+        return res
+          .status(400)
+          .json({ error: "Shop name should be at least 3 characters long." });
+      }
 
-    if (shopName.length > OWNER_NAME_MAX_LENGTH) {
-      return res.status(400).json({
-        error: `Shop name should be ${OWNER_NAME_MAX_LENGTH} characters or less.`,
-      });
-    }
+      if (shopName.length > OWNER_NAME_MAX_LENGTH) {
+        return res.status(400).json({
+          error: `Shop name should be ${OWNER_NAME_MAX_LENGTH} characters or less.`,
+        });
+      }
 
-    if (!isValidMobileNumber(mobileNumber)) {
-      return res
-        .status(400)
-        .json({ error: "Enter a valid 10-digit mobile number." });
-    }
+      if (!isValidMobileNumber(mobileNumber)) {
+        return res
+          .status(400)
+          .json({ error: "Enter a valid 10-digit mobile number." });
+      }
 
-    const existing = await pool.query(
-      `
+      const existing = await pool.query(
+        `
         SELECT id, email, mobile_number, google_sub
         FROM users
         WHERE LOWER(email) = LOWER($1)
@@ -858,55 +857,57 @@ router.post("/google/complete-profile", loginAttemptLimiter, async (req, res) =>
            OR google_sub = $3
         LIMIT 1
       `,
-      [profile.email, mobileNumber, profile.sub],
-    );
+        [profile.email, mobileNumber, profile.sub],
+      );
 
-    if (existing.rowCount > 0) {
-      const existingUser = existing.rows[0];
-      const message =
-        existingUser.google_sub === profile.sub ||
-        normalizeEmail(existingUser.email) === profile.email
-          ? "This Google email is already registered. Please try Google sign-in again."
-          : "Mobile number already registered.";
-      return res.status(400).json({ error: message });
-    }
+      if (existing.rowCount > 0) {
+        const existingUser = existing.rows[0];
+        const message =
+          existingUser.google_sub === profile.sub ||
+          normalizeEmail(existingUser.email) === profile.email
+            ? "This Google email is already registered. Please try Google sign-in again."
+            : "Mobile number already registered.";
+        return res.status(400).json({ error: message });
+      }
 
-    const user = await createOwnerFromGoogleProfile(
-      profile,
-      shopName,
-      mobileNumber,
-    );
-    const session = buildOwnerSession(user);
-    const sessionToken = signSession(session);
-    clearGoogleOnboardingCookie(res);
-    setSessionCookie(res, sessionToken);
-
-    return res.json({
-      message: "Google account setup complete",
-      user: toClientUser(session),
-    });
-  } catch (error) {
-    console.error("Google profile completion error:", error.message);
-    if (
-      error.name === "JsonWebTokenError" ||
-      error.name === "TokenExpiredError"
-    ) {
+      const user = await createOwnerFromGoogleProfile(
+        profile,
+        shopName,
+        mobileNumber,
+      );
+      const session = buildOwnerSession(user);
+      const sessionToken = signSession(session);
       clearGoogleOnboardingCookie(res);
-      return res.status(401).json({
-        error: "Google sign-in expired. Please select your Google account again.",
-      });
-    }
+      setSessionCookie(res, sessionToken);
 
-    if (error.code === "23505") {
-      return res.status(400).json({
-        error:
-          "This Google email or mobile number is already registered. Please try again.",
+      return res.json({
+        message: "Google account setup complete",
+        user: toClientUser(session),
       });
-    }
+    } catch (error) {
+      console.error("Google profile completion error:", error.message);
+      if (
+        error.name === "JsonWebTokenError" ||
+        error.name === "TokenExpiredError"
+      ) {
+        clearGoogleOnboardingCookie(res);
+        return res.status(401).json({
+          error:
+            "Google sign-in expired. Please select your Google account again.",
+        });
+      }
 
-    return res.status(500).json({ error: "Server error" });
-  }
-});
+      if (error.code === "23505") {
+        return res.status(400).json({
+          error:
+            "This Google email or mobile number is already registered. Please try again.",
+        });
+      }
+
+      return res.status(500).json({ error: "Server error" });
+    }
+  },
+);
 
 router.post("/register", async (req, res) => {
   try {
@@ -1248,11 +1249,9 @@ router.post("/staff", authMiddleware, requireOwner, async (req, res) => {
     }
 
     if (!permissions.length) {
-      return res
-        .status(400)
-        .json({
-          error: "Select at least one page access for the staff account",
-        });
+      return res.status(400).json({
+        error: "Select at least one page access for the staff account",
+      });
     }
 
     const currentStaff = await pool.query(
@@ -1324,11 +1323,9 @@ router.patch(
       }
 
       if (!permissions.length) {
-        return res
-          .status(400)
-          .json({
-            error: "Select at least one page access for the staff account",
-          });
+        return res.status(400).json({
+          error: "Select at least one page access for the staff account",
+        });
       }
 
       const result = await pool.query(

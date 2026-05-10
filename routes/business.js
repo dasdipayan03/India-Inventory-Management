@@ -12,10 +12,7 @@ const {
 } = require("../utils/concurrency");
 const { cacheJsonResponse } = require("../middleware/cache");
 const { invalidateUserCache } = require("../utils/cache");
-const {
-  buildPaginationMeta,
-  parsePagination,
-} = require("../utils/pagination");
+const { buildPaginationMeta, parsePagination } = require("../utils/pagination");
 
 const router = express.Router();
 
@@ -1156,7 +1153,10 @@ router.post(
 router.get(
   "/expenses/suggestions",
   requirePermission("expense_tracking"),
-  cacheJsonResponse({ namespace: "business:expense-suggestions", ttlMs: 15 * 1000 }),
+  cacheJsonResponse({
+    namespace: "business:expense-suggestions",
+    ttlMs: 15 * 1000,
+  }),
   async (req, res) => {
     try {
       const userId = getUserId(req);

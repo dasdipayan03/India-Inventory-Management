@@ -31,13 +31,15 @@ function getMemoryUsageMb() {
 }
 
 function normalizeRoutePath(pathname) {
-  return String(pathname || "/")
-    .split("?")[0]
-    .replace(/[0-9a-f]{8}-[0-9a-f-]{27,}/gi, ":uuid")
-    .replace(/\b\d{10}\b/g, ":phone")
-    .replace(/\/\d+(?=\/|$)/g, "/:id")
-    .replace(/\/+/g, "/")
-    .replace(/\/$/, "") || "/";
+  return (
+    String(pathname || "/")
+      .split("?")[0]
+      .replace(/[0-9a-f]{8}-[0-9a-f-]{27,}/gi, ":uuid")
+      .replace(/\b\d{10}\b/g, ":phone")
+      .replace(/\/\d+(?=\/|$)/g, "/:id")
+      .replace(/\/+/g, "/")
+      .replace(/\/$/, "") || "/"
+  );
 }
 
 function getRouteStatsKey(method, pathname) {

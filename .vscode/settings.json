@@ -10,7 +10,5 @@
   "markdown-pdf.printBackground": true,
   "markdown-pdf.outputDirectory": ".",
   "markdown-pdf.outputDirectoryRelativePathFile": true,
-  "markdown-pdf.styles": [
-    ".vscode/markdown-pdf.css"
-  ]
+  "markdown-pdf.styles": [".vscode/markdown-pdf.css"]
 }

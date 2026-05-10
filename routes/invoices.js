@@ -710,9 +710,7 @@ router.get(
       }
 
       const params = [userId, `%${normalizedQuery}%`];
-      const filters = [
-        "LOWER(TRIM(COALESCE(i.customer_name, ''))) LIKE $2",
-      ];
+      const filters = ["LOWER(TRIM(COALESCE(i.customer_name, ''))) LIKE $2"];
 
       if (numericQuery) {
         params.push(`%${numericQuery}%`);

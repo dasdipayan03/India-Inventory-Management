@@ -1,4 +1,9 @@
-function parsePagination(query, defaultLimit = 100, maxLimit = 500, options = {}) {
+function parsePagination(
+  query,
+  defaultLimit = 100,
+  maxLimit = 500,
+  options = {},
+) {
   const optional = Boolean(options.optional);
   const requested =
     Object.prototype.hasOwnProperty.call(query, "limit") ||

@@ -20,9 +20,11 @@ function getAuthorizedJob(req, res) {
 }
 
 function safeAttachmentName(value) {
-  return String(value || "export")
-    .replace(/[\r\n"]/g, "")
-    .trim() || "export";
+  return (
+    String(value || "export")
+      .replace(/[\r\n"]/g, "")
+      .trim() || "export"
+  );
 }
 
 router.get("/exports/:jobId", authMiddleware, (req, res) => {

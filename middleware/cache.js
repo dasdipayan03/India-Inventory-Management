@@ -46,17 +46,14 @@ function cacheJsonResponse(options = {}) {
         typeof body !== "undefined"
       ) {
         const headers = {};
-        [
-          "X-Total-Count",
-          "X-Limit",
-          "X-Offset",
-          "X-Has-More",
-        ].forEach((name) => {
-          const value = res.getHeader(name);
-          if (value !== undefined) {
-            headers[name] = String(value);
-          }
-        });
+        ["X-Total-Count", "X-Limit", "X-Offset", "X-Has-More"].forEach(
+          (name) => {
+            const value = res.getHeader(name);
+            if (value !== undefined) {
+              headers[name] = String(value);
+            }
+          },
+        );
 
         responseCache.set(
           cacheKey,

@@ -125,7 +125,8 @@ const pool = new Pool({
   maxUses: PG_MAX_USES,
   statement_timeout: PG_STATEMENT_TIMEOUT_MS,
   query_timeout: PG_QUERY_TIMEOUT_MS,
-  idle_in_transaction_session_timeout: PG_IDLE_IN_TRANSACTION_SESSION_TIMEOUT_MS,
+  idle_in_transaction_session_timeout:
+    PG_IDLE_IN_TRANSACTION_SESSION_TIMEOUT_MS,
   application_name: process.env.PG_APPLICATION_NAME || "india-inventory-api",
 });
 
@@ -558,7 +559,10 @@ async function ensureSchemaCompatibility() {
                 updated_at = NOW()
             WHERE id = $1
           `,
-          [row.id, buildArchivedDeveloperEmail("developer@example.com", row.id)],
+          [
+            row.id,
+            buildArchivedDeveloperEmail("developer@example.com", row.id),
+          ],
         );
 
         logEvent("warn", "developer_admin_invalid_email_archived", {

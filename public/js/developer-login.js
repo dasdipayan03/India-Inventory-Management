@@ -101,7 +101,10 @@
     if (dom.loginModeBtn) {
       const isActive = normalizedMode === "login";
       dom.loginModeBtn.classList.toggle("is-active", isActive);
-      dom.loginModeBtn.setAttribute("aria-pressed", isActive ? "true" : "false");
+      dom.loginModeBtn.setAttribute(
+        "aria-pressed",
+        isActive ? "true" : "false",
+      );
     }
 
     if (dom.registerModeBtn) {
@@ -133,7 +136,10 @@
       clearRegisterAccessKey();
     }
 
-    if (options.focusTarget && typeof options.focusTarget.focus === "function") {
+    if (
+      options.focusTarget &&
+      typeof options.focusTarget.focus === "function"
+    ) {
       options.focusTarget.focus();
     }
   }
@@ -302,9 +308,7 @@
           '<i class="fa-solid fa-spinner fa-spin"></i> Creating...';
       }
 
-      setStatus(
-        "Checking the developer key and creating the account...",
-      );
+      setStatus("Checking the developer key and creating the account...");
 
       const payload = await requestJSON("/developer-auth/register", {
         method: "POST",
@@ -361,7 +365,9 @@
 
   function bindPasswordToggles() {
     document.querySelectorAll("[data-toggle-password]").forEach((toggle) => {
-      const targetInput = document.getElementById(toggle.dataset.togglePassword);
+      const targetInput = document.getElementById(
+        toggle.dataset.togglePassword,
+      );
       const icon = toggle.querySelector("i");
 
       if (!targetInput || !icon) {
@@ -381,7 +387,8 @@
 
       syncToggleState();
       toggle.addEventListener("click", () => {
-        targetInput.type = targetInput.type === "password" ? "text" : "password";
+        targetInput.type =
+          targetInput.type === "password" ? "text" : "password";
         syncToggleState();
       });
     });
