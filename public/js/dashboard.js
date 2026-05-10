@@ -3117,7 +3117,22 @@ function renderSupplierDropdown(listEl, suppliers, onSelect) {
     return;
   }
 
-  listEl.innerHTML = suppliers
+  listEl.innerHTML = renderSupplierDropdownItems(suppliers);
+
+  showElement(listEl);
+  listEl.onclick = (event) => {
+    const entry = event.target.closest(".supplier-dropdown-item");
+    if (!entry || !listEl.contains(entry)) {
+      return;
+    }
+
+    onSelect(readSupplierDropdownEntry(entry));
+    hideElement(listEl);
+  };
+}
+
+function renderSupplierDropdownItems(suppliers) {
+  return suppliers
     .map((supplier) => {
       const mobile = supplier.mobile_number || "";
       const address = supplier.address || "";
@@ -3152,21 +3167,14 @@ function renderSupplierDropdown(listEl, suppliers, onSelect) {
       `;
     })
     .join("");
+}
 
-  showElement(listEl);
-  listEl.onclick = (event) => {
-    const entry = event.target.closest(".dropdown-item");
-    if (!entry || !listEl.contains(entry)) {
-      return;
-    }
-
-    onSelect({
-      id: Number(entry.dataset.id) || null,
-      name: decodeURIComponent(entry.dataset.name),
-      mobile_number: decodeURIComponent(entry.dataset.mobile),
-      address: decodeURIComponent(entry.dataset.address),
-    });
-    hideElement(listEl);
+function readSupplierDropdownEntry(entry) {
+  return {
+    id: Number(entry.dataset.id) || null,
+    name: decodeURIComponent(entry.dataset.name || ""),
+    mobile_number: decodeURIComponent(entry.dataset.mobile || ""),
+    address: decodeURIComponent(entry.dataset.address || ""),
   };
 }
 
@@ -3196,19 +3204,24 @@ async function loadPurchaseSearchSuggestions(query = "") {
   }
 }
 
-function renderPurchaseSearchDropdown(rows, onSelect) {
+function renderPurchaseSearchDropdown(rows, onSelect, options = {}) {
   if (!dom.purchaseSearchDropdown) {
     return;
   }
 
-  if (!rows.length) {
+  const suppliers = Array.isArray(options.suppliers) ? options.suppliers : [];
+
+  if (!rows.length && !suppliers.length) {
     hideElement(dom.purchaseSearchDropdown);
     dom.purchaseSearchDropdown.innerHTML = "";
     dom.purchaseSearchDropdown.onclick = null;
     return;
   }
 
-  dom.purchaseSearchDropdown.innerHTML = rows
+  const supplierHtml = suppliers.length
+    ? renderSupplierDropdownItems(suppliers)
+    : "";
+  const billHtml = rows
     .map((row) => {
       const supplier = row.supplier_name || "Supplier";
       const bill = row.bill_no || `Purchase #${row.id}`;
@@ -3216,7 +3229,7 @@ function renderPurchaseSearchDropdown(rows, onSelect) {
 
       return `
         <div
-          class="dropdown-item"
+          class="dropdown-item purchase-bill-dropdown-item"
           data-value="${encodeURIComponent(bill)}"
           data-purchase-id="${row.id || ""}"
         >
@@ -3229,9 +3242,18 @@ function renderPurchaseSearchDropdown(rows, onSelect) {
     })
     .join("");
 
+  dom.purchaseSearchDropdown.innerHTML = `${supplierHtml}${billHtml}`;
+
   showElement(dom.purchaseSearchDropdown);
   dom.purchaseSearchDropdown.onclick = (event) => {
-    const entry = event.target.closest(".dropdown-item");
+    const supplierEntry = event.target.closest(".supplier-dropdown-item");
+    if (supplierEntry && dom.purchaseSearchDropdown.contains(supplierEntry)) {
+      options.onSupplierSelect?.(readSupplierDropdownEntry(supplierEntry));
+      hideElement(dom.purchaseSearchDropdown);
+      return;
+    }
+
+    const entry = event.target.closest(".purchase-bill-dropdown-item");
     if (!entry || !dom.purchaseSearchDropdown.contains(entry)) {
       return;
     }
@@ -7163,19 +7185,33 @@ function bindPurchaseEvents() {
 
   const runPurchaseSearchSuggestions = async () => {
     const query = dom.purchaseSearchInput.value.trim();
-    const suggestions = await loadPurchaseSearchSuggestions(query);
+    const [suggestions, suppliers] = await Promise.all([
+      loadPurchaseSearchSuggestions(query),
+      query ? loadSupplierSuggestions(query) : Promise.resolve([]),
+    ]);
 
     if (dom.purchaseSearchInput.value.trim() !== query) {
       return;
     }
 
-    renderPurchaseSearchDropdown(suggestions, async ({ purchaseId, value }) => {
-      dom.purchaseSearchInput.value = value;
-      await loadPurchaseReport();
-      if (purchaseId > 0) {
-        await openPurchaseDetail(purchaseId, { silent: true });
-      }
-    });
+    renderPurchaseSearchDropdown(
+      suggestions,
+      async ({ purchaseId, value }) => {
+        dom.purchaseSearchInput.value = value;
+        await loadPurchaseReport();
+        if (purchaseId > 0) {
+          await openPurchaseDetail(purchaseId, { silent: true });
+        }
+      },
+      {
+        suppliers,
+        onSupplierSelect: async (supplier) => {
+          dom.purchaseSearchInput.value = supplier.name || "";
+          setPurchaseWorkspaceView("bills");
+          await loadPurchaseReport();
+        },
+      },
+    );
   };
 
   const debouncedPurchaseSearchSuggestions = debounce(() => {
