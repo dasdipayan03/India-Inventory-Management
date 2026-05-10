@@ -125,12 +125,45 @@
       margin-bottom: 12px;
     }
 
+    .sidebar__brand-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
     .sidebar__brand h2 {
       margin: 0;
       font-size: 21px;
       line-height: 1.05;
       font-weight: 800;
       letter-spacing: -0.03em;
+    }
+
+    .sidebar button.sidebar__refresh-button {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(239, 246, 255, 0.92);
+      box-shadow: inset 0 0 0 1px rgba(191, 235, 255, 0.16);
+    }
+
+    .sidebar button.sidebar__refresh-button i {
+      width: auto;
+      font-size: 14px;
+    }
+
+    .sidebar button.sidebar__refresh-button:hover {
+      transform: none;
+      background: rgba(14, 165, 233, 0.18);
+      color: #ffffff;
+      box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.28);
     }
 
     .sidebar__brand p {
@@ -319,7 +352,18 @@
         <div id="sidebarOverlay" class="sidebar-overlay"></div>
         <aside class="sidebar" id="sidebar" aria-label="Dashboard Navigation">
           <div class="sidebar__brand">
-            <h2>India Inventory Management</h2>
+            <div class="sidebar__brand-header">
+              <h2>India Inventory Management</h2>
+              <button
+                id="sidebarRefreshBtn"
+                class="sidebar__refresh-button"
+                type="button"
+                title="Refresh current page"
+                aria-label="Refresh current page"
+              >
+                <i class="fa-solid fa-arrows-rotate"></i>
+              </button>
+            </div>
             ${brandDescription ? `<p>${escapeHtml(brandDescription)}</p>` : ""}
           </div>
           <div class="sidebar__nav" id="sidebarNav"></div>
@@ -404,6 +448,7 @@
       sidebarNav: doc.getElementById("sidebarNav"),
       sidebarOverlay: doc.getElementById("sidebarOverlay"),
       sidebarToggle: doc.getElementById("sidebarToggle"),
+      sidebarRefreshBtn: doc.getElementById("sidebarRefreshBtn"),
       invoiceBtn: doc.getElementById("invoiceBtn"),
       invoiceNavBtn: doc.getElementById("invoiceNavBtn"),
       logoutBtn: doc.getElementById("logoutBtn"),
@@ -630,6 +675,20 @@
       }
     };
 
+    const refreshCurrentPage = () => {
+      const activeSectionId =
+        doc.querySelector(".form-section.active")?.id ||
+        global.localStorage?.getItem("activeSection") ||
+        "";
+
+      if (pageType !== "invoice" && activeSectionId) {
+        global.localStorage?.setItem("activeSection", activeSectionId);
+      }
+
+      controller.close();
+      global.location.reload();
+    };
+
     listen(elements.sidebarNav, "click", (event) => {
       const button =
         event.target instanceof Element ? event.target.closest("button") : null;
@@ -663,6 +722,8 @@
         }
       }
     });
+
+    listen(elements.sidebarRefreshBtn, "click", refreshCurrentPage);
 
     listen(global, "resize", () => {
       if (!isMobileLayout()) {
