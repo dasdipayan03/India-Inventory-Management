@@ -1057,7 +1057,7 @@ router.get(
         WHERE p.user_id = $1
           AND p.supplier_id = $2
         GROUP BY p.id
-        ORDER BY p.purchase_date ASC, p.id ASC
+        ORDER BY p.purchase_date DESC, p.id DESC
         ${paginationClause}
       `,
         [userId, supplierId],
