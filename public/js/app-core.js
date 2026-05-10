@@ -10,7 +10,7 @@
   const staffPermissionKeys = permissionContract.STAFF_PAGE_PERMISSIONS || [];
   const defaultStaffPermissions =
     permissionContract.DEFAULT_STAFF_PERMISSIONS || [
-      "add_stock",
+      "purchase_entry",
       "sale_invoice",
     ];
   const invoicePagePermission = "sale_invoice";
@@ -20,7 +20,6 @@
       : null;
 
   const permissionDescriptions = {
-    add_stock: "Create or update stock entries from the main inventory form.",
     purchase_entry:
       "Record supplier purchases, increase stock from bills, and review supplier ledger balances.",
     sale_invoice:
@@ -53,13 +52,6 @@
   );
 
   const sidebarItems = [
-    {
-      kind: "section",
-      sectionId: "addStockSection",
-      permission: "add_stock",
-      iconClass: "fas fa-plus-circle",
-      label: staffPageConfig.add_stock?.label || "Add New Stock",
-    },
     {
       kind: "section",
       sectionId: "purchaseEntrySection",

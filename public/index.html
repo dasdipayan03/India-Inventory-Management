@@ -398,10 +398,6 @@
         gap: 16px;
       }
 
-      .section-grid--inventory {
-        grid-template-columns: minmax(0, 1.6fr) minmax(300px, 0.9fr);
-      }
-
       .section-grid--dues {
         grid-template-columns: minmax(340px, 0.92fr) minmax(0, 1.24fr);
       }
@@ -934,7 +930,6 @@
         text-transform: uppercase;
       }
 
-      .add-stock-form-grid,
       .purchase-entry-form-grid {
         --bs-gutter-x: 16px;
         --bs-gutter-y: 16px;
@@ -1044,14 +1039,6 @@
         font-size: 13px;
         line-height: 1.6;
         color: rgba(226, 232, 240, 0.82);
-      }
-
-      #previousBuyingRate {
-        margin-top: 8px;
-        color: var(--cyan-strong);
-        font-size: 12px;
-        font-weight: 600;
-        line-height: 1.45;
       }
 
       .support-list {
@@ -2576,7 +2563,6 @@
         box-shadow: 0 16px 28px rgba(14, 165, 233, 0.26);
       }
 
-      #addStockBtn,
       #submitPurchaseBtn,
       #submitPurchaseRepaymentBtn,
       #submitDebtBtn,
@@ -2590,7 +2576,6 @@
         box-shadow: 0 12px 24px rgba(22, 163, 74, 0.22);
       }
 
-      #addStockBtn i,
       #submitPurchaseBtn i,
       #submitPurchaseRepaymentBtn i,
       #submitDebtBtn i,
@@ -2601,7 +2586,6 @@
         color: currentColor;
       }
 
-      #addStockBtn:hover,
       #submitPurchaseBtn:hover,
       #submitPurchaseRepaymentBtn:hover,
       #submitDebtBtn:hover,
@@ -2763,7 +2747,6 @@
           margin-bottom: 16px;
         }
 
-        .section-grid--inventory,
         .section-grid--dues,
         .section-grid--expense,
         .support-section-grid,
@@ -2981,13 +2964,11 @@
           margin-bottom: 12px;
         }
 
-        .add-stock-form-grid,
         .purchase-entry-form-grid {
           --bs-gutter-x: 10px;
           --bs-gutter-y: 10px;
         }
 
-        .add-stock-form-grid .form-label.small,
         .purchase-entry-form-grid .form-label.small {
           margin-bottom: 6px;
         }
@@ -3587,7 +3568,6 @@
           margin-bottom: 10px;
         }
 
-        .add-stock-form-grid,
         .purchase-entry-form-grid {
           --bs-gutter-x: 8px;
           --bs-gutter-y: 8px;
@@ -3912,149 +3892,7 @@
           </div>
         </section>
 
-        <div id="addStockSection" class="form-section active">
-          <div class="section-grid section-grid--inventory">
-            <section class="panel-card panel-card--surface">
-              <div class="panel-card__header">
-                <div>
-                  <span class="panel-kicker">Inventory Flow</span>
-                  <h4>Add or replenish stock</h4>
-                </div>
-                <div class="panel-card__icon">
-                  <i class="fas fa-plus-circle"></i>
-                </div>
-              </div>
-
-              <div class="row g-3 add-stock-form-grid">
-                <div class="col-12">
-                  <label class="form-label small"
-                    >Search Existing Item For Add</label
-                  >
-                  <div class="position-relative">
-                    <input
-                      type="text"
-                      id="newItemSearch"
-                      class="form-control"
-                      placeholder="Search or Select Item"
-                      autocomplete="off"
-                    />
-                    <div
-                      id="newItemDropdownList"
-                      class="dropdown-list"
-                      hidden
-                    ></div>
-                  </div>
-                  <div id="previousBuyingRate" hidden></div>
-                </div>
-
-                <div class="col-sm-6">
-                  <label class="form-label small">Quantity</label>
-                  <input
-                    type="number"
-                    id="newQuantity"
-                    class="form-control"
-                    placeholder="Enter Quantity"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-
-                <div class="col-sm-6">
-                  <label class="form-label small">Profit %</label>
-                  <input
-                    type="number"
-                    id="profitPercent"
-                    class="form-control"
-                    value="30"
-                    min="0"
-                    step="0.1"
-                  />
-                </div>
-
-                <div class="col-sm-6">
-                  <label class="form-label small">Buying Rate</label>
-                  <input
-                    type="number"
-                    id="buyingRate"
-                    class="form-control"
-                    placeholder="Enter buying rate"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-
-                <div class="col-sm-6">
-                  <label class="form-label small">Selling Rate</label>
-                  <input
-                    type="number"
-                    id="sellingRate"
-                    class="form-control"
-                    placeholder="Editable auto-calculated selling rate"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-
-                <div class="col-6">
-                  <button
-                    class="btn btn-primary w-100"
-                    id="addStockBtn"
-                    type="button"
-                  >
-                    <i class="fas fa-plus-circle"></i>
-                    Add Stock
-                  </button>
-                </div>
-                <div class="col-6">
-                  <button
-                    class="btn btn-secondary w-100"
-                    id="clearAddStockBtn"
-                    type="button"
-                  >
-                    <i class="fa-solid fa-eraser"></i>
-                    Clear
-                  </button>
-                </div>
-              </div>
-            </section>
-
-            <aside class="panel-card panel-card--highlight">
-              <div class="panel-card__header">
-                <div>
-                  <span class="panel-kicker">Pricing Helper</span>
-                  <h4>Margin-aware stock entry</h4>
-                </div>
-                <div class="panel-card__icon">
-                  <i class="fa-solid fa-arrow-trend-up"></i>
-                </div>
-              </div>
-
-              <div class="info-list">
-                <div class="info-card">
-                  <span>Default Profit Margin</span>
-                  <strong id="profitPreviewValue">30%</strong>
-                  <p id="profitPreviewNote">
-                    Saved in business settings to help auto-calculate selling
-                    rate.
-                  </p>
-                </div>
-              </div>
-
-              <ul class="support-list">
-                <li>
-                  Pick an old item to compare the latest rate before saving.
-                </li>
-                <li>
-                  Buying rate changes automatically refresh the suggested
-                  selling rate.
-                </li>
-                <li>You can still edit the selling rate manually any time.</li>
-              </ul>
-            </aside>
-          </div>
-        </div>
-
-        <div id="purchaseEntrySection" class="form-section">
+        <div id="purchaseEntrySection" class="form-section active">
           <div class="section-grid">
             <section
               class="panel-card panel-card--surface panel-card--purchase-entry"

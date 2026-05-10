@@ -237,7 +237,7 @@ router.use(authMiddleware);
 // ----------------- STOCK DEFAULT SETTINGS -----------------
 router.get(
   "/stock-defaults",
-  requirePermission("add_stock", "purchase_entry"),
+  requirePermission("purchase_entry"),
   cacheJsonResponse({
     namespace: "inventory:stock-defaults",
     ttlMs: 15 * 1000,
@@ -272,7 +272,7 @@ router.get(
 
 router.put(
   "/stock-defaults",
-  requirePermission("add_stock", "purchase_entry"),
+  requirePermission("purchase_entry"),
   async (req, res) => {
     try {
       const user_id = getUserId(req);
@@ -315,102 +315,11 @@ router.put(
   },
 );
 
-// ------------------------------- ADD ITEMS ---------------------------------------
-
-// Add or update stock item
-
-// Define POST API endpoint: /items
-router.post("/items", requirePermission("add_stock"), async (req, res) => {
-  const client = await pool.connect();
-  try {
-    const user_id = getUserId(req); // Extract logged-in user's ID from JWT token
-    const { name, quantity, buying_rate, selling_rate } = req.body; // Get data sent from client
-    const normalizedName = normalizeLookupText(name);
-    const displayName = normalizeDisplayText(name);
-    const qty = parseNonNegativeNumber(quantity);
-    const buyRate = parseNonNegativeNumber(buying_rate);
-    const sellRate = parseNonNegativeNumber(selling_rate);
-
-    // Validate required fields
-    if (
-      !displayName || // Item name must exist
-      qty === null || // Quantity must be provided
-      buyRate === null || // Buying rate must be provided
-      sellRate === null // Selling rate must be provided
-    ) {
-      return res.status(400).json({ error: "Missing fields" }); // Return 400 if validation fails
-    }
-
-    await client.query("BEGIN");
-    await lockScopedResource(client, user_id, "item-stock", normalizedName);
-
-    // Check if the item already exists for this user
-    const check = await client.query(
-      `
-        SELECT id
-        FROM items
-        WHERE user_id=$1 AND LOWER(TRIM(name))=$2
-        ORDER BY id ASC
-        FOR UPDATE
-      `,
-      [user_id, normalizedName], // Parameterized query to prevent SQL injection
-    );
-
-    let result;
-
-    // If item already exists
-    if (check.rows.length > 0) {
-      result = await client.query(
-        `
-          UPDATE items
-          SET
-            quantity = quantity + $1,
-            buying_rate = $2,
-            selling_rate = $3,
-            updated_at = NOW()
-          WHERE id = $4 AND user_id = $5
-          RETURNING *
-          `,
-        [qty, buyRate, sellRate, check.rows[0].id, user_id],
-      );
-    } else {
-      result = await client.query(
-        `
-      INSERT INTO items (user_id, name, quantity, buying_rate, selling_rate)
-      VALUES ($1,$2,$3,$4,$5)
-      RETURNING *
-      `,
-        [user_id, displayName, qty, buyRate, sellRate],
-      );
-    }
-
-    await client.query("COMMIT");
-    invalidateUserCache(user_id);
-    return res.json({
-      message: check.rows.length > 0 ? "Stock updated" : "New item added",
-      item: result.rows[0],
-    });
-  } catch (err) {
-    try {
-      await client.query("ROLLBACK");
-    } catch (rollbackError) {
-      if (process.env.NODE_ENV !== "production") {
-        console.error("Error rolling back POST /items:", rollbackError);
-      }
-    }
-    if (process.env.NODE_ENV !== "production")
-      console.error("Error in POST /items:", err);
-    res.status(500).json({ error: "Server error" });
-  } finally {
-    client.release();
-  }
-});
-
 // Auto-suggest item names
 router.get(
   "/items/names",
   requirePermission(
-    "add_stock",
+    // "add_stock", // Add New Stock page retired; shared lookup remains active.
     "purchase_entry",
     "sale_invoice",
     "stock_report",
@@ -434,7 +343,7 @@ router.get(
 
 router.get(
   "/items/info",
-  requirePermission("add_stock", "sale_invoice", "purchase_entry"),
+  requirePermission("sale_invoice", "purchase_entry"),
   cacheJsonResponse({ namespace: "inventory:item-info", ttlMs: 10 * 1000 }),
   async (req, res) => {
     try {

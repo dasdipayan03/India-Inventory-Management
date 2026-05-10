@@ -8,11 +8,6 @@
   typeof globalThis !== "undefined" ? globalThis : this,
   function createPermissionContract() {
     const STAFF_PAGE_CONFIG = {
-      add_stock: {
-        label: "Add New Stock",
-        shortLabel: "Stock Entry",
-        sectionId: "addStockSection",
-      },
       purchase_entry: {
         label: "Purchase Entry",
         shortLabel: "Purchases",
@@ -51,12 +46,8 @@
     };
 
     const STAFF_PAGE_PERMISSIONS = Object.keys(STAFF_PAGE_CONFIG);
-    const DEFAULT_STAFF_PERMISSIONS = ["add_stock", "sale_invoice"];
+    const DEFAULT_STAFF_PERMISSIONS = ["purchase_entry", "sale_invoice"];
     const LEGACY_PERMISSION_ALIASES = {
-      add_item: "add_stock",
-      add_items: "add_stock",
-      add_new_stock: "add_stock",
-      addStockSection: "add_stock",
       purchase: "purchase_entry",
       purchases: "purchase_entry",
       purchase_report: "purchase_entry",

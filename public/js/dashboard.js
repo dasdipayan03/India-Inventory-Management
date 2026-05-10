@@ -66,7 +66,7 @@ const state = {
 
 const STAFF_PERMISSION_OPTIONS = appConfig.staffPermissionOptions || [];
 const DEFAULT_STAFF_PERMISSIONS = appConfig.defaultStaffPermissions || [
-  "add_stock",
+  "purchase_entry",
   "sale_invoice",
 ];
 const STAFF_PERMISSION_KEYS =
@@ -627,17 +627,6 @@ function cacheElements() {
     statRunningMonthGstNote: document.getElementById("statRunningMonthGstNote"),
     statNetProfit: document.getElementById("statNetProfit"),
     statNetProfitNote: document.getElementById("statNetProfitNote"),
-    newItemSearch: document.getElementById("newItemSearch"),
-    newItemDropdownList: document.getElementById("newItemDropdownList"),
-    newQuantity: document.getElementById("newQuantity"),
-    profitPercent: document.getElementById("profitPercent"),
-    buyingRate: document.getElementById("buyingRate"),
-    sellingRate: document.getElementById("sellingRate"),
-    addStockBtn: document.getElementById("addStockBtn"),
-    clearAddStockBtn: document.getElementById("clearAddStockBtn"),
-    previousBuyingRate: document.getElementById("previousBuyingRate"),
-    profitPreviewValue: document.getElementById("profitPreviewValue"),
-    profitPreviewNote: document.getElementById("profitPreviewNote"),
     supplierName: document.getElementById("supplierName"),
     supplierNumber: document.getElementById("supplierNumber"),
     supplierAddress: document.getElementById("supplierAddress"),
@@ -1394,26 +1383,6 @@ function updateDueWorkspaceMeta() {
   }
 }
 
-function hidePreviousBuyingRate() {
-  hideElement(dom.previousBuyingRate);
-  dom.previousBuyingRate.textContent = "";
-}
-
-function resetAddStockForm() {
-  ["newItemSearch", "newQuantity", "buyingRate", "sellingRate"].forEach(
-    (id) => {
-      const field = document.getElementById(id);
-      if (field) {
-        field.value = "";
-      }
-    },
-  );
-
-  hideElement(dom.newItemDropdownList);
-  hidePreviousBuyingRate();
-  updateProfitPreview();
-}
-
 function normalizeProfitPercentValue(value) {
   const raw = String(value ?? "").trim();
   if (!raw) {
@@ -1428,56 +1397,13 @@ function normalizeProfitPercentValue(value) {
   return Number(parsed.toFixed(2));
 }
 
-function updateProfitPreview() {
-  const percent = Number(dom.profitPercent.value);
-  const buyingRate = Number(dom.buyingRate.value);
-  const sellingRate = Number(dom.sellingRate.value);
-
-  dom.profitPreviewValue.textContent = `${formatNumber(percent || 0)}%`;
-
-  if (buyingRate > 0 && sellingRate > 0) {
-    dom.profitPreviewNote.textContent = `Buying ${formatCurrency(buyingRate)} suggests selling ${formatCurrency(sellingRate)}.`;
-    return;
-  }
-
-  dom.profitPreviewNote.textContent =
-    "Saved in business settings so future stock entries stay faster and more consistent.";
-}
-
-function updateSellingRate() {
-  const buyingRate = Number(dom.buyingRate.value);
-  const percent = Number(dom.profitPercent.value);
-
-  if (Number.isFinite(buyingRate) && Number.isFinite(percent)) {
-    const sellingRate = buyingRate * (1 + percent / 100);
-    dom.sellingRate.value = sellingRate.toFixed(2);
-  }
-
-  updateProfitPreview();
-}
-
-function updateProfitPercent() {
-  const buyingRate = Number(dom.buyingRate.value);
-  const sellingRate = Number(dom.sellingRate.value);
-
-  if (buyingRate > 0 && Number.isFinite(sellingRate)) {
-    const percent = ((sellingRate - buyingRate) / buyingRate) * 100;
-    const rounded = percent.toFixed(2);
-    dom.profitPercent.value = rounded;
-    queueProfitPercentSave();
-  }
-
-  updateProfitPreview();
-}
-
 function applySharedProfitPercent(value) {
   const normalized = normalizeProfitPercentValue(value);
   if (normalized === null) {
     return null;
   }
 
-  dom.profitPercent.value = normalized.toFixed(2);
-  updateSellingRate();
+  state.lastSavedProfitPercent = normalized;
   return normalized;
 }
 
@@ -1523,13 +1449,13 @@ async function saveProfitPercentDefault(value, options = {}) {
   }
 }
 
-function queueProfitPercentSave(value = dom.profitPercent.value) {
+function queueProfitPercentSave(value = state.lastSavedProfitPercent) {
   const normalized = normalizeProfitPercentValue(value);
 
   window.clearTimeout(state.profitSaveTimer);
   state.profitSaveTimer = null;
 
-  if (normalized === null || normalized === state.lastSavedProfitPercent) {
+  if (normalized === null) {
     return;
   }
 
@@ -1552,8 +1478,6 @@ async function loadProfitPercentDefault() {
 
     if (savedValue !== null) {
       state.lastSavedProfitPercent = savedValue;
-      dom.profitPercent.value = savedValue.toFixed(2);
-      updateSellingRate();
       localStorage.removeItem("defaultProfitPercent");
       return savedValue;
     }
@@ -1562,16 +1486,12 @@ async function loadProfitPercentDefault() {
   }
 
   if (legacyValue !== null) {
-    dom.profitPercent.value = legacyValue.toFixed(2);
-    updateSellingRate();
+    state.lastSavedProfitPercent = legacyValue;
     await saveProfitPercentDefault(legacyValue, { silent: true });
     return legacyValue;
   }
 
-  state.lastSavedProfitPercent = normalizeProfitPercentValue(
-    dom.profitPercent.value,
-  );
-  updateProfitPreview();
+  state.lastSavedProfitPercent = state.lastSavedProfitPercent ?? 30;
   return state.lastSavedProfitPercent;
 }
 
@@ -2278,12 +2198,7 @@ function renderDropdown(listEl, items, onSelect) {
 async function renderItemNameDropdown(input, listEl, onSelect) {
   if (
     !state.itemNamesLoaded &&
-    canAccessPermission(
-      "add_stock",
-      "purchase_entry",
-      "sale_invoice",
-      "stock_report",
-    )
+    canAccessPermission("purchase_entry", "sale_invoice", "stock_report")
   ) {
     await loadItemNames({ silent: true });
   }
@@ -2377,38 +2292,6 @@ async function loadItemNames(options = {}) {
   return state.itemNamesPromise;
 }
 
-async function showPreviousBuyingRate(itemName) {
-  const trimmedName = itemName.trim();
-  if (!trimmedName) {
-    hidePreviousBuyingRate();
-    return;
-  }
-
-  try {
-    const item = await fetchJSON(
-      `/items/info?name=${encodeURIComponent(trimmedName)}`,
-    );
-    if (
-      findExactItemName(dom.newItemSearch?.value.trim() || "") !== trimmedName
-    ) {
-      return;
-    }
-    const previousRate = Number(item.buying_rate);
-
-    if (!Number.isFinite(previousRate)) {
-      hidePreviousBuyingRate();
-      return;
-    }
-
-    dom.previousBuyingRate.textContent = `Previous buying rate: ${formatCurrency(previousRate)}`;
-    showElement(dom.previousBuyingRate);
-    dom.buyingRate.value = previousRate.toFixed(2);
-    updateSellingRate();
-  } catch (error) {
-    hidePreviousBuyingRate();
-  }
-}
-
 async function loadDashboardOverview(options = {}) {
   if (!isOwnerSession()) {
     return null;
@@ -2496,92 +2379,6 @@ async function loadDashboardOverview(options = {}) {
   }
 }
 
-async function addStock() {
-  const item = dom.newItemSearch.value.trim();
-  const quantity = Number(dom.newQuantity.value);
-  const buyingRate = Number(dom.buyingRate.value);
-  const sellingRate = Number(dom.sellingRate.value);
-
-  if (!item) {
-    showPopup("error", "Missing item", "Enter or select an item name.", {
-      autoClose: false,
-    });
-    return;
-  }
-
-  if (!Number.isFinite(quantity) || quantity <= 0) {
-    showPopup(
-      "error",
-      "Invalid quantity",
-      "Quantity must be greater than zero.",
-      {
-        autoClose: false,
-      },
-    );
-    return;
-  }
-
-  if (!Number.isFinite(buyingRate) || buyingRate < 0) {
-    showPopup(
-      "error",
-      "Invalid buying rate",
-      "Buying rate must be zero or greater.",
-      { autoClose: false },
-    );
-    return;
-  }
-
-  if (!Number.isFinite(sellingRate) || sellingRate < 0) {
-    showPopup(
-      "error",
-      "Invalid selling rate",
-      "Selling rate must be zero or greater.",
-      { autoClose: false },
-    );
-    return;
-  }
-
-  await withButtonState(
-    dom.addStockBtn,
-    '<i class="fa-solid fa-spinner fa-spin"></i> Saving stock...',
-    async () => {
-      const data = await fetchJSON("/items", {
-        method: "POST",
-        body: JSON.stringify({
-          name: item,
-          quantity,
-          buying_rate: buyingRate,
-          selling_rate: sellingRate,
-        }),
-      });
-
-      showPopup(
-        "success",
-        "Stock saved",
-        data.message || "Inventory entry has been updated successfully.",
-      );
-
-      resetAddStockForm();
-
-      await Promise.allSettled([
-        loadItemNames({ silent: true }),
-        loadDashboardOverview({ silent: true }),
-      ]);
-
-      if (
-        document
-          .getElementById("itemReportSection")
-          .classList.contains("active")
-      ) {
-        await Promise.allSettled([
-          loadItemReport({ silent: true }),
-          loadLowStock({ silent: true }),
-        ]);
-      }
-    },
-  );
-}
-
 function purchaseRows() {
   return Array.from(
     dom.purchaseItemsBody?.querySelectorAll(".purchase-line-card") || [],
@@ -2589,11 +2386,7 @@ function purchaseRows() {
 }
 
 function getPurchaseDefaultProfitPercent() {
-  return (
-    normalizeProfitPercentValue(dom.profitPercent?.value) ??
-    state.lastSavedProfitPercent ??
-    30
-  );
+  return state.lastSavedProfitPercent ?? 30;
 }
 
 function updatePurchaseLineLabels() {
@@ -7128,66 +6921,6 @@ function bindPopupEvents() {
   });
 }
 
-function bindInventoryEvents() {
-  dom.profitPercent.addEventListener("input", () => {
-    updateSellingRate();
-    refreshPurchaseAutoRates({ overwriteProfit: true, forceSell: true });
-    queueProfitPercentSave();
-  });
-
-  dom.buyingRate.addEventListener("input", updateSellingRate);
-  dom.sellingRate.addEventListener("input", updateProfitPercent);
-
-  dom.newItemSearch.addEventListener("input", () => {
-    if (!dom.newItemSearch.value.trim()) {
-      hidePreviousBuyingRate();
-      return;
-    }
-
-    const exactItemName = findExactItemName(dom.newItemSearch.value.trim());
-    if (!exactItemName) {
-      hidePreviousBuyingRate();
-      return;
-    }
-
-    showPreviousBuyingRate(exactItemName);
-  });
-
-  dom.newItemSearch.addEventListener("blur", () => {
-    const itemName = dom.newItemSearch.value.trim();
-    const exactItemName = findExactItemName(itemName);
-    if (exactItemName) {
-      showPreviousBuyingRate(exactItemName);
-    }
-  });
-
-  [
-    dom.newItemSearch,
-    dom.newQuantity,
-    dom.profitPercent,
-    dom.buyingRate,
-    dom.sellingRate,
-  ].forEach((input) => {
-    input.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        addStock();
-      }
-    });
-  });
-
-  dom.addStockBtn.addEventListener("click", addStock);
-  dom.clearAddStockBtn?.addEventListener("click", () => {
-    triggerButtonFeedback(dom.clearAddStockBtn);
-    resetAddStockForm();
-  });
-
-  setupFilterInput(dom.newItemSearch, dom.newItemDropdownList, (value) => {
-    dom.newItemSearch.value = value;
-    showPreviousBuyingRate(value);
-  });
-}
-
 function bindPurchaseEvents() {
   if (!dom.submitPurchaseBtn) {
     return;
@@ -7743,7 +7476,6 @@ window.addEventListener("DOMContentLoaded", async () => {
   setNavigationAccessLocked(true);
   bindOverviewCarousel();
   bindPopupEvents();
-  bindInventoryEvents();
   bindPurchaseEvents();
   bindReportEvents();
   bindCustomerDueEvents();
@@ -7751,7 +7483,6 @@ window.addEventListener("DOMContentLoaded", async () => {
   bindSupportEvents();
   bindStaffEvents();
   updateCurrentDateLabel();
-  hidePreviousBuyingRate();
   if (dom.purchaseItemsBody) {
     dom.purchaseItemsBody.innerHTML = "";
     addPurchaseItemRow(undefined, { animateIn: false });
@@ -7769,7 +7500,6 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
   resetExpenseSummary();
   setDefaultSalesDates();
-  updateProfitPreview();
 
   const user = await checkAuth();
   if (!user) {
@@ -7778,7 +7508,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   applySessionAccess(user);
 
-  if (canAccessPermission("add_stock", "purchase_entry")) {
+  if (canAccessPermission("purchase_entry")) {
     await loadProfitPercentDefault();
     refreshPurchaseAutoRates({ overwriteProfit: true, forceSell: true });
   }
@@ -7806,14 +7536,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  if (
-    canAccessPermission(
-      "add_stock",
-      "purchase_entry",
-      "sale_invoice",
-      "stock_report",
-    )
-  ) {
+  if (canAccessPermission("purchase_entry", "sale_invoice", "stock_report")) {
     await loadItemNames({ silent: true });
   }
 
