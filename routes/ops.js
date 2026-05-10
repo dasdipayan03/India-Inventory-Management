@@ -7,7 +7,7 @@ const { loadDatabaseOverview } = require("../repositories/ops-repository");
 
 const router = express.Router();
 
-router.use(authMiddleware, requireOwner);
+router.use("/ops", authMiddleware, requireOwner);
 
 router.get("/ops/metrics", async (req, res) => {
   try {
