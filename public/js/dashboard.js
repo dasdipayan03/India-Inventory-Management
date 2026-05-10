@@ -6378,20 +6378,30 @@ function renderLedgerTable(rows, mode = "summary") {
       </thead>
     `;
 
-    rows.forEach((row) => {
+    const ledgerRows = rows.map((row) => {
       totalOutstanding += (Number(row.total) || 0) - (Number(row.credit) || 0);
       totalOutstanding = Number(totalOutstanding.toFixed(2));
 
-      tableBody += `
-        <tr>
-          <td data-label="Date">${formatDate(row.created_at)}</td>
-          <td data-label="Total">${formatCurrencyValue(row.total)}</td>
-          <td data-label="Credit">${formatCurrencyValue(row.credit)}</td>
-          <td data-label="Balance">${renderDueBalancePill(totalOutstanding)}</td>
-          <td data-label="Remarks">${escapeHtml(row.remark || "-")}</td>
-        </tr>
-      `;
+      return {
+        ...row,
+        runningBalance: totalOutstanding,
+      };
     });
+
+    ledgerRows
+      .slice()
+      .reverse()
+      .forEach((row) => {
+        tableBody += `
+          <tr>
+            <td data-label="Date">${formatDate(row.created_at)}</td>
+            <td data-label="Total">${formatCurrencyValue(row.total)}</td>
+            <td data-label="Credit">${formatCurrencyValue(row.credit)}</td>
+            <td data-label="Balance">${renderDueBalancePill(row.runningBalance)}</td>
+            <td data-label="Remarks">${escapeHtml(row.remark || "-")}</td>
+          </tr>
+        `;
+      });
 
     state.currentLedgerOutstanding = totalOutstanding;
     state.currentLedgerEntryCount = rows.length;

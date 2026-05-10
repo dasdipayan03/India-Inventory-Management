@@ -2331,54 +2331,59 @@ router.get(
       doc.y = summaryTop + infoHeight + 18;
       drawPdfTableHeader(doc, ledgerColumns);
 
-      ledgerRows.forEach((row, index) => {
-        const dateText = formatIstDate(row.created_at);
-        const totalText = formatCurrency(row.totalValue);
-        const creditText = formatCurrency(row.creditValue);
-        const balanceText = formatCurrency(row.runningBalance);
-        const remarkText = String(row.remark || "-").trim() || "-";
-        const rowHeight = Math.max(
-          doc.heightOfString(dateText, { width: 88 }),
-          doc.heightOfString(totalText, { width: 70, align: "right" }),
-          doc.heightOfString(creditText, { width: 70, align: "right" }),
-          doc.heightOfString(balanceText, { width: 78, align: "right" }),
-          doc.heightOfString(remarkText, { width: 168 }),
-          18,
-        );
+      ledgerRows
+        .slice()
+        .reverse()
+        .forEach((row, index) => {
+          const dateText = formatIstDate(row.created_at);
+          const totalText = formatCurrency(row.totalValue);
+          const creditText = formatCurrency(row.creditValue);
+          const balanceText = formatCurrency(row.runningBalance);
+          const remarkText = String(row.remark || "-").trim() || "-";
+          const rowHeight = Math.max(
+            doc.heightOfString(dateText, { width: 88 }),
+            doc.heightOfString(totalText, { width: 70, align: "right" }),
+            doc.heightOfString(creditText, { width: 70, align: "right" }),
+            doc.heightOfString(balanceText, { width: 78, align: "right" }),
+            doc.heightOfString(remarkText, { width: 168 }),
+            18,
+          );
 
-        ensurePdfSpace(doc, rowHeight + 12, () => {
-          drawPdfTableHeader(doc, ledgerColumns);
-        });
+          ensurePdfSpace(doc, rowHeight + 12, () => {
+            drawPdfTableHeader(doc, ledgerColumns);
+          });
 
-        const rowY = doc.y;
+          const rowY = doc.y;
 
-        if (index % 2 === 0) {
-          doc.save();
+          if (index % 2 === 0) {
+            doc.save();
+            doc
+              .rect(40, rowY - 2, 515, rowHeight + 6)
+              .fill(PDF_THEME.rowAlt);
+            doc.restore();
+          }
+
+          doc.fillColor(PDF_THEME.ink).font("Helvetica").fontSize(10);
+          doc.text(dateText, 46, rowY, { width: 88 });
+          doc.text(totalText, 138, rowY, { width: 70, align: "right" });
+          doc.text(creditText, 212, rowY, { width: 70, align: "right" });
           doc
-            .rect(40, rowY - 2, 515, rowHeight + 6)
-            .fill(PDF_THEME.rowAlt);
-          doc.restore();
-        }
-
-        doc.fillColor(PDF_THEME.ink).font("Helvetica").fontSize(10);
-        doc.text(dateText, 46, rowY, { width: 88 });
-        doc.text(totalText, 138, rowY, { width: 70, align: "right" });
-        doc.text(creditText, 212, rowY, { width: 70, align: "right" });
-        doc
-          .fillColor(
-            row.runningBalance > 0.009 ? PDF_THEME.danger : PDF_THEME.success,
-          )
-          .text(balanceText, 286, rowY, { width: 78, align: "right" });
-        doc.fillColor(PDF_THEME.ink).text(remarkText, 378, rowY, {
-          width: 168,
+            .fillColor(
+              row.runningBalance > 0.009
+                ? PDF_THEME.danger
+                : PDF_THEME.success,
+            )
+            .text(balanceText, 286, rowY, { width: 78, align: "right" });
+          doc.fillColor(PDF_THEME.ink).text(remarkText, 378, rowY, {
+            width: 168,
+          });
+          doc
+            .moveTo(40, rowY + rowHeight + 2)
+            .lineTo(555, rowY + rowHeight + 2)
+            .strokeColor(PDF_THEME.line)
+            .stroke();
+          doc.y = rowY + rowHeight + 6;
         });
-        doc
-          .moveTo(40, rowY + rowHeight + 2)
-          .lineTo(555, rowY + rowHeight + 2)
-          .strokeColor(PDF_THEME.line)
-          .stroke();
-        doc.y = rowY + rowHeight + 6;
-      });
 
       const totalsBoxHeight = 86;
       ensurePdfSpace(doc, totalsBoxHeight + 16, () => {
