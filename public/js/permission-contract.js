@@ -14,7 +14,7 @@
         sectionId: "purchaseEntrySection",
       },
       sale_invoice: {
-        label: "Sale and Invoice",
+        label: "Sale Entry / Invoice",
         shortLabel: "Invoice",
         sectionId: "invoicePage",
       },

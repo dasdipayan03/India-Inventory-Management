@@ -65,7 +65,7 @@
       route: "invoice.html",
       permission: invoicePagePermission,
       iconClass: "fa-solid fa-file-invoice",
-      label: staffPageConfig.sale_invoice?.label || "Sale and Invoice",
+      label: staffPageConfig.sale_invoice?.label || "Sale Entry / Invoice",
     },
     {
       kind: "section",
