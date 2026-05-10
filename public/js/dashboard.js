@@ -7207,6 +7207,16 @@ function bindPurchaseEvents() {
         suppliers,
         onSupplierSelect: async (supplier) => {
           dom.purchaseSearchInput.value = supplier.name || "";
+          dom.supplierSearchInput.value = supplier.name || "";
+          dom.supplierSearchInput.dataset.supplierId = String(
+            supplier.id || "",
+          );
+
+          if (supplier.id) {
+            await searchSupplierLedger({ supplierId: supplier.id });
+            return;
+          }
+
           setPurchaseWorkspaceView("bills");
           await loadPurchaseReport();
         },
