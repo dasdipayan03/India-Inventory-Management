@@ -214,14 +214,30 @@
   }
 
   function normalizeSessionRole(value) {
-    return String(value || "")
+    const normalized = String(value || "")
       .trim()
-      .toLowerCase() === "staff"
-      ? "staff"
-      : "owner";
+      .toLowerCase();
+
+    if (normalized === "staff") {
+      return "staff";
+    }
+
+    if (normalized === "owner" || normalized === "admin") {
+      return "owner";
+    }
+
+    return "";
+  }
+
+  function hasKnownSession(user) {
+    return Boolean(user && normalizeSessionRole(user.role));
   }
 
   function isOwnerUser(user) {
+    if (!hasKnownSession(user)) {
+      return false;
+    }
+
     return normalizeSessionRole(user?.role) === "owner";
   }
 
@@ -234,8 +250,16 @@
   }
 
   function canAccessPermission(user, ...permissions) {
+    if (!hasKnownSession(user)) {
+      return false;
+    }
+
     if (isOwnerUser(user)) {
       return true;
+    }
+
+    if (!permissions.length) {
+      return false;
     }
 
     const granted = getUserPermissions(user);
@@ -243,6 +267,10 @@
   }
 
   function canAccessSection(user, sectionId) {
+    if (!hasKnownSession(user)) {
+      return false;
+    }
+
     if (sectionId === "staffAccessSection") {
       return isOwnerUser(user);
     }

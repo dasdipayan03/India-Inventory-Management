@@ -86,8 +86,7 @@
         position: relative;
         z-index: 1;
         width: min(1320px, calc(100% - 378px));
-        margin: 20px 28px 36px
-          calc(322px + max(28px, (100vw - 1642px) / 2));
+        margin: 20px 28px 36px calc(322px + max(28px, (100vw - 1642px) / 2));
       }
 
       .grid {
@@ -2372,6 +2371,10 @@
       const appConfig = window.InventoryApp || {};
       const API_PREFIX = appConfig.apiBase || "/api";
       const DRAFT_KEY = "invoice_page_draft_v4";
+      const ACCESS_DENIED_MESSAGE =
+        "This staff account does not have access to this action. Ask owner to update access or login again.";
+      let invoicePermissionRefreshHandler = null;
+      let invoiceAccessDeniedHandler = null;
       const money = new Intl.NumberFormat("en-IN", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
@@ -2570,17 +2573,46 @@
         });
 
       async function authFetch(url, options = {}) {
-        const headers = { ...(options.headers || {}) };
+        const {
+          permissionRetry = false,
+          skipPermissionRefresh = false,
+          ...fetchOptions
+        } = options;
+        const headers = { ...(fetchOptions.headers || {}) };
         const response = await fetch(url, {
-          ...options,
+          ...fetchOptions,
           credentials: "include",
           headers,
         });
+
         if (response.status === 401) {
           clearStoredSession();
           window.location.href = "login.html";
           return null;
         }
+
+        if (response.status === 403) {
+          if (
+            !skipPermissionRefresh &&
+            !permissionRetry &&
+            !String(url || "").endsWith("/auth/me") &&
+            typeof invoicePermissionRefreshHandler === "function"
+          ) {
+            const refreshed = await invoicePermissionRefreshHandler();
+            if (refreshed) {
+              return authFetch(url, {
+                ...fetchOptions,
+                permissionRetry: true,
+              });
+            }
+          }
+
+          if (typeof invoiceAccessDeniedHandler === "function") {
+            invoiceAccessDeniedHandler();
+          }
+          return null;
+        }
+
         return response;
       }
 
@@ -2648,14 +2680,18 @@
             } catch (_error) {
               payload = {};
             }
-            throw new Error(payload.error || payload.message || "Download failed");
+            throw new Error(
+              payload.error || payload.message || "Download failed",
+            );
           }
 
           await saveBlobDownload(downloadResponse, fallbackName);
           return true;
         }
 
-        throw new Error("Export is taking longer than expected. Please try again.");
+        throw new Error(
+          "Export is taking longer than expected. Please try again.",
+        );
       };
 
       document.addEventListener("DOMContentLoaded", () => {
@@ -2750,6 +2786,20 @@
           }
         };
 
+        const setNavigationAccessLocked = (locked = true) => {
+          if (dom.invoiceNavBtn) {
+            dom.invoiceNavBtn.hidden = true;
+            dom.invoiceNavBtn.disabled = Boolean(locked);
+          }
+
+          dom.dashboardNavButtons.forEach((button) => {
+            button.hidden = true;
+            button.disabled = Boolean(locked);
+          });
+        };
+
+        setNavigationAccessLocked(true);
+
         const renderHeroShopName = (name = "") => {
           if (!dom.heroShopName) return;
           const value = String(name || "").trim();
@@ -2811,6 +2861,7 @@
         let invoiceNumberLookup = new Map();
         let invoiceSuggestions = [];
         let sessionUser = null;
+        let permissionRefreshPromise = null;
         let pendingInvoiceNo = null;
         let popupTimer = null;
         let draftTimer = null;
@@ -2889,7 +2940,11 @@
         const isOwnerSession = () =>
           typeof appConfig.isOwnerUser === "function"
             ? appConfig.isOwnerUser(sessionUser)
-            : sessionUser?.role !== "staff";
+            : ["owner", "admin"].includes(
+                String(sessionUser?.role || "")
+                  .trim()
+                  .toLowerCase(),
+              );
 
         const getPermissionSummary = (permissions, options = {}) => {
           return typeof appConfig.formatPermissionSummary === "function"
@@ -2900,7 +2955,7 @@
         const canAccessPermission = (...permissions) => {
           return typeof appConfig.canAccessPermission === "function"
             ? appConfig.canAccessPermission(sessionUser, ...permissions)
-            : true;
+            : false;
         };
 
         const canAccessInvoicePage = () => canAccessPermission("sale_invoice");
@@ -2908,7 +2963,7 @@
         const canAccessDashboardSection = (sectionId) => {
           return typeof appConfig.canAccessSection === "function"
             ? appConfig.canAccessSection(sessionUser, sectionId)
-            : true;
+            : false;
         };
 
         const getFirstAccessibleDashboardSection = () =>
@@ -2969,17 +3024,79 @@
             ? `<i class="fa-solid fa-layer-group"></i> ${escapeHtml(ownerName || "Assigned shop")} | ${escapeHtml(accessSummary)}`
             : '<i class="fa-solid fa-layer-group"></i> Full stock, invoice, reports, GST, due, and staff control';
 
-          dom.invoiceNavBtn.hidden = !canAccessInvoicePage();
+          const canUseInvoicePage = canAccessInvoicePage();
+          dom.invoiceNavBtn.hidden = !canUseInvoicePage;
+          dom.invoiceNavBtn.disabled = !canUseInvoicePage;
           dom.dashboardNavButtons.forEach((button) => {
-            button.hidden = !canAccessDashboardSection(
+            const allowed = canAccessDashboardSection(
               button.dataset.navSection,
             );
+            button.hidden = !allowed;
+            button.disabled = !allowed;
           });
 
           setShopProfileEditable(!isStaff);
           dom.shopProfileHelper.textContent = isStaff
             ? "Shop profile is visible for invoice calculation only. Only owner can edit this section."
             : "Shop profile is used in invoice preview, GST calculation, and PDF output.";
+        };
+
+        const redirectAwayFromInvoiceIfNeeded = () => {
+          if (canAccessInvoicePage()) {
+            return false;
+          }
+
+          const safeSection = getFirstAccessibleDashboardSection();
+          if (safeSection) {
+            localStorage.setItem("activeSection", safeSection);
+          }
+          window.location.replace("index.html");
+          return true;
+        };
+
+        invoiceAccessDeniedHandler = () => {
+          window.setTimeout(() => {
+            showPopup("error", "Access denied", ACCESS_DENIED_MESSAGE, {
+              autoClose: false,
+            });
+          }, 0);
+        };
+
+        invoicePermissionRefreshHandler = () => {
+          if (permissionRefreshPromise) {
+            return permissionRefreshPromise;
+          }
+
+          permissionRefreshPromise = (async () => {
+            try {
+              const response = await fetch(`${API_PREFIX}/auth/me`, {
+                credentials: "include",
+                cache: "no-store",
+                headers: authHeaders(),
+              });
+
+              if (response.status === 401) {
+                clearStoredSession();
+                window.location.href = "login.html";
+                return false;
+              }
+
+              if (!response.ok) {
+                return false;
+              }
+
+              const user = await response.json();
+              applySessionAccess(user);
+              return !redirectAwayFromInvoiceIfNeeded();
+            } catch (error) {
+              console.error("Permission refresh failed:", error);
+              return false;
+            } finally {
+              permissionRefreshPromise = null;
+            }
+          })();
+
+          return permissionRefreshPromise;
         };
 
         async function loadSession() {
@@ -2991,12 +3108,7 @@
           const user = await res.json();
           applySessionAccess(user);
 
-          if (!canAccessInvoicePage()) {
-            const safeSection = getFirstAccessibleDashboardSection();
-            if (safeSection) {
-              localStorage.setItem("activeSection", safeSection);
-            }
-            window.location.replace("index.html");
+          if (redirectAwayFromInvoiceIfNeeded()) {
             return null;
           }
 

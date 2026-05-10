@@ -59,6 +59,7 @@ const state = {
   supportMessages: [],
   supportLoadRequestId: 0,
   supportPollTimer: null,
+  permissionRefreshPromise: null,
 };
 
 const STAFF_PERMISSION_OPTIONS = appConfig.staffPermissionOptions || [];
@@ -71,6 +72,8 @@ const STAFF_PERMISSION_KEYS =
   STAFF_PERMISSION_OPTIONS.map((option) => option.value);
 const INVOICE_PAGE_PERMISSION =
   appConfig.invoicePagePermission || "sale_invoice";
+const ACCESS_DENIED_MESSAGE =
+  "This staff account does not have access to this action. Ask owner to update access or login again.";
 
 const formatters = {
   whole: new Intl.NumberFormat("en-IN", {
@@ -406,9 +409,14 @@ function validateRange(fromDate, toDate, labels = {}) {
 }
 
 function isOwnerSession() {
-  return typeof appConfig.isOwnerUser === "function"
-    ? appConfig.isOwnerUser(state.sessionUser)
-    : state.sessionUser?.role !== "staff";
+  if (typeof appConfig.isOwnerUser === "function") {
+    return appConfig.isOwnerUser(state.sessionUser);
+  }
+
+  const role = String(state.sessionUser?.role || "")
+    .trim()
+    .toLowerCase();
+  return role === "owner" || role === "admin";
 }
 
 function normalizeStaffPermissions(values) {
@@ -432,7 +440,7 @@ function formatPermissionSummary(permissions, options = {}) {
 function canAccessPermission(...permissions) {
   return typeof appConfig.canAccessPermission === "function"
     ? appConfig.canAccessPermission(state.sessionUser, ...permissions)
-    : true;
+    : false;
 }
 
 function canAccessInvoicePage() {
@@ -442,7 +450,7 @@ function canAccessInvoicePage() {
 function canAccessSection(sectionId) {
   return typeof appConfig.canAccessSection === "function"
     ? appConfig.canAccessSection(state.sessionUser, sectionId)
-    : true;
+    : false;
 }
 
 function getAccessibleSectionIds() {
@@ -457,6 +465,87 @@ function getFirstAccessibleSection() {
 
 function getActiveSectionId() {
   return document.querySelector(".form-section.active")?.id || "";
+}
+
+function setNavigationAccessLocked(locked = true) {
+  if (dom.invoiceBtn) {
+    dom.invoiceBtn.hidden = true;
+    dom.invoiceBtn.disabled = Boolean(locked);
+  }
+
+  (dom.sectionButtons || []).forEach((button) => {
+    button.hidden = true;
+    button.disabled = Boolean(locked);
+  });
+
+  (dom.formSections || []).forEach((section) => {
+    section.hidden = true;
+    if (locked) {
+      section.classList.remove("active");
+    }
+  });
+}
+
+function syncActiveSectionAfterPermissionRefresh() {
+  const activeSectionId = getActiveSectionId();
+  if (activeSectionId && canAccessSection(activeSectionId)) {
+    return;
+  }
+
+  const fallbackSection = getFirstAccessibleSection();
+  if (fallbackSection) {
+    setActiveSection(fallbackSection);
+    return;
+  }
+
+  if (canAccessInvoicePage()) {
+    window.location.replace("invoice.html");
+  }
+}
+
+async function refreshSessionAfterAccessDenied() {
+  if (state.permissionRefreshPromise) {
+    return state.permissionRefreshPromise;
+  }
+
+  state.permissionRefreshPromise = (async () => {
+    try {
+      const response = await fetch(`${apiBase}/auth/me`, {
+        credentials: "include",
+        cache: "no-store",
+        headers: authHeaders(),
+      });
+
+      if (response.status === 401) {
+        handleSessionExpiry();
+        return false;
+      }
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const user = await response.json();
+      applySessionAccess(user);
+      syncActiveSectionAfterPermissionRefresh();
+      return true;
+    } catch (error) {
+      console.error("Permission refresh failed:", error);
+      return false;
+    } finally {
+      state.permissionRefreshPromise = null;
+    }
+  })();
+
+  return state.permissionRefreshPromise;
+}
+
+function queueAccessDeniedPopup() {
+  window.setTimeout(() => {
+    showPopup("error", "Access denied", ACCESS_DENIED_MESSAGE, {
+      autoClose: false,
+    });
+  }, 0);
 }
 
 async function ensureChartLibrary() {
@@ -778,13 +867,18 @@ function cacheElements() {
 }
 
 async function fetchJSON(path, options = {}) {
-  const headers = { ...(options.headers || {}) };
-  if (options.body && !headers["Content-Type"]) {
+  const {
+    permissionRetry = false,
+    skipPermissionRefresh = false,
+    ...fetchOptions
+  } = options;
+  const headers = { ...(fetchOptions.headers || {}) };
+  if (fetchOptions.body && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
 
   const requestOptions = {
-    ...options,
+    ...fetchOptions,
     credentials: "include",
     headers: authHeaders(headers),
   };
@@ -811,6 +905,28 @@ async function fetchJSON(path, options = {}) {
     authError.code = "SESSION_EXPIRED";
     handleSessionExpiry();
     throw authError;
+  }
+
+  if (response.status === 403) {
+    if (
+      !skipPermissionRefresh &&
+      !permissionRetry &&
+      String(path || "") !== "/auth/me"
+    ) {
+      const refreshed = await refreshSessionAfterAccessDenied();
+      if (refreshed) {
+        return fetchJSON(path, {
+          ...fetchOptions,
+          permissionRetry: true,
+        });
+      }
+    }
+
+    const accessError = new Error(ACCESS_DENIED_MESSAGE);
+    accessError.code = "ACCESS_DENIED";
+    accessError.status = 403;
+    queueAccessDeniedPopup();
+    throw accessError;
   }
 
   if (!response.ok) {
@@ -1482,12 +1598,16 @@ function applySessionAccess(user) {
   }
 
   if (dom.invoiceBtn) {
-    dom.invoiceBtn.hidden = !canAccessInvoicePage();
+    const allowed = canAccessInvoicePage();
+    dom.invoiceBtn.hidden = !allowed;
+    dom.invoiceBtn.disabled = !allowed;
   }
 
   dom.sectionButtons.forEach((button) => {
     const sectionId = button.dataset.section;
-    button.hidden = !canAccessSection(sectionId);
+    const allowed = canAccessSection(sectionId);
+    button.hidden = !allowed;
+    button.disabled = !allowed;
   });
 
   dom.formSections.forEach((section) => {
@@ -7495,6 +7615,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       onLogout: logoutAndRedirect,
     }) || null;
   cacheElements();
+  setNavigationAccessLocked(true);
   bindOverviewCarousel();
   bindPopupEvents();
   bindInventoryEvents();
