@@ -125,6 +125,28 @@
     },
   ];
 
+  function preventFocusedNumberWheelChange() {
+    if (!global.document?.addEventListener) {
+      return;
+    }
+
+    global.document.addEventListener(
+      "wheel",
+      (event) => {
+        const activeElement = global.document.activeElement;
+        if (
+          activeElement instanceof HTMLInputElement &&
+          activeElement.type === "number" &&
+          event.target instanceof Element &&
+          activeElement.contains(event.target)
+        ) {
+          activeElement.blur();
+        }
+      },
+      { capture: true, passive: true },
+    );
+  }
+
   function escapeHtml(value) {
     return String(value ?? "")
       .replace(/&/g, "&amp;")
@@ -257,4 +279,6 @@
     staffPermissionKeys,
     staffPermissionOptions,
   });
+
+  preventFocusedNumberWheelChange();
 })(window);
