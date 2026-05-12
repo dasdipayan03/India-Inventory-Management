@@ -1375,8 +1375,7 @@
                   <a
                     id="appDownloadBtn"
                     class="dock-btn install"
-                    href="https://github.com/dasdipayan03/app-release/releases/latest/download/India_Inventory_Management.apk"
-                    download
+                    href="https://play.google.com/store/apps/details?id=india.inventory.management"
                   >
                     <i class="fa-brands fa-android"></i>
                     <span id="appDownloadLabel">Install App</span>
@@ -2111,14 +2110,13 @@
             return;
           }
 
-          const actionLabel = isAndroidUserAgent
-            ? "Install App"
-            : "Download APK";
+          const actionLabel = "Install App";
 
           appDownloadBtn.href =
-            "https://github.com/dasdipayan03/app-release/releases/latest/download/India_Inventory_Management.apk";
+            "https://play.google.com/store/apps/details?id=india.inventory.management";
           appDownloadBtn.title = actionLabel;
           appDownloadBtn.setAttribute("aria-label", actionLabel);
+          appDownloadBtn.removeAttribute("download");
           appDownloadLabel.textContent = actionLabel;
         };
 
