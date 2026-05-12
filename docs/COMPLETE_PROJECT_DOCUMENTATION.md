@@ -1,27 +1,174 @@
 # India Inventory Management Documentation
 
-Last verified against this repository: `2026-05-09`
+Last verified against this repository: `2026-05-12`
 
 This is the single merged documentation file for the project. It replaces the earlier split project doc and database schema doc.
 
+<style>
+  .toc-jump-button {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 9999;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    min-width: 46px;
+    min-height: 46px;
+    border-radius: 50%;
+    background: #17315d65;
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    color: #ffffff !important;
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1;
+    text-decoration: none;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.2);
+    opacity: 0.95;
+  }
+
+  .toc-jump-button:hover,
+  .toc-jump-button:focus {
+    background: #0ea4e95d;
+    color: #ffffff !important;
+    text-decoration: none;
+    opacity: 1;
+  }
+
+  @media print {
+    .toc-jump-button {
+      display: none !important;
+    }
+  }
+</style>
+
+<a id="toc-top"></a>
+<a class="toc-jump-button" href="#toc-top" aria-label="Back to table of contents" title="Back to table of contents">&#8593;</a>
+
 ## Table Of Contents
 
-- [Purpose](#1-purpose)
-- [Project Snapshot](#2-project-snapshot)
-- [Technology Stack](#3-technology-stack)
-- [Repository Map](#4-repository-map)
-- [High-Level Architecture](#5-high-level-architecture)
-- [Frontend Structure](#6-frontend-structure)
-- [Backend Structure](#7-backend-structure)
-- [Auth, Session, and Permission Model](#8-auth-session-and-permission-model)
-- [Security and Runtime Guardrails](#9-security-and-runtime-guardrails)
-- [Main Business Workflows](#10-main-business-workflows)
-- [API Route Map](#11-api-route-map)
-- [Database Schema](#12-database-schema)
-- [Environment Variables](#13-environment-variables)
-- [Maintenance Guide](#14-maintenance-guide)
-- [Detailed Architecture Diagram](#15-detailed-architecture-diagram)
-- [Final Summary](#16-final-summary)
+- [1. Purpose](#1-purpose)
+- [2. Project Snapshot](#2-project-snapshot)
+- [3. Technology Stack](#3-technology-stack)
+  - [Backend](#backend)
+  - [Deployment and runtime](#deployment-and-runtime)
+  - [Frontend](#frontend)
+  - [Data and schema](#data-and-schema)
+- [4. Repository Map](#4-repository-map)
+  - [Key backend files](#key-backend-files)
+  - [Key frontend files](#key-frontend-files)
+- [5. High-Level Architecture](#5-high-level-architecture)
+  - [Request flow in practice](#request-flow-in-practice)
+- [6. Frontend Structure](#6-frontend-structure)
+  - [Page responsibilities](#page-responsibilities)
+  - [Shared frontend module roles](#shared-frontend-module-roles)
+  - [Frontend storage usage](#frontend-storage-usage)
+- [7. Backend Structure](#7-backend-structure)
+  - [`server.js`](#serverjs)
+  - [`db.js`](#dbjs)
+  - [`middleware/cache.js`](#middlewarecachejs)
+  - [`middleware/export-queue.js`](#middlewareexport-queuejs)
+  - [`middleware/auth.js`](#middlewareauthjs)
+  - [`utils/concurrency.js`](#utilsconcurrencyjs)
+  - [`utils/runtime-log.js`](#utilsruntime-logjs)
+  - [Runtime support utilities](#runtime-support-utilities)
+  - [Function catalogue](#function-catalogue)
+    - [`server.js` function inventory](#serverjs-function-inventory)
+    - [`db.js` function inventory](#dbjs-function-inventory)
+    - [`middleware/auth.js` function inventory](#middlewareauthjs-function-inventory)
+    - [`middleware/cache.js` function inventory](#middlewarecachejs-function-inventory)
+    - [`middleware/export-queue.js` function inventory](#middlewareexport-queuejs-function-inventory)
+    - [`routes/auth.js` function inventory](#routesauthjs-function-inventory)
+    - [`routes/inventory.js` function inventory](#routesinventoryjs-function-inventory)
+    - [`routes/business.js` function inventory](#routesbusinessjs-function-inventory)
+    - [`routes/invoices.js` function inventory](#routesinvoicesjs-function-inventory)
+    - [`routes/support.js` function inventory](#routessupportjs-function-inventory)
+    - [`routes/exports.js` function inventory](#routesexportsjs-function-inventory)
+    - [`routes/ops.js` function inventory](#routesopsjs-function-inventory)
+    - [`repositories/ops-repository.js` function inventory](#repositoriesops-repositoryjs-function-inventory)
+    - [`utils/cache.js` function inventory](#utilscachejs-function-inventory)
+    - [`utils/export-queue.js` function inventory](#utilsexport-queuejs-function-inventory)
+    - [`utils/monitoring.js` function inventory](#utilsmonitoringjs-function-inventory)
+    - [`utils/background-jobs.js` function inventory](#utilsbackground-jobsjs-function-inventory)
+    - [`utils/pagination.js` function inventory](#utilspaginationjs-function-inventory)
+    - [`public/js/dashboard.js` workflow map](#publicjsdashboardjs-workflow-map)
+    - [Developer support frontend workflow map](#developer-support-frontend-workflow-map)
+- [8. Auth, Session, and Permission Model](#8-auth-session-and-permission-model)
+  - [Session model](#session-model)
+  - [Google OAuth owner flow](#google-oauth-owner-flow)
+  - [Developer support session model](#developer-support-session-model)
+  - [Client bootstrap](#client-bootstrap)
+  - [Staff permission model](#staff-permission-model)
+- [9. Security and Runtime Guardrails](#9-security-and-runtime-guardrails)
+- [10. Main Business Workflows](#10-main-business-workflows)
+  - [Owner registration](#owner-registration)
+  - [Owner login](#owner-login)
+  - [Google owner sign-in](#google-owner-sign-in)
+  - [Staff login](#staff-login)
+  - [Purchase Entry / Add Stock](#purchase-entry--add-stock)
+  - [Supplier ledger and purchase bill views](#supplier-ledger-and-purchase-bill-views)
+  - [Product purchase history](#product-purchase-history)
+  - [Invoice creation](#invoice-creation)
+  - [Invoice due settlement](#invoice-due-settlement)
+  - [Customer due management](#customer-due-management)
+  - [Supplier repayment](#supplier-repayment)
+  - [Reports and exports](#reports-and-exports)
+  - [Ops metrics and cleanup](#ops-metrics-and-cleanup)
+  - [Support chat flow](#support-chat-flow)
+  - [Developer support inbox flow](#developer-support-inbox-flow)
+- [11. API Route Map](#11-api-route-map)
+  - [11.1 Auth routes from `routes/auth.js`](#111-auth-routes-from-routesauthjs)
+  - [11.2 Inventory routes from `routes/inventory.js`](#112-inventory-routes-from-routesinventoryjs)
+  - [11.3 Business routes from `routes/business.js`](#113-business-routes-from-routesbusinessjs)
+  - [11.4 Invoice routes from `routes/invoices.js`](#114-invoice-routes-from-routesinvoicesjs)
+  - [11.5 Support routes from `routes/support.js`](#115-support-routes-from-routessupportjs)
+  - [11.6 Export routes from `routes/exports.js`](#116-export-routes-from-routesexportsjs)
+  - [11.7 Ops routes from `routes/ops.js`](#117-ops-routes-from-routesopsjs)
+  - [11.8 Health routes from `server.js`](#118-health-routes-from-serverjs)
+- [12. Database Schema](#12-database-schema)
+  - [12.1 Schema source of truth](#121-schema-source-of-truth)
+  - [12.2 Ownership model](#122-ownership-model)
+  - [12.3 ER diagram](#123-er-diagram)
+  - [12.4 Table summary](#124-table-summary)
+  - [12.5 Detailed table guide](#125-detailed-table-guide)
+    - [`users`](#users)
+    - [`staff_accounts`](#staff_accounts)
+    - [`developer_admins`](#developer_admins)
+    - [`support_conversations`](#support_conversations)
+    - [`support_messages`](#support_messages)
+    - [`settings`](#settings)
+    - [`items`](#items)
+    - [`sales`](#sales)
+    - [`debts`](#debts)
+    - [`suppliers`](#suppliers)
+    - [`purchases`](#purchases)
+    - [`purchase_items`](#purchase_items)
+    - [`expenses`](#expenses)
+    - [`invoices`](#invoices)
+    - [`invoice_items`](#invoice_items)
+    - [`user_invoice_counter`](#user_invoice_counter)
+  - [12.6 Full table dictionary](#126-full-table-dictionary)
+  - [12.7 Relationship notes and data flow](#127-relationship-notes-and-data-flow)
+    - [Direct foreign keys](#direct-foreign-keys)
+    - [Important indirect relationships](#important-indirect-relationships)
+    - [Main business data flows](#main-business-data-flows)
+  - [12.8 Indexes, triggers, and compatibility behavior](#128-indexes-triggers-and-compatibility-behavior)
+- [13. Environment Variables](#13-environment-variables)
+- [14. Maintenance Guide](#14-maintenance-guide)
+  - [Login, reset password, or session behavior](#if-you-want-to-change-login-reset-password-or-session-behavior)
+  - [Shared navigation or permission names](#if-you-want-to-change-shared-navigation-or-permission-names)
+  - [Dashboard stock, purchase, report, due, or expense features](#if-you-want-to-change-dashboard-stock-purchase-report-due-or-expense-features)
+  - [Play Store, Android install, or browser install behavior](#if-you-want-to-change-play-store-android-install-or-browser-install-behavior)
+  - [Invoice flow or PDF output](#if-you-want-to-change-invoice-flow-or-pdf-output)
+  - [Support chat or developer portal behavior](#if-you-want-to-change-support-chat-or-developer-portal-behavior)
+  - [Database schema](#if-you-want-to-change-database-schema)
+  - [Deployment healthchecks or runtime logging](#if-you-want-to-change-deployment-healthchecks-or-runtime-logging)
+  - [Caching, pagination, or queued exports](#if-you-want-to-change-caching-pagination-or-queued-exports)
+  - [Owner ops metrics](#if-you-want-to-change-owner-ops-metrics)
+- [15. Detailed Architecture Diagram](#15-detailed-architecture-diagram)
+- [16. Final Summary](#16-final-summary)
 
 ## 1. Purpose
 
@@ -49,8 +196,12 @@ Important current-state notes:
 - Frequently read JSON endpoints now use short owner-scoped response caching and pagination metadata helpers where list size can grow.
 - Structured runtime logs now redact password, token, authorization, cookie, and access-key fields before emitting JSON.
 - Deployment healthcheck and start-command defaults are now pinned in [`../railway.json`](../railway.json), and lifecycle/request logging is centralized through [`../utils/runtime-log.js`](../utils/runtime-log.js).
-- The Add Stock card in [`../public/index.html`](../public/index.html) has a side-by-side Clear action. Its reset logic lives in [`../public/js/dashboard.js`](../public/js/dashboard.js), clears item, quantity, buying rate, selling rate, dropdown state, and previous-rate preview, and intentionally keeps `Profit %` unchanged.
-- Purchase Entry now includes supplier autocomplete in the Supplier purchase entry card, product-wise purchase history under the Purchase Desk, and supplier detail autofill for name, mobile, and address.
+- The standalone Add New Stock page has been retired. Its old HTML is preserved inertly inside a `<template>` in [`../public/index.html`](../public/index.html), and related frontend/backend code is commented for reference. Stock intake now happens through Purchase Entry.
+- Purchase Entry is now the canonical "Purchase Entry / Add Stock" workflow. It includes supplier autocomplete, bill-wise supplier search, product-wise purchase history, supplier detail autofill, default profit margin handling, and stock updates from saved purchase bills.
+- Supplier ledger detail rows are shown newest-to-oldest, matching Bill View ordering.
+- Customer due ledgers and customer ledger PDFs show recent transactions first while preserving correct running-balance calculation.
+- The shared sidebar now includes a refresh icon beside the app title; it reloads the current page while preserving the active dashboard section through `localStorage.activeSection`.
+- Login page Android install now points to the Play Store listing (`india.inventory.management`) instead of the old GitHub APK release link. `site.webmanifest` remains available for browser/PWA install prompts.
 - Sale and Invoice now includes customer autocomplete in the Billing details card. The inline invoice controller calls `/api/invoices/customers`, then fills customer name, contact, and address when an existing customer is selected.
 
 ## 2. Project Snapshot
@@ -64,8 +215,8 @@ Main business modules:
 - staff login with page-level permissions
 - owner/staff support chat with a developer inbox
 - developer support account registration and login
-- stock entry and stock defaults
-- purchase entry with supplier ledger and supplier repayment tracking
+- purchase entry that also adds/updates stock through supplier bills
+- purchase defaults, supplier ledger, and supplier repayment tracking
 - product-wise purchase history from saved purchase item rows
 - sales invoice creation with PDF generation
 - invoice history, due settlement, and payment collection
@@ -75,6 +226,23 @@ Main business modules:
 - queued PDF/Excel export delivery for long-running downloads
 - owner-only ops metrics and background cleanup status
 - expense tracking and net profit visibility
+- Play Store Android app access plus browser PWA install metadata
+
+Current feature and benefit map:
+
+| Module                     | Current capability                                                                                        | User benefit                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Purchase Entry / Add Stock | Supplier bill entry creates purchase rows and updates item stock/rates                                    | Inventory stays in sync with purchase bills without duplicate stock-entry work |
+| Supplier Ledger            | Supplier-wise purchases, paid/due totals, repayment capture, and newest-first bill history                | Owners can track pending supplier payments quickly                             |
+| Sale Entry / Invoice       | Invoice creation, item lookup, GST/total calculation, customer autocomplete, history, settlement, and PDF | Faster billing and cleaner customer-facing documents                           |
+| Stock View / Report        | Item quantity, buying/selling rates, sold quantity, low-stock, reorder, and slow-moving views             | Owners can see current inventory health and reorder needs                      |
+| Sales View / Report        | Date-wise sales, net-profit card, trend charts, PDF, and Excel                                            | Sales performance can be reviewed by period                                    |
+| GST Report                 | GST row report, monthly comparison, PDF, and Excel                                                        | Tax data is ready for checking and filing                                      |
+| Customer Due               | Customer ledger entries, customer autocomplete, due summary, newest-first timeline, and ledger PDF        | Collections become easier to track and share                                   |
+| Expenses                   | Expense entry, suggestions, report, and summary                                                           | Real net profit is clearer because costs are recorded                          |
+| Staff Access               | Owner-managed page permissions for staff accounts                                                         | Staff can work only in the modules they are assigned                           |
+| Support Chat               | Owner/staff support thread plus developer inbox                                                           | Support conversations stay tied to the right owner workspace                   |
+| Mobile / Android Access    | Responsive web UI, Play Store wrapper, Android Google transfer, and PWA manifest                          | Users can work from phones through browser, installed PWA, or Play Store app   |
 
 The system is owner-centric:
 
@@ -144,48 +312,49 @@ The system is owner-centric:
 
 ### Key backend files
 
-| File                                                                     | Role                                                                                                       |
-| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| [`../server.js`](../server.js)                                           | Express entrypoint, request logging, CSP nonce injection, CORS policy, health/debug routes, static serving |
-| [`../db.js`](../db.js)                                                   | DB connection pool, readiness state, SSL selection, startup schema patching                                |
-| [`../middleware/auth.js`](../middleware/auth.js)                         | JWT verification, role resolution, permission checks                                                       |
-| [`../middleware/cache.js`](../middleware/cache.js)                       | owner-scoped short TTL JSON response cache middleware                                                      |
-| [`../middleware/export-queue.js`](../middleware/export-queue.js)         | async export middleware for queued PDF/Excel downloads                                                     |
-| [`../routes/auth.js`](../routes/auth.js)                                 | register/login/logout, Google OAuth, forgot/reset password, staff management, `/me`                        |
-| [`../routes/support.js`](../routes/support.js)                           | developer auth, owner/staff support chat, developer inbox, conversation status updates                     |
-| [`../routes/exports.js`](../routes/exports.js)                           | export job status and authenticated download endpoints                                                     |
-| [`../routes/ops.js`](../routes/ops.js)                                   | owner-only monitoring metrics and background cleanup endpoints                                             |
-| [`../routes/inventory.js`](../routes/inventory.js)                       | stock defaults/entry, stock reports, sales reports, GST compare/export, dashboard overview, customer dues  |
-| [`../routes/business.js`](../routes/business.js)                         | suppliers, purchases, product purchase history, purchase repayment, expenses                               |
-| [`../routes/invoices.js`](../routes/invoices.js)                         | invoice numbering, invoice save, customer suggestions, history, payment settlement, PDF, shop info         |
-| [`../repositories/ops-repository.js`](../repositories/ops-repository.js) | database overview query used by ops metrics                                                                |
-| [`../utils/background-jobs.js`](../utils/background-jobs.js)             | periodic cache/export cleanup and heartbeat logging                                                        |
-| [`../utils/cache.js`](../utils/cache.js)                                 | in-memory TTL cache plus owner-cache invalidation helpers                                                  |
-| [`../utils/concurrency.js`](../utils/concurrency.js)                     | normalization helpers and owner-scoped advisory locks                                                      |
-| [`../utils/export-queue.js`](../utils/export-queue.js)                   | in-memory export queue implementation and filename parsing                                                 |
-| [`../utils/monitoring.js`](../utils/monitoring.js)                       | request, cache, export, memory, and DB-pool metric snapshots                                               |
-| [`../utils/pagination.js`](../utils/pagination.js)                       | shared query pagination parser, response headers, and metadata builder                                     |
-| [`../utils/runtime-log.js`](../utils/runtime-log.js)                     | structured JSON log serializer used by server and DB lifecycle logging                                     |
-| [`../railway.json`](../railway.json)                                     | Railway config-as-code for runtime start and healthcheck defaults                                          |
+| File                                                                     | Role                                                                                                                    |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| [`../server.js`](../server.js)                                           | Express entrypoint, request logging, CSP nonce injection, CORS policy, health/debug routes, static serving              |
+| [`../db.js`](../db.js)                                                   | DB connection pool, readiness state, SSL selection, startup schema patching                                             |
+| [`../middleware/auth.js`](../middleware/auth.js)                         | JWT verification, role resolution, permission checks                                                                    |
+| [`../middleware/cache.js`](../middleware/cache.js)                       | owner-scoped short TTL JSON response cache middleware                                                                   |
+| [`../middleware/export-queue.js`](../middleware/export-queue.js)         | async export middleware for queued PDF/Excel downloads                                                                  |
+| [`../routes/auth.js`](../routes/auth.js)                                 | register/login/logout, Google OAuth, forgot/reset password, staff management, `/me`                                     |
+| [`../routes/support.js`](../routes/support.js)                           | developer auth, owner/staff support chat, developer inbox, conversation status updates                                  |
+| [`../routes/exports.js`](../routes/exports.js)                           | export job status and authenticated download endpoints                                                                  |
+| [`../routes/ops.js`](../routes/ops.js)                                   | owner-only monitoring metrics and background cleanup endpoints                                                          |
+| [`../routes/inventory.js`](../routes/inventory.js)                       | stock defaults, shared item lookup, stock reports, sales reports, GST compare/export, dashboard overview, customer dues |
+| [`../routes/business.js`](../routes/business.js)                         | suppliers, purchases that restock inventory, product purchase history, purchase repayment, expenses                     |
+| [`../routes/invoices.js`](../routes/invoices.js)                         | invoice numbering, invoice save, customer suggestions, history, payment settlement, PDF, shop info                      |
+| [`../repositories/ops-repository.js`](../repositories/ops-repository.js) | database overview query used by ops metrics                                                                             |
+| [`../utils/background-jobs.js`](../utils/background-jobs.js)             | periodic cache/export cleanup and heartbeat logging                                                                     |
+| [`../utils/cache.js`](../utils/cache.js)                                 | in-memory TTL cache plus owner-cache invalidation helpers                                                               |
+| [`../utils/concurrency.js`](../utils/concurrency.js)                     | normalization helpers and owner-scoped advisory locks                                                                   |
+| [`../utils/export-queue.js`](../utils/export-queue.js)                   | in-memory export queue implementation and filename parsing                                                              |
+| [`../utils/monitoring.js`](../utils/monitoring.js)                       | request, cache, export, memory, and DB-pool metric snapshots                                                            |
+| [`../utils/pagination.js`](../utils/pagination.js)                       | shared query pagination parser, response headers, and metadata builder                                                  |
+| [`../utils/runtime-log.js`](../utils/runtime-log.js)                     | structured JSON log serializer used by server and DB lifecycle logging                                                  |
+| [`../railway.json`](../railway.json)                                     | Railway config-as-code for runtime start and healthcheck defaults                                                       |
 
 ### Key frontend files
 
-| File                                                                         | Role                                                                                                           |
-| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| [`../public/login.html`](../public/login.html)                               | landing page, owner login/register, Google sign-in/onboarding, staff login, forgot password                    |
-| [`../public/privacy-policy.html`](../public/privacy-policy.html)             | public privacy policy page                                                                                     |
-| [`../public/account-deletion.html`](../public/account-deletion.html)         | public account deletion instruction page                                                                       |
-| [`../public/developer-login.html`](../public/developer-login.html)           | developer account login/register page for the support inbox                                                    |
-| [`../public/developer-support.html`](../public/developer-support.html)       | developer support queue and threaded reply workspace                                                           |
-| [`../public/index.html`](../public/index.html)                               | main dashboard shell with stock, purchase, product purchase history, reports, due, expense, and staff sections |
-| [`../public/invoice.html`](../public/invoice.html)                           | sale and invoice workspace, customer autocomplete, invoice history, PDF actions, shop profile                  |
-| [`../public/reset.html`](../public/reset.html)                               | reset password page                                                                                            |
-| [`../public/js/developer-login.js`](../public/js/developer-login.js)         | developer login/register controller                                                                            |
-| [`../public/js/developer-support.js`](../public/js/developer-support.js)     | developer inbox queue, thread, reply, and status update controller                                             |
-| [`../public/js/dashboard.js`](../public/js/dashboard.js)                     | main dashboard logic and report UI orchestration                                                               |
-| [`../public/js/app-core.js`](../public/js/app-core.js)                       | shared constants, permission descriptions, app bootstrap helpers                                               |
-| [`../public/js/app-shell.js`](../public/js/app-shell.js)                     | reusable sidebar shell and page navigation                                                                     |
-| [`../public/js/permission-contract.js`](../public/js/permission-contract.js) | single permission vocabulary shared by backend and frontend                                                    |
+| File                                                                         | Role                                                                                                                                                |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`../public/login.html`](../public/login.html)                               | landing page, owner login/register, Google sign-in/onboarding, staff login, forgot password, Play Store install link                                |
+| [`../public/privacy-policy.html`](../public/privacy-policy.html)             | public privacy policy page                                                                                                                          |
+| [`../public/account-deletion.html`](../public/account-deletion.html)         | public account deletion instruction page                                                                                                            |
+| [`../public/developer-login.html`](../public/developer-login.html)           | developer account login/register page for the support inbox                                                                                         |
+| [`../public/developer-support.html`](../public/developer-support.html)       | developer support queue and threaded reply workspace                                                                                                |
+| [`../public/index.html`](../public/index.html)                               | main dashboard shell with Purchase Entry / Add Stock, supplier ledger, product purchase history, reports, due, expense, support, and staff sections |
+| [`../public/invoice.html`](../public/invoice.html)                           | sale and invoice workspace, customer autocomplete, invoice history, PDF actions, shop profile                                                       |
+| [`../public/site.webmanifest`](../public/site.webmanifest)                   | browser/PWA install metadata: app name, start URL, standalone display mode, colors, and icon                                                        |
+| [`../public/reset.html`](../public/reset.html)                               | reset password page                                                                                                                                 |
+| [`../public/js/developer-login.js`](../public/js/developer-login.js)         | developer login/register controller                                                                                                                 |
+| [`../public/js/developer-support.js`](../public/js/developer-support.js)     | developer inbox queue, thread, reply, and status update controller                                                                                  |
+| [`../public/js/dashboard.js`](../public/js/dashboard.js)                     | main dashboard logic and report UI orchestration                                                                                                    |
+| [`../public/js/app-core.js`](../public/js/app-core.js)                       | shared constants, permission descriptions, app bootstrap helpers                                                                                    |
+| [`../public/js/app-shell.js`](../public/js/app-shell.js)                     | reusable sidebar shell and page navigation                                                                                                          |
+| [`../public/js/permission-contract.js`](../public/js/permission-contract.js) | single permission vocabulary shared by backend and frontend                                                                                         |
 
 ## 5. High-Level Architecture
 
@@ -272,11 +441,11 @@ flowchart LR
 - [`../public/js/app-shell.js`](../public/js/app-shell.js)
   - renders the sidebar
   - applies page-aware navigation
+  - provides the sidebar refresh button that reloads the current page and preserves dashboard section state
   - injects shell styles in a CSP-compatible way
 
 - [`../public/js/permission-contract.js`](../public/js/permission-contract.js)
   - defines the canonical permission keys:
-    - `add_stock`
     - `purchase_entry`
     - `sale_invoice`
     - `stock_report`
@@ -284,11 +453,14 @@ flowchart LR
     - `gst_report`
     - `customer_due`
     - `expense_tracking`
+  - defaults new staff accounts to `purchase_entry` and `sale_invoice`
+  - keeps legacy aliases normalized where needed, but `add_stock` is no longer an active permission
 
 - [`../public/js/dashboard.js`](../public/js/dashboard.js)
   - drives most dashboard features
-  - loads and submits stock, purchase, report, due, expense, support, and staff data
-  - handles Add Stock reset behavior, supplier autocomplete, product purchase history, popups, section switching, and report export actions
+  - loads and submits purchase, supplier ledger, report, due, expense, support, and staff data
+  - handles Purchase Entry / Add Stock row logic, supplier autocomplete, bill-wise supplier search dropdowns, product purchase history, popups, section switching, and report export actions
+  - refreshes the session once after a `403` so stale staff permission state can recover before showing an access-denied popup
   - requests queued exports by adding `_async_export=1`, polls job status, then downloads through `/api/exports/:jobId/download`
 
 - [`../public/invoice.html`](../public/invoice.html)
@@ -319,6 +491,7 @@ Current frontend storage behavior:
   - developer login no longer depends on a readable token in session or local storage
 - `localStorage`:
   - `activeSection` for dashboard section persistence
+  - sidebar refresh uses `activeSection` so the same dashboard module opens again after reload
   - `defaultProfitPercent` cache
   - invoice draft storage on `invoice.html`
   - cleanup of old `token`/`user` keys during logout or invalid session handling
@@ -619,7 +792,7 @@ Route handlers in this file cover registration, owner login, Google OAuth login/
 
 #### `routes/inventory.js` function inventory
 
-Route handlers in this file cover stock defaults, stock entry, item reporting, low-stock analysis, reorder planning, slow-moving stock analysis, sales reports, GST reports, customer dues, dashboard cards, and trend APIs.
+Route handlers in this file cover stock defaults for Purchase Entry, shared item lookup, item reporting, low-stock analysis, reorder planning, slow-moving stock analysis, sales reports, GST reports, customer dues, dashboard cards, and trend APIs. The retired standalone `POST /api/items` stock-entry route is preserved only as commented reference code; live stock intake is handled by `POST /api/purchases` in [`../routes/business.js`](../routes/business.js).
 
 | Function                                                   | Purpose                                                                 |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------- |
@@ -819,18 +992,18 @@ Route handlers in this file are owner-only and cover monitoring metrics plus bac
 
 #### `public/js/app-shell.js` function inventory
 
-| Function                                  | Purpose                                                                               |
-| ----------------------------------------- | ------------------------------------------------------------------------------------- |
-| `bootstrapInventoryShell(global)`         | initializes the reusable sidebar shell controller                                     |
-| `syncAndroidSidebarGestureLock(isLocked)` | coordinates sidebar gesture locking with the Android wrapper bridge                   |
-| `ensureStyles()`                          | injects sidebar CSS once into the document head                                       |
-| `ensureShell()`                           | creates or reuses the sidebar/toggle DOM shell                                        |
-| `syncFooterText()`                        | refreshes footer text from the current app contract                                   |
-| `buildDashboardButton(item)`              | renders one dashboard navigation button                                               |
-| `buildInvoiceButton(item)`                | renders the invoice-page navigation button                                            |
-| `getElements()`                           | returns cached references to the shell's core DOM nodes                               |
-| `renderSidebar(pageType)`                 | rebuilds the sidebar markup for the current page type                                 |
-| `setupSidebar(pageType, options)`         | wires sidebar rendering, open/close behavior, scroll locking, and selection callbacks |
+| Function                                  | Purpose                                                                                                    |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `bootstrapInventoryShell(global)`         | initializes the reusable sidebar shell controller                                                          |
+| `syncAndroidSidebarGestureLock(isLocked)` | coordinates sidebar gesture locking with the Android wrapper bridge                                        |
+| `ensureStyles()`                          | injects sidebar CSS once into the document head                                                            |
+| `ensureShell()`                           | creates or reuses the sidebar/toggle DOM shell                                                             |
+| `syncFooterText()`                        | refreshes footer text from the current app contract                                                        |
+| `buildDashboardButton(item)`              | renders one dashboard navigation button                                                                    |
+| `buildInvoiceButton(item)`                | renders the invoice-page navigation button                                                                 |
+| `getElements()`                           | returns cached references to the shell's core DOM nodes                                                    |
+| `renderSidebar(pageType)`                 | rebuilds the sidebar markup for the current page type                                                      |
+| `setupSidebar(pageType, options)`         | wires sidebar rendering, refresh-page action, open/close behavior, scroll locking, and selection callbacks |
 
 #### `public/js/dashboard.js` workflow map
 
@@ -838,14 +1011,14 @@ Route handlers in this file are owner-only and cover monitoring metrics plus bac
 
 - session/bootstrap: `hideElement`, `showElement`, `markDashboardReady`, `authHeaders`, `handleSessionExpiry`, `checkAuth`
 - formatting/search helpers: `formatCount`, `formatNumber`, `formatCurrency`, `formatDate`, `normalizeSearchKey`, `buildStringSearchIndex`, `getSearchMatches`, `debounce`
-- stock defaults and stock entry: `resetAddStockForm`, `updateProfitPreview`, `updateSellingRate`, `updateProfitPercent`, `applySharedProfitPercent`, `saveProfitPercentDefault`, `loadProfitPercentDefault`, `addStock`
-- purchase workflow: `purchaseRows`, `updatePurchaseSummary`, `addPurchaseItemRow`, `loadSupplierSuggestions`, `renderSupplierDropdown`, `loadProductPurchaseHistory`, `renderProductPurchaseHistory`, `loadPurchaseReport`, `openPurchaseDetail`, `submitPurchaseRepayment`, `searchSupplierLedger`, `submitPurchase`
+- shared purchase pricing defaults: `normalizeProfitPercentValue`, `applySharedProfitPercent`, `saveProfitPercentDefault`, `queueProfitPercentSave`, `loadProfitPercentDefault`
+- purchase and stock-intake workflow: `purchaseRows`, `getPurchaseDefaultProfitPercent`, `refreshPurchaseAutoRates`, `updatePurchaseSummary`, `addPurchaseItemRow`, `loadSupplierSuggestions`, `renderSupplierDropdown`, `loadPurchaseSearchSuggestions`, `renderPurchaseSearchDropdown`, `loadProductPurchaseHistory`, `renderProductPurchaseHistory`, `loadPurchaseReport`, `openPurchaseDetail`, `submitPurchaseRepayment`, `searchSupplierLedger`, `showAllSupplierSummary`, `submitPurchase`
 - expense workflow: `renderExpenseReport`, `loadExpenseReport`, `submitExpense`
 - report/export workflow: `renderItemReport`, `loadItemReport`, `loadLowStock`, `renderReorderPlanner`, `renderSlowMovingPlanner`, `renderSalesReport`, `loadSalesReport`, `loadGstReport`, `downloadItemReportPDF`, `downloadSalesPDF`, `downloadSalesExcel`, `downloadGstPDF`, `downloadGstExcel`
 - due ledger workflow: `getDueFormSnapshot`, `updateCustomerDuePreview`, `searchLedger`, `showAllDues`, `refreshCurrentDueView`, `submitDebt`
 - dashboard analytics: `loadDashboardOverview`, `loadBusinessTrend`, `renderBusinessTrend`, `loadLast13MonthsChart`, `renderLast13MonthsChart`, `loadSalesNetProfitCard`
 - staff/owner workflow: `renderStaffPermissionGrid`, `readStaffPermissionSelection`, `setStaffPermissionSelection`, `renderStaffList`, `loadStaffAccounts`, `createStaffAccount`
-- event wiring: `bindPopupEvents`, `bindInventoryEvents`, `bindPurchaseEvents`, `bindReportEvents`, `bindCustomerDueEvents`, `bindExpenseEvents`, `bindStaffEvents`
+- event wiring: `bindPopupEvents`, `bindPurchaseEvents`, `bindReportEvents`, `bindCustomerDueEvents`, `bindExpenseEvents`, `bindSupportEvents`, `bindStaffEvents`
 
 #### Developer support frontend workflow map
 
@@ -903,6 +1076,7 @@ Current Google sign-in behavior:
 - `login.html` checks `/api/auth/me` to detect an active session.
 - `login.html` also handles Google return flags, opens the first-time Google profile modal, and removes `google_onboarding` / `google_error` query parameters from browser history.
 - `index.html` and `invoice.html` use cookie-based requests with `credentials: "include"`.
+- Dashboard and invoice fetch helpers handle one stale-permission case by refreshing `/api/auth/me` after a `403`, reapplying section access, and retrying/redirecting only when the refreshed permissions still do not allow the action.
 - Frontend code no longer depends on a token response body to stay logged in.
 
 ### Staff permission model
@@ -918,6 +1092,17 @@ Important rules:
 - active staff session data is cached briefly in memory to reduce repeated DB lookups
 - frontend uses the same permission contract to hide or show sections
 - backend uses `requirePermission(...)` to enforce actual access control
+- active staff permissions are:
+  - `purchase_entry`
+  - `sale_invoice`
+  - `stock_report`
+  - `sales_report`
+  - `gst_report`
+  - `customer_due`
+  - `expense_tracking`
+- default staff permissions are `purchase_entry` and `sale_invoice`
+- `purchase_entry` is labelled "Purchase Entry / Add Stock" because stock creation and replenishment now happen from purchase bills
+- the old `add_stock` key is retired from the active contract and schema defaults; old aliases are not exposed in the staff UI
 
 ## 9. Security and Runtime Guardrails
 
@@ -1004,30 +1189,40 @@ login.html
   -> dashboard/invoice UI hides unauthorized sections
 ```
 
-### Stock add or update
+### Purchase Entry / Add Stock
 
-```text
-index.html add stock section
-  -> GET /api/stock-defaults loads shared default Profit %
-  -> Clear button calls resetAddStockForm()
-  -> reset keeps Profit % and clears item, quantity, buying rate, selling rate, dropdown, and previous-rate preview
-  -> POST /api/items
-  -> if item exists, quantity and rates can be updated
-  -> if item does not exist, a new items row is inserted
-```
-
-### Purchase entry
+The old standalone Add New Stock page is retired. Stock is now added or replenished through supplier purchase bills.
 
 ```text
 index.html purchase section
+  -> GET /api/stock-defaults loads default Profit % for purchase rows
   -> GET /api/suppliers while typing supplier name
   -> selecting a supplier fills name, mobile number, and address
+  -> item rows use /api/items/names autocomplete and /api/items/info where prior item pricing is needed
   -> POST /api/purchases
   -> supplier record is found or created
   -> purchases header is saved
   -> purchase_items rows are saved
   -> items stock quantity and rates are updated
   -> supplier due remains tracked through purchase payment fields
+```
+
+Important implementation notes:
+
+- `POST /api/items` is no longer an active route. The old handler remains commented in [`../routes/inventory.js`](../routes/inventory.js) for future reference.
+- the old Add New Stock HTML remains inert inside `#retiredAddStockSectionTemplate` so it does not render, bind events, or affect active sections
+- default profit percent still lives in `settings.default_profit_percent`, but access is now tied to `purchase_entry`
+
+### Supplier ledger and purchase bill views
+
+```text
+index.html Purchase Desk
+  -> Bills View calls GET /api/purchases/report with date and search filters
+  -> Supplier Ledger search calls GET /api/suppliers and GET /api/suppliers/:supplierId/ledger
+  -> Bill View search and Supplier Ledger search both provide supplier dropdown selection
+  -> Supplier Ledger detail rows are ordered by purchase_date DESC, id DESC
+  -> clicking a bill row opens GET /api/purchases/:purchaseId
+  -> supplier repayment posts to /api/purchases/:purchaseId/repayment
 ```
 
 ### Product purchase history
@@ -1076,6 +1271,7 @@ dashboard due section
   -> GET /api/debts/:number for one customer ledger
   -> GET /api/debts/:number/pdf for customer ledger PDF
   -> GET /api/debts for all due summary
+  -> ledger rows render newest first in the UI and PDF, after chronological balance calculation
 ```
 
 ### Supplier repayment
@@ -1163,49 +1359,52 @@ Most endpoints below are mounted under either `/api/auth` or `/api`; health rout
 
 ### 11.2 Inventory routes from `routes/inventory.js`
 
-| Method | Path                             | Purpose                           |
-| ------ | -------------------------------- | --------------------------------- |
-| `GET`  | `/api/stock-defaults`            | load default profit percent       |
-| `PUT`  | `/api/stock-defaults`            | save default profit percent       |
-| `POST` | `/api/items`                     | add or update stock               |
-| `GET`  | `/api/items/names`               | item name autocomplete            |
-| `GET`  | `/api/items/info`                | item detail lookup by name        |
-| `GET`  | `/api/items/report`              | stock report rows                 |
-| `GET`  | `/api/items/low-stock`           | low stock list                    |
-| `GET`  | `/api/items/reorder-suggestions` | reorder planner                   |
-| `GET`  | `/api/items/slow-moving`         | slow-moving stock planner         |
-| `GET`  | `/api/items/report/pdf`          | stock report PDF                  |
-| `GET`  | `/api/sales/report`              | sales report rows                 |
-| `GET`  | `/api/sales/report/pdf`          | sales report PDF                  |
-| `GET`  | `/api/sales/report/excel`        | sales report Excel                |
-| `GET`  | `/api/gst/report`                | GST report rows                   |
-| `GET`  | `/api/gst/compare`               | month-by-month GST comparison     |
-| `GET`  | `/api/gst/report/pdf`            | GST report PDF                    |
-| `GET`  | `/api/gst/report/excel`          | GST report Excel                  |
-| `POST` | `/api/debts`                     | add customer due ledger entry     |
-| `GET`  | `/api/debts/customers`           | search customers with dues        |
-| `GET`  | `/api/debts/:number/pdf`         | customer ledger PDF               |
-| `GET`  | `/api/debts/:number`             | load one customer ledger          |
-| `GET`  | `/api/debts`                     | summary of all dues               |
-| `GET`  | `/api/dashboard/overview`        | owner dashboard summary cards     |
-| `GET`  | `/api/sales/monthly-trend`       | monthly sales chart data          |
-| `GET`  | `/api/sales/last-13-months`      | rolling 13-month sales chart data |
+| Method | Path                             | Purpose                                                        |
+| ------ | -------------------------------- | -------------------------------------------------------------- |
+| `GET`  | `/api/stock-defaults`            | load Purchase Entry default profit percent                     |
+| `PUT`  | `/api/stock-defaults`            | save Purchase Entry default profit percent                     |
+| `GET`  | `/api/items/names`               | item name autocomplete for purchase, invoice, and stock report |
+| `GET`  | `/api/items/info`                | item detail lookup by name for purchase and invoice flows      |
+| `GET`  | `/api/items/report`              | stock report rows                                              |
+| `GET`  | `/api/items/low-stock`           | low stock list                                                 |
+| `GET`  | `/api/items/reorder-suggestions` | reorder planner                                                |
+| `GET`  | `/api/items/slow-moving`         | slow-moving stock planner                                      |
+| `GET`  | `/api/items/report/pdf`          | stock report PDF                                               |
+| `GET`  | `/api/sales/report`              | sales report rows                                              |
+| `GET`  | `/api/sales/report/pdf`          | sales report PDF                                               |
+| `GET`  | `/api/sales/report/excel`        | sales report Excel                                             |
+| `GET`  | `/api/gst/report`                | GST report rows                                                |
+| `GET`  | `/api/gst/compare`               | month-by-month GST comparison                                  |
+| `GET`  | `/api/gst/report/pdf`            | GST report PDF                                                 |
+| `GET`  | `/api/gst/report/excel`          | GST report Excel                                               |
+| `POST` | `/api/debts`                     | add customer due ledger entry                                  |
+| `GET`  | `/api/debts/customers`           | search customers with dues                                     |
+| `GET`  | `/api/debts/:number/pdf`         | customer ledger PDF                                            |
+| `GET`  | `/api/debts/:number`             | load one customer ledger                                       |
+| `GET`  | `/api/debts`                     | summary of all dues                                            |
+| `GET`  | `/api/dashboard/overview`        | owner dashboard summary cards                                  |
+| `GET`  | `/api/sales/monthly-trend`       | monthly sales chart data                                       |
+| `GET`  | `/api/sales/last-13-months`      | rolling 13-month sales chart data                              |
+
+Retired inventory route note:
+
+- `POST /api/items` used to power the standalone Add New Stock form. It is commented out in [`../routes/inventory.js`](../routes/inventory.js). Active stock creation/update now happens through `POST /api/purchases`.
 
 ### 11.3 Business routes from `routes/business.js`
 
-| Method | Path                                   | Purpose                             |
-| ------ | -------------------------------------- | ----------------------------------- |
-| `GET`  | `/api/suppliers`                       | supplier search and quick lookup    |
-| `POST` | `/api/purchases`                       | save purchase and restock inventory |
-| `GET`  | `/api/purchases/report`                | purchase report list                |
-| `GET`  | `/api/purchases/product-history`       | product-wise purchase item history  |
-| `GET`  | `/api/purchases/:purchaseId`           | purchase detail with line items     |
-| `POST` | `/api/purchases/:purchaseId/repayment` | record supplier repayment           |
-| `GET`  | `/api/suppliers/summary`               | supplier balance summary            |
-| `GET`  | `/api/suppliers/:supplierId/ledger`    | supplier ledger / purchase history  |
-| `POST` | `/api/expenses`                        | save expense entry                  |
-| `GET`  | `/api/expenses/suggestions`            | expense title/category suggestions  |
-| `GET`  | `/api/expenses/report`                 | expense report and summary          |
+| Method | Path                                   | Purpose                                          |
+| ------ | -------------------------------------- | ------------------------------------------------ |
+| `GET`  | `/api/suppliers`                       | supplier search and quick lookup                 |
+| `POST` | `/api/purchases`                       | save purchase and restock inventory              |
+| `GET`  | `/api/purchases/report`                | purchase report list                             |
+| `GET`  | `/api/purchases/product-history`       | product-wise purchase item history               |
+| `GET`  | `/api/purchases/:purchaseId`           | purchase detail with line items                  |
+| `POST` | `/api/purchases/:purchaseId/repayment` | record supplier repayment                        |
+| `GET`  | `/api/suppliers/summary`               | supplier balance summary                         |
+| `GET`  | `/api/suppliers/:supplierId/ledger`    | supplier ledger / purchase history, newest first |
+| `POST` | `/api/expenses`                        | save expense entry                               |
+| `GET`  | `/api/expenses/suggestions`            | expense title/category suggestions               |
+| `GET`  | `/api/expenses/report`                 | expense report and summary                       |
 
 ### 11.4 Invoice routes from `routes/invoices.js`
 
@@ -1384,6 +1583,8 @@ Key columns:
 Notes:
 
 - max 2 staff accounts per owner is enforced in app logic, not with a DB constraint
+- `page_permissions` defaults to `purchase_entry` and `sale_invoice`
+- `add_stock` is no longer part of the active permission contract; stock-add capability is represented by `purchase_entry`
 
 #### `developer_admins`
 
@@ -1735,17 +1936,17 @@ Constraints, indexes, and triggers:
 
 #### `staff_accounts`
 
-| Column             | Type           | Null | Default                                      | Details                                            |
-| ------------------ | -------------- | ---- | -------------------------------------------- | -------------------------------------------------- |
-| `id`               | `SERIAL`       | no   | sequence                                     | primary key                                        |
-| `owner_user_id`    | `INT`          | no   | none                                         | foreign key to `users.id` with `ON DELETE CASCADE` |
-| `name`             | `VARCHAR(80)`  | no   | none                                         | staff display name                                 |
-| `username`         | `VARCHAR(50)`  | no   | none                                         | staff login identifier                             |
-| `password_hash`    | `VARCHAR(255)` | no   | none                                         | bcrypt hash                                        |
-| `page_permissions` | `TEXT[]`       | no   | `ARRAY['add_stock', 'sale_invoice']::TEXT[]` | page-level access contract                         |
-| `is_active`        | `BOOLEAN`      | no   | `TRUE`                                       | staff availability flag                            |
-| `created_at`       | `TIMESTAMPTZ`  | yes  | `NOW()`                                      | creation timestamp                                 |
-| `updated_at`       | `TIMESTAMPTZ`  | yes  | `NOW()`                                      | updated by trigger                                 |
+| Column             | Type           | Null | Default                                           | Details                                            |
+| ------------------ | -------------- | ---- | ------------------------------------------------- | -------------------------------------------------- |
+| `id`               | `SERIAL`       | no   | sequence                                          | primary key                                        |
+| `owner_user_id`    | `INT`          | no   | none                                              | foreign key to `users.id` with `ON DELETE CASCADE` |
+| `name`             | `VARCHAR(80)`  | no   | none                                              | staff display name                                 |
+| `username`         | `VARCHAR(50)`  | no   | none                                              | staff login identifier                             |
+| `password_hash`    | `VARCHAR(255)` | no   | none                                              | bcrypt hash                                        |
+| `page_permissions` | `TEXT[]`       | no   | `ARRAY['purchase_entry', 'sale_invoice']::TEXT[]` | page-level access contract                         |
+| `is_active`        | `BOOLEAN`      | no   | `TRUE`                                            | staff availability flag                            |
+| `created_at`       | `TIMESTAMPTZ`  | yes  | `NOW()`                                           | creation timestamp                                 |
+| `updated_at`       | `TIMESTAMPTZ`  | yes  | `NOW()`                                           | updated by trigger                                 |
 
 Constraints, indexes, and triggers:
 
@@ -2214,6 +2415,8 @@ Edit:
 - [`../public/js/app-shell.js`](../public/js/app-shell.js)
 - backend guards in [`../middleware/auth.js`](../middleware/auth.js)
 
+Keep frontend labels, staff permission options, sidebar items, and backend `requirePermission(...)` guards aligned. `purchase_entry` currently owns the old stock-add capability, so do not reintroduce `add_stock` without updating the schema default, staff UI, backend guards, and migration notes together.
+
 ### If you want to change dashboard stock, purchase, report, due, or expense features
 
 Edit:
@@ -2226,7 +2429,19 @@ Edit:
 For purchase-specific search/autofill behavior:
 
 - supplier autocomplete lives in [`../public/js/dashboard.js`](../public/js/dashboard.js) and calls `GET /api/suppliers`
+- bill-wise supplier search uses the same supplier dropdown selection path as Supplier Ledger
 - product purchase history lives in [`../public/index.html`](../public/index.html), [`../public/js/dashboard.js`](../public/js/dashboard.js), and `GET /api/purchases/product-history`
+- standalone Add New Stock UI is retired; stock changes should continue to go through `POST /api/purchases`
+
+### If you want to change Play Store, Android install, or browser install behavior
+
+Edit:
+
+- [`../public/login.html`](../public/login.html) for the visible Android install CTA; it currently links to `https://play.google.com/store/apps/details?id=india.inventory.management`
+- [`../public/site.webmanifest`](../public/site.webmanifest) for browser/PWA install metadata
+- Android wrapper project outside this repo for native version updates, upload-key signing, target SDK, Play Store screenshots, and AAB releases
+
+The web app can be updated through normal Railway deployment when only web code changes. A Play Store AAB update is only needed when native Android wrapper behavior, signing/version metadata, permissions, target SDK, or app assets change.
 
 ### If you want to change invoice flow or PDF output
 
@@ -2295,16 +2510,16 @@ Edit:
 ```mermaid
 flowchart TB
   subgraph Frontend["Frontend pages and shared modules"]
-    Login["public/login.html<br/>register | owner login | staff login | forgot password"]
+    Login["public/login.html<br/>register | owner login | staff login | forgot password | Play Store install"]
     DevLogin["public/developer-login.html<br/>developer login | developer register"]
     DevSupport["public/developer-support.html<br/>developer inbox | replies | status updates"]
-    Dashboard["public/index.html<br/>stock add/clear | purchases | product history | reports | dues | expenses | staff"]
+    Dashboard["public/index.html<br/>Purchase Entry/Add Stock | supplier ledger | product history | reports | dues | expenses | staff"]
     Invoice["public/invoice.html<br/>invoice builder | customer autofill | history | payment collection | PDF"]
     Reset["public/reset.html<br/>password reset"]
     Privacy["public/privacy-policy.html<br/>privacy policy"]
     AccountDeletion["public/account-deletion.html<br/>account deletion instructions"]
     AppCore["public/js/app-core.js<br/>apiBase | page metadata | shared helpers"]
-    AppShell["public/js/app-shell.js<br/>sidebar shell | page navigation"]
+    AppShell["public/js/app-shell.js<br/>sidebar shell | refresh button | page navigation"]
     Permissions["public/js/permission-contract.js<br/>permission keys shared by frontend and backend"]
     DashJS["public/js/dashboard.js<br/>dashboard UI orchestration"]
     DevLoginJS["public/js/developer-login.js<br/>developer auth UI controller"]
@@ -2446,9 +2661,10 @@ This codebase is organized around a single owner-scoped business workspace:
 
 - frontend pages are static HTML with shared vanilla JS modules
 - Express route files are grouped by business domain
-- PostgreSQL stores all operational data for stock, invoices, purchases, dues, expenses, and staff control
+- PostgreSQL stores all operational data for inventory, purchase-backed stock intake, invoices, dues, expenses, and staff control
 - authentication is cookie-based for owner, staff, Google owner login, and developer support flows, with staff permissions enforced on both frontend and backend
 - the support system adds owner/staff requester threads plus a dedicated developer inbox backed by `developer_admins`, `support_conversations`, and `support_messages`
 - runtime behavior now includes structured lifecycle/request logging, request metrics, background cleanup, queued export jobs, and readiness/liveness health endpoints
 - deployment defaults for Railway are codified in [`../railway.json`](../railway.json)
+- Android users can install through the Play Store link on `login.html`, while `site.webmanifest` keeps browser/PWA install metadata available
 - this document now contains both a reusable function catalogue and a schema-level table dictionary in addition to the higher-level architecture notes
