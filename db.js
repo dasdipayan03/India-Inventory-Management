@@ -71,7 +71,7 @@ if (!process.env.DATABASE_URL) {
 }
 
 // =========================================================
-// CREATE POSTGRESQL CONNECTION POOL
+// CREATE POSTGRESQL CONNECTION POOL.
 //
 // Instead of creating a new DB connection for every request,
 // we create a pool (connection manager).
