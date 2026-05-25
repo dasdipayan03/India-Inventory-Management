@@ -2,7 +2,7 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const rateLimit = require("express-rate-limit");
-const pool = require("../config/database");
+const pool = require("../db");
 const {
   DEVELOPER_SUPPORT_COOKIE_NAME,
   DEVELOPER_SUPPORT_ROLE,

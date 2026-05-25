@@ -2,7 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const PDFDocument = require("pdfkit");
-const pool = require("../config/database");
+const pool = require("../db");
 const {
   authMiddleware,
   getUserId,

@@ -1,6 +1,6 @@
 // routes/inventory.js
 const express = require("express");
-const pool = require("../config/database");
+const pool = require("../db");
 const PDFDocument = require("pdfkit");
 const ExcelJS = require("exceljs");
 const {
