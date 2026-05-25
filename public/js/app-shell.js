@@ -53,7 +53,7 @@
       align-items: center;
       justify-content: center;
       border: 0;
-      border-radius: 16px;
+      border-radius: 8px;
       background: rgba(255, 255, 255, 0.92);
       box-shadow: var(--shadow-md, 0 12px 24px rgba(17, 29, 58, 0.12));
       color: var(--navy, #17315d);
@@ -96,20 +96,10 @@
       display: flex;
       flex-direction: column;
       padding: 20px 16px;
-      border-radius: 30px;
+      border-radius: 8px;
       overflow: hidden;
       color: #eff6ff;
-      background:
-        linear-gradient(
-          180deg,
-          rgba(31, 58, 108, 0.98),
-          rgba(11, 29, 58, 0.97)
-        ),
-        radial-gradient(
-          circle at top right,
-          rgba(45, 212, 191, 0.2),
-          transparent 28%
-        );
+      background: #182235;
       box-shadow: var(--shadow-xl, 0 32px 70px rgba(17, 29, 58, 0.16));
       overscroll-behavior: contain;
     }
@@ -137,7 +127,7 @@
       font-size: 21px;
       line-height: 1.05;
       font-weight: 800;
-      letter-spacing: -0.03em;
+      letter-spacing: 0;
     }
 
     .sidebar button.sidebar__refresh-button {
@@ -148,7 +138,7 @@
       width: 34px;
       height: 34px;
       padding: 0;
-      border-radius: 12px;
+      border-radius: 8px;
       background: rgba(255, 255, 255, 0.06);
       color: rgba(239, 246, 255, 0.92);
       box-shadow: inset 0 0 0 1px rgba(191, 235, 255, 0.16);
@@ -214,7 +204,7 @@
       gap: 10px;
       width: 100%;
       border: 0;
-      border-radius: 18px;
+      border-radius: 8px;
       padding: 9px 14px;
       background: transparent;
       color: rgba(239, 246, 255, 0.9);
@@ -236,11 +226,7 @@
     .sidebar button:hover,
     .sidebar button.active {
       transform: translateX(2px);
-      background: linear-gradient(
-        135deg,
-        rgba(14, 165, 233, 0.18),
-        rgba(45, 212, 191, 0.12)
-      );
+      background: rgba(15, 118, 110, 0.18);
       color: #ffffff;
       box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.18);
     }
@@ -292,7 +278,7 @@
       .sidebar {
         inset: 0 auto 0 0;
         width: min(88vw, 320px);
-        border-radius: 0 28px 28px 0;
+        border-radius: 0 8px 8px 0;
         transform: translateX(-100%);
         transition: transform 0.25s ease;
       }

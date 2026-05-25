@@ -3,12 +3,12 @@ const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const rateLimit = require("express-rate-limit");
-const pool = require("../db");
+const pool = require("../config/database");
 const {
   DEFAULT_STAFF_PERMISSIONS,
   STAFF_PAGE_PERMISSIONS,
   normalizePermissions,
-} = require("../public/js/permission-contract");
+} = require("../../public/js/permission-contract");
 const {
   authMiddleware,
   getUserId,

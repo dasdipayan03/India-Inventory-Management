@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "start": "node --max-old-space-size=256 server.js"
+    "start": "node --max-old-space-size=256 server.js",
+    "check": "node --check server.js && node --check src/server.js && node --check src/config/database.js"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -10,11 +10,11 @@
  * =========================================================
  */
 const jwt = require("jsonwebtoken");
-const pool = require("../db");
+const pool = require("../config/database");
 const {
   DEFAULT_STAFF_PERMISSIONS,
   normalizePermissions,
-} = require("../public/js/permission-contract");
+} = require("../../public/js/permission-contract");
 
 if (!process.env.JWT_SECRET) {
   console.error("JWT_SECRET not found in environment variables.");
