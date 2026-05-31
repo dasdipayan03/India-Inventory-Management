@@ -6073,6 +6073,10 @@ function closeLedgerActionMenus(exceptMenu = null) {
 }
 
 function renderLedgerActionMenu(action, options = {}) {
+  if (!isOwnerSession()) {
+    return "";
+  }
+
   const encodedNumber = encodeURIComponent(options.number || "");
   const encodedName = encodeURIComponent(options.name || "");
   const entryId = Number.parseInt(options.entryId, 10) || 0;

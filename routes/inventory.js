@@ -2139,7 +2139,7 @@ router.post("/debts", requirePermission("customer_due"), async (req, res) => {
 
 router.delete(
   "/debts/customers/:number",
-  requirePermission("customer_due"),
+  requireOwner,
   async (req, res) => {
     const client = await pool.connect();
     try {
@@ -2206,7 +2206,7 @@ router.delete(
 
 router.delete(
   "/debts/entries/:id",
-  requirePermission("customer_due"),
+  requireOwner,
   async (req, res) => {
     const client = await pool.connect();
     try {
