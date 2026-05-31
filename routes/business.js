@@ -3,6 +3,7 @@ const pool = require("../db");
 const {
   authMiddleware,
   getUserId,
+  requireOwner,
   requirePermission,
 } = require("../middleware/auth");
 const {
@@ -114,6 +115,129 @@ function buildPaymentSnapshot(subtotal, paidInput, fallbackMode = "cash") {
     amountDue,
     paymentMode,
     paymentStatus,
+  };
+}
+
+function buildPurchasePaymentStatus(amountPaid, amountDue) {
+  if (amountDue > 0.001 && amountPaid > 0.001) {
+    return "partial";
+  }
+
+  if (amountDue > 0.001) {
+    return "due";
+  }
+
+  return "paid";
+}
+
+async function applyPurchaseStockReversal(client, userId, purchaseItems) {
+  const groupedItems = new Map();
+
+  for (const item of purchaseItems) {
+    const itemName = normalizeDisplayText(item.item_name);
+    const lookupKey = normalizeLookupText(itemName);
+    const quantity = Number(item.quantity) || 0;
+
+    if (!itemName || !lookupKey || quantity <= 0) {
+      continue;
+    }
+
+    const current = groupedItems.get(lookupKey) || {
+      itemName,
+      lookupKey,
+      quantity: 0,
+    };
+    current.quantity = Number((current.quantity + quantity).toFixed(2));
+    groupedItems.set(lookupKey, current);
+  }
+
+  const entries = Array.from(groupedItems.values()).sort((left, right) =>
+    left.lookupKey.localeCompare(right.lookupKey),
+  );
+
+  for (const item of entries) {
+    await lockScopedResource(client, userId, "item-stock", item.lookupKey);
+
+    const stockResult = await client.query(
+      `
+        SELECT id, quantity
+        FROM items
+        WHERE user_id = $1 AND LOWER(TRIM(name)) = $2
+        ORDER BY id ASC
+        LIMIT 1
+        FOR UPDATE
+      `,
+      [userId, item.lookupKey],
+    );
+
+    const stockRow = stockResult.rows[0];
+    if (!stockRow) {
+      throw new Error(`Stock item not found for ${item.itemName}.`);
+    }
+
+    const nextQuantity = Number(
+      ((Number(stockRow.quantity) || 0) - item.quantity).toFixed(2),
+    );
+
+    if (nextQuantity < -0.001) {
+      throw new Error(
+        `Cannot delete ${item.itemName}; stock from this purchase appears to be already used.`,
+      );
+    }
+
+    await client.query(
+      `
+        UPDATE items
+        SET quantity = $1,
+            updated_at = NOW()
+        WHERE id = $2 AND user_id = $3
+      `,
+      [Math.max(0, nextQuantity), stockRow.id, userId],
+    );
+  }
+}
+
+async function deletePurchaseBillsWithStockRollback(client, userId, purchaseIds) {
+  const normalizedIds = Array.from(
+    new Set(
+      purchaseIds
+        .map((purchaseId) => Number.parseInt(purchaseId, 10))
+        .filter((purchaseId) => Number.isInteger(purchaseId) && purchaseId > 0),
+    ),
+  );
+
+  if (!normalizedIds.length) {
+    return { deletedCount: 0, deletedRows: [] };
+  }
+
+  const itemsResult = await client.query(
+    `
+      SELECT pi.id, pi.purchase_id, pi.item_name, pi.quantity
+      FROM purchase_items pi
+      JOIN purchases p ON p.id = pi.purchase_id
+      WHERE p.user_id = $1
+        AND p.id = ANY($2::int[])
+      ORDER BY LOWER(TRIM(pi.item_name)), pi.id
+      FOR UPDATE OF pi
+    `,
+    [userId, normalizedIds],
+  );
+
+  await applyPurchaseStockReversal(client, userId, itemsResult.rows);
+
+  const deleteResult = await client.query(
+    `
+      DELETE FROM purchases
+      WHERE user_id = $1
+        AND id = ANY($2::int[])
+      RETURNING id, supplier_id
+    `,
+    [userId, normalizedIds],
+  );
+
+  return {
+    deletedCount: deleteResult.rowCount,
+    deletedRows: deleteResult.rows,
   };
 }
 
@@ -732,6 +856,220 @@ router.get(
   },
 );
 
+router.delete(
+  "/purchases/:purchaseId",
+  requireOwner,
+  async (req, res) => {
+    const client = await pool.connect();
+
+    try {
+      const userId = getUserId(req);
+      const purchaseId = Number.parseInt(req.params.purchaseId, 10);
+
+      if (!Number.isInteger(purchaseId) || purchaseId <= 0) {
+        return res.status(400).json({ error: "Invalid purchase selection." });
+      }
+
+      await client.query("BEGIN");
+
+      const purchaseResult = await client.query(
+        `
+          SELECT id, supplier_id
+          FROM purchases
+          WHERE user_id = $1 AND id = $2
+          LIMIT 1
+          FOR UPDATE
+        `,
+        [userId, purchaseId],
+      );
+
+      if (!purchaseResult.rowCount) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ error: "Purchase not found." });
+      }
+
+      const deletion = await deletePurchaseBillsWithStockRollback(
+        client,
+        userId,
+        [purchaseId],
+      );
+
+      await client.query("COMMIT");
+      invalidateUserCache(userId);
+
+      res.json({
+        success: true,
+        message: "Purchase bill deleted successfully.",
+        deleted_count: deletion.deletedCount,
+        supplier_id:
+          deletion.deletedRows[0]?.supplier_id ||
+          purchaseResult.rows[0].supplier_id,
+      });
+    } catch (error) {
+      try {
+        await client.query("ROLLBACK");
+      } catch (rollbackError) {
+        console.error("Purchase delete rollback error:", rollbackError);
+      }
+
+      const message = String(error.message || "");
+      if (
+        message.startsWith("Cannot delete") ||
+        message.startsWith("Stock item not found")
+      ) {
+        return res.status(400).json({ error: message });
+      }
+
+      console.error("Purchase delete error:", error);
+      res.status(500).json({ error: "Failed to delete purchase bill" });
+    } finally {
+      client.release();
+    }
+  },
+);
+
+router.delete(
+  "/purchase-items/:itemId",
+  requireOwner,
+  async (req, res) => {
+    const client = await pool.connect();
+
+    try {
+      const userId = getUserId(req);
+      const itemId = Number.parseInt(req.params.itemId, 10);
+
+      if (!Number.isInteger(itemId) || itemId <= 0) {
+        return res
+          .status(400)
+          .json({ error: "Invalid purchase item selection." });
+      }
+
+      await client.query("BEGIN");
+
+      const itemResult = await client.query(
+        `
+          SELECT
+            pi.id,
+            pi.purchase_id,
+            pi.item_name,
+            pi.quantity,
+            pi.line_total,
+            p.supplier_id,
+            p.amount_paid,
+            p.payment_mode
+          FROM purchase_items pi
+          JOIN purchases p ON p.id = pi.purchase_id
+          WHERE p.user_id = $1
+            AND pi.id = $2
+          LIMIT 1
+          FOR UPDATE OF pi, p
+        `,
+        [userId, itemId],
+      );
+
+      const item = itemResult.rows[0];
+      if (!item) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ error: "Purchase item not found." });
+      }
+
+      const countResult = await client.query(
+        `
+          SELECT COUNT(*)::int AS item_count
+          FROM purchase_items
+          WHERE purchase_id = $1
+        `,
+        [item.purchase_id],
+      );
+
+      if ((Number(countResult.rows[0]?.item_count) || 0) <= 1) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          error:
+            "This is the last item in the bill. Delete the full bill instead.",
+        });
+      }
+
+      await applyPurchaseStockReversal(client, userId, [item]);
+
+      await client.query(
+        `
+          DELETE FROM purchase_items
+          WHERE id = $1
+        `,
+        [itemId],
+      );
+
+      const subtotalResult = await client.query(
+        `
+          SELECT COALESCE(SUM(line_total), 0) AS subtotal
+          FROM purchase_items
+          WHERE purchase_id = $1
+        `,
+        [item.purchase_id],
+      );
+
+      const nextSubtotal = Number(
+        Number(subtotalResult.rows[0]?.subtotal || 0).toFixed(2),
+      );
+      const nextPaid = Number(
+        Math.min(Number(item.amount_paid) || 0, nextSubtotal).toFixed(2),
+      );
+      const nextDue = Number((nextSubtotal - nextPaid).toFixed(2));
+
+      await client.query(
+        `
+          UPDATE purchases
+          SET subtotal = $1,
+              amount_paid = $2,
+              amount_due = $3,
+              payment_status = $4,
+              updated_at = NOW()
+          WHERE user_id = $5 AND id = $6
+        `,
+        [
+          nextSubtotal,
+          nextPaid,
+          nextDue,
+          buildPurchasePaymentStatus(nextPaid, nextDue),
+          userId,
+          item.purchase_id,
+        ],
+      );
+
+      await client.query("COMMIT");
+      invalidateUserCache(userId);
+
+      res.json({
+        success: true,
+        message: "Purchase item deleted successfully.",
+        purchase_id: item.purchase_id,
+        supplier_id: item.supplier_id,
+        deleted_item_id: itemId,
+      });
+    } catch (error) {
+      try {
+        await client.query("ROLLBACK");
+      } catch (rollbackError) {
+        console.error("Purchase item delete rollback error:", rollbackError);
+      }
+
+      const message = String(error.message || "");
+      if (
+        message.startsWith("Cannot delete") ||
+        message.startsWith("Stock item not found")
+      ) {
+        return res.status(400).json({ error: message });
+      }
+
+      console.error("Purchase item delete error:", error);
+      res.status(500).json({ error: "Failed to delete purchase item" });
+    } finally {
+      client.release();
+    }
+  },
+);
+
 router.post(
   "/purchases/:purchaseId/repayment",
   requirePermission("purchase_entry"),
@@ -986,6 +1324,96 @@ router.get(
     } catch (error) {
       console.error("Supplier ledger summary error:", error);
       res.status(500).json({ error: "Failed to load supplier summary" });
+    }
+  },
+);
+
+router.delete(
+  "/suppliers/:supplierId/ledger",
+  requireOwner,
+  async (req, res) => {
+    const client = await pool.connect();
+
+    try {
+      const userId = getUserId(req);
+      const supplierId = Number.parseInt(req.params.supplierId, 10);
+
+      if (!Number.isInteger(supplierId) || supplierId <= 0) {
+        return res.status(400).json({ error: "Invalid supplier selection." });
+      }
+
+      await client.query("BEGIN");
+
+      const supplierResult = await client.query(
+        `
+          SELECT id, name
+          FROM suppliers
+          WHERE id = $1 AND user_id = $2
+          LIMIT 1
+          FOR UPDATE
+        `,
+        [supplierId, userId],
+      );
+
+      if (!supplierResult.rowCount) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ error: "Supplier not found." });
+      }
+
+      const purchasesResult = await client.query(
+        `
+          SELECT id
+          FROM purchases
+          WHERE user_id = $1
+            AND supplier_id = $2
+          ORDER BY id ASC
+          FOR UPDATE
+        `,
+        [userId, supplierId],
+      );
+
+      if (!purchasesResult.rowCount) {
+        await client.query("ROLLBACK");
+        return res
+          .status(404)
+          .json({ error: "No purchases found for this supplier." });
+      }
+
+      const deletion = await deletePurchaseBillsWithStockRollback(
+        client,
+        userId,
+        purchasesResult.rows.map((row) => row.id),
+      );
+
+      await client.query("COMMIT");
+      invalidateUserCache(userId);
+
+      res.json({
+        success: true,
+        message: "Supplier ledger deleted successfully.",
+        supplier_id: supplierId,
+        supplier_name: supplierResult.rows[0].name,
+        deleted_count: deletion.deletedCount,
+      });
+    } catch (error) {
+      try {
+        await client.query("ROLLBACK");
+      } catch (rollbackError) {
+        console.error("Supplier ledger delete rollback error:", rollbackError);
+      }
+
+      const message = String(error.message || "");
+      if (
+        message.startsWith("Cannot delete") ||
+        message.startsWith("Stock item not found")
+      ) {
+        return res.status(400).json({ error: message });
+      }
+
+      console.error("Supplier ledger delete error:", error);
+      res.status(500).json({ error: "Failed to delete supplier ledger" });
+    } finally {
+      client.release();
     }
   },
 );

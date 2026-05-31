@@ -3103,15 +3103,22 @@ function renderPurchaseReport(rows) {
     const tr = document.createElement("tr");
     tr.className = "interactive-row";
     tr.dataset.purchaseId = String(row.id || "");
+    const billLabel = row.bill_no || `Purchase #${row.id}`;
+    const actionMenu = renderLedgerActionMenu("delete-purchase", {
+      purchaseId: row.id,
+      supplierId: row.supplier_id,
+      billLabel,
+    });
     tr.innerHTML = `
       <td data-label="Date">${formatDate(row.purchase_date)}</td>
       <td data-label="Supplier">${escapeHtml(row.supplier_name || "-")}</td>
-      <td data-label="Bill">
-        <div class="table-primary-copy">${escapeHtml(row.bill_no || `Purchase #${row.id}`)}</div>
+      <td data-label="Bill" class="${getLedgerMenuHostClass(actionMenu)}">
+        <div class="${getLedgerMenuPrimaryClass(actionMenu, "table-primary-copy")}">${escapeHtml(billLabel)}</div>
         <div class="table-row-hint">
           <i class="fa-solid fa-eye"></i>
           Open bill detail
         </div>
+        ${actionMenu}
       </td>
       <td data-label="Items">${formatCount(row.item_count)}</td>
       <td data-label="Total">${formatCurrencyValue(row.subtotal)}</td>
@@ -3121,6 +3128,8 @@ function renderPurchaseReport(rows) {
     `;
     dom.purchaseReportBody.appendChild(tr);
   });
+
+  bindLedgerActionMenus(dom.purchaseReportBody);
 
   dom.purchaseReportBody
     .querySelectorAll("[data-purchase-id]")
@@ -3383,14 +3392,24 @@ function renderSupplierLedgerSummary(rows) {
       <tbody>
         ${rows
           .map(
-            (row) => `
+            (row) => {
+              const supplierName = row.name || "";
+              const actionMenu = renderLedgerActionMenu(
+                "delete-supplier-ledger",
+                {
+                  supplierId: row.id,
+                  name: supplierName,
+                },
+              );
+              return `
               <tr class="interactive-row" data-supplier-id="${row.id}" data-supplier-name="${encodeURIComponent(row.name || "")}">
-                <td data-label="Supplier">
-                  <div class="table-primary-copy">${escapeHtml(row.name || "-")}</div>
+                <td data-label="Supplier" class="${getLedgerMenuHostClass(actionMenu)}">
+                  <div class="${getLedgerMenuPrimaryClass(actionMenu, "table-primary-copy")}">${escapeHtml(row.name || "-")}</div>
                   <div class="table-row-hint">
                     <i class="fa-solid fa-book-open"></i>
                     Open supplier ledger
                   </div>
+                  ${actionMenu}
                 </td>
                 <td data-label="Mobile">${escapeHtml(row.mobile_number || "-")}</td>
                 <td data-label="Bills">${formatCount(row.purchase_count)}</td>
@@ -3398,12 +3417,15 @@ function renderSupplierLedgerSummary(rows) {
                 <td data-label="Paid">${formatCurrencyValue(row.total_paid)}</td>
                 <td data-label="Due">${formatCurrencyValue(row.total_due)}</td>
               </tr>
-            `,
+            `;
+            },
           )
           .join("")}
       </tbody>
     </table>
   `;
+
+  bindLedgerActionMenus(dom.supplierLedgerTable);
 
   dom.supplierLedgerTable
     .querySelectorAll("[data-supplier-id]")
@@ -3438,9 +3460,13 @@ function renderSupplierLedgerDetail(supplier, rows) {
     (sum, row) => sum + (Number(row.amount_due) || 0),
     0,
   );
+  const supplierActionMenu = renderLedgerActionMenu("delete-supplier-ledger", {
+    supplierId: supplier.id,
+    name: supplier.name || "",
+  });
 
   dom.supplierLedgerTable.innerHTML = `
-    <div class="summary-strip mb-3">
+    <div class="${getLedgerMenuHostClass(supplierActionMenu, "summary-strip mb-3")}">
       <span class="summary-pill">
         <i class="fa-solid fa-id-card"></i>
         ${escapeHtml(supplier.name || "Supplier")}
@@ -3450,6 +3476,7 @@ function renderSupplierLedgerDetail(supplier, rows) {
         <i class="fa-solid fa-hand-holding-dollar"></i>
         Outstanding: ${formatCurrency(totalDue)}
       </span>
+      ${supplierActionMenu}
     </div>
     <table class="table table-sm text-center align-middle dashboard-table dashboard-table--supplier-ledger">
       <thead>
@@ -3465,27 +3492,38 @@ function renderSupplierLedgerDetail(supplier, rows) {
       <tbody>
         ${rows
           .map(
-            (row) => `
+            (row) => {
+              const billLabel = row.bill_no || `Purchase #${row.id}`;
+              const actionMenu = renderLedgerActionMenu("delete-purchase", {
+                purchaseId: row.id,
+                supplierId: supplier.id,
+                billLabel,
+              });
+              return `
               <tr class="interactive-row" data-purchase-id="${row.id}">
                 <td data-label="Date">${formatDate(row.purchase_date)}</td>
-                <td data-label="Bill">
-                  <div class="table-primary-copy">${escapeHtml(row.bill_no || `Purchase #${row.id}`)}</div>
+                <td data-label="Bill" class="${getLedgerMenuHostClass(actionMenu)}">
+                  <div class="${getLedgerMenuPrimaryClass(actionMenu, "table-primary-copy")}">${escapeHtml(billLabel)}</div>
                   <div class="table-row-hint">
                     <i class="fa-solid fa-eye"></i>
                     Open bill detail
                   </div>
+                  ${actionMenu}
                 </td>
                 <td data-label="Total">${formatCurrencyValue(row.subtotal)}</td>
                 <td data-label="Paid">${formatCurrencyValue(row.amount_paid)}</td>
                 <td data-label="Due">${formatCurrencyValue(row.amount_due)}</td>
                 <td data-label="Status">${getStatusChipMarkup(row.payment_status)}</td>
               </tr>
-            `,
+            `;
+            },
           )
           .join("")}
       </tbody>
     </table>
   `;
+
+  bindLedgerActionMenus(dom.supplierLedgerTable);
 
   dom.supplierLedgerTable
     .querySelectorAll("[data-purchase-id]")
@@ -3505,6 +3543,7 @@ function renderPurchaseDetailEmpty(message) {
   state.currentPurchaseDetailSupplierId = null;
   state.currentPurchaseDetail = null;
   dom.purchaseDetailCard.hidden = false;
+  dom.purchaseDetailSummary.classList.remove("ledger-menu-host");
   dom.purchaseDetailSummary.innerHTML = `
     <span class="summary-pill">
       <i class="fa-solid fa-circle-info"></i>
@@ -3532,12 +3571,22 @@ function renderPurchaseDetail(purchase) {
   state.currentPurchaseDetailId = purchase.id;
   state.currentPurchaseDetailSupplierId = purchase.supplier_id || null;
   state.currentPurchaseDetail = purchase;
+  const billLabel = purchase.bill_no || `Purchase #${purchase.id}`;
+  const billActionMenu = renderLedgerActionMenu("delete-purchase", {
+    purchaseId: purchase.id,
+    supplierId: purchase.supplier_id,
+    billLabel,
+  });
 
   dom.purchaseDetailCard.hidden = false;
+  dom.purchaseDetailSummary.classList.toggle(
+    "ledger-menu-host",
+    Boolean(billActionMenu),
+  );
   dom.purchaseDetailSummary.innerHTML = `
     <span class="summary-pill">
       <i class="fa-solid fa-receipt"></i>
-      ${escapeHtml(purchase.bill_no || `Purchase #${purchase.id}`)}
+      ${escapeHtml(billLabel)}
     </span>
     <span class="summary-pill">
       <i class="fa-solid fa-truck-field"></i>
@@ -3550,6 +3599,7 @@ function renderPurchaseDetail(purchase) {
     <span class="summary-pill">
       ${getStatusChipMarkup(purchase.payment_status)}
     </span>
+    ${billActionMenu}
   `;
 
   dom.purchaseDetailMeta.innerHTML = `
@@ -3595,22 +3645,37 @@ function renderPurchaseDetail(purchase) {
         </thead>
         <tbody>
           ${items
-            .map(
-              (item) => `
+            .map((item) => {
+              const itemActionMenu = renderLedgerActionMenu(
+                "delete-purchase-item",
+                {
+                  itemId: item.id,
+                  purchaseId: purchase.id,
+                  supplierId: purchase.supplier_id,
+                  itemName: item.item_name || "",
+                },
+              );
+              return `
                 <tr>
-                  <td class="text-start" data-label="Item">${escapeHtml(item.item_name || "-")}</td>
+                  <td class="${getLedgerMenuHostClass(itemActionMenu, "text-start")}" data-label="Item">
+                    <span class="${getLedgerMenuPrimaryClass(itemActionMenu)}">${escapeHtml(item.item_name || "-")}</span>
+                    ${itemActionMenu}
+                  </td>
                   <td data-label="Qty">${formatNumber(item.quantity)}</td>
                   <td data-label="Buy Rate">${formatCurrencyValue(item.buying_rate)}</td>
                   <td data-label="Sell Rate">${formatCurrencyValue(item.selling_rate)}</td>
                   <td data-label="Total">${formatCurrencyValue(item.line_total)}</td>
                 </tr>
-              `,
-            )
+              `;
+            })
             .join("")}
         </tbody>
       </table>
     `;
   }
+
+  bindLedgerActionMenus(dom.purchaseDetailSummary);
+  bindLedgerActionMenus(dom.purchaseDetailItems);
 
   const noteText = String(purchase.note || "").trim();
   if (noteText) {
@@ -6058,8 +6123,8 @@ function updateDueOverviewFromRows(rows) {
 }
 
 function closeLedgerActionMenus(exceptMenu = null) {
-  dom.ledgerTable
-    ?.querySelectorAll(".ledger-row-menu.is-open")
+  document
+    .querySelectorAll(".ledger-row-menu.is-open")
     .forEach((menu) => {
       if (menu === exceptMenu) {
         return;
@@ -6079,21 +6144,45 @@ function renderLedgerActionMenu(action, options = {}) {
 
   const encodedNumber = encodeURIComponent(options.number || "");
   const encodedName = encodeURIComponent(options.name || "");
+  const encodedItemName = encodeURIComponent(options.itemName || "");
+  const encodedBillLabel = encodeURIComponent(options.billLabel || "");
   const entryId = Number.parseInt(options.entryId, 10) || 0;
-  const isCustomerDelete = action === "delete-customer";
-  const buttonLabel = isCustomerDelete
-    ? "More customer actions"
-    : "More transaction actions";
-  const optionLabel = isCustomerDelete
-    ? "Delete customer ledger"
-    : "Delete transaction";
+  const supplierId = Number.parseInt(options.supplierId, 10) || 0;
+  const purchaseId = Number.parseInt(options.purchaseId, 10) || 0;
+  const itemId = Number.parseInt(options.itemId, 10) || 0;
+  const actionMeta = {
+    "delete-customer": {
+      buttonLabel: "More customer actions",
+      optionLabel: "Delete customer ledger",
+    },
+    "delete-entry": {
+      buttonLabel: "More transaction actions",
+      optionLabel: "Delete transaction",
+    },
+    "delete-supplier-ledger": {
+      buttonLabel: "More supplier actions",
+      optionLabel: "Delete supplier ledger",
+    },
+    "delete-purchase": {
+      buttonLabel: "More bill actions",
+      optionLabel: "Delete bill",
+    },
+    "delete-purchase-item": {
+      buttonLabel: "More item actions",
+      optionLabel: "Delete item",
+    },
+  };
+  const meta = actionMeta[action] || {
+    buttonLabel: "More actions",
+    optionLabel: "Delete",
+  };
 
   return `
     <div class="ledger-row-menu" data-ledger-menu>
       <button
         class="ledger-menu-toggle"
         type="button"
-        aria-label="${buttonLabel}"
+        aria-label="${meta.buttonLabel}"
         aria-expanded="false"
       >
         <i class="fa-solid fa-ellipsis-vertical"></i>
@@ -6107,13 +6196,30 @@ function renderLedgerActionMenu(action, options = {}) {
           data-ledger-id="${entryId}"
           data-ledger-number="${escapeHtml(encodedNumber)}"
           data-ledger-name="${escapeHtml(encodedName)}"
+          data-supplier-id="${supplierId}"
+          data-purchase-id="${purchaseId}"
+          data-item-id="${itemId}"
+          data-item-name="${escapeHtml(encodedItemName)}"
+          data-bill-label="${escapeHtml(encodedBillLabel)}"
         >
           <i class="fa-solid fa-trash"></i>
-          <span>${optionLabel}</span>
+          <span>${meta.optionLabel}</span>
         </button>
       </div>
     </div>
   `;
+}
+
+function getLedgerMenuHostClass(menuHtml, baseClass = "") {
+  return [baseClass, menuHtml ? "ledger-menu-host" : ""]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function getLedgerMenuPrimaryClass(menuHtml, baseClass = "") {
+  return [baseClass, menuHtml ? "ledger-menu-primary" : ""]
+    .filter(Boolean)
+    .join(" ");
 }
 
 async function refreshDueSummarySnapshot() {
@@ -6230,8 +6336,213 @@ async function deleteLedgerEntry(button) {
   );
 }
 
-function bindLedgerActionMenus() {
-  dom.ledgerTable?.querySelectorAll(".ledger-row-menu").forEach((menu) => {
+async function refreshPurchaseViewsAfterDelete(options = {}) {
+  const supplierId = Object.prototype.hasOwnProperty.call(options, "supplierId")
+    ? Number(options.supplierId || 0)
+    : Number(state.currentSupplierId || 0);
+  const shouldClearDetail = Boolean(options.clearDetail);
+  const supplierViewVisible =
+    dom.supplierLedgerView && !dom.supplierLedgerView.hidden;
+  const refreshTasks = supplierViewVisible
+    ? []
+    : [loadPurchaseReport({ silent: true })];
+
+  if (isOwnerSession()) {
+    refreshTasks.push(loadDashboardOverview({ silent: true }));
+  }
+
+  if (
+    supplierViewVisible &&
+    supplierId > 0 &&
+    state.supplierLedgerMode === "ledger"
+  ) {
+    refreshTasks.push(
+      searchSupplierLedger({ supplierId, silent: true }),
+    );
+  } else if (supplierViewVisible && state.supplierLedgerMode === "summary") {
+    refreshTasks.push(showAllSupplierSummary({ silent: true }));
+  }
+
+  const productName = dom.productPurchaseSearchInput?.value.trim();
+  if (productName && state.currentProductPurchaseHistoryRows.length) {
+    refreshTasks.push(loadProductPurchaseHistory({ silent: true }));
+  }
+
+  await Promise.allSettled(refreshTasks);
+
+  if (shouldClearDetail) {
+    renderPurchaseDetailEmpty("Open a purchase bill to view the item details here.");
+  }
+}
+
+async function deleteSupplierLedger(button) {
+  const supplierId = Number.parseInt(button.dataset.supplierId, 10);
+  const supplierName = decodeURIComponent(button.dataset.ledgerName || "");
+
+  if (!Number.isInteger(supplierId) || supplierId <= 0) {
+    showPopup(
+      "error",
+      "Delete unavailable",
+      "This supplier ledger is missing a valid supplier id.",
+      { autoClose: false },
+    );
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Delete full supplier ledger${supplierName ? ` for ${supplierName}` : ""}? This will remove all purchase bills for this supplier.`,
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  await withButtonState(
+    button,
+    '<i class="fa-solid fa-spinner fa-spin"></i><span>Deleting...</span>',
+    async () => {
+      try {
+        await fetchJSON(`/suppliers/${supplierId}/ledger`, {
+          method: "DELETE",
+        });
+        dom.supplierSearchInput.value = "";
+        dom.supplierSearchInput.dataset.supplierId = "";
+        await refreshPurchaseViewsAfterDelete({
+          supplierId: 0,
+          clearDetail: true,
+        });
+        await showAllSupplierSummary({ silent: true });
+        showPopup(
+          "success",
+          "Supplier ledger deleted",
+          "The selected supplier ledger has been deleted.",
+        );
+      } catch (error) {
+        showPopup(
+          "error",
+          "Delete failed",
+          error.message || "Could not delete this supplier ledger.",
+          { autoClose: false },
+        );
+      }
+    },
+  );
+}
+
+async function deletePurchaseBill(button) {
+  const purchaseId = Number.parseInt(button.dataset.purchaseId, 10);
+  const supplierId = Number.parseInt(button.dataset.supplierId, 10) || 0;
+  const billLabel = decodeURIComponent(button.dataset.billLabel || "");
+
+  if (!Number.isInteger(purchaseId) || purchaseId <= 0) {
+    showPopup(
+      "error",
+      "Delete unavailable",
+      "This purchase bill is missing a valid id.",
+      { autoClose: false },
+    );
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Delete ${billLabel || "this purchase bill"}? This will remove the bill and all its item rows from the database.`,
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  await withButtonState(
+    button,
+    '<i class="fa-solid fa-spinner fa-spin"></i><span>Deleting...</span>',
+    async () => {
+      try {
+        const data = await fetchJSON(`/purchases/${purchaseId}`, {
+          method: "DELETE",
+        });
+        await refreshPurchaseViewsAfterDelete({
+          purchaseId,
+          supplierId: Number(data.supplier_id || supplierId || 0),
+          clearDetail: true,
+        });
+        showPopup(
+          "success",
+          "Bill deleted",
+          "The selected purchase bill has been deleted.",
+        );
+      } catch (error) {
+        showPopup(
+          "error",
+          "Delete failed",
+          error.message || "Could not delete this purchase bill.",
+          { autoClose: false },
+        );
+      }
+    },
+  );
+}
+
+async function deletePurchaseItem(button) {
+  const itemId = Number.parseInt(button.dataset.itemId, 10);
+  const purchaseId = Number.parseInt(button.dataset.purchaseId, 10);
+  const supplierId = Number.parseInt(button.dataset.supplierId, 10) || 0;
+  const itemName = decodeURIComponent(button.dataset.itemName || "");
+
+  if (!Number.isInteger(itemId) || itemId <= 0) {
+    showPopup(
+      "error",
+      "Delete unavailable",
+      "This purchase item is missing a valid id.",
+      { autoClose: false },
+    );
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Delete ${itemName || "this item"} from the bill? Stock and bill totals will be updated.`,
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  await withButtonState(
+    button,
+    '<i class="fa-solid fa-spinner fa-spin"></i><span>Deleting...</span>',
+    async () => {
+      try {
+        const data = await fetchJSON(`/purchase-items/${itemId}`, {
+          method: "DELETE",
+        });
+        await Promise.allSettled([
+          openPurchaseDetail(Number(data.purchase_id || purchaseId), {
+            silent: true,
+            scroll: false,
+          }),
+          refreshPurchaseViewsAfterDelete({
+            purchaseId,
+            supplierId: Number(data.supplier_id || supplierId || 0),
+          }),
+        ]);
+        showPopup(
+          "success",
+          "Item deleted",
+          "The selected bill item has been deleted.",
+        );
+      } catch (error) {
+        showPopup(
+          "error",
+          "Delete failed",
+          error.message || "Could not delete this purchase item.",
+          { autoClose: false },
+        );
+      }
+    },
+  );
+}
+
+function bindLedgerActionMenus(root = dom.ledgerTable) {
+  root?.querySelectorAll(".ledger-row-menu").forEach((menu) => {
     const toggle = menu.querySelector(".ledger-menu-toggle");
 
     menu.addEventListener("click", (event) => {
@@ -6248,7 +6559,7 @@ function bindLedgerActionMenus() {
     });
   });
 
-  dom.ledgerTable
+  root
     ?.querySelectorAll("[data-ledger-action]")
     .forEach((button) => {
       button.addEventListener("click", async (event) => {
@@ -6263,6 +6574,21 @@ function bindLedgerActionMenus() {
 
         if (button.dataset.ledgerAction === "delete-entry") {
           await deleteLedgerEntry(button);
+          return;
+        }
+
+        if (button.dataset.ledgerAction === "delete-supplier-ledger") {
+          await deleteSupplierLedger(button);
+          return;
+        }
+
+        if (button.dataset.ledgerAction === "delete-purchase") {
+          await deletePurchaseBill(button);
+          return;
+        }
+
+        if (button.dataset.ledgerAction === "delete-purchase-item") {
+          await deletePurchaseItem(button);
         }
       });
     });
@@ -6327,6 +6653,10 @@ function renderLedgerTable(rows, mode = "summary") {
       const rawCustomerNumber = String(row.customer_number || "");
       const customerName = escapeHtml(rawCustomerName);
       const customerNumber = escapeHtml(rawCustomerNumber);
+      const actionMenu = renderLedgerActionMenu("delete-customer", {
+        number: rawCustomerNumber,
+        name: rawCustomerName,
+      });
 
       totalOutstanding += balance;
       tableBody += `
@@ -6337,18 +6667,15 @@ function renderLedgerTable(rows, mode = "summary") {
           role="button"
           aria-label="Open ledger for ${customerName}"
         >
-          <td data-label="Name" class="ledger-menu-host">
-            <div class="due-row-title ledger-menu-primary">
+          <td data-label="Name" class="${getLedgerMenuHostClass(actionMenu)}">
+            <div class="${getLedgerMenuPrimaryClass(actionMenu, "due-row-title")}">
               <strong>${customerName}</strong>
               <span class="table-row-hint">
                 <i class="fa-solid fa-arrow-up-right-from-square"></i>
                 Open full ledger
               </span>
             </div>
-            ${renderLedgerActionMenu("delete-customer", {
-              number: rawCustomerNumber,
-              name: rawCustomerName,
-            })}
+            ${actionMenu}
           </td>
           <td data-label="Number">${customerNumber}</td>
           <td data-label="Total">${formatCurrencyValue(total)}</td>
@@ -6408,15 +6735,17 @@ function renderLedgerTable(rows, mode = "summary") {
       .slice()
       .reverse()
       .forEach((row) => {
+        const actionMenu = renderLedgerActionMenu("delete-entry", {
+          entryId: row.id,
+          number: row.customer_number,
+          name: row.customer_name,
+        });
+
         tableBody += `
           <tr>
-            <td data-label="Date" class="ledger-menu-host">
-              <span class="ledger-menu-primary">${formatDate(row.created_at)}</span>
-              ${renderLedgerActionMenu("delete-entry", {
-                entryId: row.id,
-                number: row.customer_number,
-                name: row.customer_name,
-              })}
+            <td data-label="Date" class="${getLedgerMenuHostClass(actionMenu)}">
+              <span class="${getLedgerMenuPrimaryClass(actionMenu)}">${formatDate(row.created_at)}</span>
+              ${actionMenu}
             </td>
             <td data-label="Total">${formatCurrencyValue(row.total)}</td>
             <td data-label="Credit">${formatCurrencyValue(row.credit)}</td>

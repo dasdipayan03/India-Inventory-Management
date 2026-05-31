@@ -622,6 +622,11 @@
         color: currentColor;
       }
 
+      .summary-strip.ledger-menu-host {
+        position: relative;
+        padding-right: 42px;
+      }
+
       .due-empty-state {
         display: grid;
         place-items: center;
@@ -3484,19 +3489,31 @@
           white-space: normal;
         }
 
+        .dashboard-table--purchase-report tbody td.ledger-menu-host,
+        .dashboard-table--supplier-ledger tbody td.ledger-menu-host,
+        .dashboard-table--purchase-detail tbody td.ledger-menu-host,
         .dashboard-table--ledger tbody td.ledger-menu-host {
           padding-right: 42px;
         }
 
+        .dashboard-table--purchase-report .ledger-row-menu,
+        .dashboard-table--supplier-ledger .ledger-row-menu,
+        .dashboard-table--purchase-detail .ledger-row-menu,
         .dashboard-table--ledger .ledger-row-menu {
           top: 9px;
           right: 9px;
         }
 
+        .dashboard-table--purchase-report .ledger-menu-primary,
+        .dashboard-table--supplier-ledger .ledger-menu-primary,
+        .dashboard-table--purchase-detail .ledger-menu-primary,
         .dashboard-table--ledger .ledger-menu-primary {
           padding-right: 4px;
         }
 
+        .dashboard-table--purchase-report .ledger-menu-popover,
+        .dashboard-table--supplier-ledger .ledger-menu-popover,
+        .dashboard-table--purchase-detail .ledger-menu-popover,
         .dashboard-table--ledger .ledger-menu-popover {
           min-width: min(184px, calc(100vw - 76px));
         }
