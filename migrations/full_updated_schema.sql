@@ -145,6 +145,7 @@ CREATE TABLE IF NOT EXISTS debts (
   user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   customer_name VARCHAR(100) NOT NULL,
   customer_number VARCHAR(10) NOT NULL CHECK (customer_number ~ '^[0-9]{10}$'),
+  customer_address TEXT,
   total NUMERIC(12,2) DEFAULT 0,
   credit NUMERIC(12,2) DEFAULT 0,
   balance NUMERIC(12,2) GENERATED ALWAYS AS (total - credit) STORED,
@@ -273,6 +274,9 @@ CREATE TABLE IF NOT EXISTS invoices (
 
 CREATE INDEX IF NOT EXISTS idx_invoices_user_date
   ON invoices (user_id, date DESC);
+
+ALTER TABLE debts
+  ADD COLUMN IF NOT EXISTS customer_address TEXT;
 
 ALTER TABLE debts
   ADD COLUMN IF NOT EXISTS invoice_id INT REFERENCES invoices(id) ON DELETE SET NULL;

@@ -5512,14 +5512,16 @@
               </div>
 
               <div class="row g-3">
-                <div class="col-12">
+                <div class="col-12 position-relative">
                   <label class="form-label small">Customer Name</label>
                   <input
                     id="cdName"
                     type="text"
                     class="form-control"
                     placeholder="Customer Name"
+                    autocomplete="off"
                   />
+                  <div id="cdNameDropdown" class="dropdown-list" hidden></div>
                 </div>
 
                 <div class="col-12 position-relative">
@@ -5534,6 +5536,17 @@
                     inputmode="numeric"
                   />
                   <div id="cdNumberDropdown" class="dropdown-list" hidden></div>
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label small">Address</label>
+                  <input
+                    id="cdAddress"
+                    type="text"
+                    class="form-control"
+                    placeholder="Address (optional)"
+                    autocomplete="off"
+                  />
                 </div>
 
                 <div class="col-sm-6">

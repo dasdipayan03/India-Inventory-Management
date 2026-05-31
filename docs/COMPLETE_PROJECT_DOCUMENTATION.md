@@ -1729,6 +1729,7 @@ Key columns:
 - `user_id`
 - `customer_name`
 - `customer_number`
+- `customer_address`
 - `total`
 - `credit`
 - generated column `balance`
@@ -1742,6 +1743,7 @@ Notes:
 - `invoice_id` is nullable
 - settlement rows can reference an invoice
 - manual due entries can exist without invoice linkage
+- `customer_address` is optional; manual Due Entry can save it and invoice-created due rows copy `invoices.address`
 - owner-only debt delete routes remove rows from this table; when removed rows reference invoices, the linked invoice paid/due totals are recalculated from remaining `debts` rows
 
 #### `suppliers`
@@ -2094,6 +2096,7 @@ Constraints, indexes, and triggers:
 | `user_id`         | `INT`           | no        | none                                   | foreign key to `users.id` with `ON DELETE CASCADE`              |
 | `customer_name`   | `VARCHAR(100)`  | no        | none                                   | customer display name                                           |
 | `customer_number` | `VARCHAR(10)`   | no        | none                                   | 10-digit customer mobile number                                 |
+| `customer_address` | `TEXT`         | yes       | none                                   | optional customer address captured from due entry or invoice    |
 | `total`           | `NUMERIC(12,2)` | yes       | `0`                                    | debit amount added to the ledger                                |
 | `credit`          | `NUMERIC(12,2)` | yes       | `0`                                    | amount collected against the ledger row                         |
 | `balance`         | `NUMERIC(12,2)` | generated | `GENERATED ALWAYS AS (total - credit)` | stored generated balance                                        |

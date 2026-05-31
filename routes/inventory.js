@@ -1960,12 +1960,15 @@ router.post("/debts", requirePermission("customer_due"), async (req, res) => {
     const {
       customer_name,
       customer_number,
+      customer_address,
       total = 0,
       credit = 0,
       remark,
     } = req.body;
     const normalizedCustomerName = normalizeDisplayText(customer_name);
     const customerNumber = String(customer_number || "").trim();
+    const normalizedCustomerAddress =
+      String(customer_address || "").trim() || null;
     const totalAmount = parseNonNegativeNumber(total);
     const creditAmount = parseNonNegativeNumber(credit);
     const normalizedRemark = String(remark || "").trim();
@@ -1997,7 +2000,7 @@ router.post("/debts", requirePermission("customer_due"), async (req, res) => {
     await lockScopedResource(client, user_id, "customer-debt", customerNumber);
 
     const existingNameResult = await client.query(
-      `SELECT customer_name
+      `SELECT customer_name, customer_address
        FROM debts
        WHERE user_id = $1 AND customer_number = $2
        ORDER BY created_at DESC, id DESC
@@ -2008,6 +2011,10 @@ router.post("/debts", requirePermission("customer_due"), async (req, res) => {
     const canonicalCustomerName =
       normalizeDisplayText(existingNameResult.rows[0]?.customer_name) ||
       normalizedCustomerName;
+    const canonicalCustomerAddress =
+      normalizedCustomerAddress ||
+      String(existingNameResult.rows[0]?.customer_address || "").trim() ||
+      null;
 
     let createdRows = [];
     let settledInvoiceCount = 0;
@@ -2015,7 +2022,7 @@ router.post("/debts", requirePermission("customer_due"), async (req, res) => {
 
     if (totalAmount === 0 && remainingCredit > 0) {
       const invoiceResult = await client.query(
-        `SELECT id, invoice_no, customer_name, amount_paid, amount_due
+        `SELECT id, invoice_no, customer_name, address, amount_paid, amount_due
          FROM invoices
          WHERE user_id = $1
            AND contact = $2
@@ -2060,17 +2067,21 @@ router.post("/debts", requirePermission("customer_due"), async (req, res) => {
              invoice_id,
              customer_name,
              customer_number,
+             customer_address,
              total,
              credit,
              remark
-           )
-           VALUES ($1,$2,$3,$4,$5,$6,$7)
-           RETURNING *`,
+            )
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+            RETURNING *`,
           [
             user_id,
             invoice.id,
             canonicalCustomerName,
             customerNumber,
+            canonicalCustomerAddress ||
+              String(invoice.address || "").trim() ||
+              null,
             0,
             appliedCredit,
             normalizedRemark
@@ -2091,16 +2102,18 @@ router.post("/debts", requirePermission("customer_due"), async (req, res) => {
            user_id,
            customer_name,
            customer_number,
+           customer_address,
            total,
            credit,
            remark
-         )
-         VALUES ($1,$2,$3,$4,$5,$6)
-         RETURNING *`,
+          )
+          VALUES ($1,$2,$3,$4,$5,$6,$7)
+          RETURNING *`,
         [
           user_id,
           canonicalCustomerName,
           customerNumber,
+          canonicalCustomerAddress,
           totalAmount,
           remainingCredit,
           normalizedRemark || null,
@@ -2298,23 +2311,36 @@ router.get(
       const { q } = req.query;
 
       let query = `
-      SELECT DISTINCT customer_name, customer_number
-      FROM debts
-      WHERE user_id = $1
-    `;
+        SELECT customer_name, customer_number, customer_address
+        FROM (
+          SELECT DISTINCT ON (customer_number)
+            customer_name,
+            customer_number,
+            COALESCE(customer_address, '') AS customer_address,
+            created_at,
+            id
+          FROM debts
+          WHERE user_id = $1
+      `;
       let params = [user_id];
 
       if (q && q.trim()) {
         query += `
-        AND (
-          customer_name ILIKE $2
-          OR customer_number ILIKE $2
-        )
-      `;
+            AND (
+              customer_name ILIKE $2
+              OR customer_number ILIKE $2
+              OR COALESCE(customer_address, '') ILIKE $2
+            )
+        `;
         params.push(`%${q.trim()}%`);
       }
 
-      query += ` ORDER BY customer_name ASC LIMIT 20`;
+      query += `
+          ORDER BY customer_number, created_at DESC, id DESC
+        ) latest_customers
+        ORDER BY LOWER(TRIM(customer_name)) ASC, customer_number ASC
+        LIMIT 20
+      `;
 
       const result = await pool.query(query, params);
       res.json(result.rows);
@@ -2589,7 +2615,7 @@ router.get(
         : null;
 
       const result = await pool.query(
-        `SELECT id, customer_name, customer_number, total, credit, remark, created_at
+        `SELECT id, customer_name, customer_number, customer_address, total, credit, remark, created_at
        FROM debts
        WHERE user_id=$1 AND customer_number=$2
        ORDER BY created_at ASC, id ASC

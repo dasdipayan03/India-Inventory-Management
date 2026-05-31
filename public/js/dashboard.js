@@ -771,8 +771,10 @@ function cacheElements() {
     growthBadge: document.getElementById("growthBadge"),
     last12MonthsChart: document.getElementById("last12MonthsChart"),
     cdName: document.getElementById("cdName"),
+    cdNameDropdown: document.getElementById("cdNameDropdown"),
     cdNumber: document.getElementById("cdNumber"),
     cdNumberDropdown: document.getElementById("cdNumberDropdown"),
+    cdAddress: document.getElementById("cdAddress"),
     cdTotal: document.getElementById("cdTotal"),
     cdCredit: document.getElementById("cdCredit"),
     cdRemark: document.getElementById("cdRemark"),
@@ -1279,14 +1281,17 @@ function setCustomerNameLocked(locked) {
 }
 
 function resetCustomerDueForm(options = {}) {
-  ["cdName", "cdNumber", "cdTotal", "cdCredit", "cdRemark"].forEach((id) => {
-    const field = document.getElementById(id);
-    if (field) {
-      field.value = "";
-    }
-  });
+  ["cdName", "cdNumber", "cdAddress", "cdTotal", "cdCredit", "cdRemark"].forEach(
+    (id) => {
+      const field = document.getElementById(id);
+      if (field) {
+        field.value = "";
+      }
+    },
+  );
 
   setCustomerNameLocked(false);
+  hideElement(dom.cdNameDropdown);
   hideElement(dom.cdNumberDropdown);
 
   if (options.focus && dom.cdName) {
@@ -5404,6 +5409,7 @@ async function downloadGstExcel() {
 async function submitDebt() {
   const customerName = dom.cdName.value.trim();
   const customerNumber = dom.cdNumber.value.trim();
+  const customerAddress = dom.cdAddress?.value.trim() || "";
   const total = Number(dom.cdTotal.value) || 0;
   const credit = Number(dom.cdCredit.value) || 0;
   const remark = dom.cdRemark.value.trim();
@@ -5468,6 +5474,7 @@ async function submitDebt() {
           body: JSON.stringify({
             customer_name: customerName,
             customer_number: customerNumber,
+            customer_address: customerAddress,
             total,
             credit,
             remark,
@@ -6090,17 +6097,23 @@ function renderCustomerDropdown(listEl, customers, onSelect) {
 
   listEl.innerHTML = customers
     .map((customer) => {
-      const customerName = escapeHtml(customer.customer_name);
-      const customerNumber = escapeHtml(customer.customer_number);
+      const customerName = escapeHtml(customer.customer_name || "");
+      const customerNumber = escapeHtml(customer.customer_number || "");
+      const customerAddress = escapeHtml(customer.customer_address || "");
+      const addressLine = customerAddress
+        ? `<span class="dropdown-item__meta">${customerAddress}</span>`
+        : "";
 
       return `
         <div
           class="dropdown-item dropdown-item--customer"
-          data-name="${encodeURIComponent(customer.customer_name)}"
-          data-number="${encodeURIComponent(customer.customer_number)}"
+          data-name="${encodeURIComponent(customer.customer_name || "")}"
+          data-number="${encodeURIComponent(customer.customer_number || "")}"
+          data-address="${encodeURIComponent(customer.customer_address || "")}"
         >
           <span class="dropdown-item__title">${customerName}</span>
           <span class="dropdown-item__meta">${customerNumber} - Existing ledger match</span>
+          ${addressLine}
         </div>
       `;
     })
@@ -6114,11 +6127,22 @@ function renderCustomerDropdown(listEl, customers, onSelect) {
     }
 
     onSelect({
-      name: decodeURIComponent(item.dataset.name),
-      number: decodeURIComponent(item.dataset.number),
+      name: decodeURIComponent(item.dataset.name || ""),
+      number: decodeURIComponent(item.dataset.number || ""),
+      address: decodeURIComponent(item.dataset.address || ""),
     });
     hideElement(listEl);
   };
+}
+
+function applyCustomerDueSuggestion(customer, options = {}) {
+  dom.cdName.value = customer.name || "";
+  dom.cdNumber.value = customer.number || "";
+  if (dom.cdAddress) {
+    dom.cdAddress.value = customer.address || "";
+  }
+  setCustomerNameLocked(Boolean(options.lockName));
+  updateCustomerDuePreview();
 }
 
 function renderExpenseDropdown(listEl, entries, onSelect) {
@@ -7936,6 +7960,28 @@ function bindReportEvents() {
 }
 
 function bindCustomerDueEvents() {
+  const runCustomerNameSuggestions = debounce(async () => {
+    const query = dom.cdName.value.trim();
+
+    if (!query) {
+      hideElement(dom.cdNameDropdown);
+      return;
+    }
+
+    const customers = await loadCustomerSuggestions(query);
+    if (dom.cdName.value.trim() !== query) {
+      return;
+    }
+
+    renderCustomerDropdown(
+      dom.cdNameDropdown,
+      customers,
+      (customer) => {
+        applyCustomerDueSuggestion(customer, { lockName: true });
+      },
+    );
+  }, 180);
+
   const runCustomerNumberSuggestions = debounce(async () => {
     const query = dom.cdNumber.value.trim();
 
@@ -7952,11 +7998,8 @@ function bindCustomerDueEvents() {
     renderCustomerDropdown(
       dom.cdNumberDropdown,
       customers,
-      ({ name, number }) => {
-        dom.cdName.value = name;
-        dom.cdNumber.value = number;
-        setCustomerNameLocked(true);
-        updateCustomerDuePreview();
+      (customer) => {
+        applyCustomerDueSuggestion(customer, { lockName: true });
       },
     );
   }, 180);
@@ -7981,17 +8024,32 @@ function bindCustomerDueEvents() {
   }, 180);
 
   restrictToDigits(dom.cdNumber);
-  [dom.cdName, dom.cdTotal, dom.cdCredit, dom.cdRemark].forEach((input) => {
+  [dom.cdAddress, dom.cdTotal, dom.cdCredit, dom.cdRemark].forEach((input) => {
     input?.addEventListener("input", updateCustomerDuePreview);
+  });
+
+  dom.cdName.addEventListener("input", () => {
+    setCustomerNameLocked(false);
+    updateCustomerDuePreview();
+    hideElement(dom.cdNumberDropdown);
+    runCustomerNameSuggestions();
   });
 
   dom.cdNumber.addEventListener("input", () => {
     setCustomerNameLocked(false);
     updateCustomerDuePreview();
+    hideElement(dom.cdNameDropdown);
     runCustomerNumberSuggestions();
   });
 
   document.addEventListener("click", (event) => {
+    if (
+      !dom.cdName.contains(event.target) &&
+      !dom.cdNameDropdown.contains(event.target)
+    ) {
+      hideElement(dom.cdNameDropdown);
+    }
+
     if (
       !dom.cdNumber.contains(event.target) &&
       !dom.cdNumberDropdown.contains(event.target)

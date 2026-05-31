@@ -145,15 +145,15 @@ export_rows AS (
   UNION ALL
   SELECT 5, 'debts', 'HEADER', 0::BIGINT,
     ARRAY[
-      'id', 'user_id', 'customer_name', 'customer_number', 'total',
-      'credit', 'balance', 'remark', 'created_at', 'updated_at', 'invoice_id'
+      'id', 'user_id', 'customer_name', 'customer_number', 'customer_address',
+      'total', 'credit', 'balance', 'remark', 'created_at', 'updated_at', 'invoice_id'
     ]::TEXT[]
   UNION ALL
   SELECT 5, 'debts', 'DATA', ROW_NUMBER() OVER (ORDER BY d.created_at DESC, d.id DESC),
     ARRAY[
-      d.id::TEXT, d.user_id::TEXT, d.customer_name, d.customer_number, d.total::TEXT,
-      d.credit::TEXT, d.balance::TEXT, d.remark, d.created_at::TEXT, d.updated_at::TEXT,
-      d.invoice_id::TEXT
+      d.id::TEXT, d.user_id::TEXT, d.customer_name, d.customer_number,
+      d.customer_address, d.total::TEXT, d.credit::TEXT, d.balance::TEXT,
+      d.remark, d.created_at::TEXT, d.updated_at::TEXT, d.invoice_id::TEXT
     ]::TEXT[]
   FROM public.debts d
   JOIN target t ON d.user_id = t.user_id

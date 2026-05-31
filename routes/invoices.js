@@ -525,17 +525,19 @@ router.post(
                 invoice_id,
                 customer_name,
                 customer_number,
+                customer_address,
                 total,
                 credit,
                 remark
               )
-              VALUES ($1, $2, $3, $4, $5, $6, $7)
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             `,
               [
                 userId,
                 invoiceId,
                 customerName || `Customer ${customerContact}`,
                 customerContact,
+                customerAddress,
                 total_amount,
                 payment.amountPaid,
                 `Invoice ${invoiceNo} | ${payment.paymentStatus} via ${payment.paymentMode}`,
@@ -905,6 +907,7 @@ router.post(
             invoice_no,
             customer_name,
             contact,
+            address,
             payment_mode,
             payment_status,
             amount_paid,
@@ -984,11 +987,12 @@ router.post(
             invoice_id,
             customer_name,
             customer_number,
+            customer_address,
             total,
             credit,
             remark
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         `,
         [
           userId,
@@ -996,6 +1000,7 @@ router.post(
           normalizeDisplayText(invoice.customer_name) ||
             `Customer ${customerContact}`,
           customerContact,
+          String(invoice.address || "").trim() || null,
           0,
           paymentSnapshot.amountReceived,
           paymentRemark

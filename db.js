@@ -214,6 +214,11 @@ async function ensureSchemaCompatibility() {
 
   await pool.query(`
     ALTER TABLE debts
+    ADD COLUMN IF NOT EXISTS customer_address TEXT
+  `);
+
+  await pool.query(`
+    ALTER TABLE debts
     ADD COLUMN IF NOT EXISTS invoice_id INT REFERENCES invoices(id) ON DELETE SET NULL
   `);
 
