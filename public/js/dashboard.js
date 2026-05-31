@@ -6768,8 +6768,13 @@ function renderLedgerTable(rows, mode = "summary") {
       const balance = Number(row.balance) || 0;
       const rawCustomerName = String(row.customer_name || "");
       const rawCustomerNumber = String(row.customer_number || "");
+      const rawCustomerAddress = String(row.customer_address || "").trim();
       const customerName = escapeHtml(rawCustomerName);
       const customerNumber = escapeHtml(rawCustomerNumber);
+      const customerAddress = escapeHtml(rawCustomerAddress);
+      const customerAddressHtml = rawCustomerAddress
+        ? `<span class="due-row-address">${customerAddress}</span>`
+        : "";
       const actionMenu = renderLedgerActionMenu("delete-customer", {
         number: rawCustomerNumber,
         name: rawCustomerName,
@@ -6787,6 +6792,7 @@ function renderLedgerTable(rows, mode = "summary") {
           <td data-label="Name" class="${getLedgerMenuHostClass(actionMenu)}">
             <div class="${getLedgerMenuPrimaryClass(actionMenu, "due-row-title")}">
               <strong>${customerName}</strong>
+              ${customerAddressHtml}
               <span class="table-row-hint">
                 <i class="fa-solid fa-arrow-up-right-from-square"></i>
                 Open full ledger

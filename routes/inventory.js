@@ -2666,6 +2666,10 @@ router.get(
         : null;
       const result = await pool.query(
         `SELECT customer_name, customer_number,
+              COALESCE(
+                (ARRAY_REMOVE(ARRAY_AGG(NULLIF(BTRIM(customer_address), '') ORDER BY created_at DESC, id DESC), NULL))[1],
+                ''
+              ) AS customer_address,
               SUM(total) AS total,
               SUM(credit) AS credit,
               SUM(total - credit) AS balance
