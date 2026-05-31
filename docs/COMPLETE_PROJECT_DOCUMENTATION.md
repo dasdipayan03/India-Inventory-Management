@@ -1,51 +1,8 @@
 # India Inventory Management Documentation
 
-Last verified against this repository: `2026-05-12`
+Last verified against this repository: `2026-06-01`
 
 This is the single merged documentation file for the project. It replaces the earlier split project doc and database schema doc.
-
-<style>
-  .toc-jump-button {
-    position: fixed;
-    right: 24px;
-    bottom: 24px;
-    z-index: 9999;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 46px;
-    height: 46px;
-    min-width: 46px;
-    min-height: 46px;
-    border-radius: 50%;
-    background: #17315d65;
-    border: 2px solid rgba(255, 255, 255, 0.85);
-    color: #ffffff !important;
-    font-size: 24px;
-    font-weight: 800;
-    line-height: 1;
-    text-decoration: none;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.2);
-    opacity: 0.95;
-  }
-
-  .toc-jump-button:hover,
-  .toc-jump-button:focus {
-    background: #0ea4e95d;
-    color: #ffffff !important;
-    text-decoration: none;
-    opacity: 1;
-  }
-
-  @media print {
-    .toc-jump-button {
-      display: none !important;
-    }
-  }
-</style>
-
-<a id="toc-top"></a>
-<a class="toc-jump-button" href="#toc-top" aria-label="Back to table of contents" title="Back to table of contents">&#8593;</a>
 
 ## Table Of Contents
 
@@ -199,7 +156,10 @@ Important current-state notes:
 - The standalone Add New Stock page has been retired. Its old HTML is preserved inertly inside a `<template>` in [`../public/index.html`](../public/index.html), and related frontend/backend code is commented for reference. Stock intake now happens through Purchase Entry.
 - Purchase Entry is now the canonical "Purchase Entry / Add Stock" workflow. It includes supplier autocomplete, bill-wise supplier search, product-wise purchase history, supplier detail autofill, default profit margin handling, and stock updates from saved purchase bills.
 - Supplier ledger detail rows are shown newest-to-oldest, matching Bill View ordering.
+- Supplier Ledger "View All" always clears the current supplier search and loads the full supplier balance summary.
+- Purchase Desk now has owner-only 3-dot delete actions for supplier ledgers, purchase bills, and purchase bill items. These actions are hidden from staff and protected by `requireOwner` on the backend.
 - Customer due ledgers and customer ledger PDFs show recent transactions first while preserving correct running-balance calculation.
+- Customer due summary and detail rows now have owner-only 3-dot delete actions for full customer ledgers and individual ledger transactions. Invoice-linked debt deletes resync the linked invoice paid/due state.
 - The shared sidebar now includes a refresh icon beside the app title; it reloads the current page while preserving the active dashboard section through `localStorage.activeSection`.
 - Login page Android install now points to the Play Store listing (`india.inventory.management`) instead of the old GitHub APK release link. `site.webmanifest` remains available for browser/PWA install prompts.
 - Sale and Invoice now includes customer autocomplete in the Billing details card. The inline invoice controller calls `/api/invoices/customers`, then fills customer name, contact, and address when an existing customer is selected.
@@ -216,12 +176,12 @@ Main business modules:
 - owner/staff support chat with a developer inbox
 - developer support account registration and login
 - purchase entry that also adds/updates stock through supplier bills
-- purchase defaults, supplier ledger, and supplier repayment tracking
+- purchase defaults, supplier ledger, supplier repayment tracking, and owner-only purchase deletion with stock rollback
 - product-wise purchase history from saved purchase item rows
 - sales invoice creation with PDF generation
 - invoice history, due settlement, and payment collection
 - invoice customer lookup/autofill from existing saved invoices
-- customer due ledger
+- customer due ledger with owner-only ledger/transaction delete controls
 - sales, stock, and GST reports
 - queued PDF/Excel export delivery for long-running downloads
 - owner-only ops metrics and background cleanup status
@@ -230,19 +190,19 @@ Main business modules:
 
 Current feature and benefit map:
 
-| Module                     | Current capability                                                                                        | User benefit                                                                   |
-| -------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Purchase Entry / Add Stock | Supplier bill entry creates purchase rows and updates item stock/rates                                    | Inventory stays in sync with purchase bills without duplicate stock-entry work |
-| Supplier Ledger            | Supplier-wise purchases, paid/due totals, repayment capture, and newest-first bill history                | Owners can track pending supplier payments quickly                             |
-| Sale Entry / Invoice       | Invoice creation, item lookup, GST/total calculation, customer autocomplete, history, settlement, and PDF | Faster billing and cleaner customer-facing documents                           |
-| Stock View / Report        | Item quantity, buying/selling rates, sold quantity, low-stock, reorder, and slow-moving views             | Owners can see current inventory health and reorder needs                      |
-| Sales View / Report        | Date-wise sales, net-profit card, trend charts, PDF, and Excel                                            | Sales performance can be reviewed by period                                    |
-| GST Report                 | GST row report, monthly comparison, PDF, and Excel                                                        | Tax data is ready for checking and filing                                      |
-| Customer Due               | Customer ledger entries, customer autocomplete, due summary, newest-first timeline, and ledger PDF        | Collections become easier to track and share                                   |
-| Expenses                   | Expense entry, suggestions, report, and summary                                                           | Real net profit is clearer because costs are recorded                          |
-| Staff Access               | Owner-managed page permissions for staff accounts                                                         | Staff can work only in the modules they are assigned                           |
-| Support Chat               | Owner/staff support thread plus developer inbox                                                           | Support conversations stay tied to the right owner workspace                   |
-| Mobile / Android Access    | Responsive web UI, Play Store wrapper, Android Google transfer, and PWA manifest                          | Users can work from phones through browser, installed PWA, or Play Store app   |
+| Module                     | Current capability                                                                                                                 | User benefit                                                                   |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Purchase Entry / Add Stock | Supplier bill entry creates purchase rows and updates item stock/rates                                                             | Inventory stays in sync with purchase bills without duplicate stock-entry work |
+| Supplier Ledger            | Supplier-wise purchases, paid/due totals, repayment capture, newest-first bill history, and owner-only supplier/bill/item deletion | Owners can track and clean purchase ledger data safely                         |
+| Sale Entry / Invoice       | Invoice creation, item lookup, GST/total calculation, customer autocomplete, history, settlement, and PDF                          | Faster billing and cleaner customer-facing documents                           |
+| Stock View / Report        | Item quantity, buying/selling rates, sold quantity, low-stock, reorder, and slow-moving views                                      | Owners can see current inventory health and reorder needs                      |
+| Sales View / Report        | Date-wise sales, net-profit card, trend charts, PDF, and Excel                                                                     | Sales performance can be reviewed by period                                    |
+| GST Report                 | GST row report, monthly comparison, PDF, and Excel                                                                                 | Tax data is ready for checking and filing                                      |
+| Customer Due               | Customer ledger entries, autocomplete, due summary, newest-first timeline, PDF, and owner-only delete actions                      | Collections become easier to track, share, and correct                         |
+| Expenses                   | Expense entry, suggestions, report, and summary                                                                                    | Real net profit is clearer because costs are recorded                          |
+| Staff Access               | Owner-managed page permissions for staff accounts                                                                                  | Staff can work only in the modules they are assigned                           |
+| Support Chat               | Owner/staff support thread plus developer inbox                                                                                    | Support conversations stay tied to the right owner workspace                   |
+| Mobile / Android Access    | Responsive web UI, Play Store wrapper, Android Google transfer, and PWA manifest                                                   | Users can work from phones through browser, installed PWA, or Play Store app   |
 
 The system is owner-centric:
 
@@ -312,29 +272,29 @@ The system is owner-centric:
 
 ### Key backend files
 
-| File                                                                     | Role                                                                                                                    |
-| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| [`../server.js`](../server.js)                                           | Express entrypoint, request logging, CSP nonce injection, CORS policy, health/debug routes, static serving              |
-| [`../db.js`](../db.js)                                                   | DB connection pool, readiness state, SSL selection, startup schema patching                                             |
-| [`../middleware/auth.js`](../middleware/auth.js)                         | JWT verification, role resolution, permission checks                                                                    |
-| [`../middleware/cache.js`](../middleware/cache.js)                       | owner-scoped short TTL JSON response cache middleware                                                                   |
-| [`../middleware/export-queue.js`](../middleware/export-queue.js)         | async export middleware for queued PDF/Excel downloads                                                                  |
-| [`../routes/auth.js`](../routes/auth.js)                                 | register/login/logout, Google OAuth, forgot/reset password, staff management, `/me`                                     |
-| [`../routes/support.js`](../routes/support.js)                           | developer auth, owner/staff support chat, developer inbox, conversation status updates                                  |
-| [`../routes/exports.js`](../routes/exports.js)                           | export job status and authenticated download endpoints                                                                  |
-| [`../routes/ops.js`](../routes/ops.js)                                   | owner-only monitoring metrics and background cleanup endpoints                                                          |
-| [`../routes/inventory.js`](../routes/inventory.js)                       | stock defaults, shared item lookup, stock reports, sales reports, GST compare/export, dashboard overview, customer dues |
-| [`../routes/business.js`](../routes/business.js)                         | suppliers, purchases that restock inventory, product purchase history, purchase repayment, expenses                     |
-| [`../routes/invoices.js`](../routes/invoices.js)                         | invoice numbering, invoice save, customer suggestions, history, payment settlement, PDF, shop info                      |
-| [`../repositories/ops-repository.js`](../repositories/ops-repository.js) | database overview query used by ops metrics                                                                             |
-| [`../utils/background-jobs.js`](../utils/background-jobs.js)             | periodic cache/export cleanup and heartbeat logging                                                                     |
-| [`../utils/cache.js`](../utils/cache.js)                                 | in-memory TTL cache plus owner-cache invalidation helpers                                                               |
-| [`../utils/concurrency.js`](../utils/concurrency.js)                     | normalization helpers and owner-scoped advisory locks                                                                   |
-| [`../utils/export-queue.js`](../utils/export-queue.js)                   | in-memory export queue implementation and filename parsing                                                              |
-| [`../utils/monitoring.js`](../utils/monitoring.js)                       | request, cache, export, memory, and DB-pool metric snapshots                                                            |
-| [`../utils/pagination.js`](../utils/pagination.js)                       | shared query pagination parser, response headers, and metadata builder                                                  |
-| [`../utils/runtime-log.js`](../utils/runtime-log.js)                     | structured JSON log serializer used by server and DB lifecycle logging                                                  |
-| [`../railway.json`](../railway.json)                                     | Railway config-as-code for runtime start and healthcheck defaults                                                       |
+| File                                                                     | Role                                                                                                                                            |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`../server.js`](../server.js)                                           | Express entrypoint, request logging, CSP nonce injection, CORS policy, health/debug routes, static serving                                      |
+| [`../db.js`](../db.js)                                                   | DB connection pool, readiness state, SSL selection, startup schema patching                                                                     |
+| [`../middleware/auth.js`](../middleware/auth.js)                         | JWT verification, role resolution, permission checks                                                                                            |
+| [`../middleware/cache.js`](../middleware/cache.js)                       | owner-scoped short TTL JSON response cache middleware                                                                                           |
+| [`../middleware/export-queue.js`](../middleware/export-queue.js)         | async export middleware for queued PDF/Excel downloads                                                                                          |
+| [`../routes/auth.js`](../routes/auth.js)                                 | register/login/logout, Google OAuth, forgot/reset password, staff management, `/me`                                                             |
+| [`../routes/support.js`](../routes/support.js)                           | developer auth, owner/staff support chat, developer inbox, conversation status updates                                                          |
+| [`../routes/exports.js`](../routes/exports.js)                           | export job status and authenticated download endpoints                                                                                          |
+| [`../routes/ops.js`](../routes/ops.js)                                   | owner-only monitoring metrics and background cleanup endpoints                                                                                  |
+| [`../routes/inventory.js`](../routes/inventory.js)                       | stock defaults, shared item lookup, stock reports, sales reports, GST compare/export, dashboard overview, customer dues, owner-only due deletes |
+| [`../routes/business.js`](../routes/business.js)                         | suppliers, purchases that restock inventory, product purchase history, purchase repayment, owner-only purchase deletes, expenses                |
+| [`../routes/invoices.js`](../routes/invoices.js)                         | invoice numbering, invoice save, customer suggestions, history, payment settlement, PDF, shop info                                              |
+| [`../repositories/ops-repository.js`](../repositories/ops-repository.js) | database overview query used by ops metrics                                                                                                     |
+| [`../utils/background-jobs.js`](../utils/background-jobs.js)             | periodic cache/export cleanup and heartbeat logging                                                                                             |
+| [`../utils/cache.js`](../utils/cache.js)                                 | in-memory TTL cache plus owner-cache invalidation helpers                                                                                       |
+| [`../utils/concurrency.js`](../utils/concurrency.js)                     | normalization helpers and owner-scoped advisory locks                                                                                           |
+| [`../utils/export-queue.js`](../utils/export-queue.js)                   | in-memory export queue implementation and filename parsing                                                                                      |
+| [`../utils/monitoring.js`](../utils/monitoring.js)                       | request, cache, export, memory, and DB-pool metric snapshots                                                                                    |
+| [`../utils/pagination.js`](../utils/pagination.js)                       | shared query pagination parser, response headers, and metadata builder                                                                          |
+| [`../utils/runtime-log.js`](../utils/runtime-log.js)                     | structured JSON log serializer used by server and DB lifecycle logging                                                                          |
+| [`../railway.json`](../railway.json)                                     | Railway config-as-code for runtime start and healthcheck defaults                                                                               |
 
 ### Key frontend files
 
@@ -459,7 +419,7 @@ flowchart LR
 - [`../public/js/dashboard.js`](../public/js/dashboard.js)
   - drives most dashboard features
   - loads and submits purchase, supplier ledger, report, due, expense, support, and staff data
-  - handles Purchase Entry / Add Stock row logic, supplier autocomplete, bill-wise supplier search dropdowns, product purchase history, popups, section switching, and report export actions
+  - handles Purchase Entry / Add Stock row logic, supplier autocomplete, bill-wise supplier search dropdowns, product purchase history, owner-only ledger delete menus, popups, section switching, and report export actions
   - refreshes the session once after a `403` so stale staff permission state can recover before showing an access-denied popup
   - requests queued exports by adding `_async_export=1`, polls job status, then downloads through `/api/exports/:jobId/download`
 
@@ -794,40 +754,45 @@ Route handlers in this file cover registration, owner login, Google OAuth login/
 
 Route handlers in this file cover stock defaults for Purchase Entry, shared item lookup, item reporting, low-stock analysis, reorder planning, slow-moving stock analysis, sales reports, GST reports, customer dues, dashboard cards, and trend APIs. The retired standalone `POST /api/items` stock-entry route is preserved only as commented reference code; live stock intake is handled by `POST /api/purchases` in [`../routes/business.js`](../routes/business.js).
 
-| Function                                                   | Purpose                                                                 |
-| ---------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `formatCurrency(value)`                                    | formats numeric values for report output using Indian number formatting |
-| `formatIstDate(value)`                                     | formats a timestamp in the `Asia/Kolkata` timezone                      |
-| `getCurrentIstYear()`                                      | returns the current year in the IST timezone for trend filters          |
-| `safeFilePart(value)`                                      | sanitizes user input for downloadable file names                        |
-| `sanitizeExcelCell(value)`                                 | prevents formula injection in Excel exports                             |
-| `parseNonNegativeNumber(value)`                            | validates non-negative numeric input                                    |
-| `getShopName(userId)`                                      | resolves the current owner's shop name from `settings`                  |
-| `drawPdfBanner(doc, title, shopName, subtitle, rightText)` | renders the shared PDF report header block                              |
-| `drawPdfTableHeader(doc, columns)`                         | renders the shared PDF table header row                                 |
-| `ensurePdfSpace(doc, heightNeeded, onNewPage)`             | adds a new PDF page before content would overflow                       |
-| `getLowStockStatus(daysLeft)`                              | maps days-of-cover values into low-stock severity labels                |
-| `getReorderPriority(daysLeft)`                             | maps days-of-cover values into reorder priority labels                  |
-| `getSlowMovingPriority(sold30Days, daysCover)`             | classifies slow-moving inventory rows                                   |
-| `getSlowMovingFocusNote(sold30Days, daysCover)`            | writes the operator-facing message for slow-moving items                |
-| `fetchGstReportRows(userId, from, to)`                     | loads invoice-based GST rows for the selected date range                |
-| `summarizeGstRows(rows)`                                   | aggregates GST totals for report summaries                              |
+| Function                                                        | Purpose                                                                         |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `formatCurrency(value)`                                         | formats numeric values for report output using Indian number formatting         |
+| `formatIstDate(value)`                                          | formats a timestamp in the `Asia/Kolkata` timezone                              |
+| `getCurrentIstYear()`                                           | returns the current year in the IST timezone for trend filters                  |
+| `safeFilePart(value)`                                           | sanitizes user input for downloadable file names                                |
+| `sanitizeExcelCell(value)`                                      | prevents formula injection in Excel exports                                     |
+| `parseNonNegativeNumber(value)`                                 | validates non-negative numeric input                                            |
+| `getInvoicePaymentStatus(amountPaid, amountDue)`                | derives invoice `paid`, `partial`, or `due` state after ledger changes          |
+| `syncInvoiceBalancesFromDebtLedger(client, userId, invoiceIds)` | recalculates invoice paid/due totals after invoice-linked debt rows are deleted |
+| `getShopName(userId)`                                           | resolves the current owner's shop name from `settings`                          |
+| `drawPdfBanner(doc, title, shopName, subtitle, rightText)`      | renders the shared PDF report header block                                      |
+| `drawPdfTableHeader(doc, columns)`                              | renders the shared PDF table header row                                         |
+| `ensurePdfSpace(doc, heightNeeded, onNewPage)`                  | adds a new PDF page before content would overflow                               |
+| `getLowStockStatus(daysLeft)`                                   | maps days-of-cover values into low-stock severity labels                        |
+| `getReorderPriority(daysLeft)`                                  | maps days-of-cover values into reorder priority labels                          |
+| `getSlowMovingPriority(sold30Days, daysCover)`                  | classifies slow-moving inventory rows                                           |
+| `getSlowMovingFocusNote(sold30Days, daysCover)`                 | writes the operator-facing message for slow-moving items                        |
+| `fetchGstReportRows(userId, from, to)`                          | loads invoice-based GST rows for the selected date range                        |
+| `summarizeGstRows(rows)`                                        | aggregates GST totals for report summaries                                      |
 
 #### `routes/business.js` function inventory
 
-Route handlers in this file cover supplier lookup, purchase entry, product-wise purchase history, purchase reporting, supplier ledger views, repayment capture, and expenses.
+Route handlers in this file cover supplier lookup, purchase entry, product-wise purchase history, purchase reporting, supplier ledger views, repayment capture, owner-only purchase/supplier ledger deletion, and expenses.
 
-| Function                                                  | Purpose                                                            |
-| --------------------------------------------------------- | ------------------------------------------------------------------ |
-| `parseNonNegativeNumber(value)`                           | validates numeric inputs that may be zero                          |
-| `parsePositiveNumber(value)`                              | validates numeric inputs that must be greater than zero            |
-| `normalizeMobileNumber(value)`                            | canonicalizes supplier mobile numbers                              |
-| `normalizePaymentMode(value, fallback)`                   | constrains purchase/expense payment modes to supported values      |
-| `parseDateInput(value)`                                   | normalizes a raw date into `YYYY-MM-DD` form                       |
-| `toIstStartTimestamp(value)`                              | converts a date into an IST day-start timestamp                    |
-| `toIstDateRange(from, to)`                                | returns an inclusive IST date-range object for reports             |
-| `buildPaymentSnapshot(subtotal, paidInput, fallbackMode)` | computes purchase payment status, paid amount, and due amount      |
-| `findOrCreateSupplier(client, userId, payload)`           | performs locked supplier lookup/create/update inside a transaction |
+| Function                                                            | Purpose                                                              |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `parseNonNegativeNumber(value)`                                     | validates numeric inputs that may be zero                            |
+| `parsePositiveNumber(value)`                                        | validates numeric inputs that must be greater than zero              |
+| `normalizeMobileNumber(value)`                                      | canonicalizes supplier mobile numbers                                |
+| `normalizePaymentMode(value, fallback)`                             | constrains purchase/expense payment modes to supported values        |
+| `parseDateInput(value)`                                             | normalizes a raw date into `YYYY-MM-DD` form                         |
+| `toIstStartTimestamp(value)`                                        | converts a date into an IST day-start timestamp                      |
+| `toIstDateRange(from, to)`                                          | returns an inclusive IST date-range object for reports               |
+| `buildPaymentSnapshot(subtotal, paidInput, fallbackMode)`           | computes purchase payment status, paid amount, and due amount        |
+| `buildPurchasePaymentStatus(amountPaid, amountDue)`                 | recalculates saved purchase status after a bill item delete          |
+| `applyPurchaseStockReversal(client, userId, purchaseItems)`         | rolls back item stock for deleted purchase bills or bill items       |
+| `deletePurchaseBillsWithStockRollback(client, userId, purchaseIds)` | deletes purchase bills after locking rows and reversing stock safely |
+| `findOrCreateSupplier(client, userId, payload)`                     | performs locked supplier lookup/create/update inside a transaction   |
 
 #### `routes/invoices.js` function inventory
 
@@ -1012,10 +977,11 @@ Route handlers in this file are owner-only and cover monitoring metrics plus bac
 - session/bootstrap: `hideElement`, `showElement`, `markDashboardReady`, `authHeaders`, `handleSessionExpiry`, `checkAuth`
 - formatting/search helpers: `formatCount`, `formatNumber`, `formatCurrency`, `formatDate`, `normalizeSearchKey`, `buildStringSearchIndex`, `getSearchMatches`, `debounce`
 - shared purchase pricing defaults: `normalizeProfitPercentValue`, `applySharedProfitPercent`, `saveProfitPercentDefault`, `queueProfitPercentSave`, `loadProfitPercentDefault`
-- purchase and stock-intake workflow: `purchaseRows`, `getPurchaseDefaultProfitPercent`, `refreshPurchaseAutoRates`, `updatePurchaseSummary`, `addPurchaseItemRow`, `loadSupplierSuggestions`, `renderSupplierDropdown`, `loadPurchaseSearchSuggestions`, `renderPurchaseSearchDropdown`, `loadProductPurchaseHistory`, `renderProductPurchaseHistory`, `loadPurchaseReport`, `openPurchaseDetail`, `submitPurchaseRepayment`, `searchSupplierLedger`, `showAllSupplierSummary`, `submitPurchase`
+- purchase and stock-intake workflow: `purchaseRows`, `getPurchaseDefaultProfitPercent`, `refreshPurchaseAutoRates`, `updatePurchaseSummary`, `addPurchaseItemRow`, `loadSupplierSuggestions`, `renderSupplierDropdown`, `loadPurchaseSearchSuggestions`, `renderPurchaseSearchDropdown`, `loadProductPurchaseHistory`, `renderProductPurchaseHistory`, `loadPurchaseReport`, `openPurchaseDetail`, `submitPurchaseRepayment`, `searchSupplierLedger`, `showAllSupplierSummary`, `deleteSupplierLedger`, `deletePurchaseBill`, `deletePurchaseItem`, `refreshPurchaseViewsAfterDelete`, `submitPurchase`
 - expense workflow: `renderExpenseReport`, `loadExpenseReport`, `submitExpense`
 - report/export workflow: `renderItemReport`, `loadItemReport`, `loadLowStock`, `renderReorderPlanner`, `renderSlowMovingPlanner`, `renderSalesReport`, `loadSalesReport`, `loadGstReport`, `downloadItemReportPDF`, `downloadSalesPDF`, `downloadSalesExcel`, `downloadGstPDF`, `downloadGstExcel`
-- due ledger workflow: `getDueFormSnapshot`, `updateCustomerDuePreview`, `searchLedger`, `showAllDues`, `refreshCurrentDueView`, `submitDebt`
+- due ledger workflow: `getDueFormSnapshot`, `updateCustomerDuePreview`, `searchLedger`, `showAllDues`, `refreshCurrentDueView`, `deleteLedgerCustomer`, `deleteLedgerEntry`, `submitDebt`
+- shared owner-only action menu workflow: `isOwnerSession`, `renderLedgerActionMenu`, `bindLedgerActionMenus`, `closeLedgerActionMenus`, `getLedgerMenuHostClass`, `getLedgerMenuPrimaryClass`
 - dashboard analytics: `loadDashboardOverview`, `loadBusinessTrend`, `renderBusinessTrend`, `loadLast13MonthsChart`, `renderLast13MonthsChart`, `loadSalesNetProfitCard`
 - staff/owner workflow: `renderStaffPermissionGrid`, `readStaffPermissionSelection`, `setStaffPermissionSelection`, `renderStaffList`, `loadStaffAccounts`, `createStaffAccount`
 - event wiring: `bindPopupEvents`, `bindPurchaseEvents`, `bindReportEvents`, `bindCustomerDueEvents`, `bindExpenseEvents`, `bindSupportEvents`, `bindStaffEvents`
@@ -1092,6 +1058,7 @@ Important rules:
 - active staff session data is cached briefly in memory to reduce repeated DB lookups
 - frontend uses the same permission contract to hide or show sections
 - backend uses `requirePermission(...)` to enforce actual access control
+- destructive ledger and purchase cleanup actions use owner-only `requireOwner` routes, so staff cannot delete customer ledgers, supplier ledgers, purchase bills, or purchase bill items even if they have page access
 - active staff permissions are:
   - `purchase_entry`
   - `sale_invoice`
@@ -1126,6 +1093,7 @@ Current hardening that is visible in the codebase:
 - Google OAuth only creates accounts after verified Google email plus required shop name and 10-digit mobile number
 - auth-sensitive responses mark `Cache-Control: no-store`
 - developer support login now relies on the `developer_support_token` cookie rather than returning a browser-readable token in the response body
+- owner-only delete routes for customer ledgers, supplier ledgers, purchase bills, and purchase items are protected with `requireOwner`; the frontend also hides their 3-dot menus from staff sessions
 - Excel export sanitizes formula-like cell values in [`../routes/inventory.js`](../routes/inventory.js)
 - invoice PDF downloads now rely on the authenticated cookie-based fetch path used by the first-party frontend
 - queued export jobs are owner-scoped; `/api/exports/:jobId` returns `404` if another owner tries to read the job
@@ -1220,10 +1188,22 @@ index.html Purchase Desk
   -> Bills View calls GET /api/purchases/report with date and search filters
   -> Supplier Ledger search calls GET /api/suppliers and GET /api/suppliers/:supplierId/ledger
   -> Bill View search and Supplier Ledger search both provide supplier dropdown selection
+  -> Supplier Ledger View All clears the search input and calls GET /api/suppliers/summary without a q filter
   -> Supplier Ledger detail rows are ordered by purchase_date DESC, id DESC
   -> clicking a bill row opens GET /api/purchases/:purchaseId
   -> supplier repayment posts to /api/purchases/:purchaseId/repayment
+  -> owner 3-dot actions call DELETE /api/suppliers/:supplierId/ledger, DELETE /api/purchases/:purchaseId, or DELETE /api/purchase-items/:itemId
 ```
+
+Important delete behavior:
+
+- supplier ledger delete removes the supplier's purchase bills but keeps the supplier master row
+- purchase bill delete removes the bill and cascades line items through the schema
+- purchase item delete recalculates the parent bill subtotal, paid amount, due amount, and payment status
+- purchase item delete is blocked for the last remaining item; delete the full bill instead
+- all purchase delete paths roll back stock by matching normalized purchase item names to `items.name`
+- deletes fail safely if the current stock quantity is lower than the quantity being reversed
+- these delete actions are owner-only; staff users can view assigned purchase pages but cannot see or call the delete controls
 
 ### Product purchase history
 
@@ -1271,8 +1251,16 @@ dashboard due section
   -> GET /api/debts/:number for one customer ledger
   -> GET /api/debts/:number/pdf for customer ledger PDF
   -> GET /api/debts for all due summary
+  -> owner 3-dot actions call DELETE /api/debts/customers/:number or DELETE /api/debts/entries/:id
   -> ledger rows render newest first in the UI and PDF, after chronological balance calculation
 ```
+
+Important delete behavior:
+
+- full customer ledger delete removes all `debts` rows for the selected customer number
+- individual transaction delete removes one `debts` row
+- if deleted debt rows were linked to invoices, invoice paid/due totals and payment status are recalculated from the remaining debt ledger rows
+- delete actions are hidden from staff and blocked by owner-only backend guards
 
 ### Supplier repayment
 
@@ -1359,32 +1347,34 @@ Most endpoints below are mounted under either `/api/auth` or `/api`; health rout
 
 ### 11.2 Inventory routes from `routes/inventory.js`
 
-| Method | Path                             | Purpose                                                        |
-| ------ | -------------------------------- | -------------------------------------------------------------- |
-| `GET`  | `/api/stock-defaults`            | load Purchase Entry default profit percent                     |
-| `PUT`  | `/api/stock-defaults`            | save Purchase Entry default profit percent                     |
-| `GET`  | `/api/items/names`               | item name autocomplete for purchase, invoice, and stock report |
-| `GET`  | `/api/items/info`                | item detail lookup by name for purchase and invoice flows      |
-| `GET`  | `/api/items/report`              | stock report rows                                              |
-| `GET`  | `/api/items/low-stock`           | low stock list                                                 |
-| `GET`  | `/api/items/reorder-suggestions` | reorder planner                                                |
-| `GET`  | `/api/items/slow-moving`         | slow-moving stock planner                                      |
-| `GET`  | `/api/items/report/pdf`          | stock report PDF                                               |
-| `GET`  | `/api/sales/report`              | sales report rows                                              |
-| `GET`  | `/api/sales/report/pdf`          | sales report PDF                                               |
-| `GET`  | `/api/sales/report/excel`        | sales report Excel                                             |
-| `GET`  | `/api/gst/report`                | GST report rows                                                |
-| `GET`  | `/api/gst/compare`               | month-by-month GST comparison                                  |
-| `GET`  | `/api/gst/report/pdf`            | GST report PDF                                                 |
-| `GET`  | `/api/gst/report/excel`          | GST report Excel                                               |
-| `POST` | `/api/debts`                     | add customer due ledger entry                                  |
-| `GET`  | `/api/debts/customers`           | search customers with dues                                     |
-| `GET`  | `/api/debts/:number/pdf`         | customer ledger PDF                                            |
-| `GET`  | `/api/debts/:number`             | load one customer ledger                                       |
-| `GET`  | `/api/debts`                     | summary of all dues                                            |
-| `GET`  | `/api/dashboard/overview`        | owner dashboard summary cards                                  |
-| `GET`  | `/api/sales/monthly-trend`       | monthly sales chart data                                       |
-| `GET`  | `/api/sales/last-13-months`      | rolling 13-month sales chart data                              |
+| Method   | Path                             | Purpose                                                        |
+| -------- | -------------------------------- | -------------------------------------------------------------- |
+| `GET`    | `/api/stock-defaults`            | load Purchase Entry default profit percent                     |
+| `PUT`    | `/api/stock-defaults`            | save Purchase Entry default profit percent                     |
+| `GET`    | `/api/items/names`               | item name autocomplete for purchase, invoice, and stock report |
+| `GET`    | `/api/items/info`                | item detail lookup by name for purchase and invoice flows      |
+| `GET`    | `/api/items/report`              | stock report rows                                              |
+| `GET`    | `/api/items/low-stock`           | low stock list                                                 |
+| `GET`    | `/api/items/reorder-suggestions` | reorder planner                                                |
+| `GET`    | `/api/items/slow-moving`         | slow-moving stock planner                                      |
+| `GET`    | `/api/items/report/pdf`          | stock report PDF                                               |
+| `GET`    | `/api/sales/report`              | sales report rows                                              |
+| `GET`    | `/api/sales/report/pdf`          | sales report PDF                                               |
+| `GET`    | `/api/sales/report/excel`        | sales report Excel                                             |
+| `GET`    | `/api/gst/report`                | GST report rows                                                |
+| `GET`    | `/api/gst/compare`               | month-by-month GST comparison                                  |
+| `GET`    | `/api/gst/report/pdf`            | GST report PDF                                                 |
+| `GET`    | `/api/gst/report/excel`          | GST report Excel                                               |
+| `POST`   | `/api/debts`                     | add customer due ledger entry                                  |
+| `DELETE` | `/api/debts/customers/:number`   | owner-only delete of all due rows for one customer             |
+| `DELETE` | `/api/debts/entries/:id`         | owner-only delete of one due ledger transaction                |
+| `GET`    | `/api/debts/customers`           | search customers with dues                                     |
+| `GET`    | `/api/debts/:number/pdf`         | customer ledger PDF                                            |
+| `GET`    | `/api/debts/:number`             | load one customer ledger                                       |
+| `GET`    | `/api/debts`                     | summary of all dues                                            |
+| `GET`    | `/api/dashboard/overview`        | owner dashboard summary cards                                  |
+| `GET`    | `/api/sales/monthly-trend`       | monthly sales chart data                                       |
+| `GET`    | `/api/sales/last-13-months`      | rolling 13-month sales chart data                              |
 
 Retired inventory route note:
 
@@ -1392,19 +1382,22 @@ Retired inventory route note:
 
 ### 11.3 Business routes from `routes/business.js`
 
-| Method | Path                                   | Purpose                                          |
-| ------ | -------------------------------------- | ------------------------------------------------ |
-| `GET`  | `/api/suppliers`                       | supplier search and quick lookup                 |
-| `POST` | `/api/purchases`                       | save purchase and restock inventory              |
-| `GET`  | `/api/purchases/report`                | purchase report list                             |
-| `GET`  | `/api/purchases/product-history`       | product-wise purchase item history               |
-| `GET`  | `/api/purchases/:purchaseId`           | purchase detail with line items                  |
-| `POST` | `/api/purchases/:purchaseId/repayment` | record supplier repayment                        |
-| `GET`  | `/api/suppliers/summary`               | supplier balance summary                         |
-| `GET`  | `/api/suppliers/:supplierId/ledger`    | supplier ledger / purchase history, newest first |
-| `POST` | `/api/expenses`                        | save expense entry                               |
-| `GET`  | `/api/expenses/suggestions`            | expense title/category suggestions               |
-| `GET`  | `/api/expenses/report`                 | expense report and summary                       |
+| Method   | Path                                   | Purpose                                                                |
+| -------- | -------------------------------------- | ---------------------------------------------------------------------- |
+| `GET`    | `/api/suppliers`                       | supplier search and quick lookup                                       |
+| `POST`   | `/api/purchases`                       | save purchase and restock inventory                                    |
+| `GET`    | `/api/purchases/report`                | purchase report list                                                   |
+| `GET`    | `/api/purchases/product-history`       | product-wise purchase item history                                     |
+| `GET`    | `/api/purchases/:purchaseId`           | purchase detail with line items                                        |
+| `DELETE` | `/api/purchases/:purchaseId`           | owner-only purchase bill delete with stock rollback                    |
+| `DELETE` | `/api/purchase-items/:itemId`          | owner-only bill item delete with stock rollback and bill recalculation |
+| `POST`   | `/api/purchases/:purchaseId/repayment` | record supplier repayment                                              |
+| `GET`    | `/api/suppliers/summary`               | supplier balance summary                                               |
+| `DELETE` | `/api/suppliers/:supplierId/ledger`    | owner-only delete of all purchase bills for one supplier               |
+| `GET`    | `/api/suppliers/:supplierId/ledger`    | supplier ledger / purchase history, newest first                       |
+| `POST`   | `/api/expenses`                        | save expense entry                                                     |
+| `GET`    | `/api/expenses/suggestions`            | expense title/category suggestions                                     |
+| `GET`    | `/api/expenses/report`                 | expense report and summary                                             |
 
 ### 11.4 Invoice routes from `routes/invoices.js`
 
@@ -1749,6 +1742,7 @@ Notes:
 - `invoice_id` is nullable
 - settlement rows can reference an invoice
 - manual due entries can exist without invoice linkage
+- owner-only debt delete routes remove rows from this table; when removed rows reference invoices, the linked invoice paid/due totals are recalculated from remaining `debts` rows
 
 #### `suppliers`
 
@@ -1771,6 +1765,7 @@ Notes:
 - supplier lookup uses normalized name/mobile matching
 - supplier creation/update is protected with advisory locks
 - selecting a supplier in the purchase form fills name, mobile number, and address
+- supplier ledger delete keeps this master supplier row and deletes the supplier's purchase bills instead
 
 #### `purchases`
 
@@ -1797,6 +1792,8 @@ Notes:
 
 - repayment updates are written back into this row
 - payment mode can become `mixed`
+- owner-only purchase bill delete removes the purchase header after reversing stock for all linked `purchase_items`
+- supplier ledger delete deletes multiple purchase headers for a supplier after the same stock rollback check
 
 #### `purchase_items`
 
@@ -1819,6 +1816,8 @@ Notes:
 - this stores a snapshot of purchase data
 - there is no direct foreign key to `items`
 - `/api/purchases/product-history` joins purchase items to purchases and suppliers by product name
+- owner-only item delete removes one line, reverses stock by normalized item name, and recalculates the parent purchase totals
+- deleting the last item row is blocked; the full bill delete path should be used instead
 
 #### `expenses`
 
@@ -2110,6 +2109,7 @@ Constraints, indexes, and triggers:
 - `customer_number` must match a 10-digit numeric pattern
 - indexes: `idx_debts_user_id`, `idx_debts_user_number_created`, `idx_debts_invoice_id`
 - trigger `update_debts_timestamp` calls shared `update_timestamp()`
+- owner-only delete routes resync linked invoice balances after deleting invoice-linked debt rows
 
 #### `suppliers`
 
@@ -2131,6 +2131,7 @@ Constraints, indexes, and triggers:
 - indexes: `idx_suppliers_user_name`, `idx_suppliers_user_mobile`, `idx_suppliers_user_id`
 - trigger `update_suppliers_timestamp` calls shared `update_timestamp()`
 - `GET /api/suppliers` powers supplier ledger search and Purchase Entry supplier autofill
+- owner-only supplier ledger delete removes related `purchases` rows but keeps this supplier record
 
 #### `purchases`
 
@@ -2156,6 +2157,7 @@ Constraints, indexes, and triggers:
 - foreign keys `user_id -> users.id`, `supplier_id -> suppliers.id`
 - indexes: `idx_purchases_user_date`, `idx_purchases_supplier_id`, `idx_purchases_user_id`
 - trigger `update_purchases_timestamp` calls shared `update_timestamp()`
+- owner-only bill delete reverses stock and deletes this row; linked `purchase_items` are removed through `ON DELETE CASCADE`
 
 #### `purchase_items`
 
@@ -2176,6 +2178,7 @@ Constraints, indexes, and triggers:
 - index `idx_purchase_items_purchase`
 - no trigger exists because rows are immutable line snapshots
 - product purchase history reads these rows and opens the original bill through `purchase_id`
+- owner-only item delete removes one row, reverses stock, and recalculates the parent `purchases` totals
 
 #### `expenses`
 
@@ -2312,11 +2315,28 @@ Purchase save:
 3. `purchase_items` rows are inserted
 4. `items` stock and rate snapshot are updated
 
+Purchase or supplier ledger delete:
+
+1. owner-only route locks the purchase/supplier scope
+2. linked `purchase_items` rows are loaded and grouped by normalized item name
+3. `items.quantity` is reduced by the purchased quantity being removed
+4. delete is rejected if stock would go below zero, which protects already-sold stock
+5. the purchase bill is deleted, or the bill item is deleted and the purchase totals are recalculated
+6. supplier ledger delete applies the same bill-delete flow to all purchases for that supplier and keeps the supplier row
+
 Invoice collection:
 
 1. invoice row is locked and updated
 2. payment totals are recalculated
 3. a `debts` row is inserted as a collection ledger line
+
+Customer ledger delete:
+
+1. owner-only route locks the selected customer ledger
+2. the full customer ledger or one selected `debts` row is deleted
+3. invoice IDs from deleted rows are collected
+4. linked invoices are locked and their paid/due totals are recalculated from remaining debt rows
+5. owner-scoped response cache is invalidated
 
 ### 12.8 Indexes, triggers, and compatibility behavior
 
@@ -2430,8 +2450,11 @@ For purchase-specific search/autofill behavior:
 
 - supplier autocomplete lives in [`../public/js/dashboard.js`](../public/js/dashboard.js) and calls `GET /api/suppliers`
 - bill-wise supplier search uses the same supplier dropdown selection path as Supplier Ledger
+- Supplier Ledger View All should continue to clear the current search input and call `GET /api/suppliers/summary` without a search query
 - product purchase history lives in [`../public/index.html`](../public/index.html), [`../public/js/dashboard.js`](../public/js/dashboard.js), and `GET /api/purchases/product-history`
 - standalone Add New Stock UI is retired; stock changes should continue to go through `POST /api/purchases`
+- owner-only 3-dot delete actions are rendered from [`../public/js/dashboard.js`](../public/js/dashboard.js) and protected again in [`../routes/inventory.js`](../routes/inventory.js) / [`../routes/business.js`](../routes/business.js) with `requireOwner`
+- purchase/supplier delete behavior must preserve stock rollback checks; customer debt delete behavior must preserve linked invoice balance resync
 
 ### If you want to change Play Store, Android install, or browser install behavior
 
@@ -2535,8 +2558,8 @@ flowchart TB
     SupportAPI["routes/support.js<br/>developer auth | support thread | developer inbox"]
     ExportAPI["routes/exports.js<br/>export job status | download"]
     OpsAPI["routes/ops.js<br/>owner metrics | background cleanup"]
-    InventoryAPI["routes/inventory.js<br/>stock | reports | GST compare/export | debts | overview"]
-    BusinessAPI["routes/business.js<br/>suppliers | purchases | product history | repayments | expenses"]
+    InventoryAPI["routes/inventory.js<br/>stock | reports | GST compare/export | debts | due deletes | overview"]
+    BusinessAPI["routes/business.js<br/>suppliers | purchases | product history | repayments | purchase deletes | expenses"]
     InvoiceAPI["routes/invoices.js<br/>invoice save | customer lookup | history | settlement | PDF | shop info"]
     Concurrency["utils/concurrency.js<br/>normalizers | advisory locks"]
     RuntimeHelpers["utils/cache.js | export-queue.js | monitoring.js | background-jobs.js | pagination.js"]
@@ -2585,7 +2608,7 @@ flowchart TB
   Login -->|"POST /api/auth/* and GET /api/auth/google/*"| Entry
   DevLogin -->|"POST /api/developer-auth/*"| Entry
   DevSupport -->|"GET/POST/PATCH /api/developer-support/*"| Entry
-  Dashboard -->|"GET/POST /api/* plus queued export polling"| Entry
+  Dashboard -->|"GET/POST/DELETE /api/* plus queued export polling"| Entry
   Invoice -->|"GET/POST /api/invoices* including /api/invoices/customers, /api/shop-info, and queued PDF polling"| Entry
   Reset -->|"POST /api/auth/reset-password"| Entry
 
@@ -2663,6 +2686,7 @@ This codebase is organized around a single owner-scoped business workspace:
 - Express route files are grouped by business domain
 - PostgreSQL stores all operational data for inventory, purchase-backed stock intake, invoices, dues, expenses, and staff control
 - authentication is cookie-based for owner, staff, Google owner login, and developer support flows, with staff permissions enforced on both frontend and backend
+- destructive ledger cleanup is owner-only: customer ledger deletes sync invoice balances, while purchase/supplier deletes reverse stock before removing purchase data
 - the support system adds owner/staff requester threads plus a dedicated developer inbox backed by `developer_admins`, `support_conversations`, and `support_messages`
 - runtime behavior now includes structured lifecycle/request logging, request metrics, background cleanup, queued export jobs, and readiness/liveness health endpoints
 - deployment defaults for Railway are codified in [`../railway.json`](../railway.json)
