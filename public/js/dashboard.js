@@ -6057,8 +6057,221 @@ function updateDueOverviewFromRows(rows) {
   updateDueWorkspaceMeta();
 }
 
+function closeLedgerActionMenus(exceptMenu = null) {
+  dom.ledgerTable
+    ?.querySelectorAll(".ledger-row-menu.is-open")
+    .forEach((menu) => {
+      if (menu === exceptMenu) {
+        return;
+      }
+
+      menu.classList.remove("is-open");
+      menu
+        .querySelector(".ledger-menu-toggle")
+        ?.setAttribute("aria-expanded", "false");
+    });
+}
+
+function renderLedgerActionMenu(action, options = {}) {
+  const encodedNumber = encodeURIComponent(options.number || "");
+  const encodedName = encodeURIComponent(options.name || "");
+  const entryId = Number.parseInt(options.entryId, 10) || 0;
+  const isCustomerDelete = action === "delete-customer";
+  const buttonLabel = isCustomerDelete
+    ? "More customer actions"
+    : "More transaction actions";
+  const optionLabel = isCustomerDelete
+    ? "Delete customer ledger"
+    : "Delete transaction";
+
+  return `
+    <div class="ledger-row-menu" data-ledger-menu>
+      <button
+        class="ledger-menu-toggle"
+        type="button"
+        aria-label="${buttonLabel}"
+        aria-expanded="false"
+      >
+        <i class="fa-solid fa-ellipsis-vertical"></i>
+      </button>
+      <div class="ledger-menu-popover" role="menu">
+        <button
+          class="ledger-menu-option ledger-menu-option--danger"
+          type="button"
+          role="menuitem"
+          data-ledger-action="${action}"
+          data-ledger-id="${entryId}"
+          data-ledger-number="${escapeHtml(encodedNumber)}"
+          data-ledger-name="${escapeHtml(encodedName)}"
+        >
+          <i class="fa-solid fa-trash"></i>
+          <span>${optionLabel}</span>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+async function refreshDueSummarySnapshot() {
+  try {
+    const rows = await fetchJSON("/debts");
+    updateDueOverviewFromRows(Array.isArray(rows) ? rows : []);
+  } catch (error) {
+    console.error("Due summary refresh failed:", error);
+  }
+}
+
+async function deleteLedgerCustomer(button) {
+  const customerNumber = decodeURIComponent(button.dataset.ledgerNumber || "");
+  const customerName = decodeURIComponent(button.dataset.ledgerName || "");
+
+  if (!/^\d{10}$/.test(customerNumber)) {
+    showPopup(
+      "error",
+      "Delete unavailable",
+      "This customer ledger number is invalid.",
+      { autoClose: false },
+    );
+    return;
+  }
+
+  const label = customerName
+    ? `${customerName} (${customerNumber})`
+    : customerNumber;
+  const confirmed = window.confirm(
+    `Delete full ledger for ${label}? This will remove all due transactions for this customer.`,
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  await withButtonState(
+    button,
+    '<i class="fa-solid fa-spinner fa-spin"></i><span>Deleting...</span>',
+    async () => {
+      try {
+        await fetchJSON(`/debts/customers/${customerNumber}`, {
+          method: "DELETE",
+        });
+        dom.cdSearchInput.value = "";
+        await showAllDues({ silent: true });
+        showPopup(
+          "success",
+          "Customer ledger deleted",
+          "The selected customer ledger has been deleted.",
+        );
+      } catch (error) {
+        showPopup(
+          "error",
+          "Delete failed",
+          error.message || "Could not delete this customer ledger.",
+          { autoClose: false },
+        );
+      }
+    },
+  );
+}
+
+async function deleteLedgerEntry(button) {
+  const entryId = Number.parseInt(button.dataset.ledgerId, 10);
+  const customerNumber = decodeURIComponent(button.dataset.ledgerNumber || "");
+
+  if (!Number.isInteger(entryId) || entryId <= 0) {
+    showPopup(
+      "error",
+      "Delete unavailable",
+      "This ledger transaction is missing a valid id.",
+      { autoClose: false },
+    );
+    return;
+  }
+
+  const confirmed = window.confirm(
+    "Delete this ledger transaction? This action will remove it from the database.",
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  await withButtonState(
+    button,
+    '<i class="fa-solid fa-spinner fa-spin"></i><span>Deleting...</span>',
+    async () => {
+      try {
+        await fetchJSON(`/debts/entries/${entryId}`, { method: "DELETE" });
+        await refreshDueSummarySnapshot();
+
+        if (/^\d{10}$/.test(customerNumber)) {
+          await searchLedger({ value: customerNumber, silent: true });
+        } else {
+          await refreshCurrentDueView();
+        }
+
+        showPopup(
+          "success",
+          "Transaction deleted",
+          "The selected ledger transaction has been deleted.",
+        );
+      } catch (error) {
+        showPopup(
+          "error",
+          "Delete failed",
+          error.message || "Could not delete this ledger transaction.",
+          { autoClose: false },
+        );
+      }
+    },
+  );
+}
+
+function bindLedgerActionMenus() {
+  dom.ledgerTable?.querySelectorAll(".ledger-row-menu").forEach((menu) => {
+    const toggle = menu.querySelector(".ledger-menu-toggle");
+
+    menu.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+
+    toggle?.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const shouldOpen = !menu.classList.contains("is-open");
+      closeLedgerActionMenus(menu);
+      menu.classList.toggle("is-open", shouldOpen);
+      toggle.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
+    });
+  });
+
+  dom.ledgerTable
+    ?.querySelectorAll("[data-ledger-action]")
+    .forEach((button) => {
+      button.addEventListener("click", async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        closeLedgerActionMenus();
+
+        if (button.dataset.ledgerAction === "delete-customer") {
+          await deleteLedgerCustomer(button);
+          return;
+        }
+
+        if (button.dataset.ledgerAction === "delete-entry") {
+          await deleteLedgerEntry(button);
+        }
+      });
+    });
+}
+
 function renderLedgerTable(rows, mode = "summary") {
   if (!rows.length) {
+    if (mode === "summary") {
+      updateDueOverviewFromRows([]);
+      renderEmptyLedger("No customer due balances found.");
+      return;
+    }
+
     renderEmptyLedger("No records found for this customer selection.");
     return;
   }
@@ -6106,8 +6319,10 @@ function renderLedgerTable(rows, mode = "summary") {
       const total = Number(row.total) || 0;
       const credit = Number(row.credit) || 0;
       const balance = Number(row.balance) || 0;
-      const customerName = escapeHtml(row.customer_name);
-      const customerNumber = escapeHtml(row.customer_number);
+      const rawCustomerName = String(row.customer_name || "");
+      const rawCustomerNumber = String(row.customer_number || "");
+      const customerName = escapeHtml(rawCustomerName);
+      const customerNumber = escapeHtml(rawCustomerNumber);
 
       totalOutstanding += balance;
       tableBody += `
@@ -6118,14 +6333,18 @@ function renderLedgerTable(rows, mode = "summary") {
           role="button"
           aria-label="Open ledger for ${customerName}"
         >
-          <td data-label="Name">
-            <div class="due-row-title">
+          <td data-label="Name" class="ledger-menu-host">
+            <div class="due-row-title ledger-menu-primary">
               <strong>${customerName}</strong>
               <span class="table-row-hint">
                 <i class="fa-solid fa-arrow-up-right-from-square"></i>
                 Open full ledger
               </span>
             </div>
+            ${renderLedgerActionMenu("delete-customer", {
+              number: rawCustomerNumber,
+              name: rawCustomerName,
+            })}
           </td>
           <td data-label="Number">${customerNumber}</td>
           <td data-label="Total">${formatCurrencyValue(total)}</td>
@@ -6187,7 +6406,14 @@ function renderLedgerTable(rows, mode = "summary") {
       .forEach((row) => {
         tableBody += `
           <tr>
-            <td data-label="Date">${formatDate(row.created_at)}</td>
+            <td data-label="Date" class="ledger-menu-host">
+              <span class="ledger-menu-primary">${formatDate(row.created_at)}</span>
+              ${renderLedgerActionMenu("delete-entry", {
+                entryId: row.id,
+                number: row.customer_number,
+                name: row.customer_name,
+              })}
+            </td>
             <td data-label="Total">${formatCurrencyValue(row.total)}</td>
             <td data-label="Credit">${formatCurrencyValue(row.credit)}</td>
             <td data-label="Balance">${renderDueBalancePill(row.runningBalance)}</td>
@@ -6220,6 +6446,8 @@ function renderLedgerTable(rows, mode = "summary") {
     </table>
   `;
 
+  bindLedgerActionMenus();
+
   if (mode === "summary") {
     dom.ledgerTable.querySelectorAll(".interactive-row").forEach((row) => {
       const openLedger = () => {
@@ -6234,6 +6462,10 @@ function renderLedgerTable(rows, mode = "summary") {
 
       row.addEventListener("click", openLedger);
       row.addEventListener("keydown", (event) => {
+        if (event.target.closest(".ledger-row-menu")) {
+          return;
+        }
+
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
           openLedger();
@@ -6916,6 +7148,7 @@ function bindPopupEvents() {
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       hidePopup();
+      closeLedgerActionMenus();
       sidebarController?.close();
     }
   });
@@ -7358,6 +7591,10 @@ function bindCustomerDueEvents() {
       !dom.cdSearchDropdown.contains(event.target)
     ) {
       hideElement(dom.cdSearchDropdown);
+    }
+
+    if (!event.target.closest(".ledger-row-menu")) {
+      closeLedgerActionMenus();
     }
   });
 

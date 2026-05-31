@@ -103,6 +103,73 @@ function parseNonNegativeNumber(value) {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
 
+function getInvoicePaymentStatus(amountPaid, amountDue) {
+  if (amountDue > 0.009 && amountPaid > 0.009) {
+    return "partial";
+  }
+
+  if (amountDue > 0.009) {
+    return "due";
+  }
+
+  return "paid";
+}
+
+async function syncInvoiceBalancesFromDebtLedger(client, userId, invoiceIds) {
+  const uniqueInvoiceIds = Array.from(
+    new Set(
+      invoiceIds
+        .map((invoiceId) => Number.parseInt(invoiceId, 10))
+        .filter((invoiceId) => Number.isInteger(invoiceId) && invoiceId > 0),
+    ),
+  );
+
+  for (const invoiceId of uniqueInvoiceIds) {
+    const invoiceResult = await client.query(
+      `SELECT id, total_amount
+       FROM invoices
+       WHERE user_id = $1 AND id = $2
+       FOR UPDATE`,
+      [userId, invoiceId],
+    );
+
+    const invoice = invoiceResult.rows[0];
+    if (!invoice) {
+      continue;
+    }
+
+    const ledgerResult = await client.query(
+      `SELECT COALESCE(SUM(credit), 0) AS amount_paid
+       FROM debts
+       WHERE user_id = $1 AND invoice_id = $2`,
+      [userId, invoiceId],
+    );
+
+    const totalAmount = Number(invoice.total_amount || 0);
+    const ledgerPaid = Number(ledgerResult.rows[0]?.amount_paid || 0);
+    const amountPaid = Number(
+      Math.min(Math.max(ledgerPaid, 0), totalAmount).toFixed(2),
+    );
+    const amountDue = Number((totalAmount - amountPaid).toFixed(2));
+
+    await client.query(
+      `UPDATE invoices
+       SET amount_paid = $1,
+           amount_due = $2,
+           payment_status = $3,
+           updated_at = NOW()
+       WHERE user_id = $4 AND id = $5`,
+      [
+        amountPaid,
+        amountDue,
+        getInvoicePaymentStatus(amountPaid, amountDue),
+        userId,
+        invoiceId,
+      ],
+    );
+  }
+}
+
 async function getShopName(userId) {
   const result = await pool.query(
     `SELECT COALESCE(NULLIF(TRIM(shop_name), ''), 'India Inventory Management') AS shop_name
@@ -2069,6 +2136,153 @@ router.post("/debts", requirePermission("customer_due"), async (req, res) => {
     client.release();
   }
 });
+
+router.delete(
+  "/debts/customers/:number",
+  requirePermission("customer_due"),
+  async (req, res) => {
+    const client = await pool.connect();
+    try {
+      const user_id = getUserId(req);
+      const customerNumber = String(req.params.number || "").trim();
+
+      if (!/^\d{10}$/.test(customerNumber)) {
+        return res
+          .status(400)
+          .json({ error: "Customer number must be 10 digits" });
+      }
+
+      await client.query("BEGIN");
+      await lockScopedResource(client, user_id, "customer-debt", customerNumber);
+
+      const deleteResult = await client.query(
+        `DELETE FROM debts
+         WHERE user_id = $1 AND customer_number = $2
+         RETURNING id, invoice_id`,
+        [user_id, customerNumber],
+      );
+
+      if (!deleteResult.rowCount) {
+        await client.query("ROLLBACK");
+        return res
+          .status(404)
+          .json({ error: "No ledger rows found for this customer" });
+      }
+
+      await syncInvoiceBalancesFromDebtLedger(
+        client,
+        user_id,
+        deleteResult.rows.map((row) => row.invoice_id),
+      );
+
+      await client.query("COMMIT");
+      invalidateUserCache(user_id);
+
+      res.json({
+        message: "Customer ledger deleted successfully",
+        deleted_count: deleteResult.rowCount,
+      });
+    } catch (err) {
+      try {
+        await client.query("ROLLBACK");
+      } catch (rollbackError) {
+        if (process.env.NODE_ENV !== "production") {
+          console.error(
+            "Error rolling back DELETE /debts/customers:",
+            rollbackError,
+          );
+        }
+      }
+
+      if (process.env.NODE_ENV !== "production") {
+        console.error("Error in DELETE /debts/customers/:number:", err);
+      }
+      res.status(500).json({ error: "Server error" });
+    } finally {
+      client.release();
+    }
+  },
+);
+
+router.delete(
+  "/debts/entries/:id",
+  requirePermission("customer_due"),
+  async (req, res) => {
+    const client = await pool.connect();
+    try {
+      const user_id = getUserId(req);
+      const debtId = Number.parseInt(req.params.id, 10);
+
+      if (!Number.isInteger(debtId) || debtId <= 0) {
+        return res
+          .status(400)
+          .json({ error: "Valid ledger entry id required" });
+      }
+
+      await client.query("BEGIN");
+
+      const debtResult = await client.query(
+        `SELECT customer_number
+         FROM debts
+         WHERE user_id = $1 AND id = $2`,
+        [user_id, debtId],
+      );
+
+      const customerNumber = debtResult.rows[0]?.customer_number;
+      if (!customerNumber) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ error: "Ledger entry not found" });
+      }
+
+      await lockScopedResource(client, user_id, "customer-debt", customerNumber);
+
+      const deleteResult = await client.query(
+        `DELETE FROM debts
+         WHERE user_id = $1 AND id = $2
+         RETURNING id, customer_number, invoice_id`,
+        [user_id, debtId],
+      );
+
+      if (!deleteResult.rowCount) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ error: "Ledger entry not found" });
+      }
+
+      await syncInvoiceBalancesFromDebtLedger(
+        client,
+        user_id,
+        deleteResult.rows.map((row) => row.invoice_id),
+      );
+
+      await client.query("COMMIT");
+      invalidateUserCache(user_id);
+
+      res.json({
+        message: "Ledger transaction deleted successfully",
+        deleted_count: deleteResult.rowCount,
+        customer_number: deleteResult.rows[0].customer_number,
+      });
+    } catch (err) {
+      try {
+        await client.query("ROLLBACK");
+      } catch (rollbackError) {
+        if (process.env.NODE_ENV !== "production") {
+          console.error(
+            "Error rolling back DELETE /debts/entries:",
+            rollbackError,
+          );
+        }
+      }
+
+      if (process.env.NODE_ENV !== "production") {
+        console.error("Error in DELETE /debts/entries/:id:", err);
+      }
+      res.status(500).json({ error: "Server error" });
+    } finally {
+      client.release();
+    }
+  },
+);
 
 // ----------------- CUSTOMER AUTOSUGGEST -----------------
 router.get(
