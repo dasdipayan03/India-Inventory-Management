@@ -2785,7 +2785,66 @@
         line-height: 1.7;
       }
 
+      .popup-actions {
+        display: none;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 22px;
+      }
+
+      .popup-box.has-actions .popup-actions {
+        display: grid;
+      }
+
+      .popup-action-btn {
+        min-height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 14px;
+        font-size: 13px;
+        font-weight: 800;
+        line-height: 1.2;
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease,
+          background-color 0.2s ease,
+          color 0.2s ease;
+      }
+
+      .popup-action-btn:hover {
+        transform: translateY(-1px);
+      }
+
+      .popup-action-btn--secondary {
+        color: var(--ink-soft);
+        background: rgba(100, 116, 139, 0.12);
+        box-shadow: 0 10px 20px rgba(100, 116, 139, 0.12);
+      }
+
+      .popup-action-btn--secondary:hover {
+        color: var(--ink-strong);
+        background: rgba(226, 232, 240, 0.96);
+        box-shadow: 0 14px 28px rgba(100, 116, 139, 0.16);
+      }
+
+      .popup-action-btn--danger {
+        color: #ffffff;
+        background: #dc2626;
+        box-shadow: 0 12px 24px rgba(220, 38, 38, 0.24);
+      }
+
+      .popup-action-btn--danger:hover {
+        color: #ffffff;
+        background: #b91c1c;
+        box-shadow: 0 16px 30px rgba(220, 38, 38, 0.3);
+      }
+
       .popup-close:focus-visible,
+      .popup-action-btn:focus-visible,
       .btn:focus-visible,
       .form-control:focus-visible,
       .form-select:focus-visible {
@@ -6112,6 +6171,23 @@
         </div>
         <h4 id="popupTitle"></h4>
         <p id="popupMessage"></p>
+        <div id="popupActions" class="popup-actions" hidden>
+          <button
+            id="popupCancel"
+            class="popup-action-btn popup-action-btn--secondary"
+            type="button"
+          >
+            Cancel
+          </button>
+          <button
+            id="popupConfirm"
+            class="popup-action-btn popup-action-btn--danger"
+            type="button"
+          >
+            <i class="fa-solid fa-trash"></i>
+            Delete
+          </button>
+        </div>
       </div>
     </div>
 

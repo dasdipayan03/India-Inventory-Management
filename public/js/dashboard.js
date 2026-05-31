@@ -45,6 +45,7 @@ const state = {
     libraryPromise: null,
   },
   popupTimer: null,
+  popupConfirmResolve: null,
   profitSaveRequestId: 0,
   profitSaveTimer: null,
   lastSavedProfitPercent: null,
@@ -846,6 +847,9 @@ function cacheElements() {
     popupTitle: document.getElementById("popupTitle"),
     popupMessage: document.getElementById("popupMessage"),
     popupClose: document.getElementById("popupClose"),
+    popupActions: document.getElementById("popupActions"),
+    popupCancel: document.getElementById("popupCancel"),
+    popupConfirm: document.getElementById("popupConfirm"),
   });
 }
 
@@ -1151,8 +1155,10 @@ function showPopup(type, title, message, options = {}) {
 
   window.clearTimeout(state.popupTimer);
   state.popupTimer = null;
+  resolvePopupConfirm(false);
 
-  dom.popupBox.classList.remove("success", "error");
+  setPopupConfirmMode(false);
+  dom.popupBox.classList.remove("success", "error", "has-actions");
   if (type === "success" || type === "error") {
     dom.popupBox.classList.add(type);
   }
@@ -1170,13 +1176,88 @@ function showPopup(type, title, message, options = {}) {
   }
 }
 
-function hidePopup() {
+function resolvePopupConfirm(value) {
+  if (typeof state.popupConfirmResolve !== "function") {
+    return;
+  }
+
+  const resolve = state.popupConfirmResolve;
+  state.popupConfirmResolve = null;
+  resolve(Boolean(value));
+}
+
+function setPopupConfirmMode(enabled, options = {}) {
+  if (!dom.popupActions) {
+    return;
+  }
+
+  dom.popupActions.hidden = !enabled;
+  dom.popupBox?.classList.toggle("has-actions", enabled);
+
+  if (!enabled) {
+    return;
+  }
+
+  if (dom.popupCancel) {
+    dom.popupCancel.textContent = options.cancelText || "Cancel";
+  }
+
+  if (dom.popupConfirm) {
+    dom.popupConfirm.innerHTML = `
+      <i class="${escapeHtml(options.confirmIcon || "fa-solid fa-trash")}"></i>
+      <span>${escapeHtml(options.confirmText || "Delete")}</span>
+    `;
+  }
+}
+
+function showConfirmPopup(options = {}) {
+  if (!dom.commonPopup) {
+    return Promise.resolve(false);
+  }
+
+  const type = options.type || "error";
+  const iconMap = {
+    error: '<i class="fa-solid fa-triangle-exclamation"></i>',
+    info: '<i class="fa-solid fa-circle-info"></i>',
+    success: '<i class="fa-solid fa-circle-check"></i>',
+  };
+
+  window.clearTimeout(state.popupTimer);
+  state.popupTimer = null;
+  resolvePopupConfirm(false);
+
+  dom.popupBox.classList.remove("success", "error", "has-actions");
+  if (type === "success" || type === "error") {
+    dom.popupBox.classList.add(type);
+  }
+
+  setPopupConfirmMode(true, options);
+  dom.popupIcon.innerHTML = iconMap[type] || iconMap.info;
+  dom.popupTitle.textContent = options.title || "Confirm action";
+  dom.popupMessage.textContent = options.message || "Do you want to continue?";
+  dom.commonPopup.classList.add("active");
+  dom.commonPopup.setAttribute("aria-hidden", "false");
+
+  window.setTimeout(() => {
+    dom.popupConfirm?.focus();
+  }, 0);
+
+  return new Promise((resolve) => {
+    state.popupConfirmResolve = resolve;
+  });
+}
+
+function hidePopup(options = {}) {
   if (!dom.commonPopup) {
     return;
   }
 
   window.clearTimeout(state.popupTimer);
   state.popupTimer = null;
+  if (!options.skipConfirmResolve) {
+    resolvePopupConfirm(false);
+  }
+  setPopupConfirmMode(false);
   dom.commonPopup.classList.remove("active");
   dom.commonPopup.setAttribute("aria-hidden", "true");
 }
@@ -6249,9 +6330,11 @@ async function deleteLedgerCustomer(button) {
   const label = customerName
     ? `${customerName} (${customerNumber})`
     : customerNumber;
-  const confirmed = window.confirm(
-    `Delete full ledger for ${label}? This will remove all due transactions for this customer.`,
-  );
+  const confirmed = await showConfirmPopup({
+    title: "Delete customer ledger?",
+    message: `Delete full ledger for ${label}? This will remove all due transactions for this customer.`,
+    confirmText: "Delete ledger",
+  });
 
   if (!confirmed) {
     return;
@@ -6298,9 +6381,12 @@ async function deleteLedgerEntry(button) {
     return;
   }
 
-  const confirmed = window.confirm(
-    "Delete this ledger transaction? This action will remove it from the database.",
-  );
+  const confirmed = await showConfirmPopup({
+    title: "Delete transaction?",
+    message:
+      "Delete this ledger transaction? This action will remove it from the database.",
+    confirmText: "Delete transaction",
+  });
 
   if (!confirmed) {
     return;
@@ -6390,9 +6476,11 @@ async function deleteSupplierLedger(button) {
     return;
   }
 
-  const confirmed = window.confirm(
-    `Delete full supplier ledger${supplierName ? ` for ${supplierName}` : ""}? This will remove all purchase bills for this supplier.`,
-  );
+  const confirmed = await showConfirmPopup({
+    title: "Delete supplier ledger?",
+    message: `Delete full supplier ledger${supplierName ? ` for ${supplierName}` : ""}? This will remove all purchase bills for this supplier.`,
+    confirmText: "Delete ledger",
+  });
 
   if (!confirmed) {
     return;
@@ -6445,9 +6533,11 @@ async function deletePurchaseBill(button) {
     return;
   }
 
-  const confirmed = window.confirm(
-    `Delete ${billLabel || "this purchase bill"}? This will remove the bill and all its item rows from the database.`,
-  );
+  const confirmed = await showConfirmPopup({
+    title: "Delete purchase bill?",
+    message: `Delete ${billLabel || "this purchase bill"}? This will remove the bill and all its item rows from the database.`,
+    confirmText: "Delete bill",
+  });
 
   if (!confirmed) {
     return;
@@ -6499,9 +6589,11 @@ async function deletePurchaseItem(button) {
     return;
   }
 
-  const confirmed = window.confirm(
-    `Delete ${itemName || "this item"} from the bill? Stock and bill totals will be updated.`,
-  );
+  const confirmed = await showConfirmPopup({
+    title: "Delete bill item?",
+    message: `Delete ${itemName || "this item"} from the bill? Stock and bill totals will be updated.`,
+    confirmText: "Delete item",
+  });
 
   if (!confirmed) {
     return;
@@ -7475,6 +7567,11 @@ function setDefaultSalesDates() {
 function bindPopupEvents() {
   dom.popupOverlay.addEventListener("click", hidePopup);
   dom.popupClose.addEventListener("click", hidePopup);
+  dom.popupCancel?.addEventListener("click", hidePopup);
+  dom.popupConfirm?.addEventListener("click", () => {
+    resolvePopupConfirm(true);
+    hidePopup({ skipConfirmResolve: true });
+  });
   dom.popupBox.addEventListener("click", (event) => {
     event.stopPropagation();
   });
