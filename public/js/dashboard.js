@@ -3883,13 +3883,14 @@ async function searchSupplierLedger(options = {}) {
 async function showAllSupplierSummary(options = {}) {
   setPurchaseWorkspaceView("supplier");
 
-  const query = dom.supplierSearchInput.value.trim();
-  const path = query
-    ? `/suppliers/summary?q=${encodeURIComponent(query)}`
-    : "/suppliers/summary";
+  if (!options.silent) {
+    dom.supplierSearchInput.value = "";
+    dom.supplierSearchInput.dataset.supplierId = "";
+    hideElement(dom.supplierSearchDropdown);
+  }
 
   const task = async () => {
-    const data = await fetchJSON(path);
+    const data = await fetchJSON("/suppliers/summary");
     renderSupplierLedgerSummary(
       Array.isArray(data.suppliers) ? data.suppliers : [],
     );
