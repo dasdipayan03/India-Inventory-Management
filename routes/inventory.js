@@ -2369,7 +2369,7 @@ router.get(
       const [shopName, result] = await Promise.all([
         getShopName(user_id),
         pool.query(
-          `SELECT id, customer_name, customer_number, total, credit, remark, created_at
+          `SELECT id, customer_name, customer_number, customer_address, total, credit, remark, created_at
            FROM debts
            WHERE user_id = $1 AND customer_number = $2
            ORDER BY created_at ASC, id ASC`,
@@ -2385,6 +2385,12 @@ router.get(
 
       const customerName =
         normalizeDisplayText(result.rows[0]?.customer_name) || "Customer";
+      const customerAddress =
+        result.rows
+          .slice()
+          .reverse()
+          .map((row) => normalizeDisplayText(row.customer_address))
+          .find(Boolean) || "-";
       const filename = `customer_ledger_${safeFilePart(customerName)}_${number}.pdf`;
       const doc = new PDFDocument({ size: "A4", margin: 40 });
       const ledgerNarrative =
@@ -2432,7 +2438,22 @@ router.get(
       );
 
       const summaryTop = doc.y + 2;
-      const infoHeight = 104;
+      const detailValueX = 142;
+      const detailValueWidth = 168;
+      const addressTop = summaryTop + 74;
+      const addressHeight = doc.heightOfString(customerAddress, {
+        width: detailValueWidth,
+        lineGap: 0.7,
+      });
+      const narrativeTop = addressTop + Math.max(addressHeight, 12) + 10;
+      const narrativeHeight = doc.heightOfString(ledgerNarrative, {
+        width: 248,
+        lineGap: 0.8,
+      });
+      const infoHeight = Math.max(
+        124,
+        Math.ceil(narrativeTop - summaryTop + narrativeHeight + 14),
+      );
 
       doc.save();
       doc
@@ -2449,14 +2470,23 @@ router.get(
 
       doc.font("Helvetica").fontSize(10).fillColor(PDF_THEME.muted);
       doc.text("Customer", 56, summaryTop + 34, { width: 70 });
-      doc.text("Ledger No", 56, summaryTop + 54, { width: 70 });
+      doc.text("Mobile Number", 56, summaryTop + 54, { width: 82 });
+      doc.text("Address", 56, addressTop, { width: 70 });
       doc.text("Entries", 356, summaryTop + 34, { width: 70 });
       doc.text("Outstanding", 356, summaryTop + 54, { width: 80 });
       doc.text("Collected", 356, summaryTop + 74, { width: 70 });
 
       doc.font("Helvetica-Bold").fontSize(10).fillColor(PDF_THEME.ink);
-      doc.text(customerName, 122, summaryTop + 34, { width: 188 });
-      doc.text(number, 122, summaryTop + 54, { width: 188 });
+      doc.text(customerName, detailValueX, summaryTop + 34, {
+        width: detailValueWidth,
+      });
+      doc.text(number, detailValueX, summaryTop + 54, {
+        width: detailValueWidth,
+      });
+      doc.text(customerAddress, detailValueX, addressTop, {
+        width: detailValueWidth,
+        lineGap: 0.7,
+      });
       doc.text(String(ledgerRows.length), 436, summaryTop + 34, {
         width: 100,
         align: "right",
@@ -2477,7 +2507,7 @@ router.get(
         });
 
       doc.font("Helvetica").fontSize(9).fillColor(PDF_THEME.muted);
-      doc.text(ledgerNarrative, 56, summaryTop + 74, {
+      doc.text(ledgerNarrative, 56, narrativeTop, {
         width: 248,
         lineGap: 0.8,
       });
