@@ -2397,7 +2397,7 @@ router.get(
         "Invoice-linked collections and manual due entries are shown in one running timeline.";
       const ledgerColumns = [
         { label: "Date", x: 46, width: 88 },
-        { label: "Total", x: 138, width: 70, align: "right" },
+        { label: "Debit/purchase Amnt", x: 138, width: 70, align: "right" },
         { label: "Credit", x: 212, width: 70, align: "right" },
         { label: "Balance", x: 286, width: 78, align: "right" },
         { label: "Remarks", x: 378, width: 168 },
@@ -2522,7 +2522,7 @@ router.get(
           const dateText = formatIstDate(row.created_at);
           const totalText = formatCurrency(row.totalValue);
           const creditText = formatCurrency(row.creditValue);
-          const balanceText = formatCurrency(row.runningBalance);
+          const balanceText = formatCurrency(Math.abs(row.runningBalance));
           const remarkText = String(row.remark || "-").trim() || "-";
           const rowHeight = Math.max(
             doc.heightOfString(dateText, { width: 88 }),
