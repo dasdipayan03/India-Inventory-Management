@@ -159,6 +159,7 @@ Important current-state notes:
 - Supplier Ledger "View All" always clears the current supplier search and loads the full supplier balance summary.
 - Purchase Desk now has owner-only 3-dot delete actions for supplier ledgers, purchase bills, and purchase bill items. These actions are hidden from staff and protected by `requireOwner` on the backend.
 - Customer due ledgers and customer ledger PDFs show recent transactions first while preserving correct running-balance calculation.
+- Customer Due now captures optional customer address, uses name/number autocomplete that can fill address, shows saved address under customer names in ledger summaries, and prints mobile number plus address in the customer ledger PDF details block.
 - Customer due summary and detail rows now have owner-only 3-dot delete actions for full customer ledgers and individual ledger transactions. Invoice-linked debt deletes resync the linked invoice paid/due state.
 - The shared sidebar now includes a refresh icon beside the app title; it reloads the current page while preserving the active dashboard section through `localStorage.activeSection`.
 - Login page Android install now points to the Play Store listing (`india.inventory.management`) instead of the old GitHub APK release link. `site.webmanifest` remains available for browser/PWA install prompts.
@@ -190,19 +191,19 @@ Main business modules:
 
 Current feature and benefit map:
 
-| Module                     | Current capability                                                                                                                 | User benefit                                                                   |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Purchase Entry / Add Stock | Supplier bill entry creates purchase rows and updates item stock/rates                                                             | Inventory stays in sync with purchase bills without duplicate stock-entry work |
-| Supplier Ledger            | Supplier-wise purchases, paid/due totals, repayment capture, newest-first bill history, and owner-only supplier/bill/item deletion | Owners can track and clean purchase ledger data safely                         |
-| Sale Entry / Invoice       | Invoice creation, item lookup, GST/total calculation, customer autocomplete, history, settlement, and PDF                          | Faster billing and cleaner customer-facing documents                           |
-| Stock View / Report        | Item quantity, buying/selling rates, sold quantity, low-stock, reorder, and slow-moving views                                      | Owners can see current inventory health and reorder needs                      |
-| Sales View / Report        | Date-wise sales, net-profit card, trend charts, PDF, and Excel                                                                     | Sales performance can be reviewed by period                                    |
-| GST Report                 | GST row report, monthly comparison, PDF, and Excel                                                                                 | Tax data is ready for checking and filing                                      |
-| Customer Due               | Customer ledger entries, autocomplete, due summary, newest-first timeline, PDF, and owner-only delete actions                      | Collections become easier to track, share, and correct                         |
-| Expenses                   | Expense entry, suggestions, report, and summary                                                                                    | Real net profit is clearer because costs are recorded                          |
-| Staff Access               | Owner-managed page permissions for staff accounts                                                                                  | Staff can work only in the modules they are assigned                           |
-| Support Chat               | Owner/staff support thread plus developer inbox                                                                                    | Support conversations stay tied to the right owner workspace                   |
-| Mobile / Android Access    | Responsive web UI, Play Store wrapper, Android Google transfer, and PWA manifest                                                   | Users can work from phones through browser, installed PWA, or Play Store app   |
+| Module                     | Current capability                                                                                                                                            | User benefit                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Purchase Entry / Add Stock | Supplier bill entry creates purchase rows and updates item stock/rates                                                                                        | Inventory stays in sync with purchase bills without duplicate stock-entry work |
+| Supplier Ledger            | Supplier-wise purchases, paid/due totals, repayment capture, newest-first bill history, and owner-only supplier/bill/item deletion                            | Owners can track and clean purchase ledger data safely                         |
+| Sale Entry / Invoice       | Invoice creation, item lookup, GST/total calculation, customer autocomplete, history, settlement, and PDF                                                     | Faster billing and cleaner customer-facing documents                           |
+| Stock View / Report        | Item quantity, buying/selling rates, sold quantity, low-stock, reorder, and slow-moving views                                                                 | Owners can see current inventory health and reorder needs                      |
+| Sales View / Report        | Date-wise sales, net-profit card, trend charts, PDF, and Excel                                                                                                | Sales performance can be reviewed by period                                    |
+| GST Report                 | GST row report, monthly comparison, PDF, and Excel                                                                                                            | Tax data is ready for checking and filing                                      |
+| Customer Due               | Customer ledger entries with optional address, name/number autocomplete, address-aware due summary, newest-first timeline, PDF, and owner-only delete actions | Collections become easier to track, share, and correct                         |
+| Expenses                   | Expense entry, suggestions, report, and summary                                                                                                               | Real net profit is clearer because costs are recorded                          |
+| Staff Access               | Owner-managed page permissions for staff accounts                                                                                                             | Staff can work only in the modules they are assigned                           |
+| Support Chat               | Owner/staff support thread plus developer inbox                                                                                                               | Support conversations stay tied to the right owner workspace                   |
+| Mobile / Android Access    | Responsive web UI, Play Store wrapper, Android Google transfer, and PWA manifest                                                                              | Users can work from phones through browser, installed PWA, or Play Store app   |
 
 The system is owner-centric:
 
@@ -980,7 +981,7 @@ Route handlers in this file are owner-only and cover monitoring metrics plus bac
 - purchase and stock-intake workflow: `purchaseRows`, `getPurchaseDefaultProfitPercent`, `refreshPurchaseAutoRates`, `updatePurchaseSummary`, `addPurchaseItemRow`, `loadSupplierSuggestions`, `renderSupplierDropdown`, `loadPurchaseSearchSuggestions`, `renderPurchaseSearchDropdown`, `loadProductPurchaseHistory`, `renderProductPurchaseHistory`, `loadPurchaseReport`, `openPurchaseDetail`, `submitPurchaseRepayment`, `searchSupplierLedger`, `showAllSupplierSummary`, `deleteSupplierLedger`, `deletePurchaseBill`, `deletePurchaseItem`, `refreshPurchaseViewsAfterDelete`, `submitPurchase`
 - expense workflow: `renderExpenseReport`, `loadExpenseReport`, `submitExpense`
 - report/export workflow: `renderItemReport`, `loadItemReport`, `loadLowStock`, `renderReorderPlanner`, `renderSlowMovingPlanner`, `renderSalesReport`, `loadSalesReport`, `loadGstReport`, `downloadItemReportPDF`, `downloadSalesPDF`, `downloadSalesExcel`, `downloadGstPDF`, `downloadGstExcel`
-- due ledger workflow: `getDueFormSnapshot`, `updateCustomerDuePreview`, `searchLedger`, `showAllDues`, `refreshCurrentDueView`, `deleteLedgerCustomer`, `deleteLedgerEntry`, `submitDebt`
+- due ledger workflow: `getDueFormSnapshot`, `updateCustomerDuePreview`, `loadCustomerSuggestions`, `renderCustomerDropdown`, `applyCustomerDueSuggestion`, `searchLedger`, `showAllDues`, `refreshCurrentDueView`, `deleteLedgerCustomer`, `deleteLedgerEntry`, `submitDebt`
 - shared owner-only action menu workflow: `isOwnerSession`, `renderLedgerActionMenu`, `bindLedgerActionMenus`, `closeLedgerActionMenus`, `getLedgerMenuHostClass`, `getLedgerMenuPrimaryClass`
 - dashboard analytics: `loadDashboardOverview`, `loadBusinessTrend`, `renderBusinessTrend`, `loadLast13MonthsChart`, `renderLast13MonthsChart`, `loadSalesNetProfitCard`
 - staff/owner workflow: `renderStaffPermissionGrid`, `readStaffPermissionSelection`, `setStaffPermissionSelection`, `renderStaffList`, `loadStaffAccounts`, `createStaffAccount`
@@ -1247,10 +1248,13 @@ invoice history / detail view
 ```text
 dashboard due section
   -> POST /api/debts for new ledger entries
-  -> GET /api/debts/customers for search
+  -> optional address can be saved from the Due Entry card
+  -> name and mobile inputs call GET /api/debts/customers for address-aware autocomplete
   -> GET /api/debts/:number for one customer ledger
   -> GET /api/debts/:number/pdf for customer ledger PDF
   -> GET /api/debts for all due summary
+  -> summary rows show the latest saved address under the customer name when available
+  -> PDF Customer Details shows Customer, Mobile Number, and Address
   -> owner 3-dot actions call DELETE /api/debts/customers/:number or DELETE /api/debts/entries/:id
   -> ledger rows render newest first in the UI and PDF, after chronological balance calculation
 ```
@@ -1365,13 +1369,13 @@ Most endpoints below are mounted under either `/api/auth` or `/api`; health rout
 | `GET`    | `/api/gst/compare`               | month-by-month GST comparison                                  |
 | `GET`    | `/api/gst/report/pdf`            | GST report PDF                                                 |
 | `GET`    | `/api/gst/report/excel`          | GST report Excel                                               |
-| `POST`   | `/api/debts`                     | add customer due ledger entry                                  |
+| `POST`   | `/api/debts`                     | add customer due ledger entry with optional address            |
 | `DELETE` | `/api/debts/customers/:number`   | owner-only delete of all due rows for one customer             |
 | `DELETE` | `/api/debts/entries/:id`         | owner-only delete of one due ledger transaction                |
-| `GET`    | `/api/debts/customers`           | search customers with dues                                     |
-| `GET`    | `/api/debts/:number/pdf`         | customer ledger PDF                                            |
-| `GET`    | `/api/debts/:number`             | load one customer ledger                                       |
-| `GET`    | `/api/debts`                     | summary of all dues                                            |
+| `GET`    | `/api/debts/customers`           | search customers by name, number, or address                   |
+| `GET`    | `/api/debts/:number/pdf`         | customer ledger PDF with mobile number and address details     |
+| `GET`    | `/api/debts/:number`             | load one customer ledger with saved address values             |
+| `GET`    | `/api/debts`                     | summary of all dues, including latest saved customer address   |
 | `GET`    | `/api/dashboard/overview`        | owner dashboard summary cards                                  |
 | `GET`    | `/api/sales/monthly-trend`       | monthly sales chart data                                       |
 | `GET`    | `/api/sales/last-13-months`      | rolling 13-month sales chart data                              |
@@ -1744,6 +1748,9 @@ Notes:
 - settlement rows can reference an invoice
 - manual due entries can exist without invoice linkage
 - `customer_address` is optional; manual Due Entry can save it and invoice-created due rows copy `invoices.address`
+- customer name and mobile autocomplete returns name, number, and address; selecting a match fills the Due Entry address field
+- due summary rows include the latest saved customer address and render it below the customer name when available
+- customer ledger PDF details label the number as `Mobile Number` and print `Address` directly below it
 - owner-only debt delete routes remove rows from this table; when removed rows reference invoices, the linked invoice paid/due totals are recalculated from remaining `debts` rows
 
 #### `suppliers`
@@ -2090,20 +2097,20 @@ Constraints, indexes, and triggers:
 
 #### `debts`
 
-| Column            | Type            | Null      | Default                                | Details                                                         |
-| ----------------- | --------------- | --------- | -------------------------------------- | --------------------------------------------------------------- |
-| `id`              | `SERIAL`        | no        | sequence                               | primary key                                                     |
-| `user_id`         | `INT`           | no        | none                                   | foreign key to `users.id` with `ON DELETE CASCADE`              |
-| `customer_name`   | `VARCHAR(100)`  | no        | none                                   | customer display name                                           |
-| `customer_number` | `VARCHAR(10)`   | no        | none                                   | 10-digit customer mobile number                                 |
-| `customer_address` | `TEXT`         | yes       | none                                   | optional customer address captured from due entry or invoice    |
-| `total`           | `NUMERIC(12,2)` | yes       | `0`                                    | debit amount added to the ledger                                |
-| `credit`          | `NUMERIC(12,2)` | yes       | `0`                                    | amount collected against the ledger row                         |
-| `balance`         | `NUMERIC(12,2)` | generated | `GENERATED ALWAYS AS (total - credit)` | stored generated balance                                        |
-| `remark`          | `TEXT`          | yes       | none                                   | free-text note                                                  |
-| `invoice_id`      | `INT`           | yes       | none                                   | optional foreign key to `invoices.id` with `ON DELETE SET NULL` |
-| `created_at`      | `TIMESTAMPTZ`   | yes       | `NOW()`                                | creation timestamp                                              |
-| `updated_at`      | `TIMESTAMPTZ`   | yes       | `NOW()`                                | updated by trigger                                              |
+| Column             | Type            | Null      | Default                                | Details                                                         |
+| ------------------ | --------------- | --------- | -------------------------------------- | --------------------------------------------------------------- |
+| `id`               | `SERIAL`        | no        | sequence                               | primary key                                                     |
+| `user_id`          | `INT`           | no        | none                                   | foreign key to `users.id` with `ON DELETE CASCADE`              |
+| `customer_name`    | `VARCHAR(100)`  | no        | none                                   | customer display name                                           |
+| `customer_number`  | `VARCHAR(10)`   | no        | none                                   | 10-digit customer mobile number                                 |
+| `customer_address` | `TEXT`          | yes       | none                                   | optional customer address captured from due entry or invoice    |
+| `total`            | `NUMERIC(12,2)` | yes       | `0`                                    | debit amount added to the ledger                                |
+| `credit`           | `NUMERIC(12,2)` | yes       | `0`                                    | amount collected against the ledger row                         |
+| `balance`          | `NUMERIC(12,2)` | generated | `GENERATED ALWAYS AS (total - credit)` | stored generated balance                                        |
+| `remark`           | `TEXT`          | yes       | none                                   | free-text note                                                  |
+| `invoice_id`       | `INT`           | yes       | none                                   | optional foreign key to `invoices.id` with `ON DELETE SET NULL` |
+| `created_at`       | `TIMESTAMPTZ`   | yes       | `NOW()`                                | creation timestamp                                              |
+| `updated_at`       | `TIMESTAMPTZ`   | yes       | `NOW()`                                | updated by trigger                                              |
 
 Constraints, indexes, and triggers:
 
@@ -2332,6 +2339,7 @@ Invoice collection:
 1. invoice row is locked and updated
 2. payment totals are recalculated
 3. a `debts` row is inserted as a collection ledger line
+4. when invoice due rows are created, the invoice billing address is copied into `debts.customer_address` when available
 
 Customer ledger delete:
 
