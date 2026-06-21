@@ -2495,10 +2495,15 @@ router.get(
         .fillColor(
           runningBalance > 0.009 ? PDF_THEME.danger : PDF_THEME.success,
         )
-        .text(`Rs. ${formatCurrency(runningBalance)}`, 436, summaryTop + 54, {
-          width: 100,
-          align: "right",
-        });
+        .text(
+          `Rs. ${formatCurrency(Math.abs(runningBalance))}`,
+          436,
+          summaryTop + 54,
+          {
+            width: 100,
+            align: "right",
+          },
+        );
       doc
         .fillColor(PDF_THEME.ink)
         .text(`Rs. ${formatCurrency(totalCollected)}`, 436, summaryTop + 74, {
@@ -2602,7 +2607,7 @@ router.get(
           runningBalance > 0.009 ? PDF_THEME.danger : PDF_THEME.success,
         )
         .text(
-          `Current Outstanding: Rs. ${formatCurrency(runningBalance)}`,
+          `Current Outstanding: Rs. ${formatCurrency(Math.abs(runningBalance))}`,
           326,
           totalsY + 66,
         );
