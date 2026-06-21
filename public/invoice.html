@@ -2196,8 +2196,8 @@
 
           <div class="shop-body">
             <p id="shopProfileHelper" class="helper stack-bottom-16">
-              Shop profile is used in invoice preview, GST calculation, and PDF
-              output.
+              Shop profile is used in invoice preview, GST calculation, account
+              details, and PDF output.
             </p>
             <div class="field-grid">
               <div class="field">
@@ -2238,6 +2238,58 @@
                   placeholder="GST rate without % symbol"
                 />
               </div>
+            </div>
+
+            <div class="field-grid stack-top-14">
+              <div class="field">
+                <label for="bankName">Bank Name</label>
+                <input
+                  id="bankName"
+                  class="input"
+                  maxlength="150"
+                  placeholder="Bank name for invoice payment"
+                />
+              </div>
+              <div class="field">
+                <label for="accountHolderName">Account Holder Name</label>
+                <input
+                  id="accountHolderName"
+                  class="input"
+                  maxlength="150"
+                  placeholder="Account holder name"
+                />
+              </div>
+            </div>
+
+            <div class="field-grid stack-top-14">
+              <div class="field">
+                <label for="accountNumber">Account Number</label>
+                <input
+                  id="accountNumber"
+                  class="input"
+                  maxlength="64"
+                  placeholder="Bank account number"
+                />
+              </div>
+              <div class="field">
+                <label for="ifscCode">IFSC Code</label>
+                <input
+                  id="ifscCode"
+                  class="input"
+                  maxlength="20"
+                  placeholder="IFSC code"
+                />
+              </div>
+            </div>
+
+            <div class="field stack-top-14">
+              <label for="upiId">UPI ID</label>
+              <input
+                id="upiId"
+                class="input"
+                maxlength="120"
+                placeholder="UPI ID for QR payment"
+              />
             </div>
 
             <div class="actions stack-top-16">
@@ -2731,6 +2783,11 @@
           shopAddress: $("shopAddress"),
           gstInput: $("gstInput"),
           gstRateInput: $("gstRateInput"),
+          bankName: $("bankName"),
+          accountHolderName: $("accountHolderName"),
+          accountNumber: $("accountNumber"),
+          ifscCode: $("ifscCode"),
+          upiId: $("upiId"),
           shopProfileHelper: $("shopProfileHelper"),
           saveGstBtn: $("saveGstBtn"),
           custName: $("custName"),
@@ -2776,6 +2833,11 @@
           dom.shopAddress,
           dom.gstInput,
           dom.gstRateInput,
+          dom.bankName,
+          dom.accountHolderName,
+          dom.accountNumber,
+          dom.ifscCode,
+          dom.upiId,
         ].filter(Boolean);
 
         const hideElement = (element) => {
@@ -3044,7 +3106,7 @@
           setShopProfileEditable(!isStaff);
           dom.shopProfileHelper.textContent = isStaff
             ? "Shop profile is visible for invoice calculation only. Only owner can edit this section."
-            : "Shop profile is used in invoice preview, GST calculation, and PDF output.";
+            : "Shop profile is used in invoice preview, GST calculation, account details, and PDF output.";
         };
 
         const redirectAwayFromInvoiceIfNeeded = () => {
@@ -3849,11 +3911,21 @@
             (data.settings.shop_name || "").trim() ||
             (data.settings.shop_address || "").trim() ||
             (data.settings.gst_no || "").trim() ||
+            (data.settings.bank_name || "").trim() ||
+            (data.settings.account_holder_name || "").trim() ||
+            (data.settings.account_number || "").trim() ||
+            (data.settings.ifsc_code || "").trim() ||
+            (data.settings.upi_id || "").trim() ||
             data.settings.gst_rate != null,
           );
           dom.shopName.value = data.settings.shop_name || "";
           dom.shopAddress.value = data.settings.shop_address || "";
           dom.gstInput.value = data.settings.gst_no || "";
+          dom.bankName.value = data.settings.bank_name || "";
+          dom.accountHolderName.value = data.settings.account_holder_name || "";
+          dom.accountNumber.value = data.settings.account_number || "";
+          dom.ifscCode.value = data.settings.ifsc_code || "";
+          dom.upiId.value = data.settings.upi_id || "";
           userGstRate = parseFloat(data.settings.gst_rate) || 18;
           dom.gstRateInput.value = userGstRate;
           renderHeroShopName(dom.shopName.value);
@@ -4632,6 +4704,11 @@
                 shop_address: dom.shopAddress.value.trim(),
                 gst_no: dom.gstInput.value.trim(),
                 gst_rate: parseFloat(dom.gstRateInput.value) || 18,
+                bank_name: dom.bankName.value.trim(),
+                account_holder_name: dom.accountHolderName.value.trim(),
+                account_number: dom.accountNumber.value.trim(),
+                ifsc_code: dom.ifscCode.value.trim().toUpperCase(),
+                upi_id: dom.upiId.value.trim(),
               }),
             });
             if (!res) return;
@@ -4936,6 +5013,10 @@
           dom.amountPaid.classList.remove("invalid");
           updatePaymentPreview();
           queueDraft();
+        });
+
+        dom.ifscCode.addEventListener("input", () => {
+          dom.ifscCode.value = dom.ifscCode.value.toUpperCase();
         });
 
         dom.gstRateInput.addEventListener("input", () => {

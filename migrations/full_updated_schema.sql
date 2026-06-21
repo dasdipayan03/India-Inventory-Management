@@ -246,7 +246,12 @@ CREATE TABLE IF NOT EXISTS settings (
   shop_address TEXT,
   gst_no VARCHAR(20),
   gst_rate NUMERIC(5,2) NOT NULL DEFAULT 18.00,
-  default_profit_percent NUMERIC(8,2) NOT NULL DEFAULT 30.00
+  default_profit_percent NUMERIC(8,2) NOT NULL DEFAULT 30.00,
+  bank_name VARCHAR(150),
+  account_holder_name VARCHAR(150),
+  account_number VARCHAR(64),
+  ifsc_code VARCHAR(20),
+  upi_id VARCHAR(120)
 );
 
 -- =====================================================

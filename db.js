@@ -175,6 +175,31 @@ async function ensureSchemaCompatibility() {
   `);
 
   await pool.query(`
+    ALTER TABLE settings
+    ADD COLUMN IF NOT EXISTS bank_name VARCHAR(150)
+  `);
+
+  await pool.query(`
+    ALTER TABLE settings
+    ADD COLUMN IF NOT EXISTS account_holder_name VARCHAR(150)
+  `);
+
+  await pool.query(`
+    ALTER TABLE settings
+    ADD COLUMN IF NOT EXISTS account_number VARCHAR(64)
+  `);
+
+  await pool.query(`
+    ALTER TABLE settings
+    ADD COLUMN IF NOT EXISTS ifsc_code VARCHAR(20)
+  `);
+
+  await pool.query(`
+    ALTER TABLE settings
+    ADD COLUMN IF NOT EXISTS upi_id VARCHAR(120)
+  `);
+
+  await pool.query(`
     ALTER TABLE sales
     ADD COLUMN IF NOT EXISTS cost_price NUMERIC(10,2) NOT NULL DEFAULT 0
   `);

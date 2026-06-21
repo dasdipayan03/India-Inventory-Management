@@ -54,11 +54,377 @@ function normalizeMobileNumber(value) {
 
 const INVOICE_PAYMENT_MODES = new Set(["cash", "upi", "bank", "mixed"]);
 
+const QR_MAX_VERSION = 10;
+const QR_TOTAL_CODEWORDS = [0, 26, 44, 70, 100, 134, 172, 196, 242, 292, 346];
+const QR_ECC_CODEWORDS_PER_BLOCK_LOW = [
+  0,
+  7,
+  10,
+  15,
+  20,
+  26,
+  18,
+  20,
+  24,
+  30,
+  18,
+];
+const QR_BLOCK_COUNT_LOW = [0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 4];
+const QR_ALIGNMENT_PATTERN_POSITIONS = [
+  [],
+  [],
+  [6, 18],
+  [6, 22],
+  [6, 26],
+  [6, 30],
+  [6, 34],
+  [6, 22, 38],
+  [6, 24, 42],
+  [6, 26, 46],
+  [6, 28, 50],
+];
+
 function normalizeInvoicePaymentMode(value) {
   const normalized = String(value || "")
     .trim()
     .toLowerCase();
   return INVOICE_PAYMENT_MODES.has(normalized) ? normalized : "cash";
+}
+
+function appendQrBits(bits, value, length) {
+  for (let i = length - 1; i >= 0; i--) {
+    bits.push(((value >>> i) & 1) !== 0);
+  }
+}
+
+function getQrDataCodewordCount(version) {
+  return (
+    QR_TOTAL_CODEWORDS[version] -
+    QR_ECC_CODEWORDS_PER_BLOCK_LOW[version] * QR_BLOCK_COUNT_LOW[version]
+  );
+}
+
+function getQrByteCapacity(version) {
+  const charCountBits = version < 10 ? 8 : 16;
+  return Math.floor(
+    (getQrDataCodewordCount(version) * 8 - 4 - charCountBits) / 8,
+  );
+}
+
+function findQrVersion(byteLength) {
+  for (let version = 1; version <= QR_MAX_VERSION; version++) {
+    if (byteLength <= getQrByteCapacity(version)) {
+      return version;
+    }
+  }
+  throw new Error("UPI QR payload is too long");
+}
+
+function qrGfMultiply(x, y) {
+  let z = 0;
+  for (let i = 7; i >= 0; i--) {
+    z = (z << 1) ^ ((z >>> 7) * 0x11d);
+    z ^= ((y >>> i) & 1) * x;
+  }
+  return z & 0xff;
+}
+
+function qrReedSolomonDivisor(degree) {
+  const result = Array(degree).fill(0);
+  result[degree - 1] = 1;
+
+  let root = 1;
+  for (let i = 0; i < degree; i++) {
+    for (let j = 0; j < degree; j++) {
+      result[j] = qrGfMultiply(result[j], root);
+      if (j + 1 < degree) {
+        result[j] ^= result[j + 1];
+      }
+    }
+    root = qrGfMultiply(root, 0x02);
+  }
+
+  return result;
+}
+
+function qrReedSolomonRemainder(data, divisor) {
+  const result = Array(divisor.length).fill(0);
+
+  data.forEach((byte) => {
+    const factor = byte ^ result.shift();
+    result.push(0);
+    divisor.forEach((coefficient, index) => {
+      result[index] ^= qrGfMultiply(coefficient, factor);
+    });
+  });
+
+  return result;
+}
+
+function addQrErrorCorrection(version, dataCodewords) {
+  const blockCount = QR_BLOCK_COUNT_LOW[version];
+  const eccLength = QR_ECC_CODEWORDS_PER_BLOCK_LOW[version];
+  const rawCodewords = QR_TOTAL_CODEWORDS[version];
+  const shortBlockCount = blockCount - (rawCodewords % blockCount);
+  const shortBlockLength = Math.floor(rawCodewords / blockCount);
+  const divisor = qrReedSolomonDivisor(eccLength);
+  const blocks = [];
+  let offset = 0;
+
+  for (let i = 0; i < blockCount; i++) {
+    const dataLength =
+      shortBlockLength - eccLength + (i >= shortBlockCount ? 1 : 0);
+    const data = dataCodewords.slice(offset, offset + dataLength);
+    offset += dataLength;
+    blocks.push({
+      data,
+      ecc: qrReedSolomonRemainder(data, divisor),
+    });
+  }
+
+  const result = [];
+  const maxDataLength = Math.max(...blocks.map((block) => block.data.length));
+  for (let i = 0; i < maxDataLength; i++) {
+    blocks.forEach((block) => {
+      if (i < block.data.length) {
+        result.push(block.data[i]);
+      }
+    });
+  }
+
+  for (let i = 0; i < eccLength; i++) {
+    blocks.forEach((block) => result.push(block.ecc[i]));
+  }
+
+  return result;
+}
+
+function getQrMaskBit(mask, x, y) {
+  switch (mask) {
+    case 0:
+      return (x + y) % 2 === 0;
+    case 1:
+      return y % 2 === 0;
+    case 2:
+      return x % 3 === 0;
+    default:
+      return false;
+  }
+}
+
+function getQrFormatBits(mask) {
+  const data = (1 << 3) | mask;
+  let remainder = data;
+
+  for (let i = 0; i < 10; i++) {
+    remainder = (remainder << 1) ^ (((remainder >>> 9) & 1) * 0x537);
+  }
+
+  return ((data << 10) | remainder) ^ 0x5412;
+}
+
+function getQrVersionBits(version) {
+  let remainder = version;
+
+  for (let i = 0; i < 12; i++) {
+    remainder = (remainder << 1) ^ (((remainder >>> 11) & 1) * 0x1f25);
+  }
+
+  return (version << 12) | remainder;
+}
+
+function createQrCodeMatrix(text) {
+  const bytes = Array.from(Buffer.from(String(text), "utf8"));
+  const version = findQrVersion(bytes.length);
+  const size = version * 4 + 17;
+  const dataCodewordCount = getQrDataCodewordCount(version);
+  const charCountBits = version < 10 ? 8 : 16;
+  const bits = [];
+
+  appendQrBits(bits, 0x4, 4);
+  appendQrBits(bits, bytes.length, charCountBits);
+  bytes.forEach((byte) => appendQrBits(bits, byte, 8));
+
+  const capacityBits = dataCodewordCount * 8;
+  appendQrBits(bits, 0, Math.min(4, capacityBits - bits.length));
+  while (bits.length % 8 !== 0) {
+    bits.push(false);
+  }
+
+  const dataCodewords = [];
+  for (let i = 0; i < bits.length; i += 8) {
+    let value = 0;
+    for (let j = 0; j < 8; j++) {
+      value = (value << 1) | (bits[i + j] ? 1 : 0);
+    }
+    dataCodewords.push(value);
+  }
+
+  for (
+    let padByte = 0xec;
+    dataCodewords.length < dataCodewordCount;
+    padByte ^= 0xfd
+  ) {
+    dataCodewords.push(padByte);
+  }
+
+  const codewords = addQrErrorCorrection(version, dataCodewords);
+  const modules = Array.from({ length: size }, () => Array(size).fill(false));
+  const isFunction = Array.from({ length: size }, () => Array(size).fill(false));
+  const mask = 0;
+
+  const setFunctionModule = (x, y, dark) => {
+    if (x >= 0 && y >= 0 && x < size && y < size) {
+      modules[y][x] = Boolean(dark);
+      isFunction[y][x] = true;
+    }
+  };
+
+  const drawFinderPattern = (left, top) => {
+    for (let dy = -1; dy <= 7; dy++) {
+      for (let dx = -1; dx <= 7; dx++) {
+        const x = left + dx;
+        const y = top + dy;
+        const dark =
+          dx >= 0 &&
+          dx <= 6 &&
+          dy >= 0 &&
+          dy <= 6 &&
+          (dx === 0 ||
+            dx === 6 ||
+            dy === 0 ||
+            dy === 6 ||
+            (dx >= 2 && dx <= 4 && dy >= 2 && dy <= 4));
+        setFunctionModule(x, y, dark);
+      }
+    }
+  };
+
+  const drawAlignmentPattern = (centerX, centerY) => {
+    for (let dy = -2; dy <= 2; dy++) {
+      for (let dx = -2; dx <= 2; dx++) {
+        setFunctionModule(
+          centerX + dx,
+          centerY + dy,
+          Math.max(Math.abs(dx), Math.abs(dy)) !== 1,
+        );
+      }
+    }
+  };
+
+  const drawFormatBits = () => {
+    const formatBits = getQrFormatBits(mask);
+    const bit = (index) => ((formatBits >>> index) & 1) !== 0;
+
+    for (let i = 0; i <= 5; i++) {
+      setFunctionModule(8, i, bit(i));
+    }
+    setFunctionModule(8, 7, bit(6));
+    setFunctionModule(8, 8, bit(7));
+    setFunctionModule(7, 8, bit(8));
+    for (let i = 9; i < 15; i++) {
+      setFunctionModule(14 - i, 8, bit(i));
+    }
+
+    for (let i = 0; i < 8; i++) {
+      setFunctionModule(size - 1 - i, 8, bit(i));
+    }
+    for (let i = 8; i < 15; i++) {
+      setFunctionModule(8, size - 15 + i, bit(i));
+    }
+    setFunctionModule(8, size - 8, true);
+  };
+
+  const drawVersionBits = () => {
+    if (version < 7) {
+      return;
+    }
+
+    const versionBits = getQrVersionBits(version);
+    for (let i = 0; i < 18; i++) {
+      const dark = ((versionBits >>> i) & 1) !== 0;
+      const x = size - 11 + (i % 3);
+      const y = Math.floor(i / 3);
+      setFunctionModule(x, y, dark);
+      setFunctionModule(y, x, dark);
+    }
+  };
+
+  drawFinderPattern(0, 0);
+  drawFinderPattern(size - 7, 0);
+  drawFinderPattern(0, size - 7);
+
+  QR_ALIGNMENT_PATTERN_POSITIONS[version].forEach((x) => {
+    QR_ALIGNMENT_PATTERN_POSITIONS[version].forEach((y) => {
+      const overlapsFinder =
+        (x === 6 && y === 6) ||
+        (x === 6 && y === size - 7) ||
+        (x === size - 7 && y === 6);
+      if (!overlapsFinder) {
+        drawAlignmentPattern(x, y);
+      }
+    });
+  });
+
+  for (let i = 8; i < size - 8; i++) {
+    const dark = i % 2 === 0;
+    setFunctionModule(i, 6, dark);
+    setFunctionModule(6, i, dark);
+  }
+
+  drawFormatBits();
+  drawVersionBits();
+
+  let bitIndex = 0;
+  const totalBits = codewords.length * 8;
+  for (let right = size - 1; right >= 1; right -= 2) {
+    if (right === 6) {
+      right = 5;
+    }
+
+    for (let vertical = 0; vertical < size; vertical++) {
+      const upward = ((right + 1) & 2) === 0;
+      const y = upward ? size - 1 - vertical : vertical;
+
+      for (let column = 0; column < 2; column++) {
+        const x = right - column;
+        if (isFunction[y][x]) {
+          continue;
+        }
+
+        let dark = false;
+        if (bitIndex < totalBits) {
+          dark =
+            ((codewords[bitIndex >>> 3] >>> (7 - (bitIndex & 7))) & 1) !== 0;
+          bitIndex++;
+        }
+
+        modules[y][x] = dark !== getQrMaskBit(mask, x, y);
+      }
+    }
+  }
+
+  if (bitIndex !== totalBits) {
+    throw new Error("UPI QR payload could not be encoded");
+  }
+
+  return modules;
+}
+
+function buildUpiPaymentUri(upiId, payeeName) {
+  const normalizedUpiId = normalizeDisplayText(upiId);
+  if (!normalizedUpiId) {
+    return "";
+  }
+
+  const normalizedPayee = normalizeDisplayText(payeeName) || "Invoice Payment";
+  return [
+    "upi://pay?pa=",
+    encodeURIComponent(normalizedUpiId),
+    "&pn=",
+    encodeURIComponent(normalizedPayee),
+    "&cu=INR",
+  ].join("");
 }
 
 function calculateSaleGstAmount(baseAmount, gstRate) {
@@ -1081,10 +1447,50 @@ router.get(
       const inv = rows[0];
 
       const shopRes = await pool.query(
-        `SELECT shop_name, shop_address, gst_no FROM settings WHERE user_id=$1`,
+        `SELECT
+           shop_name,
+           shop_address,
+           gst_no,
+           bank_name,
+           account_holder_name,
+           account_number,
+           ifsc_code,
+           upi_id
+         FROM settings
+         WHERE user_id=$1`,
         [userId],
       );
       const shop = shopRes.rows[0] || {};
+      const accountDetails = {
+        bankName: normalizeDisplayText(shop.bank_name),
+        accountHolderName: normalizeDisplayText(shop.account_holder_name),
+        accountNumber: normalizeDisplayText(shop.account_number),
+        ifscCode: normalizeDisplayText(shop.ifsc_code),
+        upiId: normalizeDisplayText(shop.upi_id),
+      };
+      const accountRows = [
+        ["Bank Name", accountDetails.bankName],
+        ["Account Holder", accountDetails.accountHolderName],
+        ["Account Number", accountDetails.accountNumber],
+        ["IFSC Code", accountDetails.ifscCode],
+        ["UPI ID", accountDetails.upiId],
+      ].filter(([, value]) => value);
+      const hasAccountDetails = accountRows.length > 0;
+      const upiPaymentUri = buildUpiPaymentUri(
+        accountDetails.upiId,
+        accountDetails.accountHolderName ||
+          shop.shop_name ||
+          "Invoice Payment",
+      );
+      let upiQrMatrix = null;
+
+      if (upiPaymentUri) {
+        try {
+          upiQrMatrix = createQrCodeMatrix(upiPaymentUri);
+        } catch (qrError) {
+          console.warn("UPI QR generation skipped:", qrError.message);
+        }
+      }
       const settlementRes = await pool.query(
         `SELECT total, credit, created_at
          FROM debts
@@ -1146,6 +1552,12 @@ router.get(
         }
         return normalized.charAt(0).toUpperCase() + normalized.slice(1);
       };
+      const shortenPdfText = (value, maxLength = 44) => {
+        const text = String(value || "").trim();
+        return text.length > maxLength
+          ? `${text.slice(0, Math.max(0, maxLength - 3))}...`
+          : text;
+      };
       const invoiceStatusText = formatInvoiceStatus(inv.payment_status);
       const invoiceModeText = formatInvoiceMode(inv.payment_mode);
       const paymentRows = settlements.filter(
@@ -1163,6 +1575,102 @@ router.get(
       }, 0);
       const transactionCount = paymentRows.length;
       const lastPayment = paymentRows[paymentRows.length - 1];
+
+      function drawQrCode(matrix, x, y, drawSize) {
+        if (!Array.isArray(matrix) || !matrix.length) {
+          return;
+        }
+
+        const quietModules = 4;
+        const moduleSize = drawSize / (matrix.length + quietModules * 2);
+
+        doc.save();
+        doc.rect(x, y, drawSize, drawSize).fill("#ffffff");
+        doc.fillColor(colors.ink);
+        matrix.forEach((row, rowIndex) => {
+          row.forEach((dark, columnIndex) => {
+            if (!dark) {
+              return;
+            }
+            doc.rect(
+              x + (columnIndex + quietModules) * moduleSize,
+              y + (rowIndex + quietModules) * moduleSize,
+              moduleSize,
+              moduleSize,
+            );
+          });
+        });
+        doc.fill();
+        doc.restore();
+      }
+
+      function drawPaymentAccountDetails(startY) {
+        if (!hasAccountDetails) {
+          return;
+        }
+
+        const panelX = leftX;
+        const panelWidth = contentWidth;
+        const panelHeight = 112;
+        const textX = panelX + 16;
+        const labelWidth = 86;
+        const valueX = textX + labelWidth + 8;
+        const valueWidth = upiQrMatrix ? 275 : 382;
+
+        doc.save();
+        doc
+          .roundedRect(panelX, startY, panelWidth, panelHeight, 11)
+          .fillAndStroke("#f8fafc", "#d7dee8");
+        doc.restore();
+
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(10.5)
+          .fillColor(colors.ink)
+          .text("Payment Account Details", textX, startY + 12, {
+            width: 250,
+          });
+
+        let rowY = startY + 31;
+        accountRows.forEach(([label, value]) => {
+          doc
+            .font("Helvetica")
+            .fontSize(8.7)
+            .fillColor(colors.muted)
+            .text(`${label}:`, textX, rowY, { width: labelWidth });
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(8.8)
+            .fillColor(colors.ink)
+            .text(shortenPdfText(value, upiQrMatrix ? 38 : 56), valueX, rowY, {
+              width: valueWidth,
+            });
+          rowY += 13.2;
+        });
+
+        if (!upiQrMatrix) {
+          return;
+        }
+
+        const qrSize = 78;
+        const qrX = panelX + panelWidth - qrSize - 18;
+        const qrY = startY + 19;
+
+        doc.save();
+        doc
+          .roundedRect(qrX - 5, qrY - 5, qrSize + 10, qrSize + 20, 8)
+          .fillAndStroke("#ffffff", "#e2e8f0");
+        doc.restore();
+        drawQrCode(upiQrMatrix, qrX, qrY, qrSize);
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(7.4)
+          .fillColor(colors.muted)
+          .text("Scan UPI", qrX, qrY + qrSize + 5, {
+            width: qrSize,
+            align: "center",
+          });
+      }
 
       function drawHeader() {
         doc.save();
@@ -1337,7 +1845,11 @@ router.get(
 
       /* ================= TOTALS / PAYMENT DETAILS ================= */
       const summaryHeight = 112;
-      y = ensureTableSpace(y + 10, summaryHeight + 12);
+      const accountPanelHeight = hasAccountDetails ? 112 : 0;
+      const accountFooterReserve = hasAccountDetails
+        ? accountPanelHeight + 24
+        : 0;
+      y = ensureTableSpace(y + 10, summaryHeight + 12 + accountFooterReserve);
 
       const paymentBlockX = 276;
       const amountBlockX = 416;
@@ -1448,6 +1960,9 @@ router.get(
       });
 
       /* ================= FOOTER AND PAGE NUMBER ================= */
+      const accountPanelY = hasAccountDetails
+        ? Math.max(y + summaryHeight + 16, pageHeight - 210)
+        : null;
       const range = doc.bufferedPageRange();
       const totalPages = range.count;
 
@@ -1455,6 +1970,12 @@ router.get(
         doc.switchToPage(i);
 
         doc.font("Helvetica").fontSize(9);
+
+        if (i === totalPages - 1 && hasAccountDetails) {
+          drawPaymentAccountDetails(accountPanelY);
+        }
+
+        doc.font("Helvetica").fontSize(9).fillColor(colors.ink);
 
         doc.text(
           "This is a system generated invoice. No signature required.",
@@ -1482,9 +2003,28 @@ router.get(
 /* ---------------------- SHOP INFO save ---------------------- */
 router.post("/shop-info", authMiddleware, requireOwner, async (req, res) => {
   try {
-    const { shop_name, shop_address, gst_no, gst_rate } = req.body;
+    const {
+      shop_name,
+      shop_address,
+      gst_no,
+      gst_rate,
+      bank_name,
+      account_holder_name,
+      account_number,
+      ifsc_code,
+      upi_id,
+    } = req.body;
     const userId = getUserId(req);
     const normalizedGstRate = Number(gst_rate);
+    const normalizedBankName = String(bank_name || "").trim();
+    const normalizedAccountHolderName = String(
+      account_holder_name || "",
+    ).trim();
+    const normalizedAccountNumber = String(account_number || "").trim();
+    const normalizedIfscCode = String(ifsc_code || "")
+      .trim()
+      .toUpperCase();
+    const normalizedUpiId = String(upi_id || "").trim();
 
     if (
       !Number.isFinite(normalizedGstRate) ||
@@ -1499,14 +2039,30 @@ router.post("/shop-info", authMiddleware, requireOwner, async (req, res) => {
 
     await pool.query(
       `
-        INSERT INTO settings (user_id,shop_name,shop_address,gst_no,gst_rate)
-        VALUES ($1,$2,$3,$4,$5)
+        INSERT INTO settings (
+          user_id,
+          shop_name,
+          shop_address,
+          gst_no,
+          gst_rate,
+          bank_name,
+          account_holder_name,
+          account_number,
+          ifsc_code,
+          upi_id
+        )
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
         ON CONFLICT (user_id)
         DO UPDATE SET
           shop_name=EXCLUDED.shop_name,
           shop_address=EXCLUDED.shop_address,
           gst_no=EXCLUDED.gst_no,
-          gst_rate=EXCLUDED.gst_rate
+          gst_rate=EXCLUDED.gst_rate,
+          bank_name=EXCLUDED.bank_name,
+          account_holder_name=EXCLUDED.account_holder_name,
+          account_number=EXCLUDED.account_number,
+          ifsc_code=EXCLUDED.ifsc_code,
+          upi_id=EXCLUDED.upi_id
       `,
       [
         userId,
@@ -1514,6 +2070,11 @@ router.post("/shop-info", authMiddleware, requireOwner, async (req, res) => {
         String(shop_address || "").trim(),
         String(gst_no || "").trim(),
         normalizedGstRate,
+        normalizedBankName,
+        normalizedAccountHolderName,
+        normalizedAccountNumber,
+        normalizedIfscCode,
+        normalizedUpiId,
       ],
     );
 
@@ -1535,7 +2096,18 @@ router.get(
     try {
       const userId = getUserId(req);
       const { rows } = await pool.query(
-        `SELECT shop_name,shop_address,gst_no,gst_rate FROM settings WHERE user_id=$1`,
+        `SELECT
+           shop_name,
+           shop_address,
+           gst_no,
+           gst_rate,
+           bank_name,
+           account_holder_name,
+           account_number,
+           ifsc_code,
+           upi_id
+         FROM settings
+         WHERE user_id=$1`,
         [userId],
       );
       res.json({ success: true, settings: rows[0] || {} });
