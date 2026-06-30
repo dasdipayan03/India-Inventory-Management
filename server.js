@@ -260,7 +260,27 @@ function applyHtmlCacheHeaders(res) {
   res.set("Pragma", "no-cache");
 }
 
+function injectPerformanceBootstrap(html) {
+  if (html.includes("/js/service-worker-register.js")) {
+    return html;
+  }
+
+  const bootstrapTags = [
+    '<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />',
+    '<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />',
+    '<script src="/js/service-worker-register.js" defer></script>',
+  ].join("\n    ");
+
+  return html.replace("</head>", `    ${bootstrapTags}\n  </head>`);
+}
+
 function setStaticAssetCacheHeaders(res, filePath) {
+  if (path.basename(filePath) === "service-worker.js") {
+    res.set("Cache-Control", "no-cache, max-age=0, must-revalidate");
+    res.set("Service-Worker-Allowed", "/");
+    return;
+  }
+
   if (/\.html?$/i.test(filePath)) {
     applyHtmlCacheHeaders(res);
     return;
@@ -281,7 +301,7 @@ function setStaticAssetCacheHeaders(res, filePath) {
 }
 
 function sendHtmlTemplate(res, fileName, statusCode = 200) {
-  const html = getHtmlTemplate(fileName).replace(
+  const html = injectPerformanceBootstrap(getHtmlTemplate(fileName)).replace(
     /__CSP_NONCE__/g,
     res.locals.cspNonce || "",
   );
@@ -487,6 +507,7 @@ app.use(
         "https://cdnjs.cloudflare.com",
         "https://cdn.jsdelivr.net",
       ],
+      "worker-src": ["'self'"],
       "connect-src": [
         "'self'",
         "https://cdn.jsdelivr.net",
