@@ -1250,9 +1250,13 @@
         letter-spacing: 0.06em;
       }
 
-      .purchase-serial-input {
-        min-height: 86px;
-        resize: vertical;
+      .purchase-serial-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 10px;
+      }
+
+      .purchase-serial-value {
         padding-right: 54px;
       }
 
@@ -6335,6 +6339,6 @@
     <script src="js/permission-contract.js"></script>
     <script src="js/app-core.js"></script>
     <script src="js/app-shell.js"></script>
-    <script src="js/dashboard.js?v=2026-07-02-serial-newline-1"></script>
+    <script src="js/dashboard.js?v=2026-07-02-serial-slots-1"></script>
   </body>
 </html>

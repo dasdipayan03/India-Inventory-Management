@@ -2907,12 +2907,7 @@ function addPurchaseItemRow(item = {}, options = {}) {
     <div class="purchase-serial-panel">
       <div class="purchase-line-field">
         <label>Scan / Enter SL-SN Numbers <span class="purchase-serial-optional">Optional</span></label>
-        <div class="purchase-serial-wrap">
-          <textarea class="form-control purchase-serial-input" rows="3" placeholder="Scan or paste serial numbers, one per line"></textarea>
-          <button class="btn btn-secondary purchase-serial-scan-btn" type="button" title="Camera scan" aria-label="Camera scan">
-            <i class="fa-solid fa-camera"></i>
-          </button>
-        </div>
+        <div class="purchase-serial-list"></div>
         <div class="purchase-serial-meta">No serial numbers added.</div>
       </div>
     </div>
@@ -2934,9 +2929,8 @@ function addPurchaseItemRow(item = {}, options = {}) {
   const profitInput = row.querySelector(".purchase-profit-input");
   const buyInput = row.querySelector(".purchase-buy-input");
   const sellInput = row.querySelector(".purchase-sell-input");
-  const serialInput = row.querySelector(".purchase-serial-input");
+  const serialList = row.querySelector(".purchase-serial-list");
   const serialMeta = row.querySelector(".purchase-serial-meta");
-  const serialScanBtn = row.querySelector(".purchase-serial-scan-btn");
   const lineTotal = row.querySelector(".purchase-line-total");
   const removeBtn = row.querySelector(".purchase-remove-btn");
 
@@ -2946,32 +2940,52 @@ function addPurchaseItemRow(item = {}, options = {}) {
     item.profit_percent ?? Number(getPurchaseDefaultProfitPercent()).toFixed(2);
   buyInput.value = item.buying_rate ?? "";
   sellInput.value = item.selling_rate ?? "";
-  serialInput.value = Array.isArray(item.serial_numbers)
-    ? item.serial_numbers.join("\n")
-    : "";
+  const initialSerialNumbers = Array.isArray(item.serial_numbers)
+    ? item.serial_numbers
+    : [];
   row.dataset.manualProfit = item.profit_percent !== undefined ? "true" : "";
 
+  const serialInputs = () =>
+    Array.from(row.querySelectorAll(".purchase-serial-value"));
+
+  const getPurchaseRowSerialNumbers = () =>
+    serialInputs()
+      .map((input) => normalizeSerialEntry(input.value))
+      .filter(Boolean);
+
   const updateSerialMeta = () => {
-    const serialNumbers = parseSerialNumbersInput(serialInput.value);
+    const inputs = serialInputs();
+    const serialNumbers = getPurchaseRowSerialNumbers();
     const qty = Number(qtyInput.value) || 0;
     const duplicateSerial = findDuplicateSerialNumber(serialNumbers);
-    serialInput.classList.remove("is-invalid");
+    inputs.forEach((input) => input.classList.remove("is-invalid"));
 
     if (!serialNumbers.length) {
-      serialMeta.textContent = "No serial numbers added.";
+      serialMeta.textContent =
+        inputs.length > 0
+          ? `Optional serial fields: ${inputs.length}`
+          : "No serial numbers added.";
       serialMeta.dataset.state = "idle";
       return;
     }
 
     if (duplicateSerial) {
-      serialInput.classList.add("is-invalid");
+      inputs
+        .filter(
+          (input) =>
+            normalizeSerialEntry(input.value).toLowerCase() ===
+            duplicateSerial.toLowerCase(),
+        )
+        .forEach((input) => input.classList.add("is-invalid"));
       serialMeta.textContent = `Duplicate serial: ${duplicateSerial}`;
       serialMeta.dataset.state = "error";
       return;
     }
 
     if (!Number.isInteger(qty) || qty <= 0 || serialNumbers.length !== qty) {
-      serialInput.classList.add("is-invalid");
+      inputs
+        .filter((input) => !normalizeSerialEntry(input.value))
+        .forEach((input) => input.classList.add("is-invalid"));
       serialMeta.textContent = `Serials ${serialNumbers.length} / Qty ${formatNumber(qty)}`;
       serialMeta.dataset.state = "error";
       return;
@@ -2981,28 +2995,42 @@ function addPurchaseItemRow(item = {}, options = {}) {
     serialMeta.dataset.state = "ready";
   };
 
-  const appendSerialNumber = (serialNo) => {
-    const normalized = normalizeSerialEntry(serialNo);
-    if (!normalized) {
+  const renderPurchaseSerialFields = (
+    values = getPurchaseRowSerialNumbers(),
+  ) => {
+    const qty = Number(qtyInput.value) || 0;
+    serialList.innerHTML = "";
+
+    if (!Number.isInteger(qty) || qty <= 0) {
+      updateSerialMeta();
       return;
     }
 
-    const serialNumbers = parseSerialNumbersInput(serialInput.value);
-    if (
-      !serialNumbers.some(
-        (entry) => entry.toLowerCase() === normalized.toLowerCase(),
-      )
-    ) {
-      serialNumbers.push(normalized);
+    for (let index = 0; index < qty; index += 1) {
+      const slot = document.createElement("div");
+      slot.className = "purchase-serial-wrap";
+      slot.innerHTML = `
+        <input class="form-control purchase-serial-value" placeholder="SL/SN ${index + 1}" autocomplete="off" />
+        <button class="btn btn-secondary purchase-serial-scan-btn" type="button" title="Camera scan" aria-label="Camera scan">
+          <i class="fa-solid fa-camera"></i>
+        </button>
+      `;
+
+      const input = slot.querySelector(".purchase-serial-value");
+      const scanBtn = slot.querySelector(".purchase-serial-scan-btn");
+      input.value = values[index] || "";
+      input.addEventListener("input", updateSerialMeta);
+      scanBtn.addEventListener("click", () => {
+        triggerButtonFeedback(scanBtn, 180);
+        startSerialCameraScan((serialNo) => {
+          input.value = normalizeSerialEntry(serialNo);
+          input.focus({ preventScroll: true });
+          updateSerialMeta();
+        });
+      });
+      serialList.appendChild(slot);
     }
-    serialInput.value = serialNumbers.length
-      ? `${serialNumbers.join("\n")}\n`
-      : "";
-    serialInput.focus({ preventScroll: true });
-    serialInput.setSelectionRange(
-      serialInput.value.length,
-      serialInput.value.length,
-    );
+
     updateSerialMeta();
   };
 
@@ -3149,13 +3177,9 @@ function addPurchaseItemRow(item = {}, options = {}) {
     }
   });
 
-  qtyInput.addEventListener("input", updateLineTotal);
-  serialInput.addEventListener("input", () => {
-    updateSerialMeta();
-  });
-  serialScanBtn.addEventListener("click", () => {
-    triggerButtonFeedback(serialScanBtn, 180);
-    startSerialCameraScan(appendSerialNumber);
+  qtyInput.addEventListener("input", () => {
+    renderPurchaseSerialFields(getPurchaseRowSerialNumbers());
+    updateLineTotal();
   });
 
   profitInput.addEventListener("input", () => {
@@ -3238,6 +3262,7 @@ function addPurchaseItemRow(item = {}, options = {}) {
     }, 160);
   });
 
+  renderPurchaseSerialFields(initialSerialNumbers);
   updatePurchaseLineLabels();
 
   if (itemInput.value) {
@@ -4344,9 +4369,11 @@ async function submitPurchase() {
       selling_rate: Number(
         row.querySelector(".purchase-sell-input")?.value || "0",
       ),
-      serial_numbers: parseSerialNumbersInput(
-        row.querySelector(".purchase-serial-input")?.value || "",
-      ),
+      serial_numbers: Array.from(
+        row.querySelectorAll(".purchase-serial-value"),
+      )
+        .map((input) => normalizeSerialEntry(input.value))
+        .filter(Boolean),
     }))
     .filter(
       (item) =>
