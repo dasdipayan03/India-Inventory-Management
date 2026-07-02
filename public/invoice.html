@@ -548,6 +548,138 @@
         vertical-align: middle;
       }
 
+      #lineItemsCard .table-wrap {
+        overflow: visible;
+      }
+
+      #lineItemsCard table,
+      #lineItemsCard thead,
+      #lineItemsCard tbody {
+        display: block;
+        width: 100%;
+      }
+
+      #lineItemsCard thead {
+        display: none;
+      }
+
+      #lineItemsCard table {
+        min-width: 0;
+        table-layout: auto;
+        border-spacing: 0;
+      }
+
+      #lineItemsCard tbody {
+        display: grid;
+        gap: 12px;
+      }
+
+      #lineItemsCard tbody tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin: 0;
+        padding: 12px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 14px 26px rgba(17, 29, 58, 0.08);
+      }
+
+      #lineItemsCard tbody td,
+      #lineItemsCard tbody td:first-child,
+      #lineItemsCard tbody td:last-child {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+
+      #lineItemsCard tbody td::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 4px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+
+      #lineItemsCard tbody td[data-label="Item"],
+      #lineItemsCard tbody td[data-label="Scan / SL-SN"],
+      #lineItemsCard tbody td[data-label="Total"],
+      #lineItemsCard tbody td[data-label="Remove"] {
+        grid-column: 1 / -1;
+      }
+
+      #lineItemsCard tbody td[data-label="Item"] {
+        order: 1;
+      }
+
+      #lineItemsCard tbody td[data-label="Qty"] {
+        order: 2;
+      }
+
+      #lineItemsCard tbody td[data-label="Rate"] {
+        order: 3;
+      }
+
+      #lineItemsCard tbody td[data-label="Base"] {
+        order: 4;
+      }
+
+      #lineItemsCard tbody td[data-label="GST"] {
+        order: 5;
+      }
+
+      #lineItemsCard tbody td[data-label="Scan / SL-SN"] {
+        order: 6;
+      }
+
+      #lineItemsCard tbody td[data-label="Total"] {
+        order: 7;
+      }
+
+      #lineItemsCard tbody td[data-label="Remove"] {
+        order: 8;
+      }
+
+      #lineItemsCard tbody td[data-label="Base"],
+      #lineItemsCard tbody td[data-label="GST"] {
+        padding: 10px;
+        border-radius: 14px;
+        border: 1px solid rgba(117, 142, 180, 0.16);
+        background: rgba(248, 251, 255, 0.92);
+      }
+
+      #lineItemsCard tbody td[data-label="Total"] {
+        padding: 10px;
+        border-radius: 16px;
+        border: 1px solid rgba(14, 165, 233, 0.16);
+        background: linear-gradient(
+          180deg,
+          rgba(239, 246, 255, 0.94),
+          rgba(248, 250, 252, 0.98)
+        );
+      }
+
+      #lineItemsCard tbody .input {
+        padding: 11px 12px;
+        border-radius: 14px;
+      }
+
+      #lineItemsCard tbody td[data-label="Total"] .input {
+        font-weight: 800;
+      }
+
+      #lineItemsCard tbody td[data-label="Remove"] .btn {
+        width: 100%;
+      }
+
       .calc {
         padding-top: 12px;
         font-weight: 700;
