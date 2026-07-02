@@ -2995,7 +2995,14 @@ function addPurchaseItemRow(item = {}, options = {}) {
     ) {
       serialNumbers.push(normalized);
     }
-    serialInput.value = serialNumbers.join("\n");
+    serialInput.value = serialNumbers.length
+      ? `${serialNumbers.join("\n")}\n`
+      : "";
+    serialInput.focus({ preventScroll: true });
+    serialInput.setSelectionRange(
+      serialInput.value.length,
+      serialInput.value.length,
+    );
     updateSerialMeta();
   };
 
