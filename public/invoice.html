@@ -4505,6 +4505,10 @@
 
           let availableQty = 0;
           let hasStock = false;
+          let serialRateSyncTimer = null;
+          let serialRateLookupId = 0;
+          let serialDropdownItems = [];
+          const serialMetaByKey = new Map();
 
           const validateQty = () => {
             qtyInput.classList.remove("invalid");
@@ -4526,6 +4530,92 @@
             qtyInput.classList.remove("invalid");
           };
 
+          const serialKey = (value) =>
+            normalizeSerialEntry(value).toLowerCase();
+
+          const readSerialRate = (serial) => {
+            const rate = Number.parseFloat(
+              serial?.sale_rate ?? serial?.selling_rate ?? "",
+            );
+            return Number.isFinite(rate) && rate > 0
+              ? Number(rate.toFixed(2))
+              : null;
+          };
+
+          const rememberSerialMeta = (serial) => {
+            const serialNo = normalizeSerialEntry(serial?.serial_no ?? serial);
+            if (!serialNo) {
+              return null;
+            }
+
+            const record = {
+              ...(typeof serial === "object" && serial ? serial : {}),
+              serial_no: serialNo,
+              sale_rate: readSerialRate(serial),
+            };
+            serialMetaByKey.set(serialKey(serialNo), record);
+            return record;
+          };
+
+          const renderSerialDropdown = (serials = []) => {
+            serialDropdownItems = serials.map(rememberSerialMeta).filter(Boolean);
+
+            if (!serialDropdownItems.length) {
+              serialDropdown.innerHTML = "";
+              hideElement(serialDropdown);
+              serialDropdown.onpointerdown = null;
+              return;
+            }
+
+            serialDropdown.innerHTML = serialDropdownItems
+              .map((serial, index) => {
+                const rate =
+                  serial.sale_rate === null
+                    ? "Rate not set"
+                    : `Rate ${Number(serial.sale_rate).toFixed(2)}`;
+
+                return `
+                  <div class="dropdown-item dropdown-item--serial" data-index="${index}">
+                    <div class="dropdown-item__title">${escapeHtml(serial.serial_no)}</div>
+                    <div class="dropdown-item__meta">${escapeHtml(rate)}</div>
+                  </div>
+                `;
+              })
+              .join("");
+            showElement(serialDropdown);
+            serialDropdown.onpointerdown = (event) => {
+              const node = event.target.closest(".dropdown-item");
+              if (!node || !serialDropdown.contains(node)) {
+                return;
+              }
+
+              event.preventDefault();
+              const serial = serialDropdownItems[Number(node.dataset.index)];
+              appendSerialNumber(serial);
+              hideElement(serialDropdown);
+            };
+          };
+
+          const applySerialRateFromCache = (serialNumbers) => {
+            const rates = serialNumbers.map((serialNo) => {
+              const record = serialMetaByKey.get(serialKey(serialNo));
+              return record ? readSerialRate(record) : null;
+            });
+
+            if (!rates.length || rates.some((rate) => rate === null)) {
+              return { state: "pending" };
+            }
+
+            const firstRate = rates[0];
+            const hasDifferentRate = rates.some((rate) => rate !== firstRate);
+            if (hasDifferentRate) {
+              return { state: "mixed" };
+            }
+
+            rateInput.value = Number(firstRate).toFixed(2);
+            return { state: "ready", rate: firstRate };
+          };
+
           const updateSerialState = () => {
             const serialNumbers = parseSerialNumbersInput(serialInput.value);
             const duplicateSerial = findDuplicateSerialNumber(serialNumbers);
@@ -4534,24 +4624,116 @@
 
             if (!serialNumbers.length) {
               serialInfo.textContent = "";
+              serialInfo.dataset.rateState = "idle";
               return;
             }
 
             if (duplicateSerial) {
               serialInput.classList.add("invalid");
               serialInfo.dataset.state = "error";
+              serialInfo.dataset.rateState = "error";
               serialInfo.textContent = `Duplicate SN: ${duplicateSerial}`;
               return;
             }
 
             qtyInput.value = serialNumbers.length;
-            serialInfo.dataset.state = "ready";
-            serialInfo.textContent = `SN ready: ${serialNumbers.length}`;
+            const rateState = applySerialRateFromCache(serialNumbers);
+
+            if (rateState.state === "mixed") {
+              serialInput.classList.add("invalid");
+              serialInfo.dataset.state = "error";
+              serialInfo.dataset.rateState = "error";
+              serialInfo.textContent =
+                "Different SN rates selected. Use separate rows.";
+              fromRate();
+              return;
+            }
+
+            serialInfo.dataset.state =
+              rateState.state === "ready" ? "ready" : "idle";
+            serialInfo.dataset.rateState = rateState.state;
+            serialInfo.textContent =
+              rateState.state === "ready"
+                ? `SN ready: ${serialNumbers.length} | Rate ${Number(rateState.rate).toFixed(2)}`
+                : `SN ready: ${serialNumbers.length} | checking rate`;
             fromRate();
           };
 
-          const appendSerialNumber = (serialNo) => {
+          const fetchSerialMeta = async (serialNo) => {
+            const itemName = itemInput.value.trim();
             const normalized = normalizeSerialEntry(serialNo);
+            if (!itemName || !normalized) {
+              return null;
+            }
+
+            try {
+              const res = await authFetch(
+                `${API_PREFIX}/item-serials?item_name=${encodeURIComponent(itemName)}&q=${encodeURIComponent(normalized)}&exact=1`,
+                { headers: authHeaders() },
+              );
+
+              if (!res || !res.ok) {
+                return null;
+              }
+
+              const data = await res.json();
+              const matched = (Array.isArray(data.serials) ? data.serials : [])
+                .map(rememberSerialMeta)
+                .find(
+                  (serial) =>
+                    serial &&
+                    serialKey(serial.serial_no) === serialKey(normalized),
+                );
+              return matched || null;
+            } catch (error) {
+              console.warn("Serial rate lookup failed:", error);
+              return null;
+            }
+          };
+
+          const syncSerialRates = async () => {
+            const serialNumbers = parseSerialNumbersInput(serialInput.value);
+            if (!serialNumbers.length || !itemInput.value.trim()) {
+              updateSerialState();
+              return;
+            }
+
+            const lookupId = ++serialRateLookupId;
+            const missingSerials = serialNumbers.filter((serialNo) => {
+              const record = serialMetaByKey.get(serialKey(serialNo));
+              return !record || readSerialRate(record) === null;
+            });
+
+            if (missingSerials.length) {
+              await Promise.all(
+                missingSerials.map((serialNo) => fetchSerialMeta(serialNo)),
+              );
+            }
+
+            if (lookupId !== serialRateLookupId) {
+              return;
+            }
+
+            updateSerialState();
+            queueDraft();
+          };
+
+          const scheduleSerialRateSync = () => {
+            if (serialRateSyncTimer) {
+              clearTimeout(serialRateSyncTimer);
+            }
+            serialRateSyncTimer = setTimeout(() => {
+              serialRateSyncTimer = null;
+              void syncSerialRates();
+            }, 260);
+          };
+          tr.syncSerialRates = syncSerialRates;
+
+          const appendSerialNumber = (serialValue) => {
+            const serialRecord = rememberSerialMeta(serialValue);
+            const normalized = normalizeSerialEntry(
+              serialRecord?.serial_no ?? serialValue,
+            );
             if (!normalized) {
               return;
             }
@@ -4584,6 +4766,7 @@
             );
             hideElement(serialDropdown);
             updateSerialState();
+            void syncSerialRates();
             queueDraft();
           };
 
@@ -4609,9 +4792,10 @@
 
             const data = await res.json();
             const serials = Array.isArray(data.serials)
-              ? data.serials.map((serial) => serial.serial_no).filter(Boolean)
+              ? data.serials.filter((serial) => serial?.serial_no)
               : [];
-            renderDropdown(serialDropdown, serials, appendSerialNumber);
+            renderSerialDropdown(serials);
+            void syncSerialRates();
             updateSerialState();
           };
 
@@ -4667,6 +4851,7 @@
             hasStock = true;
             stockInfo.textContent = `Available stock: ${availableQty}`;
             fromRate();
+            scheduleSerialRateSync();
           };
 
           const showItemSuggestions = async () => {
@@ -4696,6 +4881,7 @@
               getSearchMatches(itemNameSearchIndex, q, 15),
               async (value) => {
                 itemInput.value = value;
+                serialMetaByKey.clear();
                 syncItemTitle();
                 await loadItemInfo(value);
                 queueDraft();
@@ -4706,8 +4892,10 @@
           };
 
           itemInput.addEventListener("input", () => {
+            serialMetaByKey.clear();
             void showItemSuggestions();
             updateSerialState();
+            scheduleSerialRateSync();
           });
 
           itemInput.addEventListener("focus", () => {
@@ -4731,6 +4919,7 @@
           serialInput.addEventListener("input", () => {
             updateSerialState();
             void loadSerialSuggestions();
+            scheduleSerialRateSync();
             queueDraft();
           });
           serialInput.addEventListener("focus", () => {
@@ -4743,6 +4932,9 @@
             startSerialCameraScan(appendSerialNumber);
           });
           rateInput.addEventListener("input", () => {
+            if (parseSerialNumbersInput(serialInput.value).length) {
+              scheduleSerialRateSync();
+            }
             fromRate();
             queueDraft();
           });
@@ -4761,6 +4953,7 @@
           fromRate();
           updateSerialState();
           if (item.description) loadItemInfo(item.description);
+          scheduleSerialRateSync();
           if (!silent) queueDraft();
         }
 
@@ -5418,6 +5611,7 @@
             const itemInput = row.querySelector(".item-input");
             const qtyInput = row.querySelector(".qty-input");
             const serialInput = row.querySelector(".serial-input");
+            const serialInfo = row.querySelector(".serial-stock");
             const rateInput = row.querySelector(".rate-input");
             [itemInput, qtyInput, serialInput, rateInput].forEach((el) =>
               el.classList.remove("invalid"),
@@ -5425,8 +5619,12 @@
 
             const description = itemInput.value.trim();
             const quantity = parseFloat(qtyInput.value || "0") || 0;
+            let serialNumbers = parseSerialNumbersInput(serialInput.value);
+            if (serialNumbers.length && typeof row.syncSerialRates === "function") {
+              await row.syncSerialRates();
+              serialNumbers = parseSerialNumbersInput(serialInput.value);
+            }
             const rate = parseFloat(rateInput.value || "0") || 0;
-            const serialNumbers = parseSerialNumbersInput(serialInput.value);
             const duplicateSerial = findDuplicateSerialNumber(serialNumbers);
 
             if (quantity === 0) {
@@ -5469,6 +5667,19 @@
                 "error",
                 "Serial mismatch",
                 "When serial numbers are added, quantity must match the serial count.",
+              );
+              return false;
+            }
+
+            if (
+              serialNumbers.length &&
+              serialInfo?.dataset.rateState !== "ready"
+            ) {
+              serialInput.classList.add("invalid");
+              showPopup(
+                "error",
+                "Serial rate missing",
+                "Serial sale rate is not loaded yet. Select a serial from the dropdown or scan a valid serial.",
               );
               return false;
             }

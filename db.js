@@ -314,6 +314,7 @@ async function ensureSchemaCompatibility() {
       sale_id INT REFERENCES sales(id) ON DELETE SET NULL,
       serial_no VARCHAR(160) NOT NULL,
       serial_no_norm VARCHAR(160) NOT NULL,
+      sale_rate NUMERIC(12,2) NOT NULL DEFAULT 0,
       status VARCHAR(20) NOT NULL DEFAULT 'in_stock',
       created_at TIMESTAMPTZ DEFAULT NOW(),
       sold_at TIMESTAMPTZ,
@@ -567,6 +568,26 @@ async function ensureSchemaCompatibility() {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_item_serials_invoice_item
       ON item_serials (invoice_item_id)
+  `);
+
+  await pool.query(`
+    ALTER TABLE item_serials
+    ADD COLUMN IF NOT EXISTS sale_rate NUMERIC(12,2) NOT NULL DEFAULT 0
+  `);
+
+  await pool.query(`
+    UPDATE item_serials s
+    SET sale_rate = COALESCE(
+      NULLIF(pi.selling_rate, 0),
+      NULLIF(i.selling_rate, 0),
+      s.sale_rate,
+      0
+    )
+    FROM items i
+    LEFT JOIN purchase_items pi
+      ON pi.id = s.purchase_item_id
+    WHERE i.id = s.item_id
+      AND COALESCE(s.sale_rate, 0) = 0
   `);
 
   await pool.query(`

@@ -715,9 +715,10 @@ router.post(
               purchase_id,
               purchase_item_id,
               serial_no,
-              serial_no_norm
+              serial_no_norm,
+              sale_rate
             )
-            VALUES ($1, $2, $3, $4, $5, $6)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
           `,
             [
               userId,
@@ -726,6 +727,7 @@ router.post(
               purchaseItemId,
               serial.serialNo,
               serial.serialKey,
+              item.sellingRate,
             ],
           );
         }
@@ -992,6 +994,7 @@ router.get(
                       json_build_object(
                         'id', isn.id,
                         'serial_no', isn.serial_no,
+                        'sale_rate', isn.sale_rate,
                         'status', isn.status,
                         'sold_at', isn.sold_at
                       )

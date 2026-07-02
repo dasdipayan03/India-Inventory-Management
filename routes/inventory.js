@@ -444,6 +444,9 @@ router.get(
       const userId = getUserId(req);
       const itemName = normalizeDisplayText(req.query.item_name);
       const query = normalizeDisplayText(req.query.q);
+      const exactLookup = ["1", "true", "yes"].includes(
+        String(req.query.exact || "").toLowerCase(),
+      );
 
       if (!itemName) {
         return res.status(400).json({ error: "Item name is required." });
@@ -452,8 +455,10 @@ router.get(
       const params = [userId, itemName];
       let searchClause = "";
       if (query) {
-        params.push(`%${query}%`);
-        searchClause = "AND s.serial_no ILIKE $3";
+        params.push(exactLookup ? normalizeLookupText(query) : `%${query}%`);
+        searchClause = exactLookup
+          ? "AND s.serial_no_norm = $3"
+          : "AND s.serial_no ILIKE $3";
       }
 
       const result = await pool.query(
@@ -461,6 +466,7 @@ router.get(
         SELECT
           s.id,
           s.serial_no,
+          s.sale_rate,
           s.status,
           i.id AS item_id,
           i.name AS item_name

@@ -318,6 +318,7 @@ CREATE TABLE IF NOT EXISTS item_serials (
   sale_id INT REFERENCES sales(id) ON DELETE SET NULL,
   serial_no VARCHAR(160) NOT NULL,
   serial_no_norm VARCHAR(160) NOT NULL,
+  sale_rate NUMERIC(12,2) NOT NULL DEFAULT 0,
   status VARCHAR(20) NOT NULL DEFAULT 'in_stock',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   sold_at TIMESTAMPTZ,

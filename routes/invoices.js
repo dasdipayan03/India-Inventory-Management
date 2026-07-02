@@ -665,16 +665,21 @@ router.post(
           const trimmedGstNo = String(gst_no || "").trim() || null;
 
           /* ---- calculate ---- */
-          let subtotal = 0;
           const computed = items.map((item, index) => {
             const description = normalizeDisplayText(item.description);
             const q = parseNonZeroNumber(item.quantity);
-            const r = parsePositiveNumber(item.rate);
             const serialNumbers = parseSerialNumbers(
               item.serial_numbers ?? item.serials ?? item.serial_no_text,
             );
+            const r = serialNumbers.length
+              ? parseNonNegativeNumber(item.rate) ?? 0
+              : parsePositiveNumber(item.rate);
 
-            if (!description || q === null || r === null) {
+            if (
+              !description ||
+              q === null ||
+              (!serialNumbers.length && r === null)
+            ) {
               throw new Error(`Invalid invoice item at line ${index + 1}`);
             }
 
@@ -692,19 +697,16 @@ router.post(
               }
             }
 
-            const a = +(q * r).toFixed(2);
-            subtotal += a;
             return {
               description,
               lookupKey: normalizeLookupText(description),
               quantity: q,
               rate: r,
-              amount: a,
+              amount: 0,
               serialNumbers,
               serialRows: [],
             };
           });
-          subtotal = +subtotal.toFixed(2);
 
           const allSerials = [];
           const seenSerialKeys = new Set();
@@ -739,6 +741,7 @@ router.post(
                 s.item_id,
                 s.serial_no,
                 s.serial_no_norm,
+                s.sale_rate,
                 s.status,
                 i.name AS item_name,
                 LOWER(TRIM(i.name)) AS item_lookup_key
@@ -779,6 +782,41 @@ router.post(
               });
             });
           }
+
+          let subtotal = 0;
+          computed.forEach((line, index) => {
+            if (line.serialRows.length) {
+              const serialRates = line.serialRows.map((row) =>
+                Number(Number(row.sale_rate || 0).toFixed(2)),
+              );
+              const invalidRate = serialRates.find(
+                (rate) => !Number.isFinite(rate) || rate <= 0,
+              );
+
+              if (invalidRate !== undefined) {
+                throw new Error(
+                  `Sale rate is missing for selected serial numbers at line ${index + 1}`,
+                );
+              }
+
+              const firstRate = serialRates[0];
+              const hasDifferentRate = serialRates.some(
+                (rate) => rate !== firstRate,
+              );
+
+              if (hasDifferentRate) {
+                throw new Error(
+                  `Selected serial numbers have different sale rates at line ${index + 1}. Please use separate rows.`,
+                );
+              }
+
+              line.rate = firstRate;
+            }
+
+            line.amount = +(line.quantity * line.rate).toFixed(2);
+            subtotal += line.amount;
+          });
+          subtotal = +subtotal.toFixed(2);
 
           const groupedStockNeed = new Map();
           computed.forEach((line) => {
@@ -1461,6 +1499,7 @@ router.get(
                   json_build_object(
                     'id', isn.id,
                     'serial_no', isn.serial_no,
+                    'sale_rate', isn.sale_rate,
                     'status', isn.status,
                     'sold_at', isn.sold_at
                   )
@@ -1688,6 +1727,7 @@ router.get(
                          json_build_object(
                            'id', isn.id,
                            'serial_no', isn.serial_no,
+                           'sale_rate', isn.sale_rate,
                            'status', isn.status,
                            'sold_at', isn.sold_at
                          )
