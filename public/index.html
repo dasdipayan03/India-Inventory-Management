@@ -1255,6 +1255,18 @@
         resize: vertical;
       }
 
+      .purchase-serial-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .purchase-serial-scan-btn {
+        min-height: 38px;
+        white-space: nowrap;
+      }
+
       .purchase-serial-meta,
       .purchase-detail-serials {
         color: var(--ink-soft);
@@ -1269,6 +1281,72 @@
 
       .purchase-serial-meta[data-state="error"] {
         color: var(--danger);
+      }
+
+      .serial-scanner-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 3000;
+        display: grid;
+        place-items: center;
+        padding: 18px;
+        background: rgba(15, 23, 42, 0.58);
+        backdrop-filter: blur(8px);
+      }
+
+      .serial-scanner-card {
+        width: min(560px, 100%);
+        overflow: hidden;
+        border-radius: 22px;
+        border: 1px solid rgba(255, 255, 255, 0.42);
+        background: rgba(248, 251, 255, 0.98);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .serial-scanner-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 14px;
+      }
+
+      .serial-scanner-head strong,
+      .serial-scanner-head span {
+        display: block;
+      }
+
+      .serial-scanner-head strong {
+        color: var(--ink-strong);
+        font-size: 15px;
+        font-weight: 800;
+      }
+
+      .serial-scanner-head span,
+      .serial-scanner-status {
+        color: var(--ink-soft);
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .serial-scanner-close {
+        min-width: 36px;
+        width: 36px;
+        min-height: 36px;
+        height: 36px;
+        padding: 0;
+      }
+
+      .serial-scanner-video {
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        display: block;
+        background: #020617;
+        object-fit: cover;
+      }
+
+      .serial-scanner-status {
+        padding: 12px 14px 14px;
       }
 
       .purchase-line-total-box {
@@ -6249,6 +6327,6 @@
     <script src="js/permission-contract.js"></script>
     <script src="js/app-core.js"></script>
     <script src="js/app-shell.js"></script>
-    <script src="js/dashboard.js"></script>
+    <script src="js/dashboard.js?v=2026-07-02-serial-camera-1"></script>
   </body>
 </html>

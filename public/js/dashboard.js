@@ -2496,6 +2496,203 @@ function findDuplicateSerialNumber(serialNumbers = []) {
   return "";
 }
 
+let serialScannerState = {
+  modal: null,
+  stream: null,
+  frameId: 0,
+  detector: null,
+  onDetected: null,
+};
+
+function stopSerialCameraScanner() {
+  if (serialScannerState.frameId) {
+    cancelAnimationFrame(serialScannerState.frameId);
+  }
+
+  if (serialScannerState.stream) {
+    serialScannerState.stream.getTracks().forEach((track) => track.stop());
+  }
+
+  const modal = serialScannerState.modal;
+  if (modal) {
+    const video = modal.querySelector(".serial-scanner-video");
+    if (video) {
+      video.pause();
+      video.srcObject = null;
+    }
+    modal.hidden = true;
+  }
+
+  serialScannerState = {
+    ...serialScannerState,
+    stream: null,
+    frameId: 0,
+    detector: null,
+    onDetected: null,
+  };
+}
+
+function ensureSerialScannerModal() {
+  if (serialScannerState.modal) {
+    return serialScannerState.modal;
+  }
+
+  const modal = document.createElement("div");
+  modal.className = "serial-scanner-modal";
+  modal.hidden = true;
+  modal.innerHTML = `
+    <div class="serial-scanner-card">
+      <div class="serial-scanner-head">
+        <div>
+          <strong>Camera Scan</strong>
+          <span>Point camera at a barcode or QR code.</span>
+        </div>
+        <button class="btn btn-danger serial-scanner-close" type="button">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <video class="serial-scanner-video" playsinline muted></video>
+      <div class="serial-scanner-status">Starting camera...</div>
+    </div>
+  `;
+
+  modal
+    .querySelector(".serial-scanner-close")
+    ?.addEventListener("click", stopSerialCameraScanner);
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) {
+      stopSerialCameraScanner();
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (!modal.hidden && event.key === "Escape") {
+      stopSerialCameraScanner();
+    }
+  });
+  document.body.appendChild(modal);
+  serialScannerState.modal = modal;
+  return modal;
+}
+
+async function createSerialBarcodeDetector() {
+  if (!("BarcodeDetector" in window)) {
+    throw new Error(
+      "Camera barcode scan is not supported in this browser. Use Chrome/Edge or enter the serial manually.",
+    );
+  }
+
+  const preferredFormats = [
+    "qr_code",
+    "code_128",
+    "code_39",
+    "code_93",
+    "ean_13",
+    "ean_8",
+    "upc_a",
+    "upc_e",
+    "itf",
+    "data_matrix",
+    "pdf417",
+    "aztec",
+  ];
+  let formats = preferredFormats;
+
+  if (typeof window.BarcodeDetector.getSupportedFormats === "function") {
+    const supportedFormats = await window.BarcodeDetector.getSupportedFormats();
+    formats = preferredFormats.filter((format) =>
+      supportedFormats.includes(format),
+    );
+  }
+
+  return new window.BarcodeDetector(
+    formats.length ? { formats } : undefined,
+  );
+}
+
+async function startSerialCameraScan(onDetected) {
+  if (!window.isSecureContext) {
+    showPopup(
+      "error",
+      "Camera unavailable",
+      "Camera scan needs HTTPS or localhost. Enter the serial manually on this page.",
+      { autoClose: false },
+    );
+    return;
+  }
+
+  if (!navigator.mediaDevices?.getUserMedia) {
+    showPopup(
+      "error",
+      "Camera unavailable",
+      "This browser cannot open the camera. Enter the serial manually.",
+      { autoClose: false },
+    );
+    return;
+  }
+
+  const modal = ensureSerialScannerModal();
+  const video = modal.querySelector(".serial-scanner-video");
+  const status = modal.querySelector(".serial-scanner-status");
+  stopSerialCameraScanner();
+  serialScannerState.modal = modal;
+  serialScannerState.onDetected = onDetected;
+  modal.hidden = false;
+  status.textContent = "Starting camera...";
+
+  try {
+    const detector = await createSerialBarcodeDetector();
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: "environment" },
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      },
+      audio: false,
+    });
+
+    serialScannerState.detector = detector;
+    serialScannerState.stream = stream;
+    video.srcObject = stream;
+    await video.play();
+    status.textContent = "Scanning...";
+
+    const scanFrame = async () => {
+      if (!serialScannerState.stream || modal.hidden) {
+        return;
+      }
+
+      try {
+        const codes = await detector.detect(video);
+        const detected = codes
+          .map((code) => normalizeSerialEntry(code.rawValue))
+          .find(Boolean);
+
+        if (detected) {
+          const callback = serialScannerState.onDetected;
+          stopSerialCameraScanner();
+          callback?.(detected);
+          showPopup("success", "Serial scanned", detected);
+          return;
+        }
+      } catch (error) {
+        console.warn("Serial scan frame failed:", error);
+      }
+
+      serialScannerState.frameId = requestAnimationFrame(scanFrame);
+    };
+
+    serialScannerState.frameId = requestAnimationFrame(scanFrame);
+  } catch (error) {
+    stopSerialCameraScanner();
+    showPopup(
+      "error",
+      "Camera scan failed",
+      error.message || "Could not start camera scan.",
+      { autoClose: false },
+    );
+  }
+}
+
 function getPurchaseDefaultProfitPercent() {
   return state.lastSavedProfitPercent ?? 30;
 }
@@ -2709,9 +2906,15 @@ function addPurchaseItemRow(item = {}, options = {}) {
     </div>
     <div class="purchase-serial-panel">
       <div class="purchase-line-field">
-        <label>SL/SN Numbers <span class="purchase-serial-optional">Optional</span></label>
+        <label>Scan / Enter SL-SN Numbers <span class="purchase-serial-optional">Optional</span></label>
         <textarea class="form-control purchase-serial-input" rows="3" placeholder="Scan or paste serial numbers, one per line"></textarea>
-        <div class="purchase-serial-meta">No serial numbers added.</div>
+        <div class="purchase-serial-actions">
+          <button class="btn btn-secondary purchase-serial-scan-btn" type="button">
+            <i class="fa-solid fa-camera"></i>
+            Camera Scan
+          </button>
+          <div class="purchase-serial-meta">No serial numbers added.</div>
+        </div>
       </div>
     </div>
   `;
@@ -2734,6 +2937,7 @@ function addPurchaseItemRow(item = {}, options = {}) {
   const sellInput = row.querySelector(".purchase-sell-input");
   const serialInput = row.querySelector(".purchase-serial-input");
   const serialMeta = row.querySelector(".purchase-serial-meta");
+  const serialScanBtn = row.querySelector(".purchase-serial-scan-btn");
   const lineTotal = row.querySelector(".purchase-line-total");
   const removeBtn = row.querySelector(".purchase-remove-btn");
 
@@ -2776,6 +2980,24 @@ function addPurchaseItemRow(item = {}, options = {}) {
 
     serialMeta.textContent = `Serials ready: ${serialNumbers.length}`;
     serialMeta.dataset.state = "ready";
+  };
+
+  const appendSerialNumber = (serialNo) => {
+    const normalized = normalizeSerialEntry(serialNo);
+    if (!normalized) {
+      return;
+    }
+
+    const serialNumbers = parseSerialNumbersInput(serialInput.value);
+    if (
+      !serialNumbers.some(
+        (entry) => entry.toLowerCase() === normalized.toLowerCase(),
+      )
+    ) {
+      serialNumbers.push(normalized);
+    }
+    serialInput.value = serialNumbers.join("\n");
+    updateSerialMeta();
   };
 
   const updateLineTotal = () => {
@@ -2924,6 +3146,10 @@ function addPurchaseItemRow(item = {}, options = {}) {
   qtyInput.addEventListener("input", updateLineTotal);
   serialInput.addEventListener("input", () => {
     updateSerialMeta();
+  });
+  serialScanBtn.addEventListener("click", () => {
+    triggerButtonFeedback(serialScanBtn, 180);
+    startSerialCameraScan(appendSerialNumber);
   });
 
   profitInput.addEventListener("input", () => {

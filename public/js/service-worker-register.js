@@ -14,6 +14,9 @@
   window.addEventListener("load", () => {
     navigator.serviceWorker
       .register("/service-worker.js", { scope: "/" })
+      .then((registration) => {
+        registration.update().catch(() => {});
+      })
       .catch(() => {});
   });
 })();

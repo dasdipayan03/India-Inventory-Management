@@ -245,6 +245,10 @@ function sendHealthResponse(res, kind) {
 }
 
 function getHtmlTemplate(fileName) {
+  if (process.env.NODE_ENV !== "production") {
+    return fs.readFileSync(path.join(publicDir, fileName), "utf8");
+  }
+
   if (htmlTemplateCache.has(fileName)) {
     return htmlTemplateCache.get(fileName);
   }

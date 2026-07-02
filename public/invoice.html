@@ -621,6 +621,14 @@
         resize: vertical;
       }
 
+      #lineItemsCard .serial-scan-btn {
+        width: 100%;
+        min-height: 38px;
+        margin-top: 8px;
+        padding-inline: 10px;
+        white-space: nowrap;
+      }
+
       #lineItemsCard .serial-stock[data-state="ready"] {
         color: var(--success);
         background: rgba(22, 163, 74, 0.1);
@@ -629,6 +637,72 @@
       #lineItemsCard .serial-stock[data-state="error"] {
         color: var(--danger);
         background: rgba(220, 38, 38, 0.08);
+      }
+
+      .serial-scanner-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 3000;
+        display: grid;
+        place-items: center;
+        padding: 18px;
+        background: rgba(15, 23, 42, 0.58);
+        backdrop-filter: blur(8px);
+      }
+
+      .serial-scanner-card {
+        width: min(560px, 100%);
+        overflow: hidden;
+        border-radius: 22px;
+        border: 1px solid rgba(255, 255, 255, 0.42);
+        background: rgba(248, 251, 255, 0.98);
+        box-shadow: var(--shadow);
+      }
+
+      .serial-scanner-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 14px;
+      }
+
+      .serial-scanner-head strong,
+      .serial-scanner-head span {
+        display: block;
+      }
+
+      .serial-scanner-head strong {
+        color: var(--ink);
+        font-size: 15px;
+        font-weight: 800;
+      }
+
+      .serial-scanner-head span,
+      .serial-scanner-status {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .serial-scanner-close {
+        min-width: 36px;
+        width: 36px;
+        min-height: 36px;
+        height: 36px;
+        padding: 0;
+      }
+
+      .serial-scanner-video {
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        display: block;
+        background: #020617;
+        object-fit: cover;
+      }
+
+      .serial-scanner-status {
+        padding: 12px 14px 14px;
       }
 
       #lineItemsCard .remove-btn {
@@ -2095,7 +2169,7 @@
                   <tr>
                     <th>Item</th>
                     <th>Qty</th>
-                    <th>SL/SN</th>
+                    <th>Scan / SL-SN</th>
                     <th>Rate</th>
                     <th>Base</th>
                     <th>GST</th>
@@ -3466,6 +3540,206 @@
           return "";
         };
 
+        let serialScannerState = {
+          modal: null,
+          stream: null,
+          frameId: 0,
+          detector: null,
+          onDetected: null,
+        };
+
+        const stopSerialCameraScanner = () => {
+          if (serialScannerState.frameId) {
+            cancelAnimationFrame(serialScannerState.frameId);
+          }
+
+          if (serialScannerState.stream) {
+            serialScannerState.stream
+              .getTracks()
+              .forEach((track) => track.stop());
+          }
+
+          const modal = serialScannerState.modal;
+          if (modal) {
+            const video = modal.querySelector(".serial-scanner-video");
+            if (video) {
+              video.pause();
+              video.srcObject = null;
+            }
+            modal.hidden = true;
+          }
+
+          serialScannerState = {
+            ...serialScannerState,
+            stream: null,
+            frameId: 0,
+            detector: null,
+            onDetected: null,
+          };
+        };
+
+        const ensureSerialScannerModal = () => {
+          if (serialScannerState.modal) {
+            return serialScannerState.modal;
+          }
+
+          const modal = document.createElement("div");
+          modal.className = "serial-scanner-modal";
+          modal.hidden = true;
+          modal.innerHTML = `
+            <div class="serial-scanner-card">
+              <div class="serial-scanner-head">
+                <div>
+                  <strong>Camera Scan</strong>
+                  <span>Point camera at a barcode or QR code.</span>
+                </div>
+                <button class="btn danger serial-scanner-close" type="button">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+              <video class="serial-scanner-video" playsinline muted></video>
+              <div class="serial-scanner-status">Starting camera...</div>
+            </div>
+          `;
+
+          modal
+            .querySelector(".serial-scanner-close")
+            ?.addEventListener("click", stopSerialCameraScanner);
+          modal.addEventListener("click", (event) => {
+            if (event.target === modal) {
+              stopSerialCameraScanner();
+            }
+          });
+          document.addEventListener("keydown", (event) => {
+            if (!modal.hidden && event.key === "Escape") {
+              stopSerialCameraScanner();
+            }
+          });
+          document.body.appendChild(modal);
+          serialScannerState.modal = modal;
+          return modal;
+        };
+
+        const createSerialBarcodeDetector = async () => {
+          if (!("BarcodeDetector" in window)) {
+            throw new Error(
+              "Camera barcode scan is not supported in this browser. Use Chrome/Edge or enter the serial manually.",
+            );
+          }
+
+          const preferredFormats = [
+            "qr_code",
+            "code_128",
+            "code_39",
+            "code_93",
+            "ean_13",
+            "ean_8",
+            "upc_a",
+            "upc_e",
+            "itf",
+            "data_matrix",
+            "pdf417",
+            "aztec",
+          ];
+          let formats = preferredFormats;
+
+          if (typeof window.BarcodeDetector.getSupportedFormats === "function") {
+            const supportedFormats =
+              await window.BarcodeDetector.getSupportedFormats();
+            formats = preferredFormats.filter((format) =>
+              supportedFormats.includes(format),
+            );
+          }
+
+          return new window.BarcodeDetector(
+            formats.length ? { formats } : undefined,
+          );
+        };
+
+        const startSerialCameraScan = async (onDetected) => {
+          if (!window.isSecureContext) {
+            showPopup(
+              "error",
+              "Camera unavailable",
+              "Camera scan needs HTTPS or localhost. Enter the serial manually on this page.",
+              { autoClose: false },
+            );
+            return;
+          }
+
+          if (!navigator.mediaDevices?.getUserMedia) {
+            showPopup(
+              "error",
+              "Camera unavailable",
+              "This browser cannot open the camera. Enter the serial manually.",
+              { autoClose: false },
+            );
+            return;
+          }
+
+          const modal = ensureSerialScannerModal();
+          const video = modal.querySelector(".serial-scanner-video");
+          const status = modal.querySelector(".serial-scanner-status");
+          stopSerialCameraScanner();
+          serialScannerState.modal = modal;
+          serialScannerState.onDetected = onDetected;
+          modal.hidden = false;
+          status.textContent = "Starting camera...";
+
+          try {
+            const detector = await createSerialBarcodeDetector();
+            const stream = await navigator.mediaDevices.getUserMedia({
+              video: {
+                facingMode: { ideal: "environment" },
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+              },
+              audio: false,
+            });
+
+            serialScannerState.detector = detector;
+            serialScannerState.stream = stream;
+            video.srcObject = stream;
+            await video.play();
+            status.textContent = "Scanning...";
+
+            const scanFrame = async () => {
+              if (!serialScannerState.stream || modal.hidden) {
+                return;
+              }
+
+              try {
+                const codes = await detector.detect(video);
+                const detected = codes
+                  .map((code) => normalizeSerialEntry(code.rawValue))
+                  .find(Boolean);
+
+                if (detected) {
+                  const callback = serialScannerState.onDetected;
+                  stopSerialCameraScanner();
+                  callback?.(detected);
+                  showPopup("success", "Serial scanned", detected);
+                  return;
+                }
+              } catch (error) {
+                console.warn("Serial scan frame failed:", error);
+              }
+
+              serialScannerState.frameId = requestAnimationFrame(scanFrame);
+            };
+
+            serialScannerState.frameId = requestAnimationFrame(scanFrame);
+          } catch (error) {
+            stopSerialCameraScanner();
+            showPopup(
+              "error",
+              "Camera scan failed",
+              error.message || "Could not start camera scan.",
+              { autoClose: false },
+            );
+          }
+        };
+
         const getCurrentPaymentSnapshot = () =>
           buildPaymentSnapshot(
             parseFloat(dom.grandTotal.textContent || "0") || 0,
@@ -4006,11 +4280,15 @@
               <input class="input qty-input" type="number" step="0.001" />
               <div class="stock"></div>
             </td>
-            <td data-label="SL/SN">
+            <td data-label="Scan / SL-SN">
               <div class="dropdown-wrap serial-wrap">
-                <textarea class="input serial-input" rows="2" placeholder="Optional serials"></textarea>
+                <textarea class="input serial-input" rows="2" placeholder="Scan or enter serials"></textarea>
                 <div class="dropdown-list serial-dropdown" hidden></div>
               </div>
+              <button class="btn soft serial-scan-btn" type="button">
+                <i class="fa-solid fa-camera"></i>
+                Camera Scan
+              </button>
               <div class="stock serial-stock"></div>
             </td>
             <td data-label="Rate"><input class="input rate-input" type="number" min="0" step="0.01" /></td>
@@ -4033,6 +4311,7 @@
           const serialDropdown = tr.querySelector(".serial-dropdown");
           const qtyInput = tr.querySelector(".qty-input");
           const serialInput = tr.querySelector(".serial-input");
+          const serialScanBtn = tr.querySelector(".serial-scan-btn");
           const rateInput = tr.querySelector(".rate-input");
           const baseCell = tr.querySelector(".base-cell");
           const gstCell = tr.querySelector(".gst-cell");
@@ -4279,6 +4558,9 @@
           serialInput.addEventListener("blur", () =>
             setTimeout(() => hideElement(serialDropdown), 120),
           );
+          serialScanBtn.addEventListener("click", () => {
+            startSerialCameraScan(appendSerialNumber);
+          });
           rateInput.addEventListener("input", () => {
             fromRate();
             queueDraft();
