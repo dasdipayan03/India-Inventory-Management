@@ -578,14 +578,20 @@ async function ensureSchemaCompatibility() {
   await pool.query(`
     UPDATE item_serials s
     SET sale_rate = COALESCE(
-      NULLIF(pi.selling_rate, 0),
+      NULLIF(
+        (
+          SELECT pi.selling_rate
+          FROM purchase_items pi
+          WHERE pi.id = s.purchase_item_id
+          LIMIT 1
+        ),
+        0
+      ),
       NULLIF(i.selling_rate, 0),
       s.sale_rate,
       0
     )
     FROM items i
-    LEFT JOIN purchase_items pi
-      ON pi.id = s.purchase_item_id
     WHERE i.id = s.item_id
       AND COALESCE(s.sale_rate, 0) = 0
   `);
