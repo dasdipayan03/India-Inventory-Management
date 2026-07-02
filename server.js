@@ -73,6 +73,16 @@ const DB_POOL_WAITING_REJECT_THRESHOLD = readPositiveInt(
   process.env.DB_POOL_WAITING_REJECT_THRESHOLD,
   20,
 );
+const MAINTENANCE_MODE = ["1", "true", "yes", "on"].includes(
+  String(process.env.MAINTENANCE_MODE || "").trim().toLowerCase(),
+);
+const MAINTENANCE_MESSAGE =
+  String(process.env.MAINTENANCE_MESSAGE || "").trim() ||
+  "Sorry for the inconvenience.";
+const MAINTENANCE_RETRY_AFTER_SECONDS = readPositiveInt(
+  process.env.MAINTENANCE_RETRY_AFTER_SECONDS,
+  3600,
+);
 const READINESS_ROUTE_PATHS = new Set([
   "/health",
   "/api/health",
@@ -105,6 +115,7 @@ logEvent("info", "app_bootstrap_started", {
   publicDirExists: fs.existsSync(publicDir),
   requestLoggingEnabled: ENABLE_REQUEST_LOGS,
   requestLogSlowMs: REQUEST_LOG_SLOW_MS,
+  maintenanceMode: MAINTENANCE_MODE,
   baseUrlConfigured: Boolean(process.env.BASE_URL),
 });
 
@@ -178,6 +189,15 @@ function normalizePathname(value) {
   }
 
   return pathname.replace(/\/+$/, "") || "/";
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function getRequestPath(req) {
@@ -312,6 +332,78 @@ function sendHtmlTemplate(res, fileName, statusCode = 200) {
 
   applyHtmlCacheHeaders(res);
   res.status(statusCode).type("html").send(html);
+}
+
+function sendMaintenancePage(req, res) {
+  const message = MAINTENANCE_MESSAGE;
+  res.set("Cache-Control", "no-store, max-age=0, must-revalidate");
+  res.set("Pragma", "no-cache");
+  res.set("Retry-After", String(MAINTENANCE_RETRY_AFTER_SECONDS));
+
+  if (req.path.startsWith("/api") || req.accepts(["html", "json"]) === "json") {
+    return res.status(503).json({
+      success: false,
+      error: "maintenance",
+      message,
+    });
+  }
+
+  const nonce = res.locals.cspNonce || "";
+  return res.status(503).type("html").send(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Maintenance</title>
+    <style nonce="${nonce}">
+      :root {
+        color-scheme: light;
+        font-family: Inter, Arial, sans-serif;
+        background: #eef6ff;
+        color: #10233f;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background:
+          radial-gradient(circle at top left, rgba(14, 165, 233, 0.18), transparent 34%),
+          linear-gradient(135deg, #f8fbff, #e7f3ff);
+      }
+      main {
+        width: min(100%, 520px);
+        padding: 34px 28px;
+        border: 1px solid rgba(125, 211, 252, 0.46);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+        text-align: center;
+      }
+      h1 {
+        margin: 0 0 12px;
+        font-size: clamp(28px, 5vw, 42px);
+        line-height: 1.08;
+      }
+      p {
+        margin: 0;
+        color: #526581;
+        font-size: 17px;
+        line-height: 1.7;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>This site is under maintenance</h1>
+      <p>${escapeHtml(message)}</p>
+    </main>
+  </body>
+</html>`);
 }
 
 app.use((req, res, next) => {
@@ -523,6 +615,20 @@ app.use(
 app.use(helmet.frameguard({ action: "deny" }));
 app.use(helmet.noSniff());
 app.use(helmet.referrerPolicy({ policy: "same-origin" }));
+
+if (MAINTENANCE_MODE) {
+  logEvent("warn", "maintenance_mode_enabled", {
+    retryAfterSeconds: MAINTENANCE_RETRY_AFTER_SECONDS,
+  });
+}
+
+app.use((req, res, next) => {
+  if (!MAINTENANCE_MODE || isHealthRoutePath(getRequestPath(req))) {
+    return next();
+  }
+
+  return sendMaintenancePage(req, res);
+});
 
 // =========================================================
 // 📡 API ROUTES REGISTRATION
