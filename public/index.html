@@ -1253,18 +1253,26 @@
       .purchase-serial-input {
         min-height: 86px;
         resize: vertical;
+        padding-right: 54px;
       }
 
-      .purchase-serial-actions {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
+      .purchase-serial-wrap {
+        position: relative;
       }
 
       .purchase-serial-scan-btn {
-        min-height: 38px;
-        white-space: nowrap;
+        position: absolute;
+        top: 9px;
+        right: 9px;
+        z-index: 2;
+        width: 36px;
+        min-width: 36px;
+        height: 36px;
+        min-height: 36px;
+        display: inline-grid;
+        place-items: center;
+        padding: 0;
+        border-radius: 12px;
       }
 
       .purchase-serial-meta,
@@ -6327,6 +6335,6 @@
     <script src="js/permission-contract.js"></script>
     <script src="js/app-core.js"></script>
     <script src="js/app-shell.js"></script>
-    <script src="js/dashboard.js?v=2026-07-02-serial-camera-1"></script>
+    <script src="js/dashboard.js?v=2026-07-02-purchase-camera-inline-1"></script>
   </body>
 </html>

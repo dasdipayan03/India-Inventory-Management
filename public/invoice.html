@@ -619,13 +619,22 @@
       #lineItemsCard .serial-input {
         min-height: 68px;
         resize: vertical;
+        padding-right: 52px;
       }
 
       #lineItemsCard .serial-scan-btn {
-        width: 100%;
-        min-height: 38px;
-        margin-top: 8px;
-        padding-inline: 10px;
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 2;
+        width: 36px;
+        min-width: 36px;
+        height: 36px;
+        min-height: 36px;
+        display: inline-grid;
+        place-items: center;
+        padding: 0;
+        border-radius: 12px;
         white-space: nowrap;
       }
 
@@ -1880,9 +1889,42 @@
         }
 
         tbody td[data-label="Item"],
+        tbody td[data-label="Scan / SL-SN"],
         tbody td[data-label="Total"],
         tbody td[data-label="Remove"] {
           grid-column: 1 / -1;
+        }
+
+        tbody td[data-label="Item"] {
+          order: 1;
+        }
+
+        tbody td[data-label="Qty"] {
+          order: 2;
+        }
+
+        tbody td[data-label="Rate"] {
+          order: 3;
+        }
+
+        tbody td[data-label="Base"] {
+          order: 4;
+        }
+
+        tbody td[data-label="GST"] {
+          order: 5;
+        }
+
+        tbody td[data-label="Scan / SL-SN"] {
+          order: 6;
+        }
+
+        tbody td[data-label="Total"] {
+          order: 7;
+        }
+
+        tbody td[data-label="Remove"] {
+          order: 8;
         }
 
         tbody td[data-label="Base"],
@@ -2018,6 +2060,7 @@
         }
 
         tbody td[data-label="Item"],
+        tbody td[data-label="Scan / SL-SN"],
         tbody td[data-label="Total"],
         tbody td[data-label="Remove"] {
           grid-column: 1 / -1;
@@ -4283,12 +4326,11 @@
             <td data-label="Scan / SL-SN">
               <div class="dropdown-wrap serial-wrap">
                 <textarea class="input serial-input" rows="2" placeholder="Scan or enter serials"></textarea>
+                <button class="btn soft serial-scan-btn" type="button" title="Camera scan" aria-label="Camera scan">
+                  <i class="fa-solid fa-camera"></i>
+                </button>
                 <div class="dropdown-list serial-dropdown" hidden></div>
               </div>
-              <button class="btn soft serial-scan-btn" type="button">
-                <i class="fa-solid fa-camera"></i>
-                Camera Scan
-              </button>
               <div class="stock serial-stock"></div>
             </td>
             <td data-label="Rate"><input class="input rate-input" type="number" min="0" step="0.01" /></td>

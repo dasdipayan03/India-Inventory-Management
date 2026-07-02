@@ -2907,14 +2907,13 @@ function addPurchaseItemRow(item = {}, options = {}) {
     <div class="purchase-serial-panel">
       <div class="purchase-line-field">
         <label>Scan / Enter SL-SN Numbers <span class="purchase-serial-optional">Optional</span></label>
-        <textarea class="form-control purchase-serial-input" rows="3" placeholder="Scan or paste serial numbers, one per line"></textarea>
-        <div class="purchase-serial-actions">
-          <button class="btn btn-secondary purchase-serial-scan-btn" type="button">
+        <div class="purchase-serial-wrap">
+          <textarea class="form-control purchase-serial-input" rows="3" placeholder="Scan or paste serial numbers, one per line"></textarea>
+          <button class="btn btn-secondary purchase-serial-scan-btn" type="button" title="Camera scan" aria-label="Camera scan">
             <i class="fa-solid fa-camera"></i>
-            Camera Scan
           </button>
-          <div class="purchase-serial-meta">No serial numbers added.</div>
         </div>
+        <div class="purchase-serial-meta">No serial numbers added.</div>
       </div>
     </div>
   `;
