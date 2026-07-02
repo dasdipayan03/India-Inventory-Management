@@ -74,7 +74,9 @@ const DB_POOL_WAITING_REJECT_THRESHOLD = readPositiveInt(
   20,
 );
 const MAINTENANCE_MODE = ["1", "true", "yes", "on"].includes(
-  String(process.env.MAINTENANCE_MODE || "").trim().toLowerCase(),
+  String(process.env.MAINTENANCE_MODE || "")
+    .trim()
+    .toLowerCase(),
 );
 const MAINTENANCE_MESSAGE =
   String(process.env.MAINTENANCE_MESSAGE || "").trim() ||
@@ -399,7 +401,7 @@ function sendMaintenancePage(req, res) {
   </head>
   <body>
     <main>
-      <h1>This site is under maintenance</h1>
+      <h1>This App is under maintenance</h1>
       <p>${escapeHtml(message)}</p>
     </main>
   </body>
