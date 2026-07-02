@@ -4511,6 +4511,10 @@
           let serialRateSyncTimer = null;
           let serialRateLookupId = 0;
           const serialMetaByKey = new Map();
+          tr.dataset.manualRate =
+            initialSerialNumbers.length && Number(item.rate || 0) > 0
+              ? "true"
+              : "";
 
           const validateQty = () => {
             qtyInput.classList.remove("invalid");
@@ -4606,18 +4610,29 @@
               const record = serialMetaByKey.get(serialKey(serialNo));
               return record ? readSerialRate(record) : null;
             });
+            const manualRate =
+              tr.dataset.manualRate === "true" &&
+              (parseFloat(rateInput.value || "0") || 0) > 0;
 
             if (!rates.length || rates.some((rate) => rate === null)) {
+              if (manualRate) {
+                return { state: "ready", custom: true };
+              }
               return { state: "pending" };
             }
 
             const firstRate = rates[0];
             const hasDifferentRate = rates.some((rate) => rate !== firstRate);
             if (hasDifferentRate) {
+              if (manualRate) {
+                return { state: "ready", custom: true };
+              }
               return { state: "mixed" };
             }
 
-            rateInput.value = Number(firstRate).toFixed(2);
+            if (!manualRate) {
+              rateInput.value = Number(firstRate).toFixed(2);
+            }
             return { state: "ready", rate: firstRate };
           };
 
@@ -4681,7 +4696,9 @@
               rateState.state === "ready" ? "ready" : "idle";
             serialInfo.dataset.rateState = rateState.state;
             serialInfo.textContent =
-              rateState.state === "ready"
+              rateState.custom
+                ? `SN ready: ${serialNumbers.length} | Custom rate`
+                : rateState.state === "ready"
                 ? `SN ready: ${serialNumbers.length} | Rate ${Number(rateState.rate).toFixed(2)}`
                 : `SN ready: ${serialNumbers.length} | checking rate`;
             fromRate();
@@ -4907,6 +4924,7 @@
               return;
             }
             const data = await res.json();
+            tr.dataset.manualRate = "";
             rateInput.value = data.selling_rate || 0;
             availableQty = parseFloat(data.quantity || "0") || 0;
             hasStock = true;
@@ -4943,6 +4961,7 @@
               async (value) => {
                 itemInput.value = value;
                 serialMetaByKey.clear();
+                tr.dataset.manualRate = "";
                 syncItemTitle();
                 await loadItemInfo(value);
                 queueDraft();
@@ -4954,6 +4973,7 @@
 
           itemInput.addEventListener("input", () => {
             serialMetaByKey.clear();
+            tr.dataset.manualRate = "";
             void showItemSuggestions();
             updateSerialState();
             scheduleSerialRateSync();
@@ -4974,6 +4994,7 @@
             queueDraft();
           });
           rateInput.addEventListener("input", () => {
+            tr.dataset.manualRate = "true";
             if (getRowSerialNumbers(tr).length) {
               scheduleSerialRateSync();
             }
@@ -4981,6 +5002,7 @@
             queueDraft();
           });
           totalInput.addEventListener("input", () => {
+            tr.dataset.manualRate = "true";
             fromTotal();
             queueDraft();
           });

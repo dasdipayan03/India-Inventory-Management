@@ -784,35 +784,7 @@ router.post(
           }
 
           let subtotal = 0;
-          computed.forEach((line, index) => {
-            if (line.serialRows.length) {
-              const serialRates = line.serialRows.map((row) =>
-                Number(Number(row.sale_rate || 0).toFixed(2)),
-              );
-              const invalidRate = serialRates.find(
-                (rate) => !Number.isFinite(rate) || rate <= 0,
-              );
-
-              if (invalidRate !== undefined) {
-                throw new Error(
-                  `Sale rate is missing for selected serial numbers at line ${index + 1}`,
-                );
-              }
-
-              const firstRate = serialRates[0];
-              const hasDifferentRate = serialRates.some(
-                (rate) => rate !== firstRate,
-              );
-
-              if (hasDifferentRate) {
-                throw new Error(
-                  `Selected serial numbers have different sale rates at line ${index + 1}. Please use separate rows.`,
-                );
-              }
-
-              line.rate = firstRate;
-            }
-
+          computed.forEach((line) => {
             line.amount = +(line.quantity * line.rate).toFixed(2);
             subtotal += line.amount;
           });
