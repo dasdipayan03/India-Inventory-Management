@@ -2471,6 +2471,31 @@ function purchaseRows() {
   );
 }
 
+function normalizeSerialEntry(value) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseSerialNumbersInput(value) {
+  return String(value || "")
+    .split(/[\n\r,]+/)
+    .map(normalizeSerialEntry)
+    .filter(Boolean);
+}
+
+function findDuplicateSerialNumber(serialNumbers = []) {
+  const seen = new Set();
+  for (const serialNo of serialNumbers) {
+    const key = serialNo.toLowerCase();
+    if (seen.has(key)) {
+      return serialNo;
+    }
+    seen.add(key);
+  }
+  return "";
+}
+
 function getPurchaseDefaultProfitPercent() {
   return state.lastSavedProfitPercent ?? 30;
 }
@@ -2682,6 +2707,13 @@ function addPurchaseItemRow(item = {}, options = {}) {
         </div>
       </div>
     </div>
+    <div class="purchase-serial-panel">
+      <div class="purchase-line-field">
+        <label>SL/SN Numbers <span class="purchase-serial-optional">Optional</span></label>
+        <textarea class="form-control purchase-serial-input" rows="3" placeholder="Scan or paste serial numbers, one per line"></textarea>
+        <div class="purchase-serial-meta">No serial numbers added.</div>
+      </div>
+    </div>
   `;
 
   dom.purchaseItemsBody.appendChild(row);
@@ -2700,6 +2732,8 @@ function addPurchaseItemRow(item = {}, options = {}) {
   const profitInput = row.querySelector(".purchase-profit-input");
   const buyInput = row.querySelector(".purchase-buy-input");
   const sellInput = row.querySelector(".purchase-sell-input");
+  const serialInput = row.querySelector(".purchase-serial-input");
+  const serialMeta = row.querySelector(".purchase-serial-meta");
   const lineTotal = row.querySelector(".purchase-line-total");
   const removeBtn = row.querySelector(".purchase-remove-btn");
 
@@ -2709,7 +2743,40 @@ function addPurchaseItemRow(item = {}, options = {}) {
     item.profit_percent ?? Number(getPurchaseDefaultProfitPercent()).toFixed(2);
   buyInput.value = item.buying_rate ?? "";
   sellInput.value = item.selling_rate ?? "";
+  serialInput.value = Array.isArray(item.serial_numbers)
+    ? item.serial_numbers.join("\n")
+    : "";
   row.dataset.manualProfit = item.profit_percent !== undefined ? "true" : "";
+
+  const updateSerialMeta = () => {
+    const serialNumbers = parseSerialNumbersInput(serialInput.value);
+    const qty = Number(qtyInput.value) || 0;
+    const duplicateSerial = findDuplicateSerialNumber(serialNumbers);
+    serialInput.classList.remove("is-invalid");
+
+    if (!serialNumbers.length) {
+      serialMeta.textContent = "No serial numbers added.";
+      serialMeta.dataset.state = "idle";
+      return;
+    }
+
+    if (duplicateSerial) {
+      serialInput.classList.add("is-invalid");
+      serialMeta.textContent = `Duplicate serial: ${duplicateSerial}`;
+      serialMeta.dataset.state = "error";
+      return;
+    }
+
+    if (!Number.isInteger(qty) || qty <= 0 || serialNumbers.length !== qty) {
+      serialInput.classList.add("is-invalid");
+      serialMeta.textContent = `Serials ${serialNumbers.length} / Qty ${formatNumber(qty)}`;
+      serialMeta.dataset.state = "error";
+      return;
+    }
+
+    serialMeta.textContent = `Serials ready: ${serialNumbers.length}`;
+    serialMeta.dataset.state = "ready";
+  };
 
   const updateLineTotal = () => {
     const qty = Number(qtyInput.value) || 0;
@@ -2717,6 +2784,7 @@ function addPurchaseItemRow(item = {}, options = {}) {
     const total = Number((qty * buyRate).toFixed(2));
     lineTotal.dataset.value = total.toFixed(2);
     lineTotal.textContent = formatCurrencyValue(total);
+    updateSerialMeta();
     updatePurchaseSummary();
   };
 
@@ -2854,6 +2922,9 @@ function addPurchaseItemRow(item = {}, options = {}) {
   });
 
   qtyInput.addEventListener("input", updateLineTotal);
+  serialInput.addEventListener("input", () => {
+    updateSerialMeta();
+  });
 
   profitInput.addEventListener("input", () => {
     const normalized = normalizeProfitPercentValue(profitInput.value);
@@ -3732,6 +3803,11 @@ function renderPurchaseDetail(purchase) {
         <tbody>
           ${items
             .map((item) => {
+              const serialNumbers = Array.isArray(item.serial_numbers)
+                ? item.serial_numbers
+                    .map((serial) => serial?.serial_no || "")
+                    .filter(Boolean)
+                : [];
               const itemActionMenu = renderLedgerActionMenu(
                 "delete-purchase-item",
                 {
@@ -3745,6 +3821,11 @@ function renderPurchaseDetail(purchase) {
                 <tr>
                   <td class="${getLedgerMenuHostClass(itemActionMenu, "text-start")}" data-label="Item">
                     <span class="${getLedgerMenuPrimaryClass(itemActionMenu)}">${escapeHtml(item.item_name || "-")}</span>
+                    ${
+                      serialNumbers.length
+                        ? `<div class="purchase-detail-serials">SN: ${escapeHtml(serialNumbers.join(", "))}</div>`
+                        : ""
+                    }
                     ${itemActionMenu}
                   </td>
                   <td data-label="Qty">${formatNumber(item.quantity)}</td>
@@ -4031,13 +4112,17 @@ async function submitPurchase() {
       selling_rate: Number(
         row.querySelector(".purchase-sell-input")?.value || "0",
       ),
+      serial_numbers: parseSerialNumbersInput(
+        row.querySelector(".purchase-serial-input")?.value || "",
+      ),
     }))
     .filter(
       (item) =>
         item.item_name ||
         item.quantity ||
         item.buying_rate ||
-        item.selling_rate,
+        item.selling_rate ||
+        item.serial_numbers.length,
     );
 
   if (!supplierName) {
@@ -4073,6 +4158,27 @@ async function submitPurchase() {
       "error",
       "Invalid purchase line",
       "Every purchase row needs item name, quantity, and buying rate greater than zero.",
+      { autoClose: false },
+    );
+    return;
+  }
+
+  const serialErrorItem = items.find((item) => {
+    if (!item.serial_numbers.length) {
+      return false;
+    }
+    return (
+      findDuplicateSerialNumber(item.serial_numbers) ||
+      !Number.isInteger(item.quantity) ||
+      item.serial_numbers.length !== item.quantity
+    );
+  });
+
+  if (serialErrorItem) {
+    showPopup(
+      "error",
+      "Serial mismatch",
+      "When serial numbers are added, serial count must match the whole-number quantity and must not contain duplicates.",
       { autoClose: false },
     );
     return;

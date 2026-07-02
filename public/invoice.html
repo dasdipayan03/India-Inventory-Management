@@ -474,7 +474,7 @@
       }
 
       #lineItemsCard table {
-        min-width: 760px;
+        min-width: 940px;
         table-layout: fixed;
       }
 
@@ -513,31 +513,35 @@
       }
 
       #lineItemsCard thead th:nth-child(1) {
-        width: 31%;
+        width: 24%;
       }
 
       #lineItemsCard thead th:nth-child(2) {
-        width: 11%;
+        width: 9%;
       }
 
       #lineItemsCard thead th:nth-child(3) {
-        width: 14%;
+        width: 19%;
       }
 
       #lineItemsCard thead th:nth-child(4) {
-        width: 9%;
+        width: 12%;
       }
 
       #lineItemsCard thead th:nth-child(5) {
-        width: 9%;
+        width: 8%;
       }
 
       #lineItemsCard thead th:nth-child(6) {
-        width: 14%;
+        width: 8%;
       }
 
       #lineItemsCard thead th:nth-child(7) {
-        width: 12%;
+        width: 11%;
+      }
+
+      #lineItemsCard thead th:nth-child(8) {
+        width: 9%;
       }
 
       #lineItemsCard tbody td {
@@ -606,9 +610,25 @@
       }
 
       #lineItemsCard .item-input,
+      #lineItemsCard .serial-input,
       #lineItemsCard .rate-input,
       #lineItemsCard .total-input {
         min-width: 0;
+      }
+
+      #lineItemsCard .serial-input {
+        min-height: 68px;
+        resize: vertical;
+      }
+
+      #lineItemsCard .serial-stock[data-state="ready"] {
+        color: var(--success);
+        background: rgba(22, 163, 74, 0.1);
+      }
+
+      #lineItemsCard .serial-stock[data-state="error"] {
+        color: var(--danger);
+        background: rgba(220, 38, 38, 0.08);
       }
 
       #lineItemsCard .remove-btn {
@@ -2075,6 +2095,7 @@
                   <tr>
                     <th>Item</th>
                     <th>Qty</th>
+                    <th>SL/SN</th>
                     <th>Rate</th>
                     <th>Base</th>
                     <th>GST</th>
@@ -3417,7 +3438,33 @@
           rate: parseFloat(row.querySelector(".rate-input")?.value || "0") || 0,
           total:
             parseFloat(row.querySelector(".total-input")?.value || "0") || 0,
+          serial_numbers: parseSerialNumbersInput(
+            row.querySelector(".serial-input")?.value || "",
+          ),
         });
+
+        const normalizeSerialEntry = (value) =>
+          String(value || "")
+            .replace(/\s+/g, " ")
+            .trim();
+
+        const parseSerialNumbersInput = (value) =>
+          String(value || "")
+            .split(/[\n\r,]+/)
+            .map(normalizeSerialEntry)
+            .filter(Boolean);
+
+        const findDuplicateSerialNumber = (serialNumbers = []) => {
+          const seen = new Set();
+          for (const serialNo of serialNumbers) {
+            const key = serialNo.toLowerCase();
+            if (seen.has(key)) {
+              return serialNo;
+            }
+            seen.add(key);
+          }
+          return "";
+        };
 
         const getCurrentPaymentSnapshot = () =>
           buildPaymentSnapshot(
@@ -3959,6 +4006,13 @@
               <input class="input qty-input" type="number" step="0.001" />
               <div class="stock"></div>
             </td>
+            <td data-label="SL/SN">
+              <div class="dropdown-wrap serial-wrap">
+                <textarea class="input serial-input" rows="2" placeholder="Optional serials"></textarea>
+                <div class="dropdown-list serial-dropdown" hidden></div>
+              </div>
+              <div class="stock serial-stock"></div>
+            </td>
             <td data-label="Rate"><input class="input rate-input" type="number" min="0" step="0.01" /></td>
             <td data-label="Base"><div class="calc base-cell">0.00</div></td>
             <td data-label="GST"><div class="calc gst-cell">0.00</div></td>
@@ -3976,17 +4030,23 @@
 
           const itemInput = tr.querySelector(".item-input");
           const dropdown = tr.querySelector(".dropdown-list");
+          const serialDropdown = tr.querySelector(".serial-dropdown");
           const qtyInput = tr.querySelector(".qty-input");
+          const serialInput = tr.querySelector(".serial-input");
           const rateInput = tr.querySelector(".rate-input");
           const baseCell = tr.querySelector(".base-cell");
           const gstCell = tr.querySelector(".gst-cell");
           const totalInput = tr.querySelector(".total-input");
           const stockInfo = tr.querySelector(".stock");
+          const serialInfo = tr.querySelector(".serial-stock");
           const removeBtn = tr.querySelector(".remove-btn");
 
           itemInput.value = item.description || "";
           itemInput.title = itemInput.value || "";
           qtyInput.value = item.quantity ?? 1;
+          serialInput.value = Array.isArray(item.serial_numbers)
+            ? item.serial_numbers.join("\n")
+            : "";
           rateInput.value = item.rate ?? 0;
           totalInput.value = item.total ?? 0;
 
@@ -4011,6 +4071,88 @@
             stockInfo.textContent = "";
             stockInfo.classList.remove("blink");
             qtyInput.classList.remove("invalid");
+          };
+
+          const updateSerialState = () => {
+            const serialNumbers = parseSerialNumbersInput(serialInput.value);
+            const duplicateSerial = findDuplicateSerialNumber(serialNumbers);
+            serialInput.classList.remove("invalid");
+            serialInfo.dataset.state = "idle";
+
+            if (!serialNumbers.length) {
+              serialInfo.textContent = "";
+              return;
+            }
+
+            if (duplicateSerial) {
+              serialInput.classList.add("invalid");
+              serialInfo.dataset.state = "error";
+              serialInfo.textContent = `Duplicate SN: ${duplicateSerial}`;
+              return;
+            }
+
+            qtyInput.value = serialNumbers.length;
+            serialInfo.dataset.state = "ready";
+            serialInfo.textContent = `SN ready: ${serialNumbers.length}`;
+            fromRate();
+          };
+
+          const appendSerialNumber = (serialNo) => {
+            const normalized = normalizeSerialEntry(serialNo);
+            if (!normalized) {
+              return;
+            }
+
+            const hadTrailingSeparator = /[\n\r,]\s*$/.test(
+              serialInput.value,
+            );
+            const serialNumbers = parseSerialNumbersInput(serialInput.value);
+            if (
+              !hadTrailingSeparator &&
+              serialNumbers.length &&
+              serialNumbers[serialNumbers.length - 1].toLowerCase() !==
+                normalized.toLowerCase()
+            ) {
+              serialNumbers.pop();
+            }
+            const exists = serialNumbers.some(
+              (entry) => entry.toLowerCase() === normalized.toLowerCase(),
+            );
+            if (!exists) {
+              serialNumbers.push(normalized);
+            }
+            serialInput.value = serialNumbers.join("\n");
+            hideElement(serialDropdown);
+            updateSerialState();
+            queueDraft();
+          };
+
+          const loadSerialSuggestions = async () => {
+            const itemName = itemInput.value.trim();
+            if (!itemName) {
+              hideElement(serialDropdown);
+              updateSerialState();
+              return;
+            }
+
+            const query = serialInput.value.split(/[\n\r,]+/).pop().trim();
+            const res = await authFetch(
+              `${API_PREFIX}/item-serials?item_name=${encodeURIComponent(itemName)}&q=${encodeURIComponent(query)}`,
+              { headers: authHeaders() },
+            );
+
+            if (!res || !res.ok) {
+              hideElement(serialDropdown);
+              updateSerialState();
+              return;
+            }
+
+            const data = await res.json();
+            const serials = Array.isArray(data.serials)
+              ? data.serials.map((serial) => serial.serial_no).filter(Boolean)
+              : [];
+            renderDropdown(serialDropdown, serials, appendSerialNumber);
+            updateSerialState();
           };
 
           const syncItemTitle = () => {
@@ -4105,6 +4247,7 @@
 
           itemInput.addEventListener("input", () => {
             void showItemSuggestions();
+            updateSerialState();
           });
 
           itemInput.addEventListener("focus", () => {
@@ -4117,9 +4260,25 @@
             setTimeout(() => hideElement(dropdown), 120),
           );
           qtyInput.addEventListener("input", () => {
+            if (parseSerialNumbersInput(serialInput.value).length) {
+              updateSerialState();
+              queueDraft();
+              return;
+            }
             fromRate();
             queueDraft();
           });
+          serialInput.addEventListener("input", () => {
+            updateSerialState();
+            void loadSerialSuggestions();
+            queueDraft();
+          });
+          serialInput.addEventListener("focus", () => {
+            void loadSerialSuggestions();
+          });
+          serialInput.addEventListener("blur", () =>
+            setTimeout(() => hideElement(serialDropdown), 120),
+          );
           rateInput.addEventListener("input", () => {
             fromRate();
             queueDraft();
@@ -4137,6 +4296,7 @@
           });
 
           fromRate();
+          updateSerialState();
           if (item.description) loadItemInfo(item.description);
           if (!silent) queueDraft();
         }
@@ -4254,12 +4414,23 @@
             : [];
           const itemsHtml = invoice.items
             .map(
-              (item, index) => `
+              (item, index) => {
+                const serialNumbers = Array.isArray(item.serial_numbers)
+                  ? item.serial_numbers
+                      .map((serial) => serial?.serial_no || "")
+                      .filter(Boolean)
+                  : [];
+                return `
                 <div class="paper-item">
                   <div class="paper-cell paper-cell--item">
                     <span>Item</span>
                     <strong class="paper-item-name">${escapeHtml(item.description)}</strong>
                     <span class="paper-item-index">#${index + 1}</span>
+                    ${
+                      serialNumbers.length
+                        ? `<span class="paper-item-index">SN: ${escapeHtml(serialNumbers.join(", "))}</span>`
+                        : ""
+                    }
                   </div>
                   <div class="paper-cell">
                       <span>Qty</span>
@@ -4274,7 +4445,8 @@
                       <strong>${formatMoney(item.amount)}</strong>
                   </div>
                   </div>
-              `,
+              `;
+              },
             )
             .join("");
 
@@ -4755,10 +4927,11 @@
                 (item) =>
                   item.description && item.quantity !== 0 && item.rate > 0,
               )
-              .map(({ description, quantity, rate }) => ({
+              .map(({ description, quantity, rate, serial_numbers }) => ({
                 description,
                 quantity,
                 rate,
+                serial_numbers,
               })),
           };
         };
@@ -4781,14 +4954,17 @@
           for (const row of filled) {
             const itemInput = row.querySelector(".item-input");
             const qtyInput = row.querySelector(".qty-input");
+            const serialInput = row.querySelector(".serial-input");
             const rateInput = row.querySelector(".rate-input");
-            [itemInput, qtyInput, rateInput].forEach((el) =>
+            [itemInput, qtyInput, serialInput, rateInput].forEach((el) =>
               el.classList.remove("invalid"),
             );
 
             const description = itemInput.value.trim();
             const quantity = parseFloat(qtyInput.value || "0") || 0;
             const rate = parseFloat(rateInput.value || "0") || 0;
+            const serialNumbers = parseSerialNumbersInput(serialInput.value);
+            const duplicateSerial = findDuplicateSerialNumber(serialNumbers);
 
             if (quantity === 0) {
               qtyInput.classList.add("invalid");
@@ -4806,6 +4982,30 @@
                 "error",
                 "Invalid rate",
                 "Item rate must be greater than 0.",
+              );
+              return false;
+            }
+
+            if (duplicateSerial) {
+              serialInput.classList.add("invalid");
+              showPopup(
+                "error",
+                "Duplicate serial",
+                `Serial number ${duplicateSerial} is repeated in this invoice.`,
+              );
+              return false;
+            }
+
+            if (
+              serialNumbers.length &&
+              (!Number.isInteger(quantity) || quantity <= 0 || serialNumbers.length !== quantity)
+            ) {
+              serialInput.classList.add("invalid");
+              qtyInput.classList.add("invalid");
+              showPopup(
+                "error",
+                "Serial mismatch",
+                "When serial numbers are added, quantity must match the serial count.",
               );
               return false;
             }

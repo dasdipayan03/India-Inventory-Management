@@ -130,8 +130,67 @@ function buildPurchasePaymentStatus(amountPaid, amountDue) {
   return "paid";
 }
 
+function normalizeSerialNumber(value) {
+  return normalizeDisplayText(value).slice(0, 160);
+}
+
+function normalizeSerialNumberKey(value) {
+  return normalizeLookupText(normalizeSerialNumber(value));
+}
+
+function parseSerialNumbers(value) {
+  const rawValues = Array.isArray(value)
+    ? value
+    : String(value || "")
+        .split(/[\n\r,]+/)
+        .map((entry) => entry.trim());
+  const serials = [];
+  const seen = new Set();
+
+  rawValues.forEach((rawValue) => {
+    const serialNo = normalizeSerialNumber(rawValue);
+    const serialKey = normalizeSerialNumberKey(serialNo);
+    if (!serialNo || !serialKey) {
+      return;
+    }
+
+    if (seen.has(serialKey)) {
+      throw new Error(`Duplicate serial number in this purchase: ${serialNo}`);
+    }
+
+    seen.add(serialKey);
+    serials.push({ serialNo, serialKey });
+  });
+
+  return serials;
+}
+
 async function applyPurchaseStockReversal(client, userId, purchaseItems) {
   const groupedItems = new Map();
+  const purchaseItemIds = purchaseItems
+    .map((item) => Number.parseInt(item.id, 10))
+    .filter((itemId) => Number.isInteger(itemId) && itemId > 0);
+
+  if (purchaseItemIds.length) {
+    const soldSerial = await client.query(
+      `
+        SELECT serial_no
+        FROM item_serials
+        WHERE user_id = $1
+          AND purchase_item_id = ANY($2::int[])
+          AND status = 'sold'
+        ORDER BY sold_at DESC NULLS LAST, id DESC
+        LIMIT 1
+      `,
+      [userId, purchaseItemIds],
+    );
+
+    if (soldSerial.rowCount) {
+      throw new Error(
+        `Cannot delete purchase; serial number ${soldSerial.rows[0].serial_no} is already sold.`,
+      );
+    }
+  }
 
   for (const item of purchaseItems) {
     const itemName = normalizeDisplayText(item.item_name);
@@ -430,6 +489,9 @@ router.post(
         const quantity = parsePositiveNumber(item.quantity);
         const buyingRate = parsePositiveNumber(item.buying_rate);
         const sellingRateInput = parseNonNegativeNumber(item.selling_rate);
+        const serialNumbers = parseSerialNumbers(
+          item.serial_numbers ?? item.serials ?? item.serial_no_text,
+        );
 
         if (
           !itemName ||
@@ -438,6 +500,20 @@ router.post(
           buyingRate === null
         ) {
           throw new Error(`Invalid purchase item at line ${index + 1}`);
+        }
+
+        if (serialNumbers.length) {
+          if (!Number.isInteger(quantity)) {
+            throw new Error(
+              `Serial-tracked quantity must be a whole number at line ${index + 1}`,
+            );
+          }
+
+          if (serialNumbers.length !== quantity) {
+            throw new Error(
+              `Serial number count must match quantity at line ${index + 1}`,
+            );
+          }
         }
 
         const sellingRate =
@@ -453,8 +529,53 @@ router.post(
           buyingRate: Number(buyingRate.toFixed(2)),
           sellingRate,
           lineTotal,
+          serialNumbers,
         };
       });
+
+      const allSerials = [];
+      const seenSerialKeys = new Set();
+      normalizedItems.forEach((item) => {
+        item.serialNumbers.forEach((serial) => {
+          if (seenSerialKeys.has(serial.serialKey)) {
+            throw new Error(
+              `Duplicate serial number in this purchase: ${serial.serialNo}`,
+            );
+          }
+          seenSerialKeys.add(serial.serialKey);
+          allSerials.push(serial);
+        });
+      });
+
+      for (const serial of [...allSerials].sort((left, right) =>
+        left.serialKey.localeCompare(right.serialKey),
+      )) {
+        await lockScopedResource(
+          client,
+          userId,
+          "item-serial",
+          serial.serialKey,
+        );
+      }
+
+      if (allSerials.length) {
+        const existingSerials = await client.query(
+          `
+            SELECT serial_no
+            FROM item_serials
+            WHERE user_id = $1
+              AND serial_no_norm = ANY($2::text[])
+            LIMIT 5
+          `,
+          [userId, allSerials.map((serial) => serial.serialKey)],
+        );
+
+        if (existingSerials.rowCount) {
+          throw new Error(
+            `Serial number already exists: ${existingSerials.rows[0].serial_no}`,
+          );
+        }
+      }
 
       const subtotal = Number(
         normalizedItems
@@ -508,7 +629,7 @@ router.post(
       const purchase = purchaseResult.rows[0];
 
       for (const item of normalizedItems) {
-        await client.query(
+        const purchaseItemResult = await client.query(
           `
           INSERT INTO purchase_items (
             purchase_id,
@@ -519,6 +640,7 @@ router.post(
             line_total
           )
           VALUES ($1, $2, $3, $4, $5, $6)
+          RETURNING id
         `,
           [
             purchase.id,
@@ -529,6 +651,7 @@ router.post(
             item.lineTotal,
           ],
         );
+        const purchaseItemId = purchaseItemResult.rows[0].id;
 
         await lockScopedResource(client, userId, "item-stock", item.lookupKey);
 
@@ -544,6 +667,7 @@ router.post(
           [userId, item.lookupKey],
         );
 
+        let itemId = null;
         if (existingItem.rowCount) {
           await client.query(
             `
@@ -563,11 +687,13 @@ router.post(
               userId,
             ],
           );
+          itemId = existingItem.rows[0].id;
         } else {
-          await client.query(
+          const insertedItem = await client.query(
             `
             INSERT INTO items (user_id, name, quantity, buying_rate, selling_rate)
             VALUES ($1, $2, $3, $4, $5)
+            RETURNING id
           `,
             [
               userId,
@@ -575,6 +701,31 @@ router.post(
               item.quantity,
               item.buyingRate,
               item.sellingRate,
+            ],
+          );
+          itemId = insertedItem.rows[0].id;
+        }
+
+        for (const serial of item.serialNumbers) {
+          await client.query(
+            `
+            INSERT INTO item_serials (
+              user_id,
+              item_id,
+              purchase_id,
+              purchase_item_id,
+              serial_no,
+              serial_no_norm
+            )
+            VALUES ($1, $2, $3, $4, $5, $6)
+          `,
+            [
+              userId,
+              itemId,
+              purchase.id,
+              purchaseItemId,
+              serial.serialNo,
+              serial.serialKey,
             ],
           );
         }
@@ -602,8 +753,20 @@ router.post(
       }
 
       if (
+        error.code === "23505" &&
+        String(error.constraint || "").includes("item_serials")
+      ) {
+        return res
+          .status(400)
+          .json({ error: "One or more serial numbers already exist." });
+      }
+
+      if (
         error.message.startsWith("Invalid purchase item") ||
-        error.message.includes("Supplier")
+        error.message.includes("Supplier") ||
+        error.message.includes("Serial") ||
+        error.message.includes("serial") ||
+        error.message.includes("Duplicate")
       ) {
         return res.status(400).json({ error: error.message });
       }
@@ -822,7 +985,24 @@ router.get(
                 'quantity', pi.quantity,
                 'buying_rate', pi.buying_rate,
                 'selling_rate', pi.selling_rate,
-                'line_total', pi.line_total
+                'line_total', pi.line_total,
+                'serial_numbers', COALESCE(
+                  (
+                    SELECT json_agg(
+                      json_build_object(
+                        'id', isn.id,
+                        'serial_no', isn.serial_no,
+                        'status', isn.status,
+                        'sold_at', isn.sold_at
+                      )
+                      ORDER BY isn.id
+                    )
+                    FROM item_serials isn
+                    WHERE isn.user_id = p.user_id
+                      AND isn.purchase_item_id = pi.id
+                  ),
+                  '[]'::json
+                )
               )
               ORDER BY pi.id
             ) FILTER (WHERE pi.id IS NOT NULL),

@@ -52,6 +52,41 @@ function normalizeMobileNumber(value) {
   return digits;
 }
 
+function normalizeSerialNumber(value) {
+  return normalizeDisplayText(value).slice(0, 160);
+}
+
+function normalizeSerialNumberKey(value) {
+  return normalizeLookupText(normalizeSerialNumber(value));
+}
+
+function parseSerialNumbers(value) {
+  const rawValues = Array.isArray(value)
+    ? value
+    : String(value || "")
+        .split(/[\n\r,]+/)
+        .map((entry) => entry.trim());
+  const serials = [];
+  const seen = new Set();
+
+  rawValues.forEach((rawValue) => {
+    const serialNo = normalizeSerialNumber(rawValue);
+    const serialKey = normalizeSerialNumberKey(serialNo);
+    if (!serialNo || !serialKey) {
+      return;
+    }
+
+    if (seen.has(serialKey)) {
+      throw new Error(`Duplicate serial number in this invoice: ${serialNo}`);
+    }
+
+    seen.add(serialKey);
+    serials.push({ serialNo, serialKey });
+  });
+
+  return serials;
+}
+
 const INVOICE_PAYMENT_MODES = new Set(["cash", "upi", "bank", "mixed"]);
 
 const QR_MAX_VERSION = 10;
@@ -635,9 +670,26 @@ router.post(
             const description = normalizeDisplayText(item.description);
             const q = parseNonZeroNumber(item.quantity);
             const r = parsePositiveNumber(item.rate);
+            const serialNumbers = parseSerialNumbers(
+              item.serial_numbers ?? item.serials ?? item.serial_no_text,
+            );
 
             if (!description || q === null || r === null) {
               throw new Error(`Invalid invoice item at line ${index + 1}`);
+            }
+
+            if (serialNumbers.length) {
+              if (q <= 0 || !Number.isInteger(q)) {
+                throw new Error(
+                  `Serial-tracked sale quantity must be a whole positive number at line ${index + 1}`,
+                );
+              }
+
+              if (serialNumbers.length !== q) {
+                throw new Error(
+                  `Serial number count must match quantity at line ${index + 1}`,
+                );
+              }
             }
 
             const a = +(q * r).toFixed(2);
@@ -648,9 +700,85 @@ router.post(
               quantity: q,
               rate: r,
               amount: a,
+              serialNumbers,
+              serialRows: [],
             };
           });
           subtotal = +subtotal.toFixed(2);
+
+          const allSerials = [];
+          const seenSerialKeys = new Set();
+          computed.forEach((line) => {
+            line.serialNumbers.forEach((serial) => {
+              if (seenSerialKeys.has(serial.serialKey)) {
+                throw new Error(
+                  `Duplicate serial number in this invoice: ${serial.serialNo}`,
+                );
+              }
+              seenSerialKeys.add(serial.serialKey);
+              allSerials.push(serial);
+            });
+          });
+
+          for (const serial of [...allSerials].sort((left, right) =>
+            left.serialKey.localeCompare(right.serialKey),
+          )) {
+            await lockScopedResource(
+              client,
+              userId,
+              "item-serial",
+              serial.serialKey,
+            );
+          }
+
+          if (allSerials.length) {
+            const serialResult = await client.query(
+              `
+              SELECT
+                s.id,
+                s.item_id,
+                s.serial_no,
+                s.serial_no_norm,
+                s.status,
+                i.name AS item_name,
+                LOWER(TRIM(i.name)) AS item_lookup_key
+              FROM item_serials s
+              JOIN items i
+                ON i.id = s.item_id
+              WHERE s.user_id = $1
+                AND i.user_id = $1
+                AND s.serial_no_norm = ANY($2::text[])
+              FOR UPDATE OF s
+            `,
+              [userId, allSerials.map((serial) => serial.serialKey)],
+            );
+            const serialRowsByKey = new Map(
+              serialResult.rows.map((row) => [row.serial_no_norm, row]),
+            );
+
+            computed.forEach((line, index) => {
+              line.serialRows = line.serialNumbers.map((serial) => {
+                const row = serialRowsByKey.get(serial.serialKey);
+                if (!row) {
+                  throw new Error(`Serial number not found: ${serial.serialNo}`);
+                }
+
+                if (row.status !== "in_stock") {
+                  throw new Error(
+                    `Serial number already sold: ${row.serial_no}`,
+                  );
+                }
+
+                if (row.item_lookup_key !== line.lookupKey) {
+                  throw new Error(
+                    `Serial number ${row.serial_no} does not belong to ${line.description} at line ${index + 1}`,
+                  );
+                }
+
+                return row;
+              });
+            });
+          }
 
           const groupedStockNeed = new Map();
           computed.forEach((line) => {
@@ -771,16 +899,108 @@ router.post(
           /* ---- invoice_items + stock + sales ---- */
           const stockAdjustments = new Map();
           for (const it of computed) {
-            await client.query(
+            const invoiceItemResult = await client.query(
               `
                   INSERT INTO invoice_items
                   (invoice_id,description,quantity,rate,amount)
                   VALUES ($1,$2,$3,$4,$5)
+                  RETURNING id
             `,
               [invoiceId, it.description, it.quantity, it.rate, it.amount],
             );
+            const invoiceItemId = invoiceItemResult.rows[0].id;
 
             const stockRows = lockedStockByKey.get(it.lookupKey) || [];
+
+            if (it.serialRows.length) {
+              let allocatedGstAmount = 0;
+              const serialGroups = new Map();
+
+              it.serialRows.forEach((serialRow) => {
+                const current = serialGroups.get(serialRow.item_id) || [];
+                current.push(serialRow);
+                serialGroups.set(serialRow.item_id, current);
+              });
+
+              const sortedSerialGroups = Array.from(serialGroups.entries()).sort(
+                ([leftItemId], [rightItemId]) => leftItemId - rightItemId,
+              );
+
+              for (let groupIndex = 0; groupIndex < sortedSerialGroups.length; groupIndex += 1) {
+                const [itemId, serialRows] = sortedSerialGroups[groupIndex];
+                const stockRow = stockRows.find((row) => row.id === itemId);
+                const consumedQty = serialRows.length;
+
+                if (!stockRow || stockRow.available < consumedQty) {
+                  throw new Error(
+                    `Stock allocation failed for ${it.description}`,
+                  );
+                }
+
+                stockRow.available -= consumedQty;
+                const saleBaseAmount = +(consumedQty * it.rate).toFixed(2);
+                const isLastSplit = groupIndex === sortedSerialGroups.length - 1;
+                const saleGstAmount = isLastSplit
+                  ? Number((it.gstAmount - allocatedGstAmount).toFixed(2))
+                  : calculateSaleGstAmount(saleBaseAmount, gstRate);
+                allocatedGstAmount = Number(
+                  (allocatedGstAmount + saleGstAmount).toFixed(2),
+                );
+
+                stockAdjustments.set(
+                  stockRow.id,
+                  (stockAdjustments.get(stockRow.id) || 0) + consumedQty,
+                );
+
+                const saleResult = await client.query(
+                  `
+                    INSERT INTO sales
+                    (user_id, item_id, quantity, cost_price, selling_price, total_price, gst_amount)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7)
+                    RETURNING id
+                    `,
+                  [
+                    userId,
+                    stockRow.id,
+                    consumedQty,
+                    stockRow.costPrice,
+                    it.rate,
+                    saleBaseAmount,
+                    saleGstAmount,
+                  ],
+                );
+
+                const serialUpdate = await client.query(
+                  `
+                  UPDATE item_serials
+                  SET
+                    status = 'sold',
+                    invoice_id = $1,
+                    invoice_item_id = $2,
+                    sale_id = $3,
+                    sold_at = NOW()
+                  WHERE user_id = $4
+                    AND id = ANY($5::int[])
+                    AND status = 'in_stock'
+                `,
+                  [
+                    invoiceId,
+                    invoiceItemId,
+                    saleResult.rows[0].id,
+                    userId,
+                    serialRows.map((row) => row.id),
+                  ],
+                );
+
+                if (serialUpdate.rowCount !== serialRows.length) {
+                  throw new Error(
+                    `Serial stock allocation failed for ${it.description}`,
+                  );
+                }
+              }
+
+              continue;
+            }
 
             if (it.quantity < 0) {
               const targetStockRow = stockRows[0];
@@ -933,6 +1153,9 @@ router.post(
             err.message.includes("Item not found") ||
             err.message.includes("Invalid invoice item") ||
             err.message.includes("Stock allocation failed") ||
+            err.message.includes("Serial") ||
+            err.message.includes("serial") ||
+            err.message.includes("Duplicate") ||
             err.message.includes("contact number is required")
           ) {
             return res
@@ -1224,8 +1447,36 @@ router.get(
     const userId = getUserId(req);
     const { rows } = await pool.query(
       `
-      SELECT i.*, COALESCE(json_agg(ii.*)
-      FILTER (WHERE ii.id IS NOT NULL),'[]') AS items
+      SELECT i.*, COALESCE(
+        json_agg(
+          json_build_object(
+            'id', ii.id,
+            'description', ii.description,
+            'quantity', ii.quantity,
+            'rate', ii.rate,
+            'amount', ii.amount,
+            'serial_numbers', COALESCE(
+              (
+                SELECT json_agg(
+                  json_build_object(
+                    'id', isn.id,
+                    'serial_no', isn.serial_no,
+                    'status', isn.status,
+                    'sold_at', isn.sold_at
+                  )
+                  ORDER BY isn.id
+                )
+                FROM item_serials isn
+                WHERE isn.user_id = i.user_id
+                  AND isn.invoice_item_id = ii.id
+              ),
+              '[]'::json
+            )
+          )
+          ORDER BY ii.id
+        ) FILTER (WHERE ii.id IS NOT NULL),
+        '[]'
+      ) AS items
       FROM invoices i
       LEFT JOIN invoice_items ii ON ii.invoice_id=i.id
       WHERE i.user_id=$2 AND i.invoice_no=$1
@@ -1430,7 +1681,24 @@ router.get(
                    'description', ii.description,
                    'quantity', ii.quantity,
                    'rate', ii.rate,
-                   'amount', ii.amount
+                   'amount', ii.amount,
+                   'serial_numbers', COALESCE(
+                     (
+                       SELECT json_agg(
+                         json_build_object(
+                           'id', isn.id,
+                           'serial_no', isn.serial_no,
+                           'status', isn.status,
+                           'sold_at', isn.sold_at
+                         )
+                         ORDER BY isn.id
+                       )
+                       FROM item_serials isn
+                       WHERE isn.user_id = i.user_id
+                         AND isn.invoice_item_id = ii.id
+                     ),
+                     '[]'::json
+                   )
                  ) ORDER BY ii.id) FILTER (WHERE ii.id IS NOT NULL), '[]') AS items
           FROM invoices i
           LEFT JOIN invoice_items ii ON ii.invoice_id = i.id
@@ -1815,18 +2083,36 @@ router.get(
       /* ================= TABLE ROWS ================= */
       (Array.isArray(inv.items) ? inv.items : []).forEach((item) => {
         const itemName = String(item.description || "-");
+        const serialText = (Array.isArray(item.serial_numbers)
+          ? item.serial_numbers
+          : []
+        )
+          .map((serial) => normalizeSerialNumber(serial.serial_no))
+          .filter(Boolean)
+          .join(", ");
         const rowHeight =
           Math.max(
             16,
-            doc.heightOfString(itemName, {
-              width: 240,
-            }),
+            doc.heightOfString(
+              serialText ? `${itemName}\nSN: ${serialText}` : itemName,
+              {
+                width: 240,
+              },
+            ),
           ) + 2;
 
         y = ensureTableSpace(y, rowHeight + 10);
 
         doc.font("Helvetica").fontSize(9.8).fillColor(colors.ink);
         doc.text(itemName, leftX, y, { width: 240 });
+        if (serialText) {
+          doc
+            .font("Helvetica")
+            .fontSize(8)
+            .fillColor(colors.muted)
+            .text(`SN: ${serialText}`, leftX, y + 13, { width: 240 });
+        }
+        doc.font("Helvetica").fontSize(9.8).fillColor(colors.ink);
         doc.text(String(item.quantity ?? "-"), 290, y, {
           width: 40,
           align: "right",

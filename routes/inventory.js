@@ -436,6 +436,59 @@ router.get(
   },
 );
 
+router.get(
+  "/item-serials",
+  requirePermission("sale_invoice", "purchase_entry", "stock_report"),
+  async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const itemName = normalizeDisplayText(req.query.item_name);
+      const query = normalizeDisplayText(req.query.q);
+
+      if (!itemName) {
+        return res.status(400).json({ error: "Item name is required." });
+      }
+
+      const params = [userId, itemName];
+      let searchClause = "";
+      if (query) {
+        params.push(`%${query}%`);
+        searchClause = "AND s.serial_no ILIKE $3";
+      }
+
+      const result = await pool.query(
+        `
+        SELECT
+          s.id,
+          s.serial_no,
+          s.status,
+          i.id AS item_id,
+          i.name AS item_name
+        FROM item_serials s
+        JOIN items i
+          ON i.id = s.item_id
+        WHERE s.user_id = $1
+          AND i.user_id = $1
+          AND LOWER(TRIM(i.name)) = LOWER(TRIM($2))
+          AND s.status = 'in_stock'
+          ${searchClause}
+        ORDER BY s.created_at ASC, s.id ASC
+        LIMIT 25
+      `,
+        params,
+      );
+
+      res.json({
+        success: true,
+        serials: result.rows,
+      });
+    } catch (err) {
+      console.error("Item serial lookup error:", err);
+      res.status(500).json({ error: "Failed to load serial numbers" });
+    }
+  },
+);
+
 // ----------------- ITEM WISE STOCK & SALES REPORT (JSON) -----------------
 router.get(
   "/items/report",

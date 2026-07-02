@@ -305,6 +305,40 @@ CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice
   ON invoice_items (invoice_id);
 
 -- =====================================================
+-- ITEM SERIALS TABLE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS item_serials (
+  id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  item_id INT NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+  purchase_id INT REFERENCES purchases(id) ON DELETE CASCADE,
+  purchase_item_id INT REFERENCES purchase_items(id) ON DELETE CASCADE,
+  invoice_id INT REFERENCES invoices(id) ON DELETE SET NULL,
+  invoice_item_id INT REFERENCES invoice_items(id) ON DELETE SET NULL,
+  sale_id INT REFERENCES sales(id) ON DELETE SET NULL,
+  serial_no VARCHAR(160) NOT NULL,
+  serial_no_norm VARCHAR(160) NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'in_stock',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  sold_at TIMESTAMPTZ,
+  CONSTRAINT item_serials_status_check CHECK (
+    status IN ('in_stock', 'sold')
+  )
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_item_serials_user_serial_unique
+  ON item_serials (user_id, serial_no_norm);
+
+CREATE INDEX IF NOT EXISTS idx_item_serials_user_item_status
+  ON item_serials (user_id, item_id, status);
+
+CREATE INDEX IF NOT EXISTS idx_item_serials_purchase_item
+  ON item_serials (purchase_item_id);
+
+CREATE INDEX IF NOT EXISTS idx_item_serials_invoice_item
+  ON item_serials (invoice_item_id);
+
+-- =====================================================
 -- USER INVOICE COUNTER TABLE
 -- =====================================================
 CREATE TABLE IF NOT EXISTS user_invoice_counter (

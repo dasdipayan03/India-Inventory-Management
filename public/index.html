@@ -1236,6 +1236,41 @@
         line-height: 1.45;
       }
 
+      .purchase-serial-panel {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px dashed rgba(125, 211, 252, 0.38);
+      }
+
+      .purchase-serial-optional {
+        margin-left: 6px;
+        color: var(--ink-soft);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+      }
+
+      .purchase-serial-input {
+        min-height: 86px;
+        resize: vertical;
+      }
+
+      .purchase-serial-meta,
+      .purchase-detail-serials {
+        color: var(--ink-soft);
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.45;
+      }
+
+      .purchase-serial-meta[data-state="ready"] {
+        color: var(--success);
+      }
+
+      .purchase-serial-meta[data-state="error"] {
+        color: var(--danger);
+      }
+
       .purchase-line-total-box {
         height: 100%;
         min-height: 56px;
