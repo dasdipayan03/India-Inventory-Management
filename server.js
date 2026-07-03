@@ -58,6 +58,10 @@ const ipKeyGenerator =
 const publicDir = path.join(__dirname, "public");
 const htmlTemplateCache = new Map();
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const LOGIN_BANNER_LIMIT = 10;
+const LOGIN_BANNER_PLACEHOLDER = "<!-- LOGIN_BANNER_SLIDES -->";
+const LOGIN_BANNER_FILE_PATTERN =
+  /^login_page_banner_([1-9]|10)\.(?:png|jpe?g|webp)$/i;
 const JSON_BODY_LIMIT = process.env.JSON_BODY_LIMIT || "1mb";
 const URLENCODED_BODY_LIMIT = process.env.URLENCODED_BODY_LIMIT || "200kb";
 const STATIC_ASSET_CACHE_MS =
@@ -300,6 +304,78 @@ function injectPerformanceBootstrap(html) {
   return html.replace("</head>", `    ${bootstrapTags}\n  </head>`);
 }
 
+function getLoginBannerFiles() {
+  const imagesDir = path.join(publicDir, "images");
+
+  let entries = [];
+  try {
+    entries = fs.readdirSync(imagesDir, { withFileTypes: true });
+  } catch (err) {
+    logEvent("warn", "login_banner_directory_read_failed", { error: err });
+    return [];
+  }
+
+  return entries
+    .filter((entry) => entry.isFile())
+    .map((entry) => {
+      const match = entry.name.match(LOGIN_BANNER_FILE_PATTERN);
+      if (!match) {
+        return null;
+      }
+
+      const index = Number.parseInt(match[1], 10);
+      const filePath = path.join(imagesDir, entry.name);
+
+      try {
+        const stat = fs.statSync(filePath);
+        return {
+          index,
+          name: entry.name,
+          version: `${Math.floor(stat.mtimeMs)}-${stat.size}`,
+        };
+      } catch (err) {
+        logEvent("warn", "login_banner_stat_failed", {
+          fileName: entry.name,
+          error: err,
+        });
+        return null;
+      }
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.index - b.index || a.name.localeCompare(b.name))
+    .slice(0, LOGIN_BANNER_LIMIT);
+}
+
+function buildLoginBannerSlides() {
+  return getLoginBannerFiles()
+    .map((banner, slideIndex) => {
+      const loading = slideIndex === 0 ? "eager" : "lazy";
+      const src = `/images/${encodeURIComponent(banner.name)}?v=${encodeURIComponent(
+        banner.version,
+      )}`;
+
+      return [
+        '<article class="feature-slide" data-feature-slide>',
+        "  <img",
+        `    src="${src}"`,
+        `    alt="Shop Inventory Management login banner ${banner.index}"`,
+        `    loading="${loading}"`,
+        '    decoding="async"',
+        "  />",
+        "</article>",
+      ].join("\n");
+    })
+    .join("\n");
+}
+
+function injectLoginBanners(html) {
+  if (!html.includes(LOGIN_BANNER_PLACEHOLDER)) {
+    return html;
+  }
+
+  return html.replace(LOGIN_BANNER_PLACEHOLDER, buildLoginBannerSlides());
+}
+
 function setStaticAssetCacheHeaders(res, filePath) {
   if (path.basename(filePath) === "service-worker.js") {
     res.set("Cache-Control", "no-cache, max-age=0, must-revalidate");
@@ -308,6 +384,11 @@ function setStaticAssetCacheHeaders(res, filePath) {
   }
 
   if (path.basename(filePath) === "app_logo.png") {
+    res.set("Cache-Control", "no-cache, max-age=0, must-revalidate");
+    return;
+  }
+
+  if (LOGIN_BANNER_FILE_PATTERN.test(path.basename(filePath))) {
     res.set("Cache-Control", "no-cache, max-age=0, must-revalidate");
     return;
   }
@@ -332,7 +413,11 @@ function setStaticAssetCacheHeaders(res, filePath) {
 }
 
 function sendHtmlTemplate(res, fileName, statusCode = 200) {
-  const html = injectPerformanceBootstrap(getHtmlTemplate(fileName)).replace(
+  const template =
+    fileName === "login.html"
+      ? injectLoginBanners(getHtmlTemplate(fileName))
+      : getHtmlTemplate(fileName);
+  const html = injectPerformanceBootstrap(template).replace(
     /__CSP_NONCE__/g,
     res.locals.cspNonce || "",
   );

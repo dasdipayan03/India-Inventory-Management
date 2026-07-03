@@ -1,4 +1,4 @@
-const CACHE_VERSION = "2026-07-03-shop-brand-logo-1";
+const CACHE_VERSION = "2026-07-03-login-banner-dynamic-1";
 const RUNTIME_CACHE = `shop-inventory-runtime-${CACHE_VERSION}`;
 const CACHE_PREFIX = "shop-inventory-runtime-";
 const NETWORK_TIMEOUT_MS = 2400;
@@ -62,7 +62,13 @@ function cacheKeyFor(request) {
   const url = new URL(request.url);
   if (isSameOrigin(url)) {
     url.hash = "";
-    url.search = "";
+    const isLoginBanner =
+      /^\/images\/login_page_banner_(?:[1-9]|10)\.(?:png|jpe?g|webp)$/i.test(
+        url.pathname,
+      );
+    if (!isLoginBanner) {
+      url.search = "";
+    }
   }
   return url.toString();
 }
