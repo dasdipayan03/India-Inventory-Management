@@ -307,6 +307,11 @@ function setStaticAssetCacheHeaders(res, filePath) {
     return;
   }
 
+  if (path.basename(filePath) === "app_logo.png") {
+    res.set("Cache-Control", "no-cache, max-age=0, must-revalidate");
+    return;
+  }
+
   if (/\.html?$/i.test(filePath)) {
     applyHtmlCacheHeaders(res);
     return;

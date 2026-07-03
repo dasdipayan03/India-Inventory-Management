@@ -1,11 +1,11 @@
-const CACHE_VERSION = "2026-07-03-shop-brand-1";
+const CACHE_VERSION = "2026-07-03-shop-brand-logo-1";
 const RUNTIME_CACHE = `shop-inventory-runtime-${CACHE_VERSION}`;
 const CACHE_PREFIX = "shop-inventory-runtime-";
 const NETWORK_TIMEOUT_MS = 2400;
 
 const CORE_ASSETS = [
   "/site.webmanifest",
-  "/images/app_logo.png",
+  "/images/app_logo.png?v=2026-07-03-shop-brand-logo-1",
   "/js/service-worker-register.js",
   "/js/permission-contract.js",
   "/js/app-core.js",
