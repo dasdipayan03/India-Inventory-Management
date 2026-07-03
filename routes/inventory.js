@@ -448,17 +448,29 @@ router.get(
         String(req.query.exact || "").toLowerCase(),
       );
 
-      if (!itemName) {
+      if (!itemName && (!exactLookup || !query)) {
         return res.status(400).json({ error: "Item name is required." });
       }
 
-      const params = [userId, itemName];
-      let searchClause = "";
+      const params = [userId];
+      const filters = [
+        "s.user_id = $1",
+        "i.user_id = $1",
+        "s.status = 'in_stock'",
+      ];
+
+      if (itemName) {
+        params.push(itemName);
+        filters.push(`LOWER(TRIM(i.name)) = LOWER(TRIM($${params.length}))`);
+      }
+
       if (query) {
         params.push(exactLookup ? normalizeLookupText(query) : `%${query}%`);
-        searchClause = exactLookup
-          ? "AND s.serial_no_norm = $3"
-          : "AND s.serial_no ILIKE $3";
+        filters.push(
+          exactLookup
+            ? `s.serial_no_norm = $${params.length}`
+            : `s.serial_no ILIKE $${params.length}`,
+        );
       }
 
       const result = await pool.query(
@@ -473,11 +485,7 @@ router.get(
         FROM item_serials s
         JOIN items i
           ON i.id = s.item_id
-        WHERE s.user_id = $1
-          AND i.user_id = $1
-          AND LOWER(TRIM(i.name)) = LOWER(TRIM($2))
-          AND s.status = 'in_stock'
-          ${searchClause}
+        WHERE ${filters.join("\n          AND ")}
         ORDER BY s.created_at ASC, s.id ASC
         LIMIT 25
       `,

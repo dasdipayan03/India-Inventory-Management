@@ -4707,13 +4707,21 @@
           const fetchSerialMeta = async (serialNo) => {
             const itemName = itemInput.value.trim();
             const normalized = normalizeSerialEntry(serialNo);
-            if (!itemName || !normalized) {
+            if (!normalized) {
               return null;
             }
 
             try {
+              const params = new URLSearchParams({
+                q: normalized,
+                exact: "1",
+              });
+              if (itemName) {
+                params.set("item_name", itemName);
+              }
+
               const res = await authFetch(
-                `${API_PREFIX}/item-serials?item_name=${encodeURIComponent(itemName)}&q=${encodeURIComponent(normalized)}&exact=1`,
+                `${API_PREFIX}/item-serials?${params.toString()}`,
                 { headers: authHeaders() },
               );
 
@@ -4729,6 +4737,12 @@
                     serial &&
                     serialKey(serial.serial_no) === serialKey(normalized),
                 );
+              if (matched && !itemName && matched.item_name) {
+                itemInput.value = matched.item_name;
+                tr.dataset.manualRate = "";
+                syncItemTitle();
+                await loadItemInfo(matched.item_name);
+              }
               return matched || null;
             } catch (error) {
               console.warn("Serial rate lookup failed:", error);
@@ -4738,7 +4752,7 @@
 
           const syncSerialRates = async () => {
             const serialNumbers = getRowSerialNumbers(tr);
-            if (!serialNumbers.length || !itemInput.value.trim()) {
+            if (!serialNumbers.length) {
               updateSerialState();
               return;
             }
@@ -5657,7 +5671,8 @@
 
         async function preCheck() {
           const filled = rows().filter((row) =>
-            row.querySelector(".item-input")?.value.trim(),
+            row.querySelector(".item-input")?.value.trim() ||
+            getRowSerialNumbers(row).length,
           );
           dom.custContact.classList.remove("invalid");
           dom.amountPaid.classList.remove("invalid");
@@ -5680,13 +5695,13 @@
               el.classList.remove("invalid"),
             );
 
-            const description = itemInput.value.trim();
             const quantity = parseFloat(qtyInput.value || "0") || 0;
             let serialNumbers = getRowSerialNumbers(row);
             if (serialNumbers.length && typeof row.syncSerialRates === "function") {
               await row.syncSerialRates();
               serialNumbers = getRowSerialNumbers(row);
             }
+            const description = itemInput.value.trim();
             const rate = parseFloat(rateInput.value || "0") || 0;
             const duplicateSerial = findDuplicateSerialNumber(serialNumbers);
 

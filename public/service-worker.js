@@ -1,4 +1,4 @@
-const CACHE_VERSION = "2026-07-03-sale-edit-rate-1";
+const CACHE_VERSION = "2026-07-03-serial-auto-item-1";
 const RUNTIME_CACHE = `india-inventory-runtime-${CACHE_VERSION}`;
 const CACHE_PREFIX = "india-inventory-runtime-";
 const NETWORK_TIMEOUT_MS = 2400;
