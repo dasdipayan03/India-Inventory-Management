@@ -904,6 +904,7 @@
       }
 
       .feature-viewport {
+        aspect-ratio: 1942 / 809;
         overflow: hidden;
         border-radius: 22px;
       }
@@ -911,6 +912,7 @@
       .feature-track {
         display: flex;
         align-items: stretch;
+        height: 100%;
         min-width: 0;
         transition: transform 0.45s ease;
         will-change: transform;
@@ -924,11 +926,10 @@
       .feature-slide {
         flex: 0 0 100%;
         min-width: 100%;
-        aspect-ratio: 2 / 1;
-        min-height: 168px;
+        aspect-ratio: 1942 / 809;
         display: grid;
         place-items: center;
-        padding: clamp(6px, 1.2vw, 12px);
+        padding: 0;
         border-radius: 22px;
         border: 1px solid rgba(22, 151, 208, 0.13);
         background: #ffffff;
@@ -939,9 +940,9 @@
       .feature-slide img {
         width: 100%;
         height: 100%;
-        object-fit: contain;
+        object-fit: cover;
         object-position: center;
-        border-radius: 16px;
+        border-radius: 22px;
       }
 
       .access-panel-section {
