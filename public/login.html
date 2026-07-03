@@ -871,20 +871,22 @@
       }
 
       .slider-head h1 {
-        max-width: 860px;
+        max-width: none;
         margin: 0;
         color: var(--navy);
         font-family: "Sora Variable", "Manrope", sans-serif;
-        font-size: clamp(26px, 4vw, 46px);
-        line-height: 1.04;
+        font-size: 34px;
+        line-height: 1.08;
+        white-space: nowrap;
       }
 
       .slider-head p {
-        max-width: 780px;
+        max-width: none;
         margin: 0;
         color: var(--muted);
         font-size: 14px;
-        line-height: 1.7;
+        line-height: 1.55;
+        white-space: nowrap;
       }
 
       .slider-kicker,
@@ -1111,6 +1113,23 @@
         border-radius: 26px;
       }
 
+      @media (max-width: 1180px) {
+        .slider-head h1 {
+          font-size: 28px;
+        }
+
+        .slider-head p {
+          font-size: 12px;
+        }
+      }
+
+      @media (max-width: 900px) {
+        .slider-head h1,
+        .slider-head p {
+          white-space: normal;
+        }
+      }
+
       @media (max-width: 760px) {
         .login-page {
           width: calc(100% - 10px);
@@ -1146,6 +1165,18 @@
 
         .brand-copy span {
           display: block;
+        }
+
+        .slider-head h1 {
+          font-size: 22px;
+          line-height: 1.12;
+          white-space: normal;
+        }
+
+        .slider-head p {
+          font-size: 12.5px;
+          line-height: 1.55;
+          white-space: normal;
         }
 
         .feature-slide {
@@ -1189,6 +1220,10 @@
       @media (max-width: 460px) {
         .brand {
           gap: 10px;
+        }
+
+        .slider-head h1 {
+          font-size: 20px;
         }
 
         .brand-copy strong {
