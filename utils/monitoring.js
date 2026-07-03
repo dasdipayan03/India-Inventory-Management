@@ -142,7 +142,7 @@ function buildMonitoringSnapshot(pool = null) {
     .slice(0, 25);
 
   return {
-    service: "india-inventory-management",
+    service: "shop-inventory-management",
     started_at: metrics.startedAt,
     uptime_seconds: roundTo(process.uptime(), 3),
     timestamp: new Date().toISOString(),

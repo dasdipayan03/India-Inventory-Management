@@ -1,6 +1,6 @@
 {
-  "name": "India Inventory Management",
-  "short_name": "India Inventory",
+  "name": "Shop Inventory Management",
+  "short_name": "Shop Inventory",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

@@ -2231,7 +2231,7 @@
             <div class="eyebrow">Invoice Studio</div>
             <h1>SALE ENTRY AND GENERATE INVOICE</h1>
             <div id="heroShopName" class="topbar-shop-name" hidden>
-              India Inventory Management
+              Shop Inventory Management
             </div>
             <div class="mini-row stack-top-14">
               <span class="mini" id="sessionRolePill">
@@ -3148,7 +3148,7 @@
           if (!dom.heroShopName) return;
           const value = String(name || "").trim();
           dom.heroShopName.hidden = !value;
-          dom.heroShopName.textContent = value || "India Inventory Management";
+          dom.heroShopName.textContent = value || "Shop Inventory Management";
         };
 
         // Mobile keyboards emit resize events, so only re-parent cards when the
@@ -5138,7 +5138,7 @@
 
         const renderDetail = (invoice, options = {}) => {
           const shopName =
-            dom.shopName.value.trim() || "India Inventory Management";
+            dom.shopName.value.trim() || "Shop Inventory Management";
           const shopAddress = dom.shopAddress.value.trim() || "-";
           const shopGst = dom.gstInput.value.trim() || invoice.gst_no || "-";
           const dueAmount = Number(invoice.amount_due || 0);

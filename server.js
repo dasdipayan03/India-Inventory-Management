@@ -248,7 +248,7 @@ function buildHealthPayload(kind) {
   return {
     status: ok ? "ok" : "degraded",
     kind,
-    service: "india-inventory-management",
+    service: "shop-inventory-management",
     uptimeSeconds: roundTo(process.uptime(), 3),
     timestamp: new Date().toISOString(),
     port: Number(PORT),

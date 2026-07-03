@@ -1,4 +1,4 @@
-# India Inventory Management Documentation
+# Shop Inventory Management Documentation
 
 Last verified against this repository: `2026-06-30`
 
@@ -449,7 +449,7 @@ flowchart LR
   - warms core app-shell assets such as the manifest, app logo, sidebar/core JS, and permission contract
   - caches same-origin shell/static requests with a network-first strategy and a short cached fallback timeout
   - bypasses `/api/*` entirely so live business data, auth state, exports, reports, invoices, and stock changes are not served from browser Cache Storage
-  - deletes old `india-inventory-runtime-*` caches during activation when `CACHE_VERSION` changes
+  - deletes old `shop-inventory-runtime-*` caches during activation when `CACHE_VERSION` changes
 
 - [`../public/js/dashboard.js`](../public/js/dashboard.js)
   - drives most dashboard features
@@ -485,7 +485,7 @@ The project now has two separate cache layers with different safety rules:
   - bypassable with `_no_cache=1`
 - Browser/WebView service-worker cache:
   - implemented by [`../public/service-worker.js`](../public/service-worker.js)
-  - stores app shell/static assets in Cache Storage under `india-inventory-runtime-<CACHE_VERSION>`
+  - stores app shell/static assets in Cache Storage under `shop-inventory-runtime-<CACHE_VERSION>`
   - uses network-first behavior so the latest shell wins when the network is responsive
   - falls back to cached shell/static files after a short timeout to make weak networks feel faster
   - never intercepts `/api/*`, which keeps operational business data live
@@ -2517,7 +2517,7 @@ Runtime compatibility patching in [`../db.js`](../db.js) exists so older databas
 | `PG_STATEMENT_TIMEOUT_MS`                   | optional                                        | PostgreSQL statement timeout in milliseconds; `0` disables it                            |
 | `PG_QUERY_TIMEOUT_MS`                       | optional                                        | client query timeout in milliseconds; `0` disables it                                    |
 | `PG_IDLE_IN_TRANSACTION_SESSION_TIMEOUT_MS` | optional                                        | idle-in-transaction timeout in milliseconds; defaults to `30000`                         |
-| `PG_APPLICATION_NAME`                       | optional                                        | PostgreSQL application name; defaults to `india-inventory-api`                           |
+| `PG_APPLICATION_NAME`                       | optional                                        | PostgreSQL application name; defaults to `shop-inventory-api`                            |
 | `JWT_SECRET`                                | yes                                             | signing key for session JWTs                                                             |
 | `PORT`                                      | optional                                        | HTTP port; defaults to `8080`                                                            |
 | `NODE_ENV`                                  | optional                                        | production/development behavior                                                          |

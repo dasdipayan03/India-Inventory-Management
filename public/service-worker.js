@@ -1,6 +1,6 @@
-const CACHE_VERSION = "2026-07-03-serial-auto-item-1";
-const RUNTIME_CACHE = `india-inventory-runtime-${CACHE_VERSION}`;
-const CACHE_PREFIX = "india-inventory-runtime-";
+const CACHE_VERSION = "2026-07-03-shop-brand-1";
+const RUNTIME_CACHE = `shop-inventory-runtime-${CACHE_VERSION}`;
+const CACHE_PREFIX = "shop-inventory-runtime-";
 const NETWORK_TIMEOUT_MS = 2400;
 
 const CORE_ASSETS = [
@@ -69,6 +69,10 @@ function cacheKeyFor(request) {
 
 function isCacheableResponse(response) {
   return response && response.status === 200 && response.type !== "error";
+}
+
+function isInventoryRuntimeCache(key) {
+  return /(?:^|-)inventory-runtime-/.test(key);
 }
 
 function timeoutWith(response) {
@@ -147,7 +151,11 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => key.startsWith(CACHE_PREFIX) && key !== RUNTIME_CACHE)
+            .filter(
+              (key) =>
+                key !== RUNTIME_CACHE &&
+                (key.startsWith(CACHE_PREFIX) || isInventoryRuntimeCache(key)),
+            )
             .map((key) => caches.delete(key)),
         ),
       )

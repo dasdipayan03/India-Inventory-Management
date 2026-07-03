@@ -172,14 +172,14 @@ async function syncInvoiceBalancesFromDebtLedger(client, userId, invoiceIds) {
 
 async function getShopName(userId) {
   const result = await pool.query(
-    `SELECT COALESCE(NULLIF(TRIM(shop_name), ''), 'India Inventory Management') AS shop_name
+    `SELECT COALESCE(NULLIF(TRIM(shop_name), ''), 'Shop Inventory Management') AS shop_name
      FROM settings
      WHERE user_id = $1
      LIMIT 1`,
     [userId],
   );
 
-  return result.rows[0]?.shop_name || "India Inventory Management";
+  return result.rows[0]?.shop_name || "Shop Inventory Management";
 }
 
 function drawPdfBanner(doc, title, shopName, subtitle, rightText) {
@@ -1286,7 +1286,7 @@ router.get(
 
       const workbook = new ExcelJS.Workbook();
       const sheet = workbook.addWorksheet("Sales Report");
-      workbook.creator = "India Inventory Management";
+      workbook.creator = "Shop Inventory Management";
       workbook.created = new Date();
       sheet.views = [{ state: "frozen", ySplit: 4 }];
       sheet.pageSetup = {
@@ -1852,7 +1852,7 @@ router.get(
       const summary = summarizeGstRows(rows);
       const workbook = new ExcelJS.Workbook();
       const sheet = workbook.addWorksheet("GST Report");
-      workbook.creator = "India Inventory Management";
+      workbook.creator = "Shop Inventory Management";
       workbook.created = new Date();
       sheet.views = [{ state: "frozen", ySplit: 4 }];
       sheet.pageSetup = {

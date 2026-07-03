@@ -5,7 +5,7 @@
   const styleId = "inventory-sidebar-style";
   const defaultFooterText =
     app.copyrightText ||
-    "Copyright 2026 India Inventory Management - All rights reserved.";
+    "Copyright 2026 Shop Inventory Management - All rights reserved.";
   const brandDescription = String(app.sidebarBrandDescription || "").trim();
   const cspNonce = doc?.documentElement?.dataset?.cspNonce || "";
   const isMobileLayout =
@@ -353,7 +353,7 @@
         <aside class="sidebar" id="sidebar" aria-label="Dashboard Navigation">
           <div class="sidebar__brand">
             <div class="sidebar__brand-header">
-              <h2>India Inventory Management</h2>
+              <h2>Shop Inventory Management</h2>
               <button
                 id="sidebarRefreshBtn"
                 class="sidebar__refresh-button"

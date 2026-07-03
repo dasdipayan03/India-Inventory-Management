@@ -5,7 +5,7 @@
     : "/api";
 
   const copyrightText =
-    "© 2026 India Inventory Management - All rights reserved.";
+    "© 2026 Shop Inventory Management - All rights reserved.";
   const staffPageConfig = permissionContract.STAFF_PAGE_CONFIG || {};
   const staffPermissionKeys = permissionContract.STAFF_PAGE_PERMISSIONS || [];
   const defaultStaffPermissions =

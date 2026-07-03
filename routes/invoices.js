@@ -1961,7 +1961,7 @@ router.get(
         doc
           .font("Helvetica-Bold")
           .fontSize(18)
-          .text(shop.shop_name || "India Inventory Management", 50, 45, {
+          .text(shop.shop_name || "Shop Inventory Management", 50, 45, {
             width: 320,
           });
         doc

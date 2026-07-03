@@ -1,5 +1,5 @@
 {
-  "name": "india-inventory-management",
+  "name": "shop-inventory-management",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {

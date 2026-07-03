@@ -127,7 +127,7 @@ const pool = new Pool({
   query_timeout: PG_QUERY_TIMEOUT_MS,
   idle_in_transaction_session_timeout:
     PG_IDLE_IN_TRANSACTION_SESSION_TIMEOUT_MS,
-  application_name: process.env.PG_APPLICATION_NAME || "india-inventory-api",
+  application_name: process.env.PG_APPLICATION_NAME || "shop-inventory-api",
 });
 
 const dbState = {
