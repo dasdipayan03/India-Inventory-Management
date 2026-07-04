@@ -8,18 +8,32 @@
     <link rel="icon" type="image/png" href="/images/app_logo.png?v=2026-07-03-shop-brand-logo-1" />
     <link rel="apple-touch-icon" href="/images/app_logo.png?v=2026-07-03-shop-brand-logo-1" />
     <link rel="manifest" href="/site.webmanifest" />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@fontsource/manrope@5.0.17/index.min.css"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@fontsource-variable/sora@5.0.17/index.min.css"
-    />
+    <script nonce="__CSP_NONCE__">
+      [
+        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css",
+        "https://cdn.jsdelivr.net/npm/@fontsource/manrope@5.0.17/index.min.css",
+        "https://cdn.jsdelivr.net/npm/@fontsource-variable/sora@5.0.17/index.min.css",
+      ].forEach((href) => {
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = href;
+        document.head.appendChild(link);
+      });
+    </script>
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+      />
+      <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@fontsource/manrope@5.0.17/index.min.css"
+      />
+      <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@fontsource-variable/sora@5.0.17/index.min.css"
+      />
+    </noscript>
     <style nonce="__CSP_NONCE__">
       :root {
         --navy: #122744;
