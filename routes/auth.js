@@ -24,6 +24,7 @@ const GOOGLE_OAUTH_STATE_COOKIE = "google_oauth_state";
 const GOOGLE_ONBOARDING_COOKIE = "google_onboarding";
 const GOOGLE_OAUTH_STATE_MAX_AGE_MS = 10 * 60 * 1000;
 const GOOGLE_ONBOARDING_MAX_AGE_MS = 15 * 60 * 1000;
+const GOOGLE_OAUTH_CALLBACK_RESULT_MAX_AGE_MS = 5 * 60 * 1000;
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo";
@@ -34,6 +35,7 @@ const OWNER_NAME_MAX_LENGTH = 50;
 const USERNAME_PATTERN = /^[a-zA-Z0-9._-]{3,30}$/;
 const MOBILE_NUMBER_PATTERN = /^\d{10}$/;
 const PUBLIC_BASE_URL = normalizeBaseUrl(process.env.BASE_URL);
+const androidGoogleCallbackResults = new Map();
 
 if (!process.env.JWT_SECRET) {
   console.error("JWT_SECRET not found in environment variables.");
@@ -196,6 +198,39 @@ function readGoogleOAuthState(state) {
   } catch (_error) {
     return null;
   }
+}
+
+function pruneAndroidGoogleCallbackResults() {
+  const now = Date.now();
+  for (const [state, result] of androidGoogleCallbackResults.entries()) {
+    if (!result || result.expiresAt <= now) {
+      androidGoogleCallbackResults.delete(state);
+    }
+  }
+}
+
+function rememberAndroidGoogleCallbackResult(state, transferToken) {
+  const normalizedState = String(state || "").trim();
+  const normalizedTransferToken = String(transferToken || "").trim();
+  if (!normalizedState || !normalizedTransferToken) {
+    return;
+  }
+
+  pruneAndroidGoogleCallbackResults();
+  androidGoogleCallbackResults.set(normalizedState, {
+    transferToken: normalizedTransferToken,
+    expiresAt: Date.now() + GOOGLE_OAUTH_CALLBACK_RESULT_MAX_AGE_MS,
+  });
+}
+
+function readAndroidGoogleCallbackResult(state) {
+  const normalizedState = String(state || "").trim();
+  if (!normalizedState) {
+    return null;
+  }
+
+  pruneAndroidGoogleCallbackResults();
+  return androidGoogleCallbackResults.get(normalizedState) || null;
 }
 
 function signAndroidGoogleTransfer(payload) {
@@ -795,6 +830,17 @@ router.get("/google/callback", async (req, res) => {
       );
     }
 
+    if (oauthState?.client === ANDROID_GOOGLE_CLIENT) {
+      const cachedAndroidResult = readAndroidGoogleCallbackResult(state);
+      if (cachedAndroidResult?.transferToken) {
+        return sendAndroidGoogleReturnPage(
+          req,
+          res,
+          cachedAndroidResult.transferToken,
+        );
+      }
+    }
+
     const config = getGoogleOAuthConfig(req);
     if (!config) {
       return res.redirect(
@@ -823,6 +869,7 @@ router.get("/google/callback", async (req, res) => {
           mode: "session",
           session,
         });
+        rememberAndroidGoogleCallbackResult(state, transferToken);
         return sendAndroidGoogleReturnPage(req, res, transferToken);
       }
 
@@ -837,6 +884,7 @@ router.get("/google/callback", async (req, res) => {
         mode: "onboarding",
         profile,
       });
+      rememberAndroidGoogleCallbackResult(state, transferToken);
       return sendAndroidGoogleReturnPage(req, res, transferToken);
     }
 
@@ -852,9 +900,12 @@ router.get("/google/callback", async (req, res) => {
   } catch (error) {
     console.error("Google sign-in callback error:", error.message);
     clearGoogleOnboardingCookie(res);
+    const errorMessage = /bad request|invalid_grant/i.test(error.message || "")
+      ? "Google sign-in expired. Please select your Google account again."
+      : error.message || "Google sign-in could not be completed.";
     return res.redirect(
       buildLoginRedirectUrl(req, {
-        google_error: error.message || "Google sign-in could not be completed.",
+        google_error: errorMessage,
       }),
     );
   }
