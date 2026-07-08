@@ -2025,9 +2025,14 @@
           "(prefers-reduced-motion: reduce)",
         );
         const isAndroidUserAgent = /Android/i.test(navigator.userAgent);
+        const isAndroidAppUserAgent = /ShopInventoryAndroidApp/i.test(
+          navigator.userAgent,
+        );
         const isAndroidWrapper =
-          !!window.AndroidAppShell &&
-          typeof window.AndroidAppShell.setSidebarGesturesLocked === "function";
+          isAndroidAppUserAgent ||
+          (!!window.AndroidAppShell &&
+            typeof window.AndroidAppShell.setSidebarGesturesLocked ===
+              "function");
         const featureCarousel = {
           index: 0,
           timer: 0,
