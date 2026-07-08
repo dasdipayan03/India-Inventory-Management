@@ -15,6 +15,7 @@ const {
   invalidateStaffSessionCache,
   requireOwner,
 } = require("../middleware/auth");
+// aa
 
 const router = express.Router();
 
@@ -332,7 +333,9 @@ function buildAndroidGoogleDeepLink(req, transferToken) {
 }
 
 function buildAndroidGoogleOpenUrl(req, transferToken) {
-  const url = new URL(`${resolvePublicBaseUrl(req)}/api/auth/google/android-open`);
+  const url = new URL(
+    `${resolvePublicBaseUrl(req)}/api/auth/google/android-open`,
+  );
   url.searchParams.set("transfer", transferToken);
   return url.toString();
 }
