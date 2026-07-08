@@ -296,6 +296,12 @@ function buildAndroidGoogleDeepLink(req, transferToken) {
   return url.toString();
 }
 
+function buildAndroidGoogleOpenUrl(req, transferToken) {
+  const url = new URL(`${resolvePublicBaseUrl(req)}/api/auth/google/android-open`);
+  url.searchParams.set("transfer", transferToken);
+  return url.toString();
+}
+
 function escapeHtml(value) {
   return String(value || "").replace(/[&<>"']/g, (character) => {
     switch (character) {
@@ -321,9 +327,7 @@ function scriptJson(value) {
 
 function buildAndroidGoogleIntentLink(req, transferToken) {
   const deepLink = new URL(buildAndroidGoogleDeepLink(req, transferToken));
-  const fallbackUrl = buildLoginRedirectUrl(req, {
-    google_error: "Return to the Android app to finish Google sign-in.",
-  });
+  const fallbackUrl = buildAndroidGoogleOpenUrl(req, transferToken);
   const intentTarget = `${deepLink.host}${deepLink.pathname}${deepLink.search}`;
   return `intent://${intentTarget}#Intent;scheme=${deepLink.protocol.replace(
     ":",
@@ -334,6 +338,11 @@ function buildAndroidGoogleIntentLink(req, transferToken) {
 }
 
 function sendAndroidGoogleReturnPage(req, res, transferToken) {
+  markSensitiveResponse(res);
+  return res.redirect(buildAndroidGoogleIntentLink(req, transferToken));
+}
+
+function renderAndroidGoogleOpenPage(req, res, transferToken) {
   const deepLink = buildAndroidGoogleDeepLink(req, transferToken);
   const intentLink = buildAndroidGoogleIntentLink(req, transferToken);
   const nonce = res.locals.cspNonce || "";
@@ -344,7 +353,7 @@ function sendAndroidGoogleReturnPage(req, res, transferToken) {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta http-equiv="refresh" content="3;url=${escapeHtml(deepLink)}" />
+    <meta http-equiv="refresh" content="5;url=${escapeHtml(intentLink)}" />
     <title>Returning to app</title>
     <style nonce="${escapeHtml(nonce)}">
       :root {
@@ -405,17 +414,17 @@ function sendAndroidGoogleReturnPage(req, res, transferToken) {
   <body>
     <main>
       <h1>Returning to app</h1>
-      <p>Google sign-in is complete. The Android app should open automatically.</p>
+      <p>Google sign-in is complete. Tap Open app if it does not open automatically.</p>
       <a id="openApp" href="${escapeHtml(intentLink)}">Open app</a>
       <a class="secondary" id="openAppFallback" href="${escapeHtml(deepLink)}">Try alternate link</a>
     </main>
     <script nonce="${escapeHtml(nonce)}">
       const intentUrl = ${scriptJson(intentLink)};
       const deepLinkUrl = ${scriptJson(deepLink)};
-      window.location.replace(intentUrl);
+      window.location.href = intentUrl;
       window.setTimeout(() => {
         window.location.href = deepLinkUrl;
-      }, 900);
+      }, 1400);
     </script>
   </body>
 </html>`);
@@ -849,6 +858,19 @@ router.get("/google/callback", async (req, res) => {
       }),
     );
   }
+});
+
+router.get("/google/android-open", async (req, res) => {
+  const transferToken = String(req.query.transfer || "").trim();
+  if (!transferToken) {
+    return res.redirect(
+      buildLoginRedirectUrl(req, {
+        google_error: "Google sign-in expired. Please try again.",
+      }),
+    );
+  }
+
+  return renderAndroidGoogleOpenPage(req, res, transferToken);
 });
 
 router.get("/google/android-transfer", async (req, res) => {
