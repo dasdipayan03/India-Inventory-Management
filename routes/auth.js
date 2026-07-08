@@ -29,6 +29,7 @@ const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo";
 const ANDROID_GOOGLE_CLIENT = "android";
 const ANDROID_GOOGLE_DEEP_LINK_BASE = "indiainventory://google-auth";
+const ANDROID_APP_PACKAGE_NAME = "india.inventory.management";
 const OWNER_NAME_MAX_LENGTH = 50;
 const USERNAME_PATTERN = /^[a-zA-Z0-9._-]{3,30}$/;
 const MOBILE_NUMBER_PATTERN = /^\d{10}$/;
@@ -293,6 +294,131 @@ function buildAndroidGoogleDeepLink(req, transferToken) {
   url.searchParams.set("transfer", transferToken);
   url.searchParams.set("origin", resolvePublicBaseUrl(req));
   return url.toString();
+}
+
+function escapeHtml(value) {
+  return String(value || "").replace(/[&<>"']/g, (character) => {
+    switch (character) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      case "'":
+        return "&#39;";
+      default:
+        return character;
+    }
+  });
+}
+
+function scriptJson(value) {
+  return JSON.stringify(String(value || "")).replace(/</g, "\\u003c");
+}
+
+function buildAndroidGoogleIntentLink(req, transferToken) {
+  const deepLink = new URL(buildAndroidGoogleDeepLink(req, transferToken));
+  const fallbackUrl = buildLoginRedirectUrl(req, {
+    google_error: "Return to the Android app to finish Google sign-in.",
+  });
+  const intentTarget = `${deepLink.host}${deepLink.pathname}${deepLink.search}`;
+  return `intent://${intentTarget}#Intent;scheme=${deepLink.protocol.replace(
+    ":",
+    "",
+  )};package=${ANDROID_APP_PACKAGE_NAME};S.browser_fallback_url=${encodeURIComponent(
+    fallbackUrl,
+  )};end`;
+}
+
+function sendAndroidGoogleReturnPage(req, res, transferToken) {
+  const deepLink = buildAndroidGoogleDeepLink(req, transferToken);
+  const intentLink = buildAndroidGoogleIntentLink(req, transferToken);
+  const nonce = res.locals.cspNonce || "";
+
+  markSensitiveResponse(res);
+  return res.status(200).type("html").send(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="refresh" content="3;url=${escapeHtml(deepLink)}" />
+    <title>Returning to app</title>
+    <style nonce="${escapeHtml(nonce)}">
+      :root {
+        color-scheme: light;
+        font-family: Arial, sans-serif;
+        background: #f3f8fb;
+        color: #122744;
+      }
+      body {
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+      main {
+        width: min(420px, 100%);
+        padding: 24px;
+        border: 1px solid #d4e8f2;
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 18px 42px rgba(12, 31, 59, 0.12);
+        text-align: center;
+      }
+      h1 {
+        margin: 0 0 10px;
+        font-size: 22px;
+      }
+      p {
+        margin: 0 0 18px;
+        color: #5c6f86;
+        line-height: 1.5;
+      }
+      a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 0 18px;
+        border-radius: 10px;
+        background: #0878b8;
+        color: #fff;
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .secondary {
+        display: block;
+        margin-top: 14px;
+        min-height: auto;
+        padding: 0;
+        border-radius: 0;
+        background: transparent;
+        color: #0878b8;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Returning to app</h1>
+      <p>Google sign-in is complete. The Android app should open automatically.</p>
+      <a id="openApp" href="${escapeHtml(intentLink)}">Open app</a>
+      <a class="secondary" id="openAppFallback" href="${escapeHtml(deepLink)}">Try alternate link</a>
+    </main>
+    <script nonce="${escapeHtml(nonce)}">
+      const intentUrl = ${scriptJson(intentLink)};
+      const deepLinkUrl = ${scriptJson(deepLink)};
+      window.location.replace(intentUrl);
+      window.setTimeout(() => {
+        window.location.href = deepLinkUrl;
+      }, 900);
+    </script>
+  </body>
+</html>`);
 }
 
 async function exchangeGoogleCodeForTokens(code, config) {
@@ -688,7 +814,7 @@ router.get("/google/callback", async (req, res) => {
           mode: "session",
           session,
         });
-        return res.redirect(buildAndroidGoogleDeepLink(req, transferToken));
+        return sendAndroidGoogleReturnPage(req, res, transferToken);
       }
 
       const token = signSession(session);
@@ -702,7 +828,7 @@ router.get("/google/callback", async (req, res) => {
         mode: "onboarding",
         profile,
       });
-      return res.redirect(buildAndroidGoogleDeepLink(req, transferToken));
+      return sendAndroidGoogleReturnPage(req, res, transferToken);
     }
 
     const onboardingToken = signGoogleOnboarding(profile);

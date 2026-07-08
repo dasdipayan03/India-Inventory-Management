@@ -1,7 +1,7 @@
-const CACHE_VERSION = "2026-07-04-network-resilience-1";
+const CACHE_VERSION = "2026-07-08-network-resilience-2";
 const RUNTIME_CACHE = `shop-inventory-runtime-${CACHE_VERSION}`;
 const CACHE_PREFIX = "shop-inventory-runtime-";
-const NAVIGATION_TIMEOUT_MS = 4200;
+const NAVIGATION_TIMEOUT_MS = 8500;
 const OFFLINE_FALLBACK_HTML = `<!doctype html>
 <html lang="en">
   <head>
