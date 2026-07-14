@@ -1,22 +1,49 @@
-(function registerInventoryServiceWorker() {
+(function cleanupInventoryServiceWorker() {
   if (!("serviceWorker" in navigator)) {
     return;
   }
 
-  const isLocalhost =
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1";
+  const CACHE_PREFIXES = [
+    "shop-inventory-runtime-",
+    "inventory-runtime-",
+  ];
 
-  if (!window.isSecureContext && !isLocalhost) {
-    return;
+  function isInventoryRuntimeCache(cacheName) {
+    return CACHE_PREFIXES.some((prefix) => cacheName.startsWith(prefix));
+  }
+
+  async function clearRuntimeCaches() {
+    if (!("caches" in window)) {
+      return;
+    }
+
+    const cacheNames = await caches.keys();
+    await Promise.all(
+      cacheNames
+        .filter((cacheName) => isInventoryRuntimeCache(cacheName))
+        .map((cacheName) => caches.delete(cacheName)),
+    );
+  }
+
+  async function unregisterInventoryWorkers() {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(
+      registrations
+        .filter((registration) => {
+          try {
+            return new URL(registration.scope).origin === window.location.origin;
+          } catch (_error) {
+            return false;
+          }
+        })
+        .map((registration) => registration.unregister()),
+    );
   }
 
   window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/service-worker.js", { scope: "/" })
-      .then((registration) => {
-        registration.update().catch(() => {});
-      })
-      .catch(() => {});
+    Promise.allSettled([
+      unregisterInventoryWorkers(),
+      clearRuntimeCaches(),
+    ]).catch(() => {});
   });
 })();

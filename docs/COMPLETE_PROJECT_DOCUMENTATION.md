@@ -21,7 +21,7 @@ This is the single merged documentation file for the project. It replaces the ea
 - [6. Frontend Structure](#6-frontend-structure)
   - [Page responsibilities](#page-responsibilities)
   - [Shared frontend module roles](#shared-frontend-module-roles)
-  - [App shell caching and low-network behavior](#app-shell-caching-and-low-network-behavior)
+  - [Service-worker rollback and network behavior](#service-worker-rollback-and-network-behavior)
   - [Frontend storage usage](#frontend-storage-usage)
 - [7. Backend Structure](#7-backend-structure)
   - [`server.js`](#serverjs)
@@ -153,8 +153,8 @@ Important current-state notes:
 - Developer support authentication is also cookie-based through `/api/developer-auth/*`; the browser no longer stores a readable developer JWT in session storage.
 - `localStorage` is still used for UI state and invoice draft storage, but not as the primary auth token store.
 - HTML pages are served through [`server.js`](../server.js), which injects a CSP nonce into inline scripts and styles.
-- [`server.js`](../server.js) also injects CDN preconnect hints and [`../public/js/service-worker-register.js`](../public/js/service-worker-register.js) into served HTML, so browser/PWA/WebView clients can install the low-network app-shell cache automatically.
-- [`../public/service-worker.js`](../public/service-worker.js) uses network-first caching for app shell/static assets with a cached fallback, but deliberately bypasses `/api/*` plus health/diagnostic routes so inventory, invoice, payment, stock, auth, and network checks continue to come from the live server.
+- [`server.js`](../server.js) still injects CDN preconnect hints and [`../public/js/service-worker-register.js`](../public/js/service-worker-register.js), but that helper now removes older service-worker registrations and runtime caches instead of installing the low-network app-shell cache.
+- [`../public/service-worker.js`](../public/service-worker.js) is currently a rollback worker: it clears old `shop-inventory-runtime-*` / `inventory-runtime-*` caches, unregisters itself, and does not intercept fetches.
 - Database schema truth comes from the SQL files in [`migrations/`](../migrations) plus runtime compatibility patches in [`db.js`](../db.js).
 - The app now includes an owner/staff support chat plus dedicated developer support login and inbox pages backed by [`../routes/support.js`](../routes/support.js).
 - Runtime health and readiness now expose structured JSON payloads through `/health`, `/api/health`, `/healthz`, `/api/healthz`, `/ready`, `/api/ready`, `/readyz`, `/api/readyz`, `/live`, `/api/live`, `/livez`, and `/api/livez`.
@@ -174,7 +174,7 @@ Important current-state notes:
 - Customer due summary and detail rows now have owner-only 3-dot delete actions for full customer ledgers and individual ledger transactions. Invoice-linked debt deletes resync the linked invoice paid/due state.
 - The shared sidebar now includes a refresh icon beside the app title; it reloads the current page while preserving the active dashboard section through `localStorage.activeSection`.
 - Login page Android install now points to the Play Store listing (`india.inventory.management`) instead of the old GitHub APK release link. `site.webmanifest` remains available for browser/PWA install prompts.
-- The Android wrapper project at `C:\Users\Dipayan\AndroidStudioProjects\IndiaInventoryManagement` is the native shell used for Play Store releases. Its WebView now keeps cache warm, enables service-worker support, and avoids clearing cached assets during transient network retries so low-bandwidth networks feel smoother.
+- The Android wrapper project at `C:\Users\Dipayan\AndroidStudioProjects\IndiaInventoryManagement` is the native shell used for Play Store releases. Because the web service worker is currently rolled back, browser/PWA/WebView traffic should go directly to the network instead of using the previous app-shell cache layer.
 - Sale and Invoice now includes customer autocomplete in the Billing details card. The inline invoice controller calls `/api/invoices/customers`, then fills customer name, contact, and address when an existing customer is selected.
 - Invoice shop profile now stores bank account and UPI payment details. Invoice PDFs print saved payment rows and generate a UPI QR block when `upi_id` is available.
 - The API layer now applies DB-pool backpressure protection before mounted `/api` route handlers when the PostgreSQL waiting queue reaches `DB_POOL_WAITING_REJECT_THRESHOLD`.
@@ -202,7 +202,7 @@ Main business modules:
 - queued PDF/Excel export delivery for long-running downloads
 - owner-only ops metrics and background cleanup status
 - expense tracking and net profit visibility
-- Play Store Android app access plus browser PWA install metadata, service-worker-backed app-shell caching, and first-party network diagnostics
+- Play Store Android app access plus browser PWA install metadata, service-worker rollback cleanup, and first-party network diagnostics
 
 Current feature and benefit map:
 
@@ -218,7 +218,7 @@ Current feature and benefit map:
 | Expenses                   | Expense entry, suggestions, report, and summary                                                                                                                        | Real net profit is clearer because costs are recorded                          |
 | Staff Access               | Owner-managed page permissions for staff accounts                                                                                                                      | Staff can work only in the modules they are assigned                           |
 | Support Chat               | Owner/staff support thread plus developer inbox                                                                                                                        | Support conversations stay tied to the right owner workspace                   |
-| Mobile / Android Access    | Responsive web UI, Play Store wrapper, Android Google transfer, PWA manifest, service-worker shell cache, low-network WebView tuning, and `/network-check` diagnostics | Users can work from phones through browser, installed PWA, or Play Store app   |
+| Mobile / Android Access    | Responsive web UI, Play Store wrapper, Android Google transfer, PWA manifest, service-worker rollback cleanup, WebView access, and `/network-check` diagnostics | Users can work from phones through browser, installed PWA, or Play Store app   |
 
 The system is owner-centric:
 
@@ -263,8 +263,8 @@ The system is owner-centric:
 - shared page configuration in [`public/js/app-core.js`](../public/js/app-core.js)
 - shared sidebar shell in [`public/js/app-shell.js`](../public/js/app-shell.js)
 - permission contract in [`public/js/permission-contract.js`](../public/js/permission-contract.js)
-- service-worker registration in [`public/js/service-worker-register.js`](../public/js/service-worker-register.js)
-- network-first app-shell/static cache in [`public/service-worker.js`](../public/service-worker.js)
+- service-worker cleanup in [`public/js/service-worker-register.js`](../public/js/service-worker-register.js)
+- service-worker rollback in [`public/service-worker.js`](../public/service-worker.js)
 - generated `/network-check` page from [`server.js`](../server.js) for first-party reachability checks
 - charts via vendored [`public/js/chart.min.js`](../public/js/chart.min.js)
 - invoice payment profile fields for bank name, account holder, account number, IFSC, and UPI ID live in [`public/invoice.html`](../public/invoice.html)
@@ -335,8 +335,8 @@ The system is owner-centric:
 | [`../public/js/app-core.js`](../public/js/app-core.js)                               | shared constants, permission descriptions, app bootstrap helpers                                                                                    |
 | [`../public/js/app-shell.js`](../public/js/app-shell.js)                             | reusable sidebar shell and page navigation                                                                                                          |
 | [`../public/js/permission-contract.js`](../public/js/permission-contract.js)         | single permission vocabulary shared by backend and frontend                                                                                         |
-| [`../public/js/service-worker-register.js`](../public/js/service-worker-register.js) | secure-context service worker registration helper                                                                                                   |
-| [`../public/service-worker.js`](../public/service-worker.js)                         | network-first app-shell/static cache that bypasses `/api/*` and health/diagnostic paths                                                             |
+| [`../public/js/service-worker-register.js`](../public/js/service-worker-register.js) | cleanup helper that unregisters old first-party service workers and deletes old runtime caches                                                       |
+| [`../public/service-worker.js`](../public/service-worker.js)                         | rollback worker that clears old runtime caches, unregisters itself, and does not intercept fetches                                                   |
 
 ## 5. High-Level Architecture
 
@@ -344,7 +344,7 @@ The system is owner-centric:
 flowchart LR
   Browser["Browser pages<br/>login.html | developer-login.html | developer-support.html | index.html | invoice.html | reset.html | privacy/account pages"]
   SharedJS["Shared frontend modules<br/>app-core.js | app-shell.js | permission-contract.js | dashboard.js | developer-login.js | developer-support.js"]
-  ServiceWorker["Service worker<br/>service-worker.js | service-worker-register.js<br/>app shell/static cache"]
+  ServiceWorker["Service worker rollback<br/>service-worker.js | service-worker-register.js<br/>cache cleanup | unregister"]
   Server["Express app<br/>server.js"]
   AuthMW["Auth middleware<br/>cookie/session + permission resolution"]
   AuthRoutes["routes/auth.js"]
@@ -364,7 +364,7 @@ flowchart LR
   Browser --> SharedJS
   Browser -->|"GET HTML pages"| Server
   Browser --> ServiceWorker
-  ServiceWorker -->|"network-first shell/static requests"| Server
+  ServiceWorker -->|"cleanup only; no fetch interception"| Server
   SharedJS -->|"fetch /api/*"| Server
   DeployCfg -. deploy defaults .-> Server
   Server --> AuthMW
@@ -394,8 +394,8 @@ flowchart LR
 
 1. Browser requests `login.html`, `developer-login.html`, `developer-support.html`, `index.html`, `invoice.html`, or `reset.html`.
 2. [`server.js`](../server.js) serves those pages through `sendHtmlTemplate(...)`, injecting preconnect hints, service-worker registration, and `__CSP_NONCE__` replacements.
-3. [`../public/js/service-worker-register.js`](../public/js/service-worker-register.js) registers [`../public/service-worker.js`](../public/service-worker.js) on secure origins.
-4. The service worker uses network-first caching for HTML shell and static assets, but it does not intercept `/api/*` or the health/network diagnostic paths.
+3. [`../public/js/service-worker-register.js`](../public/js/service-worker-register.js) cleans up older first-party service-worker registrations and old runtime caches on secure origins.
+4. [`../public/service-worker.js`](../public/service-worker.js) is kept as a rollback worker for already-installed clients: it clears old caches, unregisters itself, and does not intercept navigations, assets, APIs, or diagnostics.
 5. Frontend scripts call `/api/...` endpoints with `credentials: "include"`.
 6. [`middleware/auth.js`](../middleware/auth.js) resolves the current owner/staff session or developer support session as needed.
 7. The matching route file runs business logic and queries PostgreSQL.
@@ -445,17 +445,16 @@ flowchart LR
   - keeps legacy aliases normalized where needed, but `add_stock` is no longer an active permission
 
 - [`../public/js/service-worker-register.js`](../public/js/service-worker-register.js)
-  - registers `/service-worker.js` after the `load` event
-  - runs only when service workers are available and the page is secure, with localhost allowed for development
-  - quietly skips registration errors so a service-worker issue cannot block login, dashboard, invoice, or support pages
+  - no longer registers a persistent service worker
+  - runs after the `load` event when service-worker APIs are available
+  - unregisters same-origin service-worker registrations and deletes old inventory runtime caches
+  - quietly skips cleanup errors so a service-worker issue cannot block login, dashboard, invoice, or support pages
 
 - [`../public/service-worker.js`](../public/service-worker.js)
-  - warms core app-shell assets such as the manifest, app logo, sidebar/core JS, and permission contract
-  - caches same-origin shell/static requests with a network-first strategy and a 20-second cached fallback timeout for navigations
-  - bounds core-cache warmup requests with a 12-second timeout so install cannot hang indefinitely on weak networks
-  - bypasses `/api/*` entirely so live business data, auth state, exports, reports, invoices, and stock changes are not served from browser Cache Storage
-  - also bypasses `/health`, `/ready`, `/live`, `/network-check`, and their supported API/alias paths so diagnostics always hit the network
-  - deletes old `shop-inventory-runtime-*` caches during activation when `CACHE_VERSION` changes
+  - rollback version: `2026-07-14-disable-low-network-cache-1`
+  - deletes old `shop-inventory-runtime-*` and `inventory-runtime-*` caches during install/activation
+  - claims existing clients, unregisters itself, and intentionally does not call `respondWith()` in `fetch`
+  - sends all navigations, static assets, APIs, and diagnostics directly to the network
 
 - [`../public/js/dashboard.js`](../public/js/dashboard.js)
   - drives most dashboard features
@@ -481,23 +480,22 @@ flowchart LR
   - sends replies, changes conversation status, and refreshes queue counters
   - escapes requester and message content before writing HTML into the inbox UI
 
-### App shell caching and low-network behavior
+### Service-worker rollback and network behavior
 
-The project now has two separate cache layers with different safety rules:
+The project currently keeps backend response caching, but the browser/WebView service-worker app-shell cache has been rolled back because the low-network smoothing layer caused carrier-specific loading problems.
 
 - Backend JSON response cache:
   - implemented by [`../middleware/cache.js`](../middleware/cache.js) and [`../utils/cache.js`](../utils/cache.js)
   - short-lived, owner-scoped, and used only by routes that explicitly opt in
   - bypassable with `_no_cache=1`
-- Browser/WebView service-worker cache:
-  - implemented by [`../public/service-worker.js`](../public/service-worker.js)
-  - stores app shell/static assets in Cache Storage under `shop-inventory-runtime-<CACHE_VERSION>`
-  - uses network-first behavior so the latest shell wins when the network is responsive
-  - falls back to cached shell/static files after the configured navigation timeout to make weak networks feel smoother
-  - keeps health, liveness, readiness, and `/network-check` requests network-only for carrier/DNS/SSL troubleshooting
-  - never intercepts `/api/*`, which keeps operational business data live
+- Browser/WebView service-worker rollback:
+  - cleanup helper: [`../public/js/service-worker-register.js`](../public/js/service-worker-register.js)
+  - rollback worker: [`../public/service-worker.js`](../public/service-worker.js)
+  - deletes old app-shell runtime caches named `shop-inventory-runtime-*` or `inventory-runtime-*`
+  - unregisters old same-origin service-worker registrations
+  - does not intercept `/api/*`, HTML navigation, JS, CSS, images, health checks, or `/network-check`
 
-The current service-worker cache version is `2026-07-14-jio-network-diagnostics-1`. The Android Play Store wrapper benefits from this web cache because its WebView now enables service-worker support and avoids clearing cached assets during transient network retries. Updating only these web files can ship through normal web deployment; changing native WebView behavior still requires a Play Store/AAB release from the Android wrapper project.
+The rollback worker version is `2026-07-14-disable-low-network-cache-1`. Updating these web files can ship through normal Railway deployment; changing native WebView behavior still requires a Play Store/AAB release from the Android wrapper project.
 
 ### Frontend storage usage
 
@@ -516,9 +514,8 @@ Current frontend storage behavior:
   - invoice draft storage on `invoice.html`
   - cleanup of old `token`/`user` keys during logout or invalid session handling
 - Cache Storage:
-  - service-worker runtime cache for app shell/static files only
-  - no API JSON, auth-sensitive responses, reports, invoices, payments, or stock mutations are stored there
-  - health, liveness, readiness, and network diagnostic routes are kept out of Cache Storage
+  - old service-worker runtime caches are deleted by the cleanup helper and rollback worker
+  - no API JSON, auth-sensitive responses, reports, invoices, payments, stock mutations, health checks, or network diagnostics should be stored there
 
 ## 7. Backend Structure
 
@@ -542,7 +539,7 @@ Current frontend storage behavior:
 - serving HTML pages through nonce-aware template injection
 - injecting CDN preconnect hints and `/js/service-worker-register.js` into HTML pages before nonce replacement
 - caching HTML templates in memory while still sending HTML with `Cache-Control: no-store`
-- serving `/service-worker.js` with `Cache-Control: no-cache` and `Service-Worker-Allowed: /` so clients can update the worker while keeping root scope
+- serving `/service-worker.js` with `Cache-Control: no-cache` and `Service-Worker-Allowed: /` so already-installed clients can receive the rollback worker and clear old runtime caches
 - serving `/privacy-policy(.html)` and `/account-deletion(.html)` in addition to the app pages
 - serving `/network-check(.html)` as a generated, no-store diagnostic page that uses only first-party resources and tests `/live`, `/health`, and `/api/live`
 - exposing readiness routes:
@@ -1022,29 +1019,21 @@ Route handlers in this file are owner-only and cover monitoring metrics plus bac
 
 #### `public/js/service-worker-register.js` function inventory
 
-| Function                           | Purpose                                                                 |
-| ---------------------------------- | ----------------------------------------------------------------------- |
-| `registerInventoryServiceWorker()` | registers `/service-worker.js` on supported secure origins after `load` |
+| Function                             | Purpose                                                                 |
+| ------------------------------------ | ----------------------------------------------------------------------- |
+| `cleanupInventoryServiceWorker()`    | starts service-worker/cache cleanup after page load                     |
+| `isInventoryRuntimeCache(cacheName)` | identifies old inventory app-shell runtime caches                       |
+| `clearRuntimeCaches()`               | deletes old `shop-inventory-runtime-*` and `inventory-runtime-*` caches |
+| `unregisterInventoryWorkers()`       | unregisters same-origin service-worker registrations                    |
 
 #### `public/service-worker.js` function inventory
 
-| Function                                                        | Purpose                                                                                               |
-| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `isHttpRequest(request)`                                        | filters fetch events to HTTP/HTTPS requests                                                           |
-| `isSameOrigin(url)`                                             | identifies first-party app URLs                                                                       |
-| `isApiRequest(url)`                                             | detects `/api/*` requests so they can bypass the service worker                                       |
-| `isNavigationRequest(request)`                                  | detects page navigations and HTML requests                                                            |
-| `isStaticAssetRequest(request, url)`                            | identifies same-origin JS, image, manifest, style, font, and static asset requests                    |
-| `cacheKeyFor(request)`                                          | normalizes same-origin cache keys by removing search/hash values except versioned login banner assets |
-| `isCacheableResponse(response)`                                 | limits Cache Storage writes to successful non-error responses                                         |
-| `isInventoryRuntimeCache(key)`                                  | recognizes older inventory runtime cache names for cleanup                                            |
-| `timeoutWith(response, timeoutMs)`                              | returns a cached fallback after the configured low-network timeout                                    |
-| `fetchWithTimeout(request, timeoutMs)`                          | bounds core-asset warmup fetches with `AbortController`                                               |
-| `cacheResponse(request, response)`                              | writes one response clone into the runtime cache                                                      |
-| `navigationFallbackResponse(cache, fallbackUrl)`                | resolves cached page fallback content or the generated offline page                                   |
-| `navigationNetworkFirst(request, fallbackUrl, preloadResponse)` | tries navigation preload/network first, updates cache on success, and falls back to cached content    |
-| `staleWhileRevalidate(request)`                                 | serves cached static assets while refreshing them in the background                                   |
-| `warmCoreCache()`                                               | prefetches core app-shell assets during service-worker installation                                   |
+| Function                             | Purpose                                                                 |
+| ------------------------------------ | ----------------------------------------------------------------------- |
+| `isInventoryRuntimeCache(cacheName)` | identifies old inventory app-shell runtime caches                       |
+| `clearInventoryRuntimeCaches()`      | deletes old `shop-inventory-runtime-*` and `inventory-runtime-*` caches |
+
+The rollback worker also listens for `install`, `activate`, and `fetch`. It clears old caches during install/activate, unregisters itself during activation, and intentionally leaves `fetch` without `respondWith()` so browser requests go directly to the network.
 
 #### `public/js/permission-contract.js` function inventory
 
@@ -1209,8 +1198,8 @@ Current hardening that is visible in the codebase:
 - Google OAuth only creates accounts after verified Google email plus required shop name and 10-digit mobile number
 - auth-sensitive responses mark `Cache-Control: no-store`
 - `/service-worker.js` is served with `Cache-Control: no-cache` and `Service-Worker-Allowed: /` so updates are checked while preserving root scope
-- the service worker bypasses `/api/*`, so authenticated JSON, exports, invoice PDFs, report data, stock data, and payment state are never fulfilled from browser Cache Storage
-- the service worker also bypasses health, liveness, readiness, and `/network-check` routes so diagnostic results are never satisfied from stale app-shell cache
+- the current service-worker rollback path does not intercept fetches, so authenticated JSON, exports, invoice PDFs, report data, stock data, payment state, and diagnostics are never fulfilled from browser Cache Storage
+- old app-shell runtime caches are deleted by both the cleanup helper and rollback worker
 - `/network-check(.html)` is generated with `Cache-Control: no-store`, `Pragma: no-cache`, and `X-Robots-Tag: noindex, nofollow`
 - developer support login now relies on the `developer_support_token` cookie rather than returning a browser-readable token in the response body
 - owner-only delete routes for customer ledgers, supplier ledgers, purchase bills, and purchase items are protected with `requireOwner`; the frontend also hides their 3-dot menus from staff sessions
@@ -2621,10 +2610,10 @@ Edit:
 
 - [`../public/login.html`](../public/login.html) for the visible Android install CTA; it currently links to `https://play.google.com/store/apps/details?id=india.inventory.management`
 - [`../public/site.webmanifest`](../public/site.webmanifest) for browser/PWA install metadata
-- [`../public/js/service-worker-register.js`](../public/js/service-worker-register.js) and [`../public/service-worker.js`](../public/service-worker.js) for browser/PWA/WebView shell caching behavior
+- [`../public/js/service-worker-register.js`](../public/js/service-worker-register.js) and [`../public/service-worker.js`](../public/service-worker.js) for browser/PWA/WebView service-worker rollback behavior
 - Android wrapper project at `C:\Users\Dipayan\AndroidStudioProjects\IndiaInventoryManagement` for native WebView behavior, cache settings, upload-key signing, target SDK, Play Store screenshots, version metadata, and AAB releases
 
-The web app can be updated through normal Railway deployment when only web code changes. A Play Store AAB update is only needed when native Android wrapper behavior, signing/version metadata, permissions, target SDK, or native app assets change. If `CACHE_VERSION` in [`../public/service-worker.js`](../public/service-worker.js) changes, old runtime caches are pruned on service-worker activation.
+The web app can be updated through normal Railway deployment when only web code changes. A Play Store AAB update is only needed when native Android wrapper behavior, signing/version metadata, permissions, target SDK, or native app assets change. The current rollback worker uses `ROLLBACK_VERSION` and deletes old runtime caches on install/activation.
 
 ### If you want to change invoice flow or PDF output
 
@@ -2680,10 +2669,10 @@ Edit:
 - [`../utils/export-queue.js`](../utils/export-queue.js)
 - [`../utils/pagination.js`](../utils/pagination.js)
 - route files that opt into cache/pagination/export behavior
-- [`../public/service-worker.js`](../public/service-worker.js) for browser/WebView app-shell and static asset caching
+- [`../public/service-worker.js`](../public/service-worker.js) for browser/WebView service-worker rollback and old cache cleanup
 - [`../server.js`](../server.js) for static asset headers, service-worker headers, and HTML bootstrap injection
 
-Do not add `/api/*` handling to the service worker unless the endpoint has an explicit stale-data policy. Current business data freshness depends on API requests going to the network. Keep health, liveness, readiness, and `/network-check` paths network-only so diagnostics remain trustworthy.
+Do not re-enable service-worker fetch handling unless the endpoint has an explicit stale-data policy and mobile-carrier behavior has been tested. Current business data freshness and Jio troubleshooting depend on requests going directly to the network.
 
 ### If you want to change owner ops metrics
 
@@ -2711,15 +2700,15 @@ flowchart TB
     AppCore["public/js/app-core.js<br/>apiBase | page metadata | shared helpers"]
     AppShell["public/js/app-shell.js<br/>sidebar shell | refresh button | page navigation"]
     Permissions["public/js/permission-contract.js<br/>permission keys shared by frontend and backend"]
-    SWRegister["public/js/service-worker-register.js<br/>secure-origin worker registration"]
-    ServiceWorker["public/service-worker.js<br/>network-first app shell/static cache | diagnostic bypass"]
+    SWRegister["public/js/service-worker-register.js<br/>service-worker cleanup helper"]
+    ServiceWorker["public/service-worker.js<br/>rollback worker | cache cleanup | unregister"]
     DashJS["public/js/dashboard.js<br/>dashboard UI orchestration"]
     DevLoginJS["public/js/developer-login.js<br/>developer auth UI controller"]
     DevSupportJS["public/js/developer-support.js<br/>developer inbox controller"]
   end
 
   subgraph Server["Express backend"]
-    Entry["server.js<br/>health routes | network-check | request IDs | CORS | CSP nonce | worker-src | helmet | compression | HTML/service-worker bootstrap | background jobs"]
+    Entry["server.js<br/>health routes | network-check | request IDs | CORS | CSP nonce | worker-src | helmet | compression | HTML/service-worker cleanup bootstrap | background jobs"]
     AuthMW["middleware/auth.js<br/>cookie-first JWT auth | staff permission reload | developer support auth"]
     CacheMW["middleware/cache.js<br/>owner-scoped short TTL JSON cache"]
     ExportMW["middleware/export-queue.js<br/>async PDF/Excel queue trigger"]
@@ -2776,7 +2765,7 @@ flowchart TB
 
   AppCore --> Entry
   AppShell --> Entry
-  ServiceWorker -->|"network-first shell/static only; bypasses /api/* and diagnostics"| Entry
+  ServiceWorker -->|"cleanup only; no fetch interception"| Entry
   DashJS --> Entry
   DevLoginJS --> Entry
   DevSupportJS --> Entry
@@ -2937,7 +2926,7 @@ flowchart TB
 
   subgraph WebApp["Hosted web app"]
     Railway["Railway Express server<br/>server.js"]
-    ServiceWorker["public/service-worker.js<br/>app shell/static cache"]
+    ServiceWorker["public/service-worker.js<br/>rollback cleanup worker"]
     Pages["login.html | index.html | invoice.html"]
     APIs["/api/* live business APIs"]
   end
@@ -2952,7 +2941,7 @@ flowchart TB
   Railway --> Pages
   Pages --> ServiceWorker
   Pages --> APIs
-  ServiceWorker -->|"shell/static only; bypasses /api/*"| Railway
+  ServiceWorker -->|"cleanup only; no fetch interception"| Railway
   AndroidBridges --> Pages
   ReminderReceivers --> ReminderManager
   ReminderManager --> MainActivity
@@ -2962,9 +2951,9 @@ MainActivity responsibility map:
 
 | Area                    | Native behavior                                                                                                                                                                                                          |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| WebView setup           | enables JavaScript, DOM storage, database storage, geolocation, multiple windows, safe browsing, service-worker settings, hardware rendering, and warm cache loading                                                     |
+| WebView setup           | enables JavaScript, DOM storage, database storage, geolocation, multiple windows, safe browsing, hardware rendering, and normal WebView loading                                                                            |
 | URL trust               | only trusted web hosts from enabled `AppSite` values stay inside the WebView; external or special schemes open through Android intents                                                                                   |
-| Low-network behavior    | preserves warm WebView cache, enables service-worker cache, avoids clearing cached assets during transient retries, probes server reachability before showing a hard offline state                                       |
+| Low-network behavior    | relies on direct network loads plus native retry/reachability probing; the web service-worker app-shell cache is currently rolled back                                                                                    |
 | Offline UI              | shows native offline screen with retry, saved page action, downloads action, last sync text, and last captured preview                                                                                                   |
 | Pull refresh            | reloads the current page or home page only when network is available                                                                                                                                                     |
 | Connectivity            | registers `ConnectivityManager.NetworkCallback`, retries pending loads when connectivity returns, and shows offline state when all active networks are lost                                                              |
@@ -2980,10 +2969,9 @@ MainActivity responsibility map:
 
 WebView and web-app cache boundary:
 
-- Native WebView cache and web service-worker cache are both allowed to help shell/static loading.
+- Native WebView cache may still exist, but the web service-worker app-shell cache is disabled through the rollback worker.
 - `loadUrlKeepingWarmCache(...)` restores default WebView cache mode before navigation instead of forcing `LOAD_NO_CACHE`.
-- Native transient retry paths no longer clear WebView cache, so JS/CSS/images can be reused on weak networks.
-- Web service worker still bypasses `/api/*`; Android does not change API freshness rules.
+- The web rollback worker does not intercept `/api/*`, HTML navigation, JS/CSS/images, or diagnostics; Android does not change API freshness rules.
 - Offline "Saved page" uses `LOAD_CACHE_ELSE_NETWORK` only when the user explicitly chooses the cached page action.
 
 Android-to-web bridges:
@@ -2997,7 +2985,7 @@ Android navigation and auth flow:
 
 1. `MainActivity.onCreate(...)` binds views, configures the WebView, registers receivers/listeners, restores offline state, and handles the launch intent.
 2. If online, it loads `BuildConfig.MAIN_WEB_APP_URL`; if offline, it shows the native offline screen and schedules retry-on-reconnect.
-3. The web app serves HTML with the service-worker bootstrap, then the WebView registers `/service-worker.js`.
+3. The web app serves HTML with the service-worker cleanup bootstrap, then older same-origin service-worker registrations and runtime caches are removed.
 4. Login/session remains cookie-based inside the WebView; the web app still calls `/api/auth/me` and other `/api/*` endpoints normally.
 5. Google sign-in can return through `indiainventory://google-auth`; Android loads the transfer endpoint so the web app can set the correct session cookie.
 6. If the web runtime sees a `401`, injected JS calls `AndroidAppShell.onSessionExpired(...)`; Android clears old web storage keys and opens `login.html` when the user confirms.
@@ -3064,6 +3052,6 @@ This codebase is organized around a single owner-scoped business workspace:
 - `/network-check` provides a first-party diagnostic page for mobile/carrier reachability checks against `/live`, `/health`, and `/api/live`
 - deployment defaults for Railway are codified in [`../railway.json`](../railway.json)
 - Android users can install through the Play Store link on `login.html`, while `site.webmanifest` keeps browser/PWA install metadata available
-- browser/PWA/WebView clients now get a service-worker app-shell/static cache that improves low-network loading while bypassing `/api/*` and diagnostic paths for live business data and trustworthy troubleshooting
+- browser/PWA/WebView clients now use direct network loading again; the service-worker rollback path clears old app-shell caches and unregisters older workers
 - the Android wrapper lives at `C:\Users\Dipayan\AndroidStudioProjects\IndiaInventoryManagement` and must be released through Play Store only when native WebView, signing, SDK, version, permission, or native asset behavior changes
 - this document now contains both a reusable function catalogue and a schema-level table dictionary in addition to the higher-level architecture notes
