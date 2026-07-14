@@ -498,6 +498,244 @@ function sendMaintenancePage(req, res) {
 </html>`);
 }
 
+function sendNetworkCheckPage(req, res) {
+  const nonce = escapeHtml(res.locals.cspNonce || "");
+
+  res.set("Cache-Control", "no-store, max-age=0, must-revalidate");
+  res.set("Pragma", "no-cache");
+  res.set("X-Robots-Tag", "noindex, nofollow");
+
+  return res.status(200).type("html").send(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Network Check</title>
+    <style nonce="${nonce}">
+      :root {
+        color-scheme: light;
+        font-family: Arial, sans-serif;
+        background: #f4f8fb;
+        color: #14243b;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 18px;
+      }
+      main {
+        width: min(100%, 680px);
+        padding: 22px;
+        border: 1px solid #d7e5ee;
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 18px 44px rgba(15, 35, 55, 0.1);
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 24px;
+      }
+      p {
+        margin: 0 0 18px;
+        color: #5e7188;
+        line-height: 1.55;
+      }
+      dl {
+        display: grid;
+        grid-template-columns: 150px 1fr;
+        gap: 8px 12px;
+        margin: 0 0 18px;
+        font-size: 14px;
+      }
+      dt {
+        color: #5e7188;
+        font-weight: 700;
+      }
+      dd {
+        margin: 0;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        overflow: hidden;
+        border: 1px solid #d7e5ee;
+        border-radius: 12px;
+        font-size: 14px;
+      }
+      th,
+      td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #e7eef4;
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        background: #eef6fb;
+        color: #405871;
+        font-size: 12px;
+        text-transform: uppercase;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      .ok {
+        color: #137a3d;
+        font-weight: 700;
+      }
+      .bad {
+        color: #b42318;
+        font-weight: 700;
+      }
+      button {
+        margin-top: 18px;
+        min-height: 42px;
+        border: 0;
+        border-radius: 10px;
+        padding: 0 16px;
+        background: #1677b8;
+        color: #fff;
+        font-weight: 700;
+      }
+      @media (max-width: 520px) {
+        dl {
+          grid-template-columns: 1fr;
+        }
+        th,
+        td {
+          padding: 9px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Network Check</h1>
+      <p>This page uses only first-party files and bypasses the app shell cache.</p>
+      <dl>
+        <dt>Page URL</dt>
+        <dd id="pageUrl">Checking...</dd>
+        <dt>Online flag</dt>
+        <dd id="onlineState">Checking...</dd>
+        <dt>Service worker</dt>
+        <dd id="workerState">Checking...</dd>
+        <dt>Checked at</dt>
+        <dd id="checkedAt">Checking...</dd>
+      </dl>
+      <table>
+        <thead>
+          <tr>
+            <th>Endpoint</th>
+            <th>Status</th>
+            <th>Time</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody id="results">
+          <tr>
+            <td colspan="4">Running checks...</td>
+          </tr>
+        </tbody>
+      </table>
+      <button type="button" id="rerunButton">Run Again</button>
+    </main>
+    <script nonce="${nonce}">
+      const endpoints = ["/live", "/health", "/api/live"];
+      const results = document.getElementById("results");
+      const pageUrl = document.getElementById("pageUrl");
+      const onlineState = document.getElementById("onlineState");
+      const workerState = document.getElementById("workerState");
+      const checkedAt = document.getElementById("checkedAt");
+      const rerunButton = document.getElementById("rerunButton");
+
+      function escapeText(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function renderRows(rows) {
+        results.innerHTML = rows
+          .map((row) => {
+            const statusClass = row.ok ? "ok" : "bad";
+            return [
+              "<tr>",
+              "<td>" + escapeText(row.path) + "</td>",
+              "<td class=\\"" + statusClass + "\\">" + escapeText(row.status) + "</td>",
+              "<td>" + escapeText(row.ms) + " ms</td>",
+              "<td>" + escapeText(row.detail) + "</td>",
+              "</tr>",
+            ].join("");
+          })
+          .join("");
+      }
+
+      async function checkEndpoint(path) {
+        const startedAt = performance.now();
+        try {
+          const response = await fetch(path + "?_network_check=" + Date.now(), {
+            cache: "no-store",
+            credentials: "include",
+            headers: {
+              accept: "application/json",
+            },
+          });
+          const elapsedMs = Math.round(performance.now() - startedAt);
+          const contentType = response.headers.get("content-type") || "";
+          let detail = response.statusText || "response received";
+
+          if (contentType.includes("application/json")) {
+            const data = await response.json();
+            detail = data.status || data.kind || detail;
+          }
+
+          return {
+            path,
+            ok: response.ok,
+            status: String(response.status),
+            ms: elapsedMs,
+            detail,
+          };
+        } catch (error) {
+          return {
+            path,
+            ok: false,
+            status: "failed",
+            ms: Math.round(performance.now() - startedAt),
+            detail: error.message || "network error",
+          };
+        }
+      }
+
+      async function runChecks() {
+        rerunButton.disabled = true;
+        pageUrl.textContent = window.location.href;
+        onlineState.textContent = navigator.onLine ? "online" : "offline";
+        workerState.textContent = navigator.serviceWorker?.controller
+          ? "active"
+          : "not controlling this page";
+        checkedAt.textContent = new Date().toLocaleString();
+        results.innerHTML = '<tr><td colspan="4">Running checks...</td></tr>';
+        renderRows(await Promise.all(endpoints.map(checkEndpoint)));
+        rerunButton.disabled = false;
+      }
+
+      rerunButton.addEventListener("click", runChecks);
+      runChecks();
+    </script>
+  </body>
+</html>`);
+}
+
 app.use((req, res, next) => {
   const startedAt = process.hrtime.bigint();
   const requestId = req.get("x-request-id") || crypto.randomUUID();
@@ -804,6 +1042,10 @@ app.get(["/privacy-policy", "/privacy-policy.html"], (req, res) => {
 
 app.get(["/account-deletion", "/account-deletion.html"], (req, res) => {
   sendHtmlTemplate(res, "account-deletion.html");
+});
+
+app.get(["/network-check", "/network-check.html"], (req, res) => {
+  sendNetworkCheckPage(req, res);
 });
 
 app.get("/developer-login", (req, res) => {

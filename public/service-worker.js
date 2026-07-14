@@ -1,7 +1,8 @@
-const CACHE_VERSION = "2026-07-08-network-resilience-2";
+const CACHE_VERSION = "2026-07-14-jio-network-diagnostics-1";
 const RUNTIME_CACHE = `shop-inventory-runtime-${CACHE_VERSION}`;
 const CACHE_PREFIX = "shop-inventory-runtime-";
-const NAVIGATION_TIMEOUT_MS = 8500;
+const NAVIGATION_TIMEOUT_MS = 20000;
+const CORE_ASSET_TIMEOUT_MS = 12000;
 const OFFLINE_FALLBACK_HTML = `<!doctype html>
 <html lang="en">
   <head>
@@ -78,6 +79,23 @@ const SHELL_PAGES = new Set([
   "/developer-support.html",
 ]);
 
+const NETWORK_ONLY_PATHS = new Set([
+  "/health",
+  "/api/health",
+  "/healthz",
+  "/api/healthz",
+  "/ready",
+  "/api/ready",
+  "/readyz",
+  "/api/readyz",
+  "/live",
+  "/api/live",
+  "/livez",
+  "/api/livez",
+  "/network-check",
+  "/network-check.html",
+]);
+
 function isHttpRequest(request) {
   return request.url.startsWith("http://") || request.url.startsWith("https://");
 }
@@ -138,6 +156,15 @@ function isInventoryRuntimeCache(key) {
 function timeoutWith(response, timeoutMs) {
   return new Promise((resolve) => {
     setTimeout(() => resolve(response), timeoutMs);
+  });
+}
+
+function fetchWithTimeout(request, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  return fetch(request, { signal: controller.signal }).finally(() => {
+    clearTimeout(timer);
   });
 }
 
@@ -235,7 +262,7 @@ async function staleWhileRevalidate(request) {
 
 async function warmCoreCache() {
   const requests = CORE_ASSETS.map((url) =>
-    fetch(new Request(url, { cache: "reload" }))
+    fetchWithTimeout(new Request(url, { cache: "reload" }), CORE_ASSET_TIMEOUT_MS)
       .then((response) => cacheResponse(new Request(url), response))
       .catch(() => {}),
   );
@@ -279,6 +306,10 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
   if (isApiRequest(url)) {
+    return;
+  }
+
+  if (isSameOrigin(url) && NETWORK_ONLY_PATHS.has(url.pathname)) {
     return;
   }
 
