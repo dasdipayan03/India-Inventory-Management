@@ -1,6 +1,6 @@
 # Shop Inventory Management Documentation
 
-Last verified against this repository: `2026-06-30`
+Last verified against this repository: `2026-07-14`
 
 This is the single merged documentation file for the project. It replaces the earlier split project doc and database schema doc.
 
@@ -90,6 +90,7 @@ This is the single merged documentation file for the project. It replaces the ea
   - [11.6 Export routes from `routes/exports.js`](#116-export-routes-from-routesexportsjs)
   - [11.7 Ops routes from `routes/ops.js`](#117-ops-routes-from-routesopsjs)
   - [11.8 Health routes from `server.js`](#118-health-routes-from-serverjs)
+  - [11.9 Network diagnostic route from `server.js`](#119-network-diagnostic-route-from-serverjs)
 - [12. Database Schema](#12-database-schema)
   - [12.1 Schema source of truth](#121-schema-source-of-truth)
   - [12.2 Ownership model](#122-ownership-model)
@@ -153,10 +154,11 @@ Important current-state notes:
 - `localStorage` is still used for UI state and invoice draft storage, but not as the primary auth token store.
 - HTML pages are served through [`server.js`](../server.js), which injects a CSP nonce into inline scripts and styles.
 - [`server.js`](../server.js) also injects CDN preconnect hints and [`../public/js/service-worker-register.js`](../public/js/service-worker-register.js) into served HTML, so browser/PWA/WebView clients can install the low-network app-shell cache automatically.
-- [`../public/service-worker.js`](../public/service-worker.js) uses network-first caching for app shell/static assets with a short cached fallback, but deliberately bypasses `/api/*` so inventory, invoice, payment, stock, and auth data continue to come from the live server.
+- [`../public/service-worker.js`](../public/service-worker.js) uses network-first caching for app shell/static assets with a cached fallback, but deliberately bypasses `/api/*` plus health/diagnostic routes so inventory, invoice, payment, stock, auth, and network checks continue to come from the live server.
 - Database schema truth comes from the SQL files in [`migrations/`](../migrations) plus runtime compatibility patches in [`db.js`](../db.js).
 - The app now includes an owner/staff support chat plus dedicated developer support login and inbox pages backed by [`../routes/support.js`](../routes/support.js).
-- Runtime health and readiness now expose structured JSON payloads through `/health`, `/api/health`, `/healthz`, `/ready`, `/readyz`, `/live`, and `/livez`.
+- Runtime health and readiness now expose structured JSON payloads through `/health`, `/api/health`, `/healthz`, `/api/healthz`, `/ready`, `/api/ready`, `/readyz`, `/api/readyz`, `/live`, `/api/live`, `/livez`, and `/api/livez`.
+- [`server.js`](../server.js) also serves `/network-check` and `/network-check.html`, a no-store first-party diagnostic page for checking whether a client can reach `/live`, `/health`, and `/api/live` without relying on CDN assets or service-worker cached navigation.
 - Owner-only ops endpoints now expose in-process metrics, DB overview, response-cache stats, export-queue stats, and background-job status through [`../routes/ops.js`](../routes/ops.js).
 - PDF/Excel export requests can run asynchronously when the frontend adds `_async_export=1`; jobs are stored in the in-memory export queue and downloaded through [`../routes/exports.js`](../routes/exports.js).
 - Frequently read JSON endpoints now use short owner-scoped response caching and pagination metadata helpers where list size can grow.
@@ -200,23 +202,23 @@ Main business modules:
 - queued PDF/Excel export delivery for long-running downloads
 - owner-only ops metrics and background cleanup status
 - expense tracking and net profit visibility
-- Play Store Android app access plus browser PWA install metadata and service-worker-backed app-shell caching
+- Play Store Android app access plus browser PWA install metadata, service-worker-backed app-shell caching, and first-party network diagnostics
 
 Current feature and benefit map:
 
-| Module                     | Current capability                                                                                                                                            | User benefit                                                                   |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Purchase Entry / Add Stock | Supplier bill entry creates purchase rows and updates item stock/rates                                                                                        | Inventory stays in sync with purchase bills without duplicate stock-entry work |
-| Supplier Ledger            | Supplier-wise purchases, paid/due totals, repayment capture, newest-first bill history, and owner-only supplier/bill/item deletion                            | Owners can track and clean purchase ledger data safely                         |
-| Sale Entry / Invoice       | Invoice creation, item lookup, GST/total calculation, customer autocomplete, history, settlement, shop payment details, UPI QR, and PDF                       | Faster billing and cleaner customer-facing documents                           |
-| Stock View / Report        | Item quantity, buying/selling rates, sold quantity, low-stock, reorder, and slow-moving views                                                                 | Owners can see current inventory health and reorder needs                      |
-| Sales View / Report        | Date-wise sales, net-profit card, trend charts, PDF, and Excel                                                                                                | Sales performance can be reviewed by period                                    |
-| GST Report                 | GST row report, monthly comparison, PDF, and Excel                                                                                                            | Tax data is ready for checking and filing                                      |
-| Customer Due               | Customer ledger entries with optional address, name/number autocomplete, address-aware due summary, newest-first timeline, PDF, and owner-only delete actions | Collections become easier to track, share, and correct                         |
-| Expenses                   | Expense entry, suggestions, report, and summary                                                                                                               | Real net profit is clearer because costs are recorded                          |
-| Staff Access               | Owner-managed page permissions for staff accounts                                                                                                             | Staff can work only in the modules they are assigned                           |
-| Support Chat               | Owner/staff support thread plus developer inbox                                                                                                               | Support conversations stay tied to the right owner workspace                   |
-| Mobile / Android Access    | Responsive web UI, Play Store wrapper, Android Google transfer, PWA manifest, service-worker shell cache, and low-network WebView tuning                      | Users can work from phones through browser, installed PWA, or Play Store app   |
+| Module                     | Current capability                                                                                                                                                     | User benefit                                                                   |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Purchase Entry / Add Stock | Supplier bill entry creates purchase rows and updates item stock/rates                                                                                                 | Inventory stays in sync with purchase bills without duplicate stock-entry work |
+| Supplier Ledger            | Supplier-wise purchases, paid/due totals, repayment capture, newest-first bill history, and owner-only supplier/bill/item deletion                                     | Owners can track and clean purchase ledger data safely                         |
+| Sale Entry / Invoice       | Invoice creation, item lookup, GST/total calculation, customer autocomplete, history, settlement, shop payment details, UPI QR, and PDF                                | Faster billing and cleaner customer-facing documents                           |
+| Stock View / Report        | Item quantity, buying/selling rates, sold quantity, low-stock, reorder, and slow-moving views                                                                          | Owners can see current inventory health and reorder needs                      |
+| Sales View / Report        | Date-wise sales, net-profit card, trend charts, PDF, and Excel                                                                                                         | Sales performance can be reviewed by period                                    |
+| GST Report                 | GST row report, monthly comparison, PDF, and Excel                                                                                                                     | Tax data is ready for checking and filing                                      |
+| Customer Due               | Customer ledger entries with optional address, name/number autocomplete, address-aware due summary, newest-first timeline, PDF, and owner-only delete actions          | Collections become easier to track, share, and correct                         |
+| Expenses                   | Expense entry, suggestions, report, and summary                                                                                                                        | Real net profit is clearer because costs are recorded                          |
+| Staff Access               | Owner-managed page permissions for staff accounts                                                                                                                      | Staff can work only in the modules they are assigned                           |
+| Support Chat               | Owner/staff support thread plus developer inbox                                                                                                                        | Support conversations stay tied to the right owner workspace                   |
+| Mobile / Android Access    | Responsive web UI, Play Store wrapper, Android Google transfer, PWA manifest, service-worker shell cache, low-network WebView tuning, and `/network-check` diagnostics | Users can work from phones through browser, installed PWA, or Play Store app   |
 
 The system is owner-centric:
 
@@ -263,6 +265,7 @@ The system is owner-centric:
 - permission contract in [`public/js/permission-contract.js`](../public/js/permission-contract.js)
 - service-worker registration in [`public/js/service-worker-register.js`](../public/js/service-worker-register.js)
 - network-first app-shell/static cache in [`public/service-worker.js`](../public/service-worker.js)
+- generated `/network-check` page from [`server.js`](../server.js) for first-party reachability checks
 - charts via vendored [`public/js/chart.min.js`](../public/js/chart.min.js)
 - invoice payment profile fields for bank name, account holder, account number, IFSC, and UPI ID live in [`public/invoice.html`](../public/invoice.html)
 
@@ -274,44 +277,44 @@ The system is owner-centric:
 
 ## 4. Repository Map
 
-| Path                                  | Purpose                                                                                                                                |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| [`../server.js`](../server.js)        | app bootstrap, middleware, request logging, DB backpressure guard, health/readiness routes, HTML serving, and service-worker bootstrap |
-| [`../db.js`](../db.js)                | PostgreSQL pool setup, timeout tuning, readiness state, and schema compatibility patches                                               |
-| [`../railway.json`](../railway.json)  | Railway deployment config: start command, healthcheck path, timeout, restart policy                                                    |
-| [`../middleware/`](../middleware)     | auth and access control middleware                                                                                                     |
-| [`../routes/`](../routes)             | route files grouped by business domain                                                                                                 |
-| [`../repositories/`](../repositories) | small DB reader modules used by operational endpoints                                                                                  |
-| [`../public/`](../public)             | HTML pages, frontend JS, images, PWA manifest, and service worker                                                                      |
-| [`../utils/`](../utils)               | shared backend helpers such as advisory locking, caching, export jobs, metrics, and structured logging                                 |
-| [`../migrations/`](../migrations)     | SQL schema and migration history                                                                                                       |
-| [`../docs/`](.)                       | project documentation, including this merged file and the detailed flow chart                                                          |
+| Path                                  | Purpose                                                                                                                                                     |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`../server.js`](../server.js)        | app bootstrap, middleware, request logging, DB backpressure guard, health/readiness routes, network diagnostics, HTML serving, and service-worker bootstrap |
+| [`../db.js`](../db.js)                | PostgreSQL pool setup, timeout tuning, readiness state, and schema compatibility patches                                                                    |
+| [`../railway.json`](../railway.json)  | Railway deployment config: start command, healthcheck path, timeout, restart policy                                                                         |
+| [`../middleware/`](../middleware)     | auth and access control middleware                                                                                                                          |
+| [`../routes/`](../routes)             | route files grouped by business domain                                                                                                                      |
+| [`../repositories/`](../repositories) | small DB reader modules used by operational endpoints                                                                                                       |
+| [`../public/`](../public)             | HTML pages, frontend JS, images, PWA manifest, and service worker                                                                                           |
+| [`../utils/`](../utils)               | shared backend helpers such as advisory locking, caching, export jobs, metrics, and structured logging                                                      |
+| [`../migrations/`](../migrations)     | SQL schema and migration history                                                                                                                            |
+| [`../docs/`](.)                       | project documentation, including this merged file and the detailed flow chart                                                                               |
 
 ### Key backend files
 
-| File                                                                     | Role                                                                                                                                                                       |
-| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`../server.js`](../server.js)                                           | Express entrypoint, request logging, CSP nonce injection, service-worker bootstrap injection, CORS policy, DB-pool backpressure guard, health/debug routes, static serving |
-| [`../db.js`](../db.js)                                                   | DB connection pool, readiness state, SSL selection, startup schema patching, pool timeout/query timeout tuning                                                             |
-| [`../middleware/auth.js`](../middleware/auth.js)                         | JWT verification, role resolution, permission checks                                                                                                                       |
-| [`../middleware/cache.js`](../middleware/cache.js)                       | owner-scoped short TTL JSON response cache middleware                                                                                                                      |
-| [`../middleware/export-queue.js`](../middleware/export-queue.js)         | async export middleware for queued PDF/Excel downloads                                                                                                                     |
-| [`../routes/auth.js`](../routes/auth.js)                                 | register/login/logout, Google OAuth, forgot/reset password, staff management, `/me`                                                                                        |
-| [`../routes/support.js`](../routes/support.js)                           | developer auth, owner/staff support chat, developer inbox, conversation status updates                                                                                     |
-| [`../routes/exports.js`](../routes/exports.js)                           | export job status and authenticated download endpoints                                                                                                                     |
-| [`../routes/ops.js`](../routes/ops.js)                                   | owner-only monitoring metrics and background cleanup endpoints                                                                                                             |
-| [`../routes/inventory.js`](../routes/inventory.js)                       | stock defaults, shared item lookup, stock reports, sales reports, GST compare/export, dashboard overview, customer dues, owner-only due deletes                            |
-| [`../routes/business.js`](../routes/business.js)                         | suppliers, purchases that restock inventory, product purchase history, purchase repayment, owner-only purchase deletes, expenses                                           |
-| [`../routes/invoices.js`](../routes/invoices.js)                         | invoice numbering, invoice save, customer suggestions, history, payment settlement, PDF, shop info                                                                         |
-| [`../repositories/ops-repository.js`](../repositories/ops-repository.js) | database overview query used by ops metrics                                                                                                                                |
-| [`../utils/background-jobs.js`](../utils/background-jobs.js)             | periodic cache/export cleanup and heartbeat logging                                                                                                                        |
-| [`../utils/cache.js`](../utils/cache.js)                                 | in-memory TTL cache plus owner-cache invalidation helpers                                                                                                                  |
-| [`../utils/concurrency.js`](../utils/concurrency.js)                     | normalization helpers and owner-scoped advisory locks                                                                                                                      |
-| [`../utils/export-queue.js`](../utils/export-queue.js)                   | in-memory export queue implementation and filename parsing                                                                                                                 |
-| [`../utils/monitoring.js`](../utils/monitoring.js)                       | request, cache, export, memory, and DB-pool metric snapshots                                                                                                               |
-| [`../utils/pagination.js`](../utils/pagination.js)                       | shared query pagination parser, response headers, and metadata builder                                                                                                     |
-| [`../utils/runtime-log.js`](../utils/runtime-log.js)                     | structured JSON log serializer used by server and DB lifecycle logging                                                                                                     |
-| [`../railway.json`](../railway.json)                                     | Railway config-as-code for runtime start and healthcheck defaults                                                                                                          |
+| File                                                                     | Role                                                                                                                                                                                  |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`../server.js`](../server.js)                                           | Express entrypoint, request logging, CSP nonce injection, service-worker bootstrap injection, CORS policy, DB-pool backpressure guard, health/debug/diagnostic routes, static serving |
+| [`../db.js`](../db.js)                                                   | DB connection pool, readiness state, SSL selection, startup schema patching, pool timeout/query timeout tuning                                                                        |
+| [`../middleware/auth.js`](../middleware/auth.js)                         | JWT verification, role resolution, permission checks                                                                                                                                  |
+| [`../middleware/cache.js`](../middleware/cache.js)                       | owner-scoped short TTL JSON response cache middleware                                                                                                                                 |
+| [`../middleware/export-queue.js`](../middleware/export-queue.js)         | async export middleware for queued PDF/Excel downloads                                                                                                                                |
+| [`../routes/auth.js`](../routes/auth.js)                                 | register/login/logout, Google OAuth, forgot/reset password, staff management, `/me`                                                                                                   |
+| [`../routes/support.js`](../routes/support.js)                           | developer auth, owner/staff support chat, developer inbox, conversation status updates                                                                                                |
+| [`../routes/exports.js`](../routes/exports.js)                           | export job status and authenticated download endpoints                                                                                                                                |
+| [`../routes/ops.js`](../routes/ops.js)                                   | owner-only monitoring metrics and background cleanup endpoints                                                                                                                        |
+| [`../routes/inventory.js`](../routes/inventory.js)                       | stock defaults, shared item lookup, stock reports, sales reports, GST compare/export, dashboard overview, customer dues, owner-only due deletes                                       |
+| [`../routes/business.js`](../routes/business.js)                         | suppliers, purchases that restock inventory, product purchase history, purchase repayment, owner-only purchase deletes, expenses                                                      |
+| [`../routes/invoices.js`](../routes/invoices.js)                         | invoice numbering, invoice save, customer suggestions, history, payment settlement, PDF, shop info                                                                                    |
+| [`../repositories/ops-repository.js`](../repositories/ops-repository.js) | database overview query used by ops metrics                                                                                                                                           |
+| [`../utils/background-jobs.js`](../utils/background-jobs.js)             | periodic cache/export cleanup and heartbeat logging                                                                                                                                   |
+| [`../utils/cache.js`](../utils/cache.js)                                 | in-memory TTL cache plus owner-cache invalidation helpers                                                                                                                             |
+| [`../utils/concurrency.js`](../utils/concurrency.js)                     | normalization helpers and owner-scoped advisory locks                                                                                                                                 |
+| [`../utils/export-queue.js`](../utils/export-queue.js)                   | in-memory export queue implementation and filename parsing                                                                                                                            |
+| [`../utils/monitoring.js`](../utils/monitoring.js)                       | request, cache, export, memory, and DB-pool metric snapshots                                                                                                                          |
+| [`../utils/pagination.js`](../utils/pagination.js)                       | shared query pagination parser, response headers, and metadata builder                                                                                                                |
+| [`../utils/runtime-log.js`](../utils/runtime-log.js)                     | structured JSON log serializer used by server and DB lifecycle logging                                                                                                                |
+| [`../railway.json`](../railway.json)                                     | Railway config-as-code for runtime start and healthcheck defaults                                                                                                                     |
 
 ### Key frontend files
 
@@ -333,7 +336,7 @@ The system is owner-centric:
 | [`../public/js/app-shell.js`](../public/js/app-shell.js)                             | reusable sidebar shell and page navigation                                                                                                          |
 | [`../public/js/permission-contract.js`](../public/js/permission-contract.js)         | single permission vocabulary shared by backend and frontend                                                                                         |
 | [`../public/js/service-worker-register.js`](../public/js/service-worker-register.js) | secure-context service worker registration helper                                                                                                   |
-| [`../public/service-worker.js`](../public/service-worker.js)                         | network-first app-shell/static cache that bypasses `/api/*`                                                                                         |
+| [`../public/service-worker.js`](../public/service-worker.js)                         | network-first app-shell/static cache that bypasses `/api/*` and health/diagnostic paths                                                             |
 
 ## 5. High-Level Architecture
 
@@ -392,13 +395,14 @@ flowchart LR
 1. Browser requests `login.html`, `developer-login.html`, `developer-support.html`, `index.html`, `invoice.html`, or `reset.html`.
 2. [`server.js`](../server.js) serves those pages through `sendHtmlTemplate(...)`, injecting preconnect hints, service-worker registration, and `__CSP_NONCE__` replacements.
 3. [`../public/js/service-worker-register.js`](../public/js/service-worker-register.js) registers [`../public/service-worker.js`](../public/service-worker.js) on secure origins.
-4. The service worker uses network-first caching for HTML shell and static assets, but it does not intercept `/api/*`.
+4. The service worker uses network-first caching for HTML shell and static assets, but it does not intercept `/api/*` or the health/network diagnostic paths.
 5. Frontend scripts call `/api/...` endpoints with `credentials: "include"`.
 6. [`middleware/auth.js`](../middleware/auth.js) resolves the current owner/staff session or developer support session as needed.
 7. The matching route file runs business logic and queries PostgreSQL.
 8. Health endpoints can report readiness or liveness without crossing the authenticated route stack.
-9. PDF and Excel exports are generated directly inside route handlers for normal requests, or queued through `/api/exports/:jobId` when `_async_export=1` is present.
-10. Owner-only ops endpoints expose in-process metrics, DB-pool state, response cache stats, export queue stats, and background-job cleanup state.
+9. `/network-check` can be opened from a browser or mobile network to test first-party reachability to `/live`, `/health`, and `/api/live`.
+10. PDF and Excel exports are generated directly inside route handlers for normal requests, or queued through `/api/exports/:jobId` when `_async_export=1` is present.
+11. Owner-only ops endpoints expose in-process metrics, DB-pool state, response cache stats, export queue stats, and background-job cleanup state.
 
 ## 6. Frontend Structure
 
@@ -447,8 +451,10 @@ flowchart LR
 
 - [`../public/service-worker.js`](../public/service-worker.js)
   - warms core app-shell assets such as the manifest, app logo, sidebar/core JS, and permission contract
-  - caches same-origin shell/static requests with a network-first strategy and a short cached fallback timeout
+  - caches same-origin shell/static requests with a network-first strategy and a 20-second cached fallback timeout for navigations
+  - bounds core-cache warmup requests with a 12-second timeout so install cannot hang indefinitely on weak networks
   - bypasses `/api/*` entirely so live business data, auth state, exports, reports, invoices, and stock changes are not served from browser Cache Storage
+  - also bypasses `/health`, `/ready`, `/live`, `/network-check`, and their supported API/alias paths so diagnostics always hit the network
   - deletes old `shop-inventory-runtime-*` caches during activation when `CACHE_VERSION` changes
 
 - [`../public/js/dashboard.js`](../public/js/dashboard.js)
@@ -487,10 +493,11 @@ The project now has two separate cache layers with different safety rules:
   - implemented by [`../public/service-worker.js`](../public/service-worker.js)
   - stores app shell/static assets in Cache Storage under `shop-inventory-runtime-<CACHE_VERSION>`
   - uses network-first behavior so the latest shell wins when the network is responsive
-  - falls back to cached shell/static files after a short timeout to make weak networks feel faster
+  - falls back to cached shell/static files after the configured navigation timeout to make weak networks feel smoother
+  - keeps health, liveness, readiness, and `/network-check` requests network-only for carrier/DNS/SSL troubleshooting
   - never intercepts `/api/*`, which keeps operational business data live
 
-The Android Play Store wrapper benefits from this web cache because its WebView now enables service-worker support and avoids clearing asset cache during transient network retries. Updating only these web files can ship through normal web deployment; changing native WebView behavior still requires a Play Store/AAB release from the Android wrapper project.
+The current service-worker cache version is `2026-07-14-jio-network-diagnostics-1`. The Android Play Store wrapper benefits from this web cache because its WebView now enables service-worker support and avoids clearing cached assets during transient network retries. Updating only these web files can ship through normal web deployment; changing native WebView behavior still requires a Play Store/AAB release from the Android wrapper project.
 
 ### Frontend storage usage
 
@@ -511,6 +518,7 @@ Current frontend storage behavior:
 - Cache Storage:
   - service-worker runtime cache for app shell/static files only
   - no API JSON, auth-sensitive responses, reports, invoices, payments, or stock mutations are stored there
+  - health, liveness, readiness, and network diagnostic routes are kept out of Cache Storage
 
 ## 7. Backend Structure
 
@@ -536,6 +544,7 @@ Current frontend storage behavior:
 - caching HTML templates in memory while still sending HTML with `Cache-Control: no-store`
 - serving `/service-worker.js` with `Cache-Control: no-cache` and `Service-Worker-Allowed: /` so clients can update the worker while keeping root scope
 - serving `/privacy-policy(.html)` and `/account-deletion(.html)` in addition to the app pages
+- serving `/network-check(.html)` as a generated, no-store diagnostic page that uses only first-party resources and tests `/live`, `/health`, and `/api/live`
 - exposing readiness routes:
   - `/health`
   - `/api/health`
@@ -709,6 +718,8 @@ Important scope note:
 | `injectPerformanceBootstrap(html)`            | adds CDN preconnect hints and service-worker registration to served HTML if not already present |
 | `setStaticAssetCacheHeaders(res, filePath)`   | applies cache rules for HTML, service worker, images, fonts, and other static assets            |
 | `sendHtmlTemplate(res, fileName, statusCode)` | injects performance bootstrap tags plus the CSP nonce into cached HTML and sends it             |
+| `sendMaintenancePage(req, res)`               | renders no-store HTML or JSON maintenance responses when maintenance mode is enabled            |
+| `sendNetworkCheckPage(req, res)`              | renders the no-store first-party network diagnostic page served at `/network-check(.html)`      |
 | `getAuthTokenFromRequest(req)`                | reads a session token from cookie or bearer header for rate-limit identity                      |
 | `getRateLimitKey(req)`                        | builds user/actor-aware rate-limit keys, falling back to IP when unauthenticated                |
 | `shutdown(signal)`                            | performs graceful server shutdown for `SIGTERM` and `SIGINT`                                    |
@@ -1017,19 +1028,23 @@ Route handlers in this file are owner-only and cover monitoring metrics plus bac
 
 #### `public/service-worker.js` function inventory
 
-| Function                             | Purpose                                                                                     |
-| ------------------------------------ | ------------------------------------------------------------------------------------------- |
-| `isHttpRequest(request)`             | filters fetch events to HTTP/HTTPS requests                                                 |
-| `isSameOrigin(url)`                  | identifies first-party app URLs                                                             |
-| `isApiRequest(url)`                  | detects `/api/*` requests so they can bypass the service worker                             |
-| `isNavigationRequest(request)`       | detects page navigations and HTML requests                                                  |
-| `isStaticAssetRequest(request, url)` | identifies same-origin JS, image, manifest, style, font, and static asset requests          |
-| `cacheKeyFor(request)`               | normalizes same-origin cache keys by removing search and hash values                        |
-| `isCacheableResponse(response)`      | limits Cache Storage writes to successful non-error responses                               |
-| `timeoutWith(response)`              | returns a cached fallback after the configured low-network timeout                          |
-| `cacheResponse(request, response)`   | writes one response clone into the runtime cache                                            |
-| `networkFirst(request, fallbackUrl)` | tries network first, updates cache on success, and falls back to cached content when needed |
-| `warmCoreCache()`                    | prefetches core app-shell assets during service-worker installation                         |
+| Function                                                        | Purpose                                                                                               |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `isHttpRequest(request)`                                        | filters fetch events to HTTP/HTTPS requests                                                           |
+| `isSameOrigin(url)`                                             | identifies first-party app URLs                                                                       |
+| `isApiRequest(url)`                                             | detects `/api/*` requests so they can bypass the service worker                                       |
+| `isNavigationRequest(request)`                                  | detects page navigations and HTML requests                                                            |
+| `isStaticAssetRequest(request, url)`                            | identifies same-origin JS, image, manifest, style, font, and static asset requests                    |
+| `cacheKeyFor(request)`                                          | normalizes same-origin cache keys by removing search/hash values except versioned login banner assets |
+| `isCacheableResponse(response)`                                 | limits Cache Storage writes to successful non-error responses                                         |
+| `isInventoryRuntimeCache(key)`                                  | recognizes older inventory runtime cache names for cleanup                                            |
+| `timeoutWith(response, timeoutMs)`                              | returns a cached fallback after the configured low-network timeout                                    |
+| `fetchWithTimeout(request, timeoutMs)`                          | bounds core-asset warmup fetches with `AbortController`                                               |
+| `cacheResponse(request, response)`                              | writes one response clone into the runtime cache                                                      |
+| `navigationFallbackResponse(cache, fallbackUrl)`                | resolves cached page fallback content or the generated offline page                                   |
+| `navigationNetworkFirst(request, fallbackUrl, preloadResponse)` | tries navigation preload/network first, updates cache on success, and falls back to cached content    |
+| `staleWhileRevalidate(request)`                                 | serves cached static assets while refreshing them in the background                                   |
+| `warmCoreCache()`                                               | prefetches core app-shell assets during service-worker installation                                   |
 
 #### `public/js/permission-contract.js` function inventory
 
@@ -1195,6 +1210,8 @@ Current hardening that is visible in the codebase:
 - auth-sensitive responses mark `Cache-Control: no-store`
 - `/service-worker.js` is served with `Cache-Control: no-cache` and `Service-Worker-Allowed: /` so updates are checked while preserving root scope
 - the service worker bypasses `/api/*`, so authenticated JSON, exports, invoice PDFs, report data, stock data, and payment state are never fulfilled from browser Cache Storage
+- the service worker also bypasses health, liveness, readiness, and `/network-check` routes so diagnostic results are never satisfied from stale app-shell cache
+- `/network-check(.html)` is generated with `Cache-Control: no-store`, `Pragma: no-cache`, and `X-Robots-Tag: noindex, nofollow`
 - developer support login now relies on the `developer_support_token` cookie rather than returning a browser-readable token in the response body
 - owner-only delete routes for customer ledgers, supplier ledgers, purchase bills, and purchase items are protected with `requireOwner`; the frontend also hides their 3-dot menus from staff sessions
 - Excel export sanitizes formula-like cell values in [`../routes/inventory.js`](../routes/inventory.js)
@@ -1431,7 +1448,7 @@ developer-login.html
 
 ## 11. API Route Map
 
-Most endpoints below are mounted under either `/api/auth` or `/api`; health routes also exist at non-API paths for deployment probes.
+Most endpoints below are mounted under either `/api/auth` or `/api`; health and diagnostic routes also exist at non-API paths for deployment probes and mobile-network troubleshooting.
 
 ### 11.1 Auth routes from `routes/auth.js`
 
@@ -1562,6 +1579,12 @@ All ops routes require an owner session.
 | ------ | ------------------------------------------------------------------------------------------------------ | -------------------------------- |
 | `GET`  | `/health`, `/api/health`, `/healthz`, `/api/healthz`, `/ready`, `/api/ready`, `/readyz`, `/api/readyz` | readiness with DB state          |
 | `GET`  | `/live`, `/api/live`, `/livez`, `/api/livez`                                                           | liveness without DB-ready gating |
+
+### 11.9 Network diagnostic route from `server.js`
+
+| Method | Path group                              | Purpose                                                                          |
+| ------ | --------------------------------------- | -------------------------------------------------------------------------------- |
+| `GET`  | `/network-check`, `/network-check.html` | no-store browser diagnostic page that checks `/live`, `/health`, and `/api/live` |
 
 ## 12. Database Schema
 
@@ -2645,6 +2668,8 @@ Edit:
 - [`../utils/background-jobs.js`](../utils/background-jobs.js)
 - [`../railway.json`](../railway.json)
 
+For carrier, DNS, SSL, or weak-network debugging, start with `/network-check` and the liveness route `/live`. If those routes fail on one network but not another, investigate the deployed domain/DNS/SSL path before changing business API code.
+
 ### If you want to change caching, pagination, or queued exports
 
 Edit:
@@ -2658,7 +2683,7 @@ Edit:
 - [`../public/service-worker.js`](../public/service-worker.js) for browser/WebView app-shell and static asset caching
 - [`../server.js`](../server.js) for static asset headers, service-worker headers, and HTML bootstrap injection
 
-Do not add `/api/*` handling to the service worker unless the endpoint has an explicit stale-data policy. Current business data freshness depends on API requests going to the network.
+Do not add `/api/*` handling to the service worker unless the endpoint has an explicit stale-data policy. Current business data freshness depends on API requests going to the network. Keep health, liveness, readiness, and `/network-check` paths network-only so diagnostics remain trustworthy.
 
 ### If you want to change owner ops metrics
 
@@ -2682,18 +2707,19 @@ flowchart TB
     Reset["public/reset.html<br/>password reset"]
     Privacy["public/privacy-policy.html<br/>privacy policy"]
     AccountDeletion["public/account-deletion.html<br/>account deletion instructions"]
+    NetworkCheck["server-generated /network-check<br/>first-party reachability diagnostics"]
     AppCore["public/js/app-core.js<br/>apiBase | page metadata | shared helpers"]
     AppShell["public/js/app-shell.js<br/>sidebar shell | refresh button | page navigation"]
     Permissions["public/js/permission-contract.js<br/>permission keys shared by frontend and backend"]
     SWRegister["public/js/service-worker-register.js<br/>secure-origin worker registration"]
-    ServiceWorker["public/service-worker.js<br/>network-first app shell/static cache"]
+    ServiceWorker["public/service-worker.js<br/>network-first app shell/static cache | diagnostic bypass"]
     DashJS["public/js/dashboard.js<br/>dashboard UI orchestration"]
     DevLoginJS["public/js/developer-login.js<br/>developer auth UI controller"]
     DevSupportJS["public/js/developer-support.js<br/>developer inbox controller"]
   end
 
   subgraph Server["Express backend"]
-    Entry["server.js<br/>health routes | request IDs | CORS | CSP nonce | worker-src | helmet | compression | HTML/service-worker bootstrap | background jobs"]
+    Entry["server.js<br/>health routes | network-check | request IDs | CORS | CSP nonce | worker-src | helmet | compression | HTML/service-worker bootstrap | background jobs"]
     AuthMW["middleware/auth.js<br/>cookie-first JWT auth | staff permission reload | developer support auth"]
     CacheMW["middleware/cache.js<br/>owner-scoped short TTL JSON cache"]
     ExportMW["middleware/export-queue.js<br/>async PDF/Excel queue trigger"]
@@ -2750,7 +2776,7 @@ flowchart TB
 
   AppCore --> Entry
   AppShell --> Entry
-  ServiceWorker -->|"network-first shell/static only; bypasses /api/*"| Entry
+  ServiceWorker -->|"network-first shell/static only; bypasses /api/* and diagnostics"| Entry
   DashJS --> Entry
   DevLoginJS --> Entry
   DevSupportJS --> Entry
@@ -2760,6 +2786,7 @@ flowchart TB
   Dashboard -->|"GET/POST/DELETE /api/* plus queued export polling"| Entry
   Invoice -->|"GET/POST /api/invoices* including /api/invoices/customers, /api/shop-info, and queued PDF polling"| Entry
   Reset -->|"POST /api/auth/reset-password"| Entry
+  NetworkCheck -->|"GET /live, /health, /api/live"| Entry
 
   Entry --> AuthMW
   Entry --> CacheMW
@@ -3034,8 +3061,9 @@ This codebase is organized around a single owner-scoped business workspace:
 - destructive ledger cleanup is owner-only: customer ledger deletes sync invoice balances, while purchase/supplier deletes reverse stock before removing purchase data
 - the support system adds owner/staff requester threads plus a dedicated developer inbox backed by `developer_admins`, `support_conversations`, and `support_messages`
 - runtime behavior now includes structured lifecycle/request logging, request metrics, DB-pool backpressure protection, background cleanup, queued export jobs, and readiness/liveness health endpoints
+- `/network-check` provides a first-party diagnostic page for mobile/carrier reachability checks against `/live`, `/health`, and `/api/live`
 - deployment defaults for Railway are codified in [`../railway.json`](../railway.json)
 - Android users can install through the Play Store link on `login.html`, while `site.webmanifest` keeps browser/PWA install metadata available
-- browser/PWA/WebView clients now get a service-worker app-shell/static cache that improves low-network loading while bypassing `/api/*` for live business data
+- browser/PWA/WebView clients now get a service-worker app-shell/static cache that improves low-network loading while bypassing `/api/*` and diagnostic paths for live business data and trustworthy troubleshooting
 - the Android wrapper lives at `C:\Users\Dipayan\AndroidStudioProjects\IndiaInventoryManagement` and must be released through Play Store only when native WebView, signing, SDK, version, permission, or native asset behavior changes
 - this document now contains both a reusable function catalogue and a schema-level table dictionary in addition to the higher-level architecture notes
