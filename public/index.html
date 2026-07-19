@@ -1639,6 +1639,9 @@
         z-index: 2200;
         max-height: 240px;
         overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
         border: 1px solid rgba(148, 163, 184, 0.2);
         border-radius: 16px;
         background: rgba(255, 255, 255, 0.98);
@@ -1650,6 +1653,12 @@
         padding: 12px 14px;
         color: var(--ink-main);
         cursor: pointer;
+        touch-action: pan-y;
+      }
+
+      #productPurchaseSearchDropdown,
+      #itemReportDropdown {
+        max-height: min(320px, 54vh);
       }
 
       .dropdown-item:hover {

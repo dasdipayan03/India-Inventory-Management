@@ -2215,6 +2215,132 @@ function bindSupportEvents() {
   }
 }
 
+function setupScrollableDropdown(listEl) {
+  if (!listEl || listEl.dataset.scrollGuardBound === "true") {
+    return;
+  }
+
+  listEl.dataset.scrollGuardBound = "true";
+  let interactionTimer = 0;
+  let startX = 0;
+  let startY = 0;
+  let startScrollTop = 0;
+  let movedDuringGesture = false;
+  let gestureActive = false;
+  let suppressClickTimer = 0;
+
+  const markInteracting = () => {
+    listEl.dataset.interacting = "true";
+    if (interactionTimer) {
+      window.clearTimeout(interactionTimer);
+    }
+  };
+
+  const releaseInteracting = () => {
+    if (interactionTimer) {
+      window.clearTimeout(interactionTimer);
+    }
+    interactionTimer = window.setTimeout(() => {
+      listEl.dataset.interacting = "";
+    }, 260);
+  };
+
+  const suppressNextClickBriefly = () => {
+    listEl.dataset.suppressNextClick = "true";
+    if (suppressClickTimer) {
+      window.clearTimeout(suppressClickTimer);
+    }
+    suppressClickTimer = window.setTimeout(() => {
+      listEl.dataset.suppressNextClick = "";
+    }, 320);
+  };
+
+  const getGesturePoint = (event) =>
+    event.touches?.[0] || event.changedTouches?.[0] || event;
+
+  const beginGesture = (event) => {
+    const point = getGesturePoint(event);
+    startX = Number(point?.clientX || 0);
+    startY = Number(point?.clientY || 0);
+    startScrollTop = listEl.scrollTop;
+    movedDuringGesture = false;
+    gestureActive = true;
+    listEl.dataset.suppressNextClick = "";
+    markInteracting();
+  };
+
+  const trackGesture = (event) => {
+    if (!gestureActive) {
+      return;
+    }
+
+    const point = getGesturePoint(event);
+    const deltaX = Math.abs(Number(point?.clientX || 0) - startX);
+    const deltaY = Math.abs(Number(point?.clientY || 0) - startY);
+    if (deltaX > 8 || deltaY > 8) {
+      movedDuringGesture = true;
+      suppressNextClickBriefly();
+    }
+    markInteracting();
+  };
+
+  const endGesture = () => {
+    if (!gestureActive) {
+      releaseInteracting();
+      return;
+    }
+
+    if (
+      movedDuringGesture ||
+      Math.abs(Number(listEl.scrollTop || 0) - startScrollTop) > 1
+    ) {
+      suppressNextClickBriefly();
+    }
+    gestureActive = false;
+    releaseInteracting();
+  };
+
+  listEl.addEventListener("pointerdown", beginGesture, { passive: true });
+  listEl.addEventListener("pointermove", trackGesture, { passive: true });
+  listEl.addEventListener("pointerup", endGesture, { passive: true });
+  listEl.addEventListener("pointercancel", endGesture, {
+    passive: true,
+  });
+  listEl.addEventListener("mousedown", beginGesture, { passive: true });
+  listEl.addEventListener("mousemove", trackGesture, { passive: true });
+  listEl.addEventListener("mouseup", endGesture, { passive: true });
+  listEl.addEventListener("touchstart", beginGesture, { passive: true });
+  listEl.addEventListener("touchmove", trackGesture, { passive: true });
+  listEl.addEventListener("touchend", endGesture, { passive: true });
+  listEl.addEventListener("touchcancel", endGesture, {
+    passive: true,
+  });
+  listEl.addEventListener(
+    "scroll",
+    () => {
+      markInteracting();
+      suppressNextClickBriefly();
+      releaseInteracting();
+    },
+    { passive: true },
+  );
+}
+
+function scheduleDropdownHide(listEl, delay = 160) {
+  if (!listEl) {
+    return;
+  }
+
+  window.setTimeout(() => {
+    if (listEl.dataset.interacting === "true") {
+      scheduleDropdownHide(listEl, 220);
+      return;
+    }
+
+    hideElement(listEl);
+  }, delay);
+}
+
 function renderDropdown(listEl, items, onSelect) {
   if (!items.length) {
     hideElement(listEl);
@@ -2239,8 +2365,8 @@ function renderDropdown(listEl, items, onSelect) {
     })
     .join("");
 
+  setupScrollableDropdown(listEl);
   showElement(listEl);
-  let selectedBeforeClick = false;
   const selectFromEvent = (event) => {
     const entry = event.target.closest(".dropdown-item");
     if (!entry || !listEl.contains(entry)) {
@@ -2251,34 +2377,18 @@ function renderDropdown(listEl, items, onSelect) {
     hideElement(listEl);
   };
 
-  const handleEarlySelect = (event) => {
-    if (selectedBeforeClick) {
-      return;
-    }
-
-    event.preventDefault();
-    selectedBeforeClick = true;
-    selectFromEvent(event);
-  };
-
-  if (window.PointerEvent) {
-    listEl.onpointerdown = handleEarlySelect;
-    listEl.onmousedown = null;
-    listEl.ontouchstart = null;
-  } else {
-    listEl.onpointerdown = null;
-    listEl.onmousedown = handleEarlySelect;
-    listEl.ontouchstart = handleEarlySelect;
-  }
-
   listEl.onclick = (event) => {
-    if (selectedBeforeClick) {
-      selectedBeforeClick = false;
+    if (listEl.dataset.suppressNextClick === "true") {
+      event.preventDefault();
+      listEl.dataset.suppressNextClick = "";
       return;
     }
 
     selectFromEvent(event);
   };
+  listEl.onpointerdown = null;
+  listEl.onmousedown = null;
+  listEl.ontouchstart = null;
 }
 
 async function renderItemNameDropdown(input, listEl, onSelect) {
@@ -3165,9 +3275,7 @@ function addPurchaseItemRow(item = {}, options = {}) {
   });
 
   itemInput.addEventListener("blur", () => {
-    window.setTimeout(() => {
-      hideElement(dropdown);
-    }, 120);
+    scheduleDropdownHide(dropdown);
 
     const exactMatch = resolveExactItemName(itemInput.value);
     if (exactMatch) {
