@@ -513,23 +513,23 @@
       }
 
       #lineItemsCard thead th:nth-child(1) {
-        width: 24%;
+        width: 22%;
       }
 
       #lineItemsCard thead th:nth-child(2) {
-        width: 9%;
+        width: 8%;
       }
 
       #lineItemsCard thead th:nth-child(3) {
-        width: 19%;
+        width: 18%;
       }
 
       #lineItemsCard thead th:nth-child(4) {
-        width: 12%;
+        width: 10%;
       }
 
       #lineItemsCard thead th:nth-child(5) {
-        width: 8%;
+        width: 9%;
       }
 
       #lineItemsCard thead th:nth-child(6) {
@@ -537,11 +537,15 @@
       }
 
       #lineItemsCard thead th:nth-child(7) {
-        width: 11%;
+        width: 8%;
       }
 
       #lineItemsCard thead th:nth-child(8) {
-        width: 9%;
+        width: 10%;
+      }
+
+      #lineItemsCard thead th:nth-child(9) {
+        width: 7%;
       }
 
       #lineItemsCard tbody td {
@@ -576,7 +580,7 @@
 
       #lineItemsCard tbody tr {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 10px;
         margin: 0;
         padding: 12px;
@@ -628,24 +632,28 @@
         order: 3;
       }
 
-      #lineItemsCard tbody td[data-label="Base"] {
+      #lineItemsCard tbody td[data-label="Sale %"] {
         order: 4;
       }
 
-      #lineItemsCard tbody td[data-label="GST"] {
+      #lineItemsCard tbody td[data-label="Base"] {
         order: 5;
       }
 
-      #lineItemsCard tbody td[data-label="Scan / SL-SN"] {
+      #lineItemsCard tbody td[data-label="GST"] {
         order: 6;
       }
 
-      #lineItemsCard tbody td[data-label="Total"] {
+      #lineItemsCard tbody td[data-label="Scan / SL-SN"] {
         order: 7;
       }
 
-      #lineItemsCard tbody td[data-label="Remove"] {
+      #lineItemsCard tbody td[data-label="Total"] {
         order: 8;
+      }
+
+      #lineItemsCard tbody td[data-label="Remove"] {
+        order: 9;
       }
 
       #lineItemsCard tbody td[data-label="Base"],
@@ -710,6 +718,9 @@
         z-index: 30;
         max-height: 220px;
         overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
         border-radius: 16px;
         border: 1px solid var(--line);
         background: rgba(255, 255, 255, 0.98);
@@ -744,6 +755,7 @@
       #lineItemsCard .item-input,
       #lineItemsCard .serial-input,
       #lineItemsCard .rate-input,
+      #lineItemsCard .profit-input,
       #lineItemsCard .total-input {
         min-width: 0;
       }
@@ -2047,24 +2059,28 @@
           order: 3;
         }
 
-        tbody td[data-label="Base"] {
+        tbody td[data-label="Sale %"] {
           order: 4;
         }
 
-        tbody td[data-label="GST"] {
+        tbody td[data-label="Base"] {
           order: 5;
         }
 
-        tbody td[data-label="Scan / SL-SN"] {
+        tbody td[data-label="GST"] {
           order: 6;
         }
 
-        tbody td[data-label="Total"] {
+        tbody td[data-label="Scan / SL-SN"] {
           order: 7;
         }
 
-        tbody td[data-label="Remove"] {
+        tbody td[data-label="Total"] {
           order: 8;
+        }
+
+        tbody td[data-label="Remove"] {
+          order: 9;
         }
 
         tbody td[data-label="Base"],
@@ -2096,6 +2112,7 @@
           right: 0;
           min-width: 100%;
           max-width: 100%;
+          max-height: min(280px, 50vh);
         }
 
         #lineItemsCard .remove-btn {
@@ -2354,6 +2371,7 @@
                     <th>Qty</th>
                     <th>Scan / SL-SN</th>
                     <th>Rate</th>
+                    <th>Sale %</th>
                     <th>Base</th>
                     <th>GST</th>
                     <th>Total</th>
@@ -3698,6 +3716,9 @@
           quantity:
             parseFloat(row.querySelector(".qty-input")?.value || "0") || 0,
           rate: parseFloat(row.querySelector(".rate-input")?.value || "0") || 0,
+          sale_profit_percent:
+            parseFloat(row.querySelector(".profit-input")?.value || "0") || 0,
+          buying_rate: parseFloat(row.dataset.buyingRate || "0") || 0,
           total:
             parseFloat(row.querySelector(".total-input")?.value || "0") || 0,
           serial_numbers: getRowSerialNumbers(row),
@@ -4079,13 +4100,69 @@
             hideElement(el);
           });
 
+        const setupScrollableDropdown = (host) => {
+          if (!host || host.dataset.scrollGuardBound === "true") {
+            return;
+          }
+
+          host.dataset.scrollGuardBound = "true";
+          let interactionTimer = 0;
+          const markInteracting = () => {
+            host.dataset.interacting = "true";
+            if (interactionTimer) {
+              clearTimeout(interactionTimer);
+            }
+          };
+          const releaseInteracting = () => {
+            if (interactionTimer) {
+              clearTimeout(interactionTimer);
+            }
+            interactionTimer = setTimeout(() => {
+              host.dataset.interacting = "";
+            }, 260);
+          };
+
+          host.addEventListener("pointerdown", markInteracting, {
+            passive: true,
+          });
+          host.addEventListener("pointerup", releaseInteracting, {
+            passive: true,
+          });
+          host.addEventListener("pointercancel", releaseInteracting, {
+            passive: true,
+          });
+          host.addEventListener(
+            "scroll",
+            () => {
+              markInteracting();
+              releaseInteracting();
+            },
+            { passive: true },
+          );
+        };
+
+        const scheduleDropdownHide = (host, delay = 160) => {
+          if (!host) {
+            return;
+          }
+
+          setTimeout(() => {
+            if (host.dataset.interacting === "true") {
+              scheduleDropdownHide(host, 220);
+              return;
+            }
+            hideElement(host);
+          }, delay);
+        };
+
         const renderDropdown = (host, items, onSelect) => {
           if (!items.length) {
             host.innerHTML = "";
             hideElement(host);
-            host.onpointerdown = null;
+            host.onclick = null;
             return;
           }
+          setupScrollableDropdown(host);
           host.innerHTML = items
             .map(
               (item) =>
@@ -4093,7 +4170,7 @@
             )
             .join("");
           showElement(host);
-          host.onpointerdown = (event) => {
+          host.onclick = (event) => {
             const node = event.target.closest(".dropdown-item");
             if (!node || !host.contains(node)) {
               return;
@@ -4129,7 +4206,7 @@
 
           if (!customers.length) {
             dom.customerDropdown.innerHTML = "";
-            dom.customerDropdown.onpointerdown = null;
+            dom.customerDropdown.onclick = null;
             hideElement(dom.customerDropdown);
             return;
           }
@@ -4167,7 +4244,7 @@
             .join("");
 
           showElement(dom.customerDropdown);
-          dom.customerDropdown.onpointerdown = (event) => {
+          dom.customerDropdown.onclick = (event) => {
             const node = event.target.closest(".dropdown-item--customer");
             if (!node || !dom.customerDropdown.contains(node)) return;
 
@@ -4207,7 +4284,7 @@
           if (!suggestions.length) {
             host.innerHTML = "";
             hideElement(host);
-            host.onpointerdown = null;
+            host.onclick = null;
             return;
           }
 
@@ -4233,7 +4310,7 @@
             .join("");
 
           showElement(host);
-          host.onpointerdown = (event) => {
+          host.onclick = (event) => {
             const node = event.target.closest(".dropdown-item--invoice");
             if (!node || !host.contains(node)) {
               return;
@@ -4471,6 +4548,9 @@
               <div class="stock serial-stock"></div>
             </td>
             <td data-label="Rate"><input class="input rate-input" type="number" min="0" step="0.01" /></td>
+            <td data-label="Sale %">
+              <input class="input profit-input" type="number" min="-100" step="0.01" placeholder="0.00" />
+            </td>
             <td data-label="Base"><div class="calc base-cell">0.00</div></td>
             <td data-label="GST"><div class="calc gst-cell">0.00</div></td>
             <td data-label="Total">
@@ -4490,6 +4570,7 @@
           const serialSlots = tr.querySelector(".serial-slots");
           const qtyInput = tr.querySelector(".qty-input");
           const rateInput = tr.querySelector(".rate-input");
+          const profitInput = tr.querySelector(".profit-input");
           const baseCell = tr.querySelector(".base-cell");
           const gstCell = tr.querySelector(".gst-cell");
           const totalInput = tr.querySelector(".total-input");
@@ -4504,10 +4585,17 @@
             ? item.serial_numbers
             : [];
           rateInput.value = item.rate ?? 0;
+          profitInput.value =
+            item.sale_profit_percent !== undefined &&
+            item.sale_profit_percent !== null
+              ? Number(item.sale_profit_percent || 0).toFixed(2)
+              : "";
           totalInput.value = item.total ?? 0;
 
           let availableQty = 0;
           let hasStock = false;
+          let buyingRate = Number(item.buying_rate || 0) || 0;
+          tr.dataset.buyingRate = buyingRate > 0 ? String(buyingRate) : "";
           let serialRateSyncTimer = null;
           let serialRateLookupId = 0;
           const serialMetaByKey = new Map();
@@ -4572,10 +4660,11 @@
             if (!dropdownItems.length) {
               dropdownHost.innerHTML = "";
               hideElement(dropdownHost);
-              dropdownHost.onpointerdown = null;
+              dropdownHost.onclick = null;
               return;
             }
 
+            setupScrollableDropdown(dropdownHost);
             dropdownHost.innerHTML = dropdownItems
               .map((serial, index) => {
                 const rate =
@@ -4592,7 +4681,7 @@
               })
               .join("");
             showElement(dropdownHost);
-            dropdownHost.onpointerdown = (event) => {
+            dropdownHost.onclick = (event) => {
               const node = event.target.closest(".dropdown-item");
               if (!node || !dropdownHost.contains(node)) {
                 return;
@@ -4877,7 +4966,7 @@
                 void loadSerialSuggestions(input, dropdownHost);
               });
               input.addEventListener("blur", () =>
-                setTimeout(() => hideElement(dropdownHost), 120),
+                scheduleDropdownHide(dropdownHost),
               );
               scanBtn.addEventListener("click", () => {
                 startSerialCameraScan((serialNo) =>
@@ -4895,7 +4984,41 @@
             itemInput.title = itemInput.value.trim();
           };
 
-          const fromRate = () => {
+          const setBuyingRate = (value) => {
+            const nextBuyingRate = Number.parseFloat(value);
+            buyingRate =
+              Number.isFinite(nextBuyingRate) && nextBuyingRate > 0
+                ? nextBuyingRate
+                : 0;
+            tr.dataset.buyingRate = buyingRate > 0 ? String(buyingRate) : "";
+          };
+
+          const clearBuyingRate = () => {
+            setBuyingRate(0);
+            profitInput.value = "";
+          };
+
+          const syncProfitFromRate = (options = {}) => {
+            if (
+              !options.force &&
+              document.activeElement === profitInput
+            ) {
+              return;
+            }
+
+            const rate = Number.parseFloat(rateInput.value || "0");
+            if (!buyingRate || !Number.isFinite(rate)) {
+              profitInput.value = "";
+              return;
+            }
+
+            const profitPercent = ((rate - buyingRate) / buyingRate) * 100;
+            profitInput.value = Number.isFinite(profitPercent)
+              ? profitPercent.toFixed(2)
+              : "";
+          };
+
+          const fromRate = (options = {}) => {
             const q = parseFloat(qtyInput.value || "0") || 0;
             const r = parseFloat(rateInput.value || "0") || 0;
             const base = +(q * r).toFixed(4);
@@ -4904,6 +5027,9 @@
             baseCell.textContent = base.toFixed(2);
             gstCell.textContent = gst.toFixed(2);
             totalInput.value = total.toFixed(2);
+            if (!options.preserveProfitInput) {
+              syncProfitFromRate();
+            }
             validateQty();
             recalcTotals();
           };
@@ -4915,6 +5041,7 @@
               rateInput.value = "0";
               baseCell.textContent = "0.00";
               gstCell.textContent = "0.00";
+              syncProfitFromRate();
               recalcTotals();
               return;
             }
@@ -4923,8 +5050,23 @@
             rateInput.value = (base / q).toFixed(4);
             baseCell.textContent = base.toFixed(2);
             gstCell.textContent = gst.toFixed(2);
+            syncProfitFromRate();
             validateQty();
             recalcTotals();
+          };
+
+          const fromProfit = () => {
+            const profitPercent = Number.parseFloat(profitInput.value);
+            if (!buyingRate || !Number.isFinite(profitPercent)) {
+              return;
+            }
+
+            const nextRate = Math.max(
+              0,
+              buyingRate * (1 + profitPercent / 100),
+            );
+            rateInput.value = nextRate.toFixed(4);
+            fromRate({ preserveProfitInput: true });
           };
 
           const loadItemInfo = async (name) => {
@@ -4934,11 +5076,13 @@
             );
             if (!res || !res.ok) {
               clearStock();
+              clearBuyingRate();
               fromRate();
               return;
             }
             const data = await res.json();
             tr.dataset.manualRate = "";
+            setBuyingRate(data.buying_rate);
             rateInput.value = data.selling_rate || 0;
             availableQty = parseFloat(data.quantity || "0") || 0;
             hasStock = true;
@@ -4988,6 +5132,7 @@
           itemInput.addEventListener("input", () => {
             serialMetaByKey.clear();
             tr.dataset.manualRate = "";
+            clearBuyingRate();
             void showItemSuggestions();
             updateSerialState();
             scheduleSerialRateSync();
@@ -5000,7 +5145,7 @@
           });
 
           itemInput.addEventListener("blur", () =>
-            setTimeout(() => hideElement(dropdown), 120),
+            scheduleDropdownHide(dropdown),
           );
           qtyInput.addEventListener("input", () => {
             renderSerialSlots(getRowSerialNumbers(tr));
@@ -5018,6 +5163,18 @@
           totalInput.addEventListener("input", () => {
             tr.dataset.manualRate = "true";
             fromTotal();
+            queueDraft();
+          });
+          profitInput.addEventListener("input", () => {
+            tr.dataset.manualRate = "true";
+            if (getRowSerialNumbers(tr).length) {
+              scheduleSerialRateSync();
+            }
+            fromProfit();
+            queueDraft();
+          });
+          profitInput.addEventListener("blur", () => {
+            syncProfitFromRate({ force: true });
             queueDraft();
           });
 
